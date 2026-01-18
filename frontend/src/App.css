@@ -1,42 +1,121 @@
+/* --- Header Styles --- */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 40px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-button {
+    background-color: #646cff;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+}
+.nav-button:hover { background-color: #535bf2; }
+
+/* --- User Avatar & Dropdown --- */
+.user-info {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    background-color: #646cff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Dropdown Box */
+.dropdown-menu {
+    position: absolute;
+    top: 120%; /* Nằm ngay dưới avatar */
+    right: 0;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    width: 180px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    padding: 5px 0;
+    z-index: 1001;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 10px 15px;
+    color: #e0e0e0;
+    text-decoration: none;
+    text-align: left;
+    transition: background 0.2s;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.dropdown-item:hover {
+    background-color: #3a3a3a;
+    color: white;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #444;
+    margin: 5px 0;
+}
+
+.logout-btn {
+    color: #ff6b6b; /* Màu đỏ cho nút logout */
+}
+/* Xóa bỏ giới hạn chiều rộng để web full màn hình */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Nếu muốn căn giữa toàn bộ nội dung trong #root */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Chiều cao tối thiểu bằng màn hình */
+}
+
+/* Class cho container chính của trang Home/Login */
+.container-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Căn giữa ngang */
+  justify-content: center; /* Căn giữa dọc */
+  min-height: 100vh;
   text-align: center;
+  background-color: #242424; /* Màu nền tối */
+  color: white;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Style cho link */
+.nav-link {
+  margin: 0 15px;
+  color: #646cff;
+  text-decoration: none;
+  font-size: 1.2rem;
+  font-weight: bold;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+.nav-link:hover {
+  color: #535bf2;
+  text-decoration: underline;
 }

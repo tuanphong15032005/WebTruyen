@@ -1,73 +1,27 @@
-﻿/* =============================================
-   PHẦN 0: TẠO VÀ CHỌN DATABASE
-   (Thêm đoạn này vào đầu file)
-   ============================================= */
-USE master;
+﻿USE master;
 GO
 
--- Kiểm tra nếu chưa có Database tên là 'NovelDB' thì tạo mới
-IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'NovelDB')
+-- Kiểm tra nếu Database 'NovelDB' đã tồn tại thì xóa bỏ
+IF DB_ID('NovelDB') IS NOT NULL
 BEGIN
-    CREATE DATABASE NovelDB; -- Bạn có thể đổi tên 'NovelDB' tùy ý
+    PRINT '>>> Phat hien Database NovelDB cu. Dang xoa...';
+    -- Chuyển sang chế độ Single User để ngắt ngay lập tức các kết nối khác
+    ALTER DATABASE NovelDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE NovelDB;
+    PRINT '>>> Da xoa Database NovelDB cu.';
 END
+GO
+
+-- Tạo mới Database
+CREATE DATABASE NovelDB;
 GO
 
 -- Chuyển sang sử dụng Database vừa tạo
 USE NovelDB;
 GO
+PRINT '>>> Da tao moi va dang su dung Database NovelDB.';
 
-/* =============================================
-   BẮT ĐẦU SCRIPT CŨ TỪ ĐÂY
-   ============================================= */
--- /************************************************************
---   Clean drop (reverse order) ...
--- ************************************************************/
--- IF OBJECT_ID('dbo.coin_conversion_rules','U') IS NOT NULL...
-/************************************************************
-  Clean drop (reverse order) - safe for re-run in dev
-************************************************************/
-IF OBJECT_ID('dbo.coin_conversion_rules','U') IS NOT NULL DROP TABLE dbo.coin_conversion_rules;
-IF OBJECT_ID('dbo.user_roles','U') IS NOT NULL DROP TABLE dbo.user_roles;
-IF OBJECT_ID('dbo.role_permissions','U') IS NOT NULL DROP TABLE dbo.role_permissions;
-IF OBJECT_ID('dbo.permissions','U') IS NOT NULL DROP TABLE dbo.permissions;
-IF OBJECT_ID('dbo.author_analytics_cache','U') IS NOT NULL DROP TABLE dbo.author_analytics_cache;
-IF OBJECT_ID('dbo.payouts','U') IS NOT NULL DROP TABLE dbo.payouts;
-IF OBJECT_ID('dbo.user_daily_status','U') IS NOT NULL DROP TABLE dbo.user_daily_status;
-IF OBJECT_ID('dbo.daily_missions','U') IS NOT NULL DROP TABLE dbo.daily_missions;
-IF OBJECT_ID('dbo.user_achievements','U') IS NOT NULL DROP TABLE dbo.user_achievements;
-IF OBJECT_ID('dbo.achievements','U') IS NOT NULL DROP TABLE dbo.achievements;
-IF OBJECT_ID('dbo.drafts','U') IS NOT NULL DROP TABLE dbo.drafts;
-IF OBJECT_ID('dbo.pen_names','U') IS NOT NULL DROP TABLE dbo.pen_names;
-IF OBJECT_ID('dbo.moderation_actions','U') IS NOT NULL DROP TABLE dbo.moderation_actions;
-IF OBJECT_ID('dbo.reports','U') IS NOT NULL DROP TABLE dbo.reports;
-IF OBJECT_ID('dbo.comments','U') IS NOT NULL DROP TABLE dbo.comments;
-IF OBJECT_ID('dbo.reading_progress_summary','U') IS NOT NULL DROP TABLE dbo.reading_progress_summary;
-IF OBJECT_ID('dbo.reading_events','U') IS NOT NULL DROP TABLE dbo.reading_events;
-IF OBJECT_ID('dbo.reading_sessions','U') IS NOT NULL DROP TABLE dbo.reading_sessions;
-IF OBJECT_ID('dbo.content_segments','U') IS NOT NULL DROP TABLE dbo.content_segments;
-IF OBJECT_ID('dbo.bookmarks','U') IS NOT NULL DROP TABLE dbo.bookmarks;
-IF OBJECT_ID('dbo.library_entries','U') IS NOT NULL DROP TABLE dbo.library_entries;
-IF OBJECT_ID('dbo.follows','U') IS NOT NULL DROP TABLE dbo.follows;
-IF OBJECT_ID('dbo.donations','U') IS NOT NULL DROP TABLE dbo.donations;
-IF OBJECT_ID('dbo.chapter_purchases','U') IS NOT NULL DROP TABLE dbo.chapter_purchases;
-IF OBJECT_ID('dbo.transactions','U') IS NOT NULL DROP TABLE dbo.transactions;
-IF OBJECT_ID('dbo.story_tags','U') IS NOT NULL DROP TABLE dbo.story_tags;
-IF OBJECT_ID('dbo.tags','U') IS NOT NULL DROP TABLE dbo.tags;
-IF OBJECT_ID('dbo.chapters','U') IS NOT NULL DROP TABLE dbo.chapters;
-IF OBJECT_ID('dbo.volumes','U') IS NOT NULL DROP TABLE dbo.volumes;
-IF OBJECT_ID('dbo.stories','U') IS NOT NULL DROP TABLE dbo.stories;
-IF OBJECT_ID('dbo.wallet_balances','U') IS NOT NULL DROP TABLE dbo.wallet_balances;
-IF OBJECT_ID('dbo.wallets','U') IS NOT NULL DROP TABLE dbo.wallets;
-IF OBJECT_ID('dbo.coin_types','U') IS NOT NULL DROP TABLE dbo.coin_types;
-IF OBJECT_ID('dbo.roles','U') IS NOT NULL DROP TABLE dbo.roles;
-IF OBJECT_ID('dbo.users','U') IS NOT NULL DROP TABLE dbo.users;
-GO
-
-/************************************************************
-  Create tables (clean order)
-  NOTE: All FOREIGN KEY constraints intentionally use default
-  delete behavior (NO ACTION) to avoid multiple-cascade issues.
-************************************************************/
+  --PHẦN 1: TẠO CÁC BẢNG (TABLES)
 
 -- 1) users
 CREATE TABLE dbo.users (
@@ -77,6 +31,7 @@ CREATE TABLE dbo.users (
     username NVARCHAR(100) NOT NULL,
     display_name NVARCHAR(200) NULL,
     is_verified BIT NOT NULL DEFAULT 0,
+    verification_code VARCHAR(10) NULL,
     bio NVARCHAR(MAX) NULL,
     avatar_url NVARCHAR(1000) NULL,
     settings_json NVARCHAR(MAX) NULL,
@@ -530,10 +485,9 @@ CREATE TABLE dbo.coin_conversion_rules (
 CREATE INDEX IX_coin_conversion_action ON dbo.coin_conversion_rules(action, effective_from);
 GO
 
-/************************************************************
-  Add FOREIGN KEY constraints (separately) - default NO ACTION
-  This avoids multiple cascade path errors.
-************************************************************/
+/* =============================================
+   PHẦN 2: TẠO KHÓA NGOẠI (FOREIGN KEYS)
+   ============================================= */
 
 -- users referenced by multiple tables
 ALTER TABLE dbo.wallets
@@ -717,9 +671,7 @@ ALTER TABLE dbo.author_analytics_cache
   ADD CONSTRAINT FK_aac_author FOREIGN KEY (author_id) REFERENCES dbo.users(id);
 
 ALTER TABLE dbo.permissions
-  -- no FK
-  ADD CONSTRAINT DF_permissions_dummy DEFAULT (NULL) FOR description; -- harmless
-;
+  ADD CONSTRAINT DF_permissions_dummy DEFAULT (NULL) FOR description;
 
 ALTER TABLE dbo.role_permissions
   ADD CONSTRAINT FK_rp_role FOREIGN KEY (role_id) REFERENCES dbo.roles(id);
@@ -739,7 +691,7 @@ ALTER TABLE dbo.coin_conversion_rules
 ALTER TABLE dbo.coin_conversion_rules
   ADD CONSTRAINT FK_conv_to_cointype FOREIGN KEY (to_coin_type_id) REFERENCES dbo.coin_types(id);
 
--- Additional FK links for earlier-created tables that reference others
+-- FK bổ sung
 ALTER TABLE dbo.volumes
   ADD CONSTRAINT FK_volumes_story_ref FOREIGN KEY (story_id) REFERENCES dbo.stories(id);
 
@@ -752,18 +704,8 @@ ALTER TABLE dbo.wallets
 ALTER TABLE dbo.chapter_purchases
   ADD CONSTRAINT FK_chpurchase_cointype_ref FOREIGN KEY (coin_type_id) REFERENCES dbo.coin_types(id);
 
--- ensure story -> pen_name link if pen_name used
 ALTER TABLE dbo.stories
   ADD CONSTRAINT FK_stories_penname FOREIGN KEY (pen_name_id) REFERENCES dbo.pen_names(id);
 
--- ensure reading_sessions.story_id FK already added above
-
 GO
-
-/************************************************************
-  Final notes:
-  - No ON DELETE CASCADE / SET NULL used in FK definitions above.
-  - Referential deletes/cleanup should be handled by application logic
-    or explicit DELETE statements/transactions if desired.
-  - Adjust decimal precision or indexes per workload.
-************************************************************/
+PRINT '>>> HOAN TAT QUA TRINH KHOI TAO DATABASE.';
