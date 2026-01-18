@@ -1,0 +1,82 @@
+# ----------------------
+# GLOBAL (Toàn cục)
+# ----------------------
+.DS_Store
+Thumbs.db
+*.log
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ----------------------
+# FRONTEND (React/Vite)
+# ----------------------
+# Thư viện tải về (rất nặng, không được up lên)
+node_modules/
+
+# File build ra để chạy production
+dist/
+dist-ssr/
+
+# File môi trường cá nhân
+*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs của npm/yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ----------------------
+# BACKEND (Spring Boot / Java)
+# ----------------------
+# File compiled và đóng gói
+target/
+build/
+
+# Maven wrapper (giữ lại jar wrapper nếu cần, nhưng thường thì ignore file này cũng được)
+.mvn/wrapper/maven-wrapper.jar
+
+# Help file
+HELP.md
+
+# Ngoại lệ (giữ lại các thư mục target nếu nó nằm trong src - hiếm gặp nhưng cứ giữ theo config cũ của bạn)
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ----------------------
+# IDE SETTINGS (Cấu hình editor)
+# ----------------------
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
+# Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# NetBeans (Quan trọng cho Backend của bạn)
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
