@@ -1,8 +1,8 @@
 package com.example.WebTruyen.controller;
 
-import com.example.WebTruyen.dto.LoginRequest;
-import com.example.WebTruyen.dto.RegisterRequest;
-import com.example.WebTruyen.dto.VerifyRequest;
+import com.example.WebTruyen.dto.request.LoginRequest;
+import com.example.WebTruyen.dto.request.RegisterRequest;
+import com.example.WebTruyen.dto.request.VerifyRequest;
 import com.example.WebTruyen.entity.User;
 import com.example.WebTruyen.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

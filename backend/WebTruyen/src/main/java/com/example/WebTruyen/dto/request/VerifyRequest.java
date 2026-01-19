@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto;
+package com.example.WebTruyen.dto.request;
 
 public class VerifyRequest {
     private String username;
