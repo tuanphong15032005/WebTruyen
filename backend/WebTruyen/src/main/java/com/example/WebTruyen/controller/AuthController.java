@@ -21,9 +21,9 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private EmailService emailService; // Inject service
+    private EmailService emailService;
     // API Đăng ký
-
+    
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -54,10 +54,8 @@ public class AuthController {
 
     @PostMapping("/verify")
     public ResponseEntity<?> verifyUser(@RequestBody VerifyRequest request) {
-        // Tìm user theo email (bạn cần thêm hàm findByEmail vào UserRepository nếu chưa có)
-        // Hoặc tìm theo username tùy bạn
-        // Giả sử logic tìm user ở đây:
-        User user = userRepository.findByUsername(request.getUsername()) // Sửa lại findByUsername trong repo trả về Optional
+        //logic tìm user ở đây:
+        User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         if (user.getVerificationCode() != null && user.getVerificationCode().equals(request.getCode())) {
@@ -82,7 +80,7 @@ public class AuthController {
         }
 
         User user = userOptional.get();
-        if (!user.getIsVerified()) { // Giả sử trong User.java có field isVerified kiểu Boolean hoặc boolean
+        if (!user.getIsVerified()) {
             return ResponseEntity.badRequest().body("Tài khoản chưa xác thực email!");
         }
         // 3. So sánh password (User gửi lên vs DB)

@@ -709,3 +709,4 @@ ALTER TABLE dbo.stories
 
 GO
 PRINT '>>> HOAN TAT QUA TRINH KHOI TAO DATABASE.';
+select * from users
