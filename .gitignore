@@ -47,7 +47,7 @@ build/
 # Help file
 HELP.md
 
-# Ngoại lệ (giữ lại các thư mục target nếu nó nằm trong src - hiếm gặp nhưng cứ giữ theo config cũ của bạn)
+# Ngoại lệ (giữ lại các thư mục target nếu nó nằm trong src - hiếm gặp nhưng cứ giữ theo config cũ)
 !**/src/main/**/target/
 !**/src/test/**/target/
 !**/src/main/**/build/
@@ -75,7 +75,7 @@ HELP.md
 .springBeans
 .sts4-cache
 
-# NetBeans (Quan trọng cho Backend của bạn)
+# NetBeans (Quan trọng cho Backend của prj) 
 nbproject/private/
 nbbuild/
 nbdist/
