@@ -10,7 +10,6 @@ import java.util.*;
 @Table(name = "chapters",
         indexes = {
                 @Index(name = "ix_chapters_volume", columnList = "volume_id"),
-                @Index(name = "ix_chapters_pricing", columnList = "price_coin_type")
         }
 )
 @Getter @Setter
@@ -39,9 +38,6 @@ public class ChapterEntity {
     @Column(name = "price_coin")
     private Long priceCoin;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "price_coin_type")
-    private CoinType priceCoinType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
