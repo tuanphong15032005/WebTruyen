@@ -13,5 +13,5 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     // Lấy story chi tiết nhưng phải thuộc author
     Optional<StoryEntity> findByIdAndAuthorId(Integer id, Integer authorId);
     // Lay tu auth ID + title xem title truyen co bi trung khong
-    boolean existsByAuthorIdAndTitle(Long authorId, String title);
+    boolean existsByAuthor_IdAndTitle(Long authorId, String title);
 }
