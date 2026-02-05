@@ -7,7 +7,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface TagRepository extends JpaRepository<TagEntity, Integer> {
+public interface TagRepository extends JpaRepository<TagEntity, Long> {
+
     Optional<TagEntity> findBySlug(String slug);
+
     List<TagEntity> findBySlugIn(Collection<String> slugs);
+
+    long countByIdIn(Collection<Long> tagIds);
+
+    // Nếu cần lấy list tag theo ids (ngoài findAllById có sẵn):
+    List<TagEntity> findByIdIn(Collection<Long> ids);
 }
