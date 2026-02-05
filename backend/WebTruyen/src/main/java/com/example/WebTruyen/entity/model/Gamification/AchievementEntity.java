@@ -24,7 +24,7 @@ public class AchievementEntity {
     private String description;
 
     @Lob
-    @Column(name = "criteria_json")
+    @Column(name = "criteria_json", columnDefinition = "LONG-TEXT")
     private String criteriaJson;
 
     @Column(name = "reward_coin")

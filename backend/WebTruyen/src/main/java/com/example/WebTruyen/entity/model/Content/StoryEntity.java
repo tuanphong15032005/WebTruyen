@@ -2,7 +2,6 @@ package com.example.WebTruyen.entity.model.Content;
 
 
 import com.example.WebTruyen.entity.enums.StoryStatus;
-import com.example.WebTruyen.entity.enums.StoryVisibility;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -42,10 +41,6 @@ public class StoryEntity {
     @Column(nullable = false)
     private StoryStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private StoryVisibility visibility;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -56,4 +51,11 @@ public class StoryEntity {
     @OneToMany(mappedBy = "story", fetch = FetchType.LAZY)
     @Builder.Default
     private List<StoryTagEntity> storyTags = new ArrayList<>();
+
+    @PrePersist //khoi tao cac gia tri mac dinh truoc khi them data vao Entity
+    public void prePersist() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (status == null) status = StoryStatus.draft;
+    }
+
 }
