@@ -29,9 +29,8 @@ function Register() {
       const data = await response.text(); // Backend trả về text "Đăng ký thành công"
 
       if (response.ok) {
-        // alert("Vui lòng kiểm tra email để lấy mã xác thực!");
-        // Chuyển sang trang verify, kẹp theo username để bên kia đỡ phải nhập
-        navigate("/verify", { state: { username: formData.username } });
+//         alert("Đăng ký thành công! Vui lòng đăng nhập.");
+        navigate("/verify", { state: { email: formData.email } });
       } else {
         setMessage(data); // Hiện lỗi từ backend (ví dụ: Trùng username)
       }
