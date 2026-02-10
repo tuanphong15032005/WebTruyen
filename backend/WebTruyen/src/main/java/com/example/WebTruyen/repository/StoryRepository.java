@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
 
     // Lấy story chi tiết nhưng phải thuộc author
-    Optional<StoryEntity> findByIdAndAuthorId(Integer id, Integer authorId);
+    Optional<StoryEntity> findByIdAndAuthorId(Integer id, Long authorId);
     // Lay tu auth ID + title xem title truyen co bi trung khong
     boolean existsByAuthor_IdAndTitle(Long authorId, String title);
 }
