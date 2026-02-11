@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface StoryTagRepository extends JpaRepository<StoryTagEntity, StoryTagId> {
 
-    void deleteByIdStoryId(Integer storyId);
+    void deleteByIdStoryId(Long storyId);
 }
