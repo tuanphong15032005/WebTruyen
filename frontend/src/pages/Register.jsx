@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 function Register() {
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
+    username: '',
+    email: '',
+    password: '',
   });
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -17,76 +18,61 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Gọi sang Backend đang chạy cổng 8081
-      const response = await fetch("http://localhost:8081/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.text(); // Backend trả về text "Đăng ký thành công"
-
-      if (response.ok) {
-//         alert("Đăng ký thành công! Vui lòng đăng nhập.");
-        navigate("/verify", { state: { email: formData.email } });
+      const response = await api.post('/api/auth/register', formData);
+      const data = response?.data;
+      if (response.status === 200) {
+        navigate('/verify-code', { state: { email: formData.email } });
       } else {
-        setMessage(data); // Hiện lỗi từ backend (ví dụ: Trùng username)
+        setMessage(data || '??ng k? th?t b?i');
       }
     } catch (error) {
-      setMessage("Lỗi kết nối đến server!");
+      const errorText = error?.response?.data || 'L?i k?t n?i ??n server!';
+      setMessage(errorText);
       console.error(error);
     }
   };
 
   return (
-    <div
-      className="container"
-      style={{ maxWidth: "400px", margin: "50px auto" }}
-    >
-      <h2>Đăng Ký Tài Khoản</h2>
+    <div className='container' style={{ maxWidth: '400px', margin: '50px auto' }}>
+      <h2>??ng k? t?i kho?n</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "10px" }}>
+        <div style={{ marginBottom: '10px' }}>
           <label>Username:</label>
           <input
-            type="text"
-            name="username"
+            type='text'
+            name='username'
             required
-            style={{ width: "100%", padding: "8px" }}
+            style={{ width: '100%', padding: '8px' }}
             onChange={handleChange}
           />
         </div>
-        <div style={{ marginBottom: "10px" }}>
+        <div style={{ marginBottom: '10px' }}>
           <label>Email:</label>
           <input
-            type="email"
-            name="email"
+            type='email'
+            name='email'
             required
-            style={{ width: "100%", padding: "8px" }}
+            style={{ width: '100%', padding: '8px' }}
             onChange={handleChange}
           />
         </div>
-        <div style={{ marginBottom: "10px" }}>
+        <div style={{ marginBottom: '10px' }}>
           <label>Password:</label>
           <input
-            type="password"
-            name="password"
+            type='password'
+            name='password'
             required
-            style={{ width: "100%", padding: "8px" }}
+            style={{ width: '100%', padding: '8px' }}
             onChange={handleChange}
           />
         </div>
-        <button
-          type="submit"
-          style={{ padding: "10px 20px", cursor: "pointer" }}
-        >
-          Đăng Ký
+        <button type='submit' style={{ padding: '10px 20px', cursor: 'pointer' }}>
+          ??ng k?
         </button>
       </form>
-      {message && <p style={{ color: "red" }}>{message}</p>}
+      {message && <p style={{ color: 'red' }}>{message}</p>}
       <p>
-        Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
+        ?? c? t?i kho?n? <Link to='/login'>??ng nh?p ngay</Link>
       </p>
     </div>
   );
