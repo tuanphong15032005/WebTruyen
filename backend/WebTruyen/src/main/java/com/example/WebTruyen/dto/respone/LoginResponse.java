@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.response;
+package com.example.WebTruyen.dto.respone;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

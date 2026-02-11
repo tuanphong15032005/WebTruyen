@@ -3,7 +3,7 @@ package com.example.WebTruyen.controller;
 import com.example.WebTruyen.dto.request.LoginRequest;
 import com.example.WebTruyen.dto.request.SendOtpRequest;
 import com.example.WebTruyen.dto.request.VerifyOtpRequest;
-import com.example.WebTruyen.dto.response.LoginResponse;
+import com.example.WebTruyen.dto.respone.LoginResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
@@ -30,20 +30,20 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             UserEntity user = authService.authenticate(request.getUsername(), request.getPassword());
-            
+
             if (!user.isVerified()) {
                 return ResponseEntity.badRequest().body("Please verify your email before logging in.");
             }
-            
+
             String token = tokenProvider.generateToken(user.getId(), user.getUsername());
-            
+
             LoginResponse response = new LoginResponse(
                 token,
                 "Bearer",
                 user.getId(),
                 user.getUsername()
             );
-            
+
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -54,13 +54,13 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody com.example.WebTruyen.dto.request.RegisterRequest request) {
         try {
             UserEntity newUser = authService.registerUser(
-                request.getUsername(), 
-                request.getEmail(), 
+                request.getUsername(),
+                request.getEmail(),
                 request.getPassword()
             );
-            
+
             authService.sendOtp(request.getEmail());
-            
+
             return ResponseEntity.ok("Registration successful! Please check your email for OTP verification.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

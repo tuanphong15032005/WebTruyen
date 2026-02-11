@@ -71,13 +71,18 @@ public class ChapterService {
         }
 
         // --- create chapter row
+        Integer nextIndex = req.getSequenceIndex();
+        if (nextIndex == null || nextIndex <= 0) {
+            Integer maxIndex = chapterRepository.findMaxSequenceIndexByVolumeId(volumeId);
+            nextIndex = (maxIndex == null ? 0 : maxIndex) + 1;
+        }
         ChapterEntity chapter = ChapterEntity.builder()
                 .volume(volume)
                 .title(req.getTitle())
-                .sequenceIndex(req.getSequenceIndex())
+                .sequenceIndex(nextIndex)
                 .free(isFree)
                 .priceCoin(req.getPriceCoin())
-                .status(req.getStatus() == null ? ChapterStatus.draft : ChapterStatus.valueOf(req.getStatus().toUpperCase()))
+                .status(req.getStatus() == null ? ChapterStatus.draft : ChapterStatus.valueOf(req.getStatus().toLowerCase()))
                 .createdAt(LocalDateTime.now())
                 .lastUpdateAt(LocalDateTime.now())
                 .build();

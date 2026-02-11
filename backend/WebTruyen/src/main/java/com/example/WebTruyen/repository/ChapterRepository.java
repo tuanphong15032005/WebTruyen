@@ -1,6 +1,8 @@
 package com.example.WebTruyen.repository;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +23,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
      * Kiểm tra tồn tại chapter cùng sequenceIndex trong volume (tránh trùng thứ tự)
      */
     boolean existsByVolume_IdAndSequenceIndex(Long volumeId, Integer sequenceIndex);
+
+    @Query("select coalesce(max(c.sequenceIndex), 0) from ChapterEntity c where c.volume.id = :volumeId")
+    Integer findMaxSequenceIndexByVolumeId(@Param("volumeId") Long volumeId);
 }
