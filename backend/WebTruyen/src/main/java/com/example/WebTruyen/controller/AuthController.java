@@ -1,6 +1,8 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.dto.request.ForgotPasswordRequest;
 import com.example.WebTruyen.dto.request.LoginRequest;
+import com.example.WebTruyen.dto.request.ResetPasswordRequest;
 import com.example.WebTruyen.dto.request.SendOtpRequest;
 import com.example.WebTruyen.dto.request.VerifyOtpRequest;
 import com.example.WebTruyen.dto.response.LoginResponse;
@@ -8,9 +10,13 @@ import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
 import com.example.WebTruyen.service.AuthService;
+import com.example.WebTruyen.service.AccountLockedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -45,6 +51,11 @@ public class AuthController {
             );
             
             return ResponseEntity.ok(response);
+        } catch (AccountLockedException e) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("message", e.getMessage());
+            body.put("secondsRemaining", e.getSecondsRemaining());
+            return ResponseEntity.status(423).body(body);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -54,9 +65,11 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody com.example.WebTruyen.dto.request.RegisterRequest request) {
         try {
             UserEntity newUser = authService.registerUser(
-                request.getUsername(), 
-                request.getEmail(), 
-                request.getPassword()
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getDisplayName(),
+                request.getUpgradeToAuthor()
             );
             
             authService.sendOtp(request.getEmail());
@@ -86,6 +99,26 @@ public class AuthController {
             } else {
                 return ResponseEntity.badRequest().body("Invalid or expired OTP.");
             }
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            authService.sendPasswordResetEmail(request.getEmail());
+            return ResponseEntity.ok("Password reset link sent to your email!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            authService.resetPassword(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok("Password reset successfully! Please login with your new password.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -29,4 +29,19 @@ public class EmailService {
         
         mailSender.send(message);
     }
+    
+    public void sendPasswordResetEmail(String to, String resetToken) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("WebTruyen <noreply@webtruyen.com>");
+        message.setTo(to);
+        message.setSubject("Đặt lại mật khẩu WebTruyen");
+        String resetLink = "http://localhost:5173/reset-password?token=" + resetToken;
+        message.setText("Xin chào,\n\nBạn đã yêu cầu đặt lại mật khẩu cho tài khoản WebTruyen.\n\n" +
+                        "Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu của bạn:\n" +
+                        resetLink + "\n\n" +
+                        "Liên kết này có hiệu lực trong 15 phút.\n\n" +
+                        "Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.");
+        
+        mailSender.send(message);
+    }
 }

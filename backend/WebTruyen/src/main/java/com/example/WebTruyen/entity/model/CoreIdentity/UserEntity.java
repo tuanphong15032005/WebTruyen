@@ -1,6 +1,5 @@
 package com.example.WebTruyen.entity.model.CoreIdentity;
 
-
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -59,14 +58,19 @@ public class UserEntity {
     @Column(name = "pin_hash", length = 255)
     private String pinHash;
 
+    @Column(name = "failed_login_attempts", nullable = false)
+    @Builder.Default
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "lock_until")
+    private LocalDateTime lockUntil;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // 1-1 wallets (PK=FK)
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private WalletEntity wallet;
 
-    // N-N roles via join table users_roles
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
     private List<UserRoleEntity> userRoles = new ArrayList<>();

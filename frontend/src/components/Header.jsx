@@ -1,24 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../App.css'; // Để dùng CSS chung
 
 function Header() {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const storedUser = localStorage.getItem('user');
+        if (!storedUser) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(storedUser);
+        } catch {
+            return null;
+        }
+    });
     const [showDropdown, setShowDropdown] = useState(false);
     const navigate = useNavigate();
-
-    // Kiểm tra đăng nhập khi Header được load
-    useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('user'); // Xóa user khỏi bộ nhớ
         setUser(null);
         setShowDropdown(false);
+
         navigate('/login'); // Quay về trang login
     };
 

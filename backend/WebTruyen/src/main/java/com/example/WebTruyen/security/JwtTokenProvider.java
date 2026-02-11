@@ -65,4 +65,32 @@ public class JwtTokenProvider {
             return false;
         }
     }
+
+    public String generatePasswordResetToken(Long userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
+
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("type", "PASSWORD_RESET")
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public boolean validatePasswordResetToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            String tokenType = claims.get("type", String.class);
+            return "PASSWORD_RESET".equals(tokenType);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
 }

@@ -1,95 +1,330 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import '../styles/Login.css';
 
 function Register() {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-  });
-  const [message, setMessage] = useState("");
-  const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        username: '',
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        agreeTerms: false,
+    });
+    const [errors, setErrors] = useState({
+        username: '',
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        agreeTerms: '',
+    });
+    const [message, setMessage] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    const validateForm = () => {
+        const newErrors = {
+            username: '',
+            fullName: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            agreeTerms: '',
+        };
+        let isValid = true;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      // Gọi sang Backend đang chạy cổng 8081
-      const response = await fetch("http://localhost:8081/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+        if (!formData.username.trim()) {
+            newErrors.username = 'Vui lòng nhập username';
+            isValid = false;
+        }
 
-      const data = await response.text(); // Backend trả về text "Đăng ký thành công"
+        if (!formData.fullName.trim()) {
+            newErrors.fullName = 'Vui lòng nhập họ và tên';
+            isValid = false;
+        }
 
-      if (response.ok) {
-//         alert("Đăng ký thành công! Vui lòng đăng nhập.");
-        navigate("/verify", { state: { email: formData.email } });
-      } else {
-        setMessage(data); // Hiện lỗi từ backend (ví dụ: Trùng username)
-      }
-    } catch (error) {
-      setMessage("Lỗi kết nối đến server!");
-      console.error(error);
-    }
-  };
+        if (!formData.email.trim()) {
+            newErrors.email = 'Vui lòng nhập email';
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = 'Email không hợp lệ';
+            isValid = false;
+        }
 
-  return (
-    <div
-      className="container"
-      style={{ maxWidth: "400px", margin: "50px auto" }}
-    >
-      <h2>Đăng Ký Tài Khoản</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "10px" }}>
-          <label>Username:</label>
-          <input
-            type="text"
-            name="username"
-            required
-            style={{ width: "100%", padding: "8px" }}
-            onChange={handleChange}
-          />
+        if (!formData.password) {
+            newErrors.password = 'Vui lòng nhập mật khẩu';
+            isValid = false;
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+            isValid = false;
+        }
+
+        if (!formData.confirmPassword) {
+            newErrors.confirmPassword = 'Vui lòng nhập lại mật khẩu';
+            isValid = false;
+        } else if (formData.confirmPassword !== formData.password) {
+            newErrors.confirmPassword = 'Mật khẩu nhập lại không khớp';
+            isValid = false;
+        }
+
+        if (!formData.agreeTerms) {
+            newErrors.agreeTerms = 'Bạn cần đồng ý Điều khoản & Điều kiện';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+        setMessage('');
+        if (errors[name]) {
+            setErrors({ ...errors, [name]: '' });
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        setIsLoading(true);
+        setMessage('');
+
+        try {
+            const payload = {
+                username: formData.username,
+                email: formData.email,
+                password: formData.password,
+                displayName: formData.fullName,
+            };
+
+            const response = await fetch('http://localhost:8081/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const text = await response.text();
+
+            if (response.ok) {
+                navigate('/verify', { state: { email: formData.email } });
+            } else {
+                setMessage(text || 'Đăng ký thất bại. Vui lòng thử lại.');
+            }
+        } catch (error) {
+            console.error('Register error:', error);
+            setMessage('Lỗi kết nối server! Vui lòng thử lại sau.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="login-container">
+            <div className="floating-shape shape-1"></div>
+            <div className="floating-shape shape-2"></div>
+            <div className="floating-shape shape-3"></div>
+            <div className="floating-shape shape-4"></div>
+
+            <div className="login-card">
+                <div className="login-header">
+                    <div className="login-logo">
+                        <span className="logo-icon">📚</span>
+                    </div>
+                    <h1 className="login-title">WebTruyen</h1>
+                    <p className="login-subtitle">Tạo tài khoản để bắt đầu</p>
+                </div>
+
+                <form onSubmit={handleSubmit} noValidate>
+                    {message && (
+                        <div className={`message ${message.includes('thành công') ? 'success-message' : 'error-message'}`}>
+                            <span className="message-icon">
+                                {message.includes('thành công') ? '✓' : '⚠'}
+                            </span>
+                            {message}
+                        </div>
+                    )}
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="username">Username</label>
+                        <div className="input-wrapper">
+                            <div className={`input-group ${errors.username ? 'has-error' : ''} ${formData.username ? 'has-value' : ''}`}>
+                                <span className="input-icon">👤</span>
+                                <input
+                                    id="username"
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    className="form-input input-with-icon"
+                                    placeholder="Nhập username"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                            {errors.username && <span className="field-error">{errors.username}</span>}
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="fullName">Họ và tên</label>
+                        <div className="input-wrapper">
+                            <div className={`input-group ${errors.fullName ? 'has-error' : ''} ${formData.fullName ? 'has-value' : ''}`}>
+                                <span className="input-icon">🪪</span>
+                                <input
+                                    id="fullName"
+                                    type="text"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    className="form-input input-with-icon"
+                                    placeholder="Nhập họ và tên"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                            {errors.fullName && <span className="field-error">{errors.fullName}</span>}
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="email">Email</label>
+                        <div className="input-wrapper">
+                            <div className={`input-group ${errors.email ? 'has-error' : ''} ${formData.email ? 'has-value' : ''}`}>
+                                <span className="input-icon">✉️</span>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    autoComplete="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="form-input input-with-icon"
+                                    placeholder="Nhập email"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                            {errors.email && <span className="field-error">{errors.email}</span>}
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="password">Mật khẩu</label>
+                        <div className="input-wrapper">
+                            <div className={`input-group ${errors.password ? 'has-error' : ''} ${formData.password ? 'has-value' : ''}`}>
+                                <span className="input-icon">🔒</span>
+                                <input
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    name="password"
+                                    autoComplete="new-password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="form-input input-with-icon has-password-toggle"
+                                    placeholder="Nhập mật khẩu"
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="password-toggle"
+                                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                    tabIndex="-1"
+                                >
+                                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                            </div>
+                            {errors.password && <span className="field-error">{errors.password}</span>}
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="confirmPassword">Xác nhận mật khẩu</label>
+                        <div className="input-wrapper">
+                            <div className={`input-group ${errors.confirmPassword ? 'has-error' : ''} ${formData.confirmPassword ? 'has-value' : ''}`}>
+                                <span className="input-icon">🔁</span>
+                                <input
+                                    id="confirmPassword"
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    name="confirmPassword"
+                                    autoComplete="new-password"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    className="form-input input-with-icon has-password-toggle"
+                                    placeholder="Nhập lại mật khẩu"
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="password-toggle"
+                                    aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                    tabIndex="-1"
+                                >
+                                    {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                            </div>
+                            {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <input
+                                type="checkbox"
+                                name="agreeTerms"
+                                checked={formData.agreeTerms}
+                                onChange={handleChange}
+                                disabled={isLoading}
+                                style={{ marginRight: '10px' }}
+                            />
+                            Tôi đồng ý Điều khoản & Điều kiện
+                        </label>
+                        {errors.agreeTerms && <span className="field-error">{errors.agreeTerms}</span>}
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className={`login-button ${isLoading ? 'loading' : ''}`}
+                    >
+                        {isLoading ? (
+                            <>
+                                <span className="loading-spinner"></span>
+                                <span>Đang tạo tài khoản...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>Đăng Ký</span>
+                                <span className="button-arrow">→</span>
+                            </>
+                        )}
+                    </button>
+                </form>
+
+                <div className="login-footer">
+                    <p className="footer-text">
+                        Đã có tài khoản?{' '}
+                        <Link to="/login" className="register-link">
+                            Đăng nhập ngay
+                        </Link>
+                    </p>
+                </div>
+            </div>
+
+            <div className="decoration-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            required
-            style={{ width: "100%", padding: "8px" }}
-            onChange={handleChange}
-          />
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label>Password:</label>
-          <input
-            type="password"
-            name="password"
-            required
-            style={{ width: "100%", padding: "8px" }}
-            onChange={handleChange}
-          />
-        </div>
-        <button
-          type="submit"
-          style={{ padding: "10px 20px", cursor: "pointer" }}
-        >
-          Đăng Ký
-        </button>
-      </form>
-      {message && <p style={{ color: "red" }}>{message}</p>}
-      <p>
-        Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
-      </p>
-    </div>
-  );
+    );
 }
 
 export default Register;
