@@ -1,0 +1,643 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  User, 
+  BookOpen, 
+  MessageSquare, 
+  Library, 
+  CreditCard, 
+  Search,
+  ChevronDown,
+  Menu,
+  Calendar,
+  Coins,
+  Shield,
+  Mail,
+  UserCircle,
+  Edit3,
+  Save
+} from 'lucide-react';
+
+export default function UserProfile({ userData }) {
+  const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState(userData?.displayName || 'Thảo Trịnh');
+  const [favoriteQuote, setFavoriteQuote] = useState(userData?.favoriteQuote || '');
+  const [tempName, setTempName] = useState(displayName);
+
+  const handleUpdateQuote = () => {
+    alert('Trích dẫn đã được cập nhật!');
+  };
+
+  const handleChangeName = () => {
+    if (tempName.trim()) {
+      setDisplayName(tempName);
+      alert('Tên hiển thị đã được thay đổi!');
+    }
+  };
+
+  const menuItems = [
+    { icon: User, label: 'Hồ sơ', active: true, path: '/profile' },
+    { icon: Edit3, label: 'Khu vực tác giả', active: false, path: '/authordashboard' },
+    { icon: MessageSquare, label: 'Tin nhắn', active: false, path: '/messages' },
+    { icon: Library, label: 'Tủ truyện', active: false, path: '/library' },
+    { icon: CreditCard, label: 'Nạp tiền', active: false, path: '/recharge' },
+  ];
+
+  const handleMenuClick = (path) => {
+    navigate(path);
+  };
+
+  return (
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f4f4f4', 
+      fontFamily: 'Arial, sans-serif',
+      margin: 0,
+      padding: 0
+    }}>
+      {/* Header */}
+      <header style={{ 
+        backgroundColor: 'white', 
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)', 
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 50,
+        borderBottom: '1px solid #e0e0e0'
+      }}>
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '16px 24px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          gap: '32px' 
+        }}>
+          {/* Logo */}
+          <div 
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+            onClick={() => navigate('/')}
+          >
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              background: 'linear-gradient(135deg, #17a2b8, #138496)', 
+              borderRadius: '8px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(23, 162, 184, 0.3)'
+            }}>
+              <BookOpen style={{ color: 'white' }} size={24} strokeWidth={2.5} />
+            </div>
+            <h1 style={{ 
+              fontSize: '24px', 
+              fontWeight: 'bold', 
+              margin: 0, 
+              background: 'linear-gradient(135deg, #17a2b8, #138496)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              TramDoc
+            </h1>
+          </div>
+
+          {/* Navigation */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <button style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              color: '#666', 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '16px',
+              cursor: 'pointer',
+              transition: 'color 0.3s',
+              padding: '8px',
+              borderRadius: '4px'
+            }}>
+              Danh sách
+              <ChevronDown size={18} />
+            </button>
+            <button style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              color: '#666', 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '16px',
+              cursor: 'pointer',
+              transition: 'color 0.3s',
+              padding: '8px',
+              borderRadius: '4px'
+            }}>
+              Thể loại
+              <ChevronDown size={18} />
+            </button>
+          </nav>
+
+          {/* Search */}
+          <div style={{ flex: 1, maxWidth: '400px' }}>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Tìm kiếm truyện..."
+                style={{
+                  width: '100%',
+                  padding: '10px 16px 10px 44px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  backgroundColor: '#f8f9fa',
+                  outline: 'none',
+                  transition: 'border-color 0.3s',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <Search style={{ 
+                position: 'absolute', 
+                left: '16px', 
+                top: '50%', 
+                transform: 'translateY(-50%)', 
+                color: '#999' 
+              }} size={20} />
+              <button style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'box-shadow 0.3s'
+              }}>
+                Tìm kiếm
+              </button>
+            </div>
+          </div>
+
+          {/* User Menu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button style={{ 
+              padding: '8px', 
+              background: 'none', 
+              border: 'none', 
+              cursor: 'pointer', 
+              borderRadius: '8px',
+              color: '#666'
+            }}>
+              <Menu size={24} />
+            </button>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              backgroundColor: '#f8f9fa', 
+              padding: '8px 16px', 
+              borderRadius: '12px',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s'
+            }}>
+              <div style={{ 
+                width: '32px', 
+                height: '32px', 
+                background: 'linear-gradient(135deg, #17a2b8, #138496)', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                color: 'white', 
+                fontWeight: 'bold',
+                fontSize: '16px'
+              }}>
+                T
+              </div>
+              <ChevronDown size={18} style={{ color: '#666' }} />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto', 
+        padding: '32px 24px', 
+        display: 'flex', 
+        gap: '32px',
+        boxSizing: 'border-box'
+      }}>
+        {/* Sidebar - 30% */}
+        <aside style={{ width: '30%', minWidth: '280px' }}>
+          {/* User Info Card */}
+          <div style={{
+            background: 'linear-gradient(135deg, #17a2b8, #138496)',
+            borderRadius: '16px',
+            padding: '24px',
+            color: 'white',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(23, 162, 184, 0.2)',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{
+                width: '96px',
+                height: '96px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '36px',
+                fontWeight: 'bold',
+                marginBottom: '16px',
+                border: '4px solid rgba(255, 255, 255, 0.3)',
+                boxSizing: 'border-box'
+              }}>
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>{displayName}</h2>
+              <p style={{ 
+                margin: '0 0 16px 0', 
+                opacity: 0.9, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                justifyContent: 'center',
+                fontSize: '14px'
+              }}>
+                <Mail size={16} />
+                {userData?.email || 'thao.trinh@email.com'}
+              </p>
+              <div style={{
+                width: '100%',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                padding: '16px',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '18px', fontWeight: 'bold' }}>
+                  <Coins size={24} style={{ color: '#ffd700' }} />
+                  <span>{userData?.coin || 0} Vàng</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <div style={{ 
+            backgroundColor: 'white', 
+            borderRadius: '16px', 
+            overflow: 'hidden', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            boxSizing: 'border-box'
+          }}>
+            {menuItems.map((item, index) => (
+              <button
+                key={index}
+                onClick={() => handleMenuClick(item.path)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '16px 24px',
+                  backgroundColor: item.active ? 'linear-gradient(135deg, #17a2b8, #138496)' : 'transparent',
+                  color: item.active ? 'white' : '#666',
+                  border: 'none',
+                  borderBottom: index !== menuItems.length - 1 ? '1px solid #f0f0f0' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  boxSizing: 'border-box',
+                  textAlign: 'left'
+                }}
+              >
+                <item.icon size={22} strokeWidth={item.active ? 2.5 : 2} />
+                <span style={{ textAlign: 'left', flex: 1 }}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Main Content - 70% */}
+        <main style={{ flex: 1 }}>
+          <h1 style={{ 
+            fontSize: '36px', 
+            fontWeight: 'bold', 
+            color: '#333', 
+            margin: '0 0 32px 0', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px' 
+          }}>
+            <div style={{ 
+              width: '8px', 
+              height: '48px', 
+              background: 'linear-gradient(180deg, #17a2b8, #138496)', 
+              borderRadius: '4px' 
+            }}></div>
+            Profile
+          </h1>
+
+          {/* Profile Overview */}
+          <div style={{ 
+            backgroundColor: 'white', 
+            borderRadius: '16px', 
+            padding: '32px', 
+            marginBottom: '32px', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'flex-start' }}>
+              {/* Avatar */}
+              <div style={{ flexShrink: 0 }}>
+                <div style={{
+                  width: '128px',
+                  height: '128px',
+                  background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '48px',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  boxShadow: '0 8px 24px rgba(23, 162, 184, 0.3)'
+                }}>
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              </div>
+
+              {/* Info Grid */}
+              <div style={{ 
+                flex: 1, 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(2, 1fr)', 
+                gap: '20px',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '12px', 
+                  padding: '16px', 
+                  border: '1px solid #e9ecef', 
+                  transition: 'border-color 0.3s',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
+                    <UserCircle size={20} />
+                    <span style={{ fontWeight: '500' }}>Tên hiển thị</span>
+                  </div>
+                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>{displayName}</p>
+                </div>
+
+                <div style={{ 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '12px', 
+                  padding: '16px', 
+                  border: '1px solid #e9ecef', 
+                  transition: 'border-color 0.3s',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
+                    <Mail size={20} />
+                    <span style={{ fontWeight: '500' }}>Email</span>
+                  </div>
+                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+                    {userData?.email || 'thao.trinh@email.com'}
+                  </p>
+                </div>
+
+                <div style={{ 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '12px', 
+                  padding: '16px', 
+                  border: '1px solid #e9ecef', 
+                  transition: 'border-color 0.3s',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
+                    <Shield size={20} />
+                    <span style={{ fontWeight: '500' }}>Chức vụ</span>
+                  </div>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    background: 'linear-gradient(135deg, #17a2b8, #138496)', 
+                    color: 'white', 
+                    padding: '4px 16px', 
+                    borderRadius: '20px', 
+                    fontSize: '14px', 
+                    fontWeight: '600',
+                    boxShadow: '0 2px 8px rgba(23, 162, 184, 0.3)'
+                  }}>
+                    Thành viên
+                  </span>
+                </div>
+
+                <div style={{ 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '12px', 
+                  padding: '16px', 
+                  border: '1px solid #e9ecef', 
+                  transition: 'border-color 0.3s',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
+                    <Calendar size={20} />
+                    <span style={{ fontWeight: '500' }}>Điểm danh</span>
+                  </div>
+                  <a href="#" style={{ 
+                    color: '#17a2b8', 
+                    fontWeight: '600', 
+                    textDecoration: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    transition: 'color 0.3s' 
+                  }}>
+                    Nhận coin miễn phí
+                    <ChevronDown size={16} style={{ transform: 'rotate(-90deg)' }} />
+                  </a>
+                </div>
+
+                <div style={{ 
+                  backgroundColor: 'linear-gradient(135deg, #fff9e6, #ffedcc)', 
+                  borderRadius: '12px', 
+                  padding: '16px', 
+                  border: '2px solid #ffd700',
+                  gridColumn: '1 / -1',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#b8860b', marginBottom: '8px', fontSize: '14px' }}>
+                    <Coins size={20} />
+                    <span style={{ fontWeight: '500' }}>Số Coin dư</span>
+                  </div>
+                  <p style={{ 
+                    fontSize: '24px', 
+                    fontWeight: 'bold', 
+                    color: '#b8860b', 
+                    margin: 0, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px' 
+                  }}>
+                    <Coins size={28} style={{ color: '#ffd700' }} />
+                    {userData?.coin || 0} Coin
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Favorite Quote */}
+          <div style={{ 
+            backgroundColor: 'white', 
+            borderRadius: '16px', 
+            padding: '32px', 
+            marginBottom: '32px', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            boxSizing: 'border-box'
+          }}>
+            <h2 style={{ 
+              fontSize: '24px', 
+              fontWeight: 'bold', 
+              color: '#333', 
+              marginBottom: '24px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px' 
+            }}>
+              <div style={{ 
+                width: '6px', 
+                height: '32px', 
+                background: 'linear-gradient(180deg, #17a2b8, #138496)', 
+                borderRadius: '3px' 
+              }}></div>
+              Trích dẫn yêu thích
+            </h2>
+            <textarea
+              value={favoriteQuote}
+              onChange={(e) => setFavoriteQuote(e.target.value)}
+              placeholder="Nhập trích dẫn yêu thích của bạn..."
+              style={{
+                width: '100%',
+                height: '160px',
+                padding: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '12px',
+                fontSize: '16px',
+                backgroundColor: '#f8f9fa',
+                resize: 'none',
+                outline: 'none',
+                transition: 'border-color 0.3s',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box'
+              }}
+            />
+            <button
+              onClick={handleUpdateQuote}
+              style={{
+                marginTop: '16px',
+                background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                color: 'white',
+                padding: '12px 32px',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'box-shadow 0.3s',
+                boxShadow: '0 4px 12px rgba(23, 162, 184, 0.3)'
+              }}
+            >
+              <Save size={20} />
+              Cập nhật
+            </button>
+          </div>
+
+          {/* Display Name */}
+          <div style={{ 
+            backgroundColor: 'white',
+            borderRadius: '16px', 
+            padding: '32px', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            boxSizing: 'border-box'
+          }}>
+            <h2 style={{ 
+              fontSize: '24px', 
+              fontWeight: 'bold', 
+              color: '#333',
+              marginBottom: '24px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px' 
+            }}>
+              <div style={{ 
+                width: '6px', 
+                height: '32px', 
+                background: 'linear-gradient(180deg, #17a2b8, #138496)', 
+                borderRadius: '3px' 
+              }}></div>
+              Tên hiển thị
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
+              <input
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                placeholder="Nhập tên hiển thị mới..."
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  backgroundColor: '#f8f9fa',
+                  outline: 'none',
+                  transition: 'border-color 0.3s',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <button
+                onClick={handleChangeName}
+                style={{
+                  background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                  color: 'white',
+                  padding: '12px 32px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'box-shadow 0.3s',
+                  boxShadow: '0 4px 12px rgba(23, 162, 184, 0.3)'
+                }}
+              >
+                <Edit3 size={20} />
+                Thay đổi
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

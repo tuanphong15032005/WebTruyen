@@ -56,11 +56,19 @@ public class UserEntity {
     @Column(name = "settings_json")
     private String settingsJson;
 
+
     @Column(name = "pin_hash", length = 255)
     private String pinHash;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "profile_slug", length = 255, unique = true)
+    private String profileSlug;
+
 
     // 1-1 wallets (PK=FK)
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
