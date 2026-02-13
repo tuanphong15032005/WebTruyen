@@ -23,10 +23,10 @@ function Register() {
       if (response.status === 200) {
         navigate('/verify-code', { state: { email: formData.email } });
       } else {
-        setMessage(data || '??ng k? th?t b?i');
+        setMessage(data || 'Đăng ký thất bại');
       }
     } catch (error) {
-      const errorText = error?.response?.data || 'L?i k?t n?i ??n server!';
+      const errorText = error?.response?.data || 'Lỗi kết nối đến server!';
       setMessage(errorText);
       console.error(error);
     }
@@ -34,10 +34,10 @@ function Register() {
 
   return (
     <div className='container' style={{ maxWidth: '400px', margin: '50px auto' }}>
-      <h2>??ng k? t?i kho?n</h2>
+      <h2>Đăng ký tài khoản</h2>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '10px' }}>
-          <label>Username:</label>
+          <label>Tên đăng nhập:</label>
           <input
             type='text'
             name='username'
@@ -57,7 +57,7 @@ function Register() {
           />
         </div>
         <div style={{ marginBottom: '10px' }}>
-          <label>Password:</label>
+          <label>Mật khẩu:</label>
           <input
             type='password'
             name='password'
@@ -67,12 +67,12 @@ function Register() {
           />
         </div>
         <button type='submit' style={{ padding: '10px 20px', cursor: 'pointer' }}>
-          ??ng k?
+          Đăng ký
         </button>
       </form>
       {message && <p style={{ color: 'red' }}>{message}</p>}
       <p>
-        ?? c? t?i kho?n? <Link to='/login'>??ng nh?p ngay</Link>
+        Đã có tài khoản? <Link to='/login'>Đăng nhập ngay</Link>
       </p>
     </div>
   );

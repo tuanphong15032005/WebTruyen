@@ -21,6 +21,7 @@ const CreateChapter = () => {
   const [title, setTitle] = useState('');
   const [isFree, setIsFree] = useState(true);
   const [priceCoin, setPriceCoin] = useState('');
+  const [status, setStatus] = useState('draft');
   const [content, setContent] = useState('');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -29,6 +30,7 @@ const CreateChapter = () => {
   const [segmentIds, setSegmentIds] = useState([]);
   const [savedHtml, setSavedHtml] = useState('');
   const [editorReady, setEditorReady] = useState(false);
+  const isEditing = Boolean(editChapterId);
 
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');
@@ -103,6 +105,16 @@ const CreateChapter = () => {
         const response = await storyService.getChapterContent(storyId, editChapterId);
         const data = response?.data || {};
         setChapterId(editChapterId);
+        setTitle(data.title ?? '');
+        setIsFree(typeof data.isFree === 'boolean' ? data.isFree : true);
+        setPriceCoin(
+          data.priceCoin !== null && data.priceCoin !== undefined
+            ? String(data.priceCoin)
+            : '',
+        );
+        if (typeof data.status === 'string' && data.status.trim()) {
+          setStatus(data.status.toLowerCase());
+        }
         setSavedHtml(data.fullHtml || '');
         const quill = quillRef.current?.getEditor();
         if (data.contentDelta && quill) {
@@ -180,6 +192,15 @@ const CreateChapter = () => {
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+    if (!volumeId) {
+      notify('Thiếu thông tin volume để lưu chapter', 'error');
+      return;
+    }
+    const targetChapterId = editChapterId || chapterId;
+    if (isEditing && !targetChapterId) {
+      notify('Không tìm thấy chapter để cập nhật', 'error');
+      return;
+    }
     try {
       setSaving(true);
       const quill = quillRef.current?.getEditor();
@@ -188,18 +209,26 @@ const CreateChapter = () => {
         title: title.trim(),
         isFree,
         priceCoin: isFree ? null : Number(priceCoin),
+        status,
         contentHtml,
         contentDelta: JSON.stringify(quill?.getContents() || {}),
       };
-      const response = await storyService.createChapter(storyId, volumeId, payload);
+      const response = isEditing
+        ? await storyService.updateChapter(storyId, volumeId, targetChapterId, payload)
+        : await storyService.createChapter(storyId, volumeId, payload);
       const data = response?.data || {};
       setChapterId(data.chapterId || '');
       setSegmentIds(data.segmentIds || []);
-      notify('Lưu chapter thành công', 'success');
+      notify(isEditing ? 'Cập nhật chapter thành công' : 'Lưu chapter thành công', 'success');
       navigate(`/author/stories/${storyId}?tab=volumes&volumeId=${volumeId}`);
     } catch (error) {
-      console.error('createChapter error', error);
-      notify('Không thể lưu chapter. Vui lòng thử lại.', 'error');
+      console.error('saveChapter error', error);
+      notify(
+        isEditing
+          ? 'Không thể cập nhật chapter. Vui lòng thử lại.'
+          : 'Không thể lưu chapter. Vui lòng thử lại.',
+        'error',
+      );
     } finally {
       setSaving(false);
     }
@@ -221,7 +250,7 @@ const CreateChapter = () => {
   return (
     <div className='page'>
       <div className='page-header'>
-        <h2>Tạo Chapter</h2>
+        <h2>{isEditing ? 'Chỉnh sửa Chapter' : 'Tạo Chapter'}</h2>
       </div>
 
       <div className='card form'>
@@ -253,6 +282,18 @@ const CreateChapter = () => {
             error={errors.priceCoin}
           />
         )}
+        <div className='field'>
+          <span className='field-label'>Trạng thái chapter</span>
+          <select
+            className='field-input'
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value='draft'>Nháp</option>
+            <option value='published'>Công khai</option>
+            <option value='archived'>Lưu trữ</option>
+          </select>
+        </div>
         <div className='field'>
           <span className='field-label'>Nội dung</span>
           {errors.content && <span className='field-error'>{errors.content}</span>}

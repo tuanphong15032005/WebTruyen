@@ -19,17 +19,17 @@ function Login() {
       localStorage.setItem('user', JSON.stringify(user));
       navigate('/');
     } catch (error) {
-      const errorText = error?.response?.data || 'L?i k?t n?i server!';
+      const errorText = error?.response?.data || 'Lỗi kết nối server!';
       setMessage(errorText);
     }
   };
 
   return (
     <div className='container' style={{ maxWidth: '400px', margin: '50px auto' }}>
-      <h2>??ng nh?p</h2>
+      <h2>Đăng nhập</h2>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '10px' }}>
-          <label>Username:</label>
+          <label>Tên đăng nhập:</label>
           <input
             type='text'
             name='username'
@@ -39,7 +39,7 @@ function Login() {
           />
         </div>
         <div style={{ marginBottom: '10px' }}>
-          <label>Password:</label>
+          <label>Mật khẩu:</label>
           <input
             type='password'
             name='password'
@@ -49,12 +49,12 @@ function Login() {
           />
         </div>
         <button type='submit' style={{ padding: '10px 20px' }}>
-          ??ng nh?p
+          Đăng nhập
         </button>
       </form>
       {message && <p style={{ color: 'red' }}>{message}</p>}
       <p>
-        Ch?a c? t?i kho?n? <Link to='/register'>??ng k?</Link>
+        Chưa có tài khoản? <Link to='/register'>Đăng ký</Link>
       </p>
     </div>
   );

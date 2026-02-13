@@ -16,6 +16,9 @@ const storyService = {
   createChapter: (storyId, volumeId, payload) =>
     api.post(`/api/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
 
+  updateChapter: (storyId, volumeId, chapterId, payload) =>
+    api.put(`/api/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}`, payload),
+
   getChapterContent: (storyId, chapterId) =>
     api.get(`/api/stories/${storyId}/chapters/${chapterId}/content`),
 

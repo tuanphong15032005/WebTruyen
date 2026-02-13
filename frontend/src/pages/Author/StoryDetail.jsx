@@ -1,10 +1,51 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import Button from '../../components/Button';
 import CreateVolume from './CreateVolume';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
 import '../../styles/story-detail.css';
+
+const COMPLETION_LABELS = {
+  ongoing: 'Đang tiến hành',
+  completed: 'Hoàn thành',
+  cancelled: 'Tạm ngưng',
+};
+
+const KIND_LABELS = {
+  original: 'Truyện gốc',
+  translated: 'Truyện dịch',
+  ai: 'Truyện AI',
+};
+
+const formatNumber = (value) =>
+  Number(value || 0).toLocaleString('vi-VN');
+
+const formatRelativeTime = (value) => {
+  if (!value) return 'Chưa cập nhật';
+  const date = new Date(value);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Vừa xong';
+  if (diffMin < 60) return `${diffMin} phút`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} giờ`;
+  const diffDay = Math.floor(diffHour / 24);
+  return `${diffDay} ngày`;
+};
+
+const countWordsFromHtml = (html) => {
+  if (!html) return 0;
+  const noImg = html.replace(/<img[^>]*>/gi, ' ');
+  const text = noImg.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!text) return 0;
+  return text.split(' ').length;
+};
 
 const StoryDetail = () => {
   const { storyId } = useParams();
@@ -85,6 +126,36 @@ const StoryDetail = () => {
     return tags.slice(1);
   }, [story]);
 
+  const completionLabel = useMemo(() => {
+    const key = (story?.completionStatus || '').toLowerCase();
+    return COMPLETION_LABELS[key] || 'Đang tiến hành';
+  }, [story]);
+
+  const kindLabel = useMemo(() => {
+    const key = (story?.kind || '').toLowerCase();
+    return KIND_LABELS[key] || 'Truyện gốc';
+  }, [story]);
+
+  const ratingText = useMemo(() => {
+    const count = Number(story?.ratingCount || 0);
+    if (!count) return 'Chưa có đánh giá';
+    const avg = Number(story?.ratingAvg || 0).toFixed(2);
+    return `${avg} / ${formatNumber(count)}`;
+  }, [story]);
+
+  const readerText = useMemo(() => {
+    const readers = Number(story?.readerCount || 0);
+    if (!readers) return 'Chưa có người đọc';
+    return formatNumber(readers);
+  }, [story]);
+
+  const wordText = useMemo(() => {
+    const apiWordCount = Number(story?.wordCount || 0);
+    const fallback = countWordsFromHtml(story?.summaryHtml || '');
+    const value = apiWordCount > 0 ? apiWordCount : fallback;
+    return value ? formatNumber(value) : '0';
+  }, [story]);
+
   const toggleVolume = (volumeId) => {
     setExpandedVolumes((prev) => {
       const next = new Set(prev);
@@ -142,7 +213,7 @@ const StoryDetail = () => {
                   onClick={() => navigate(`/author/stories/${storyId}/edit`)}
                 >
                   <svg viewBox='0 0 24 24' aria-hidden='true'>
-                    <path d='M4 17.25V20h2.75l8.1-8.1-2.75-2.75-8.1 8.1zm15.71-9.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.84 1.84 2.75 2.75 1.99-1.67z'/>
+                    <path d='M4 17.25V20h2.75l8.1-8.1-2.75-2.75-8.1 8.1zm15.71-9.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.84 1.84 2.75 2.75 1.99-1.67z' />
                   </svg>
                   Sửa truyện
                 </Button>
@@ -154,6 +225,26 @@ const StoryDetail = () => {
                   <div>
                     <span className='story-detail__label'>Tác giả</span>
                     <p>{story.authorPenName || 'Chưa có bút danh'}</p>
+                  </div>
+                  {story.kind === 'translated' && (
+                    <div>
+                      <span className='story-detail__label'>Người dịch</span>
+                      <p>{story.translatorPenName || story.authorPenName || 'Chưa rõ'}</p>
+                    </div>
+                  )}
+                  {story.kind === 'translated' && (
+                    <div>
+                      <span className='story-detail__label'>Tác giả gốc</span>
+                      <p>{story.originalAuthorName || 'Chưa rõ'}</p>
+                    </div>
+                  )}
+                  <div>
+                    <span className='story-detail__label'>Loại truyện</span>
+                    <p>{kindLabel}</p>
+                  </div>
+                  <div>
+                    <span className='story-detail__label'>Tình trạng</span>
+                    <p>{completionLabel}</p>
                   </div>
                   <div>
                     <span className='story-detail__label'>Danh mục</span>
@@ -168,11 +259,31 @@ const StoryDetail = () => {
                       </div>
                     )}
                   </div>
-                  <div className='story-detail__summary'>
-                    <span className='story-detail__label'>Tóm tắt</span>
-                    <div className='story-detail__summary-box'>
-                      {story.summaryHtml || story.summary || 'Chưa có tóm tắt.'}
-                    </div>
+                </div>
+
+                <div className='story-detail__stats'>
+                  <div className='story-detail__stat'>
+                    <span className='story-detail__label'>Lần cuối</span>
+                    <strong>{formatRelativeTime(story.lastUpdatedAt)}</strong>
+                  </div>
+                  <div className='story-detail__stat'>
+                    <span className='story-detail__label'>Số từ</span>
+                    <strong>{wordText}</strong>
+                  </div>
+                  <div className='story-detail__stat'>
+                    <span className='story-detail__label'>Đánh giá</span>
+                    <strong>{ratingText}</strong>
+                  </div>
+                  <div className='story-detail__stat'>
+                    <span className='story-detail__label'>Lượt xem</span>
+                    <strong>{readerText}</strong>
+                  </div>
+                </div>
+
+                <div className='story-detail__summary'>
+                  <span className='story-detail__label'>Tóm tắt</span>
+                  <div className='story-detail__summary-box'>
+                    {story.summaryHtml || story.summary || 'Chưa có tóm tắt.'}
                   </div>
                 </div>
               </div>
@@ -241,15 +352,25 @@ const StoryDetail = () => {
                     )}
                     {chapters.map((chapter) => (
                       <div key={chapter.id} className='story-detail__chapter'>
-                        <span>
-                          {chapter.sequenceIndex ? `Chương ${chapter.sequenceIndex}: ` : ''}
-                          {chapter.title}
-                        </span>
-                        {chapter.lastUpdateAt && (
-                          <span className='story-detail__muted'>
-                            Cập nhật: {new Date(chapter.lastUpdateAt).toLocaleDateString()}
+                        <div>
+                          <span>
+                            {chapter.sequenceIndex ? `Chương ${chapter.sequenceIndex}: ` : ''}
+                            {chapter.title}
                           </span>
-                        )}
+                          {chapter.lastUpdateAt && (
+                            <div className='story-detail__muted'>
+                              Cập nhật: {new Date(chapter.lastUpdateAt).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                        <div className='story-detail__chapter-actions'>
+                          <Link
+                            className='story-detail__chapter-edit'
+                            to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
+                          >
+                            Sửa chương
+                          </Link>
+                        </div>
                       </div>
                     ))}
                   </div>

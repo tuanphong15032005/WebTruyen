@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/Button';
 import FileUpload from '../../components/FileUpload';
@@ -6,6 +6,24 @@ import Input from '../../components/Input';
 import Select from '../../components/Select';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
+
+const STORY_STATUS_OPTIONS = [
+  { value: 'draft', label: 'Nháp' },
+  { value: 'published', label: 'Công khai' },
+  { value: 'archived', label: 'Lưu trữ' },
+];
+
+const STORY_KIND_OPTIONS = [
+  { value: 'original', label: 'Truyện gốc' },
+  { value: 'translated', label: 'Truyện dịch' },
+  { value: 'ai', label: 'Truyện AI' },
+];
+
+const COMPLETION_STATUS_OPTIONS = [
+  { value: 'ongoing', label: 'Đang tiến hành' },
+  { value: 'completed', label: 'Hoàn thành' },
+  { value: 'cancelled', label: 'Tạm ngưng' },
+];
 
 const CreateStory = () => {
   const navigate = useNavigate();
@@ -15,7 +33,10 @@ const CreateStory = () => {
 
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
-  const [visibility, setVisibility] = useState('DRAFT');
+  const [status, setStatus] = useState('draft');
+  const [kind, setKind] = useState('original');
+  const [originalAuthorName, setOriginalAuthorName] = useState('');
+  const [completionStatus, setCompletionStatus] = useState('ongoing');
   const [categoryId, setCategoryId] = useState('');
   const [tagIds, setTagIds] = useState([]);
   const [coverFile, setCoverFile] = useState(null);
@@ -56,8 +77,10 @@ const CreateStory = () => {
         const data = response?.data || {};
         setTitle(data.title || '');
         setSummary(data.summaryHtml || data.summary || '');
-        const status = (data.status || '').toLowerCase();
-        setVisibility(status === 'published' ? 'PUBLIC' : 'DRAFT');
+        setStatus((data.status || 'draft').toLowerCase());
+        setKind((data.kind || 'original').toLowerCase());
+        setOriginalAuthorName(data.originalAuthorName || '');
+        setCompletionStatus((data.completionStatus || 'ongoing').toLowerCase());
         setExistingCoverUrl(data.coverUrl || '');
         const apiTags = Array.isArray(data.tags) ? data.tags : [];
         const tagIdList = apiTags.map((tag) => String(tag.id));
@@ -122,6 +145,9 @@ const CreateStory = () => {
     if (!title.trim()) nextErrors.title = 'Tiêu đề là bắt buộc';
     if (!summary.trim()) nextErrors.summary = 'Tóm tắt là bắt buộc';
     if (!categoryId) nextErrors.category = 'Danh mục là bắt buộc';
+    if (kind === 'translated' && !originalAuthorName.trim()) {
+      nextErrors.originalAuthorName = 'Tên tác giả gốc là bắt buộc với truyện dịch';
+    }
     return nextErrors;
   };
 
@@ -137,7 +163,6 @@ const CreateStory = () => {
         const num = Number(value);
         return Number.isFinite(num) ? num : null;
       };
-      const status = visibility === 'PUBLIC' ? 'published' : 'draft';
       const combinedIds = [categoryId, ...tagIds].filter(Boolean);
       const uniqueIds = Array.from(new Set(combinedIds));
       const payload = {
@@ -145,8 +170,12 @@ const CreateStory = () => {
         summaryHtml: summary.trim(),
         tagIds: uniqueIds.map(toNumber).filter((id) => id != null),
         status,
-        visibility,
+        visibility: status === 'published' ? 'PUBLIC' : 'DRAFT',
+        kind,
+        originalAuthorName: kind === 'translated' ? originalAuthorName.trim() : null,
+        completionStatus,
       };
+
       const formData = new FormData();
       formData.append('data', JSON.stringify(payload));
       if (coverFile) {
@@ -157,8 +186,7 @@ const CreateStory = () => {
         ? await storyService.updateStory(storyId, formData)
         : await storyService.createStory(formData);
 
-      const nextStoryId =
-        response?.data?.id || response?.data?.storyId || storyId;
+      const nextStoryId = response?.data?.id || response?.data?.storyId || storyId;
       if (nextStoryId) {
         notify(
           isEditing ? 'Cập nhật truyện thành công' : 'Tạo truyện thành công',
@@ -188,6 +216,7 @@ const CreateStory = () => {
           error={errors.title}
           placeholder='Nhập tiêu đề truyện'
         />
+
         <Input
           label='Tóm tắt'
           as='textarea'
@@ -197,12 +226,53 @@ const CreateStory = () => {
           error={errors.summary}
           placeholder='Tóm tắt nội dung'
         />
+
+        <Select
+          label='Trạng thái truyện'
+          options={STORY_STATUS_OPTIONS}
+          value={status}
+          onChange={setStatus}
+          placeholder='Chọn trạng thái'
+        />
+
+        <Select
+          label='Loại truyện'
+          options={STORY_KIND_OPTIONS}
+          value={kind}
+          onChange={(value) => {
+            setKind(value);
+            if (value !== 'translated') {
+              setOriginalAuthorName('');
+            }
+          }}
+          placeholder='Chọn loại truyện'
+        />
+
+        {kind === 'translated' && (
+          <Input
+            label='Tác giả gốc'
+            value={originalAuthorName}
+            onChange={(e) => setOriginalAuthorName(e.target.value)}
+            error={errors.originalAuthorName}
+            placeholder='Nhập tên tác giả gốc'
+          />
+        )}
+
+        <Select
+          label='Tình trạng'
+          options={COMPLETION_STATUS_OPTIONS}
+          value={completionStatus}
+          onChange={setCompletionStatus}
+          placeholder='Chọn tình trạng'
+        />
+
         <FileUpload label='Ảnh bìa' onFileSelect={setCoverFile} />
         {existingCoverUrl && !coverFile && (
           <div className='file-preview'>
             <img src={existingCoverUrl} alt='cover' />
           </div>
         )}
+
         <Select
           label='Danh mục'
           options={tags}
@@ -211,6 +281,7 @@ const CreateStory = () => {
           error={errors.category}
           placeholder='Chọn danh mục'
         />
+
         <div className='field'>
           <span className='field-label'>Thể loại</span>
           <div className='segment-ids' style={{ gap: '10px', flexWrap: 'wrap' }}>
@@ -224,9 +295,7 @@ const CreateStory = () => {
                   border: tagIds.includes(String(tag.value))
                     ? '1px solid #3b82f6'
                     : '1px solid var(--border)',
-                  background: tagIds.includes(String(tag.value))
-                    ? '#1c2a3b'
-                    : '#141f2d',
+                  background: tagIds.includes(String(tag.value)) ? '#1c2a3b' : '#141f2d',
                   cursor: 'pointer',
                   color: 'inherit',
                 }}
@@ -235,10 +304,9 @@ const CreateStory = () => {
               </button>
             ))}
           </div>
-          {tags.length === 0 && (
-            <span className='field-hint'>Chưa có thể loại.</span>
-          )}
+          {tags.length === 0 && <span className='field-hint'>Chưa có thể loại.</span>}
         </div>
+
         {selectedLabels.length > 0 && (
           <div className='field'>
             <span className='field-label'>Đã chọn</span>
@@ -268,40 +336,13 @@ const CreateStory = () => {
             </div>
           </div>
         )}
-        <div className='field'>
-          <span className='field-label'>Hiển thị</span>
-          <div className='radio-group'>
-            <label>
-              <input
-                type='radio'
-                name='visibility'
-                value='DRAFT'
-                checked={visibility === 'DRAFT'}
-                onChange={(e) => setVisibility(e.target.value)}
-              />
-              Nháp
-            </label>
-            <label>
-              <input
-                type='radio'
-                name='visibility'
-                value='PUBLIC'
-                checked={visibility === 'PUBLIC'}
-                onChange={(e) => setVisibility(e.target.value)}
-              />
-              Công khai
-            </label>
-          </div>
-        </div>
+
         <div className='form-actions'>
           <Button type='submit' loading={loading}>
             {isEditing ? 'Cập nhật truyện' : 'Tạo truyện'}
           </Button>
         </div>
       </form>
-      <p className='field-hint'>
-        Ghi chú: Danh mục và thể loại được gửi dưới dạng tagIds theo backend.
-      </p>
     </div>
   );
 };
