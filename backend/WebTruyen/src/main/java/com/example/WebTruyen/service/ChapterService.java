@@ -122,6 +122,81 @@ public class ChapterService {
         return resp;
     }
 
+    @Transactional
+    public CreateChapterResponse updateChapterFromHtml(UserEntity currentUser, Long storyId, Long volumeId, Long chapterId, CreateChapterRequest req) {
+        VolumeEntity volume = volumeRepository.findById(volumeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Volume not found"));
+
+        if (volume.getStory() == null || !volume.getStory().getId().equals(storyId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Volume does not belong to story");
+        }
+
+        StoryEntity story = volume.getStory();
+        if (story.getAuthor() == null || !story.getAuthor().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner of story");
+        }
+
+        ChapterEntity chapter = chapterRepository.findByIdAndVolume_Id(chapterId, volumeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+
+        boolean isFree = req.getIsFree() == null ? true : req.getIsFree();
+        if (!isFree && req.getPriceCoin() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "priceCoin required for paid chapter");
+        }
+
+        if (req.getTitle() == null || req.getTitle().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title is required");
+        }
+        chapter.setTitle(req.getTitle().trim());
+        chapter.setFree(isFree);
+        chapter.setPriceCoin(req.getPriceCoin());
+        ChapterStatus nextStatus = parseStatus(req.getStatus(), chapter.getStatus());
+        chapter.setStatus(nextStatus);
+        chapter.setLastUpdateAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+
+        String contentHtml = req.getContentHtml();
+        String replacedHtml = replaceBase64ImagesAndUpload(contentHtml);
+        String sanitized = sanitizeHtml(replacedHtml);
+        List<String> fragments = splitHtmlToBlocks(sanitized);
+
+        chapterSegmentRepository.deleteByChapter_Id(chapterId);
+        // Force delete SQL execution before re-insert to avoid uq(chapter_id, seq) collision.
+        chapterSegmentRepository.flush();
+        List<ChapterSegmentEntity> segs = new ArrayList<>();
+        int seq = 1;
+        for (String frag : fragments) {
+            ChapterSegmentEntity s = ChapterSegmentEntity.builder()
+                    .chapter(chapter)
+                    .seq(seq++)
+                    .segmentText(frag)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            segs.add(s);
+        }
+        List<ChapterSegmentEntity> savedSegs = segs.isEmpty()
+                ? Collections.emptyList()
+                : chapterSegmentRepository.saveAll(segs);
+
+        CreateChapterResponse resp = new CreateChapterResponse();
+        resp.setChapterId(chapter.getId());
+        List<Long> ids = savedSegs.stream().map(ChapterSegmentEntity::getId).collect(Collectors.toList());
+        resp.setSegmentIds(ids);
+        resp.setSegmentCount(ids.size());
+        return resp;
+    }
+
+    private ChapterStatus parseStatus(String raw, ChapterStatus fallback) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return fallback == null ? ChapterStatus.draft : fallback;
+        }
+        try {
+            return ChapterStatus.valueOf(raw.trim().toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            return fallback == null ? ChapterStatus.draft : fallback;
+        }
+    }
+
     /**
      * Replace any <img src="data:..."> with uploaded URL via StorageService.saveBase64Image(...)
      * Returns replaced HTML.
@@ -202,6 +277,8 @@ public class ChapterService {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getChapterContent(Long chapterId) {
+        ChapterEntity chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
         List<ChapterSegmentEntity> segs = chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapterId);
         StringBuilder sb = new StringBuilder();
         List<Map<String,Object>> segDtos = new ArrayList<>();
@@ -214,6 +291,13 @@ public class ChapterService {
             segDtos.add(m);
         }
         Map<String,Object> out = new HashMap<>();
+        out.put("chapterId", chapter.getId());
+        out.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
+        out.put("sequenceIndex", chapter.getSequenceIndex());
+        out.put("title", chapter.getTitle());
+        out.put("isFree", chapter.isFree());
+        out.put("priceCoin", chapter.getPriceCoin());
+        out.put("status", chapter.getStatus() != null ? chapter.getStatus().name() : null);
         out.put("segments", segDtos);
         out.put("fullHtml", sb.toString());
         return out;

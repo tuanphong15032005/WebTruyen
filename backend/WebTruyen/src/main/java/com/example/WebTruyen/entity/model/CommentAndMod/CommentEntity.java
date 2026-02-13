@@ -53,7 +53,7 @@ public class CommentEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // 1-N self: children (không bắt buộc, nhưng tiện dùng)
+    // 1-N self: children
     @OneToMany(mappedBy = "parentComment", fetch = FetchType.LAZY)
     @Builder.Default
     private List<CommentEntity> replies = new ArrayList<>();

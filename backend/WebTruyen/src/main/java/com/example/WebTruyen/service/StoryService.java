@@ -3,69 +3,82 @@ package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.respone.StoryResponse;
 import com.example.WebTruyen.dto.respone.TagDto;
+import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
+import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.keys.StoryTagId;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.repository.ChapterRepository;
+import com.example.WebTruyen.repository.ChapterSegmentRepository;
+import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
 import com.example.WebTruyen.repository.TagRepository;
+import com.example.WebTruyen.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jsoup.Jsoup;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
-import java.util.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class StoryService {
-    @Autowired
+
     private final StoryRepository storyRepository;
     private final TagRepository tagRepository;
     private final StoryTagRepository storyTagRepository;
     private final StorageService storageService;
-
-
+    private final UserRepository userRepository;
+    private final ReadingHistoryRepository readingHistoryRepository;
+    private final ChapterRepository chapterRepository;
+    private final ChapterSegmentRepository chapterSegmentRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
-        //Validate
-        if (req.title() == null || req.title().isBlank()) {
-            throw new IllegalArgumentException("title is required");
-        }
-        if (storyRepository.existsByAuthor_IdAndTitle(currentUser.getId(), req.title().trim())) {
+        validateCreateStoryRequest(req);
 
-        }
-
-        //Upload cover
         String coverUrl = null;
         if (cover != null && !cover.isEmpty()) {
-            coverUrl = storageService.saveCover(cover); //cloud return url cua cover.
+            coverUrl = storageService.saveCover(cover);
         }
 
-        // Save story
+        StoryKind kind = parseKind(req.kind(), StoryKind.original);
+        StoryCompletionStatus completionStatus = parseCompletionStatus(req.completionStatus(), StoryCompletionStatus.ongoing);
+        String originalAuthorName = normalizeOriginalAuthorName(kind, req.originalAuthorName());
+
         StoryEntity story = StoryEntity.builder()
                 .author(currentUser)
                 .title(req.title().trim())
                 .summary(req.summaryHtml())
                 .coverUrl(coverUrl)
                 .status(resolveStatus(req))
+                .kind(kind)
+                .originalAuthorName(originalAuthorName)
+                .completionStatus(completionStatus)
+                .completedAt(completionStatus == StoryCompletionStatus.completed ? LocalDateTime.now() : null)
+                .originalAuthorUser(resolveOriginalAuthorUser(req.originalAuthorUserId()))
                 .build();
-        //save
+
         StoryEntity saved = storyRepository.save(story);
-        
         List<TagDto> tagDtos = syncStoryTags(saved, normalizeIds(req.tagIds()), true);
-        // response: story + list TagDto
         return toResponse(saved, tagDtos);
     }
 
-    // Lấy chi tiết truyện theo id
     @Transactional
     public StoryResponse getStoryById(Integer storyId) {
         StoryEntity story = storyRepository.findById(storyId)
@@ -80,7 +93,6 @@ public class StoryService {
         return toResponse(story, tagDtos);
     }
 
-    // C?p nh?t truy?n theo id (kh?ng t?o m?i)
     @Transactional
     public StoryResponse updateStory(UserEntity currentUser, Integer storyId, CreateStoryRequest req, MultipartFile cover) {
         StoryEntity story = storyRepository.findById(storyId)
@@ -99,9 +111,25 @@ public class StoryService {
         }
         story.setStatus(resolveStatus(req));
 
+        StoryKind kind = parseKind(req.kind(), story.getKind() == null ? StoryKind.original : story.getKind());
+        story.setKind(kind);
+        story.setOriginalAuthorName(normalizeOriginalAuthorName(kind, req.originalAuthorName()));
+        story.setOriginalAuthorUser(resolveOriginalAuthorUser(req.originalAuthorUserId()));
+
+        StoryCompletionStatus completionStatus = parseCompletionStatus(
+                req.completionStatus(),
+                story.getCompletionStatus() == null ? StoryCompletionStatus.ongoing : story.getCompletionStatus()
+        );
+        story.setCompletionStatus(completionStatus);
+        if (completionStatus == StoryCompletionStatus.completed && story.getCompletedAt() == null) {
+            story.setCompletedAt(LocalDateTime.now());
+        }
+        if (completionStatus != StoryCompletionStatus.completed) {
+            story.setCompletedAt(null);
+        }
+
         if (cover != null && !cover.isEmpty()) {
-            String coverUrl = storageService.saveCover(cover);
-            story.setCoverUrl(coverUrl);
+            story.setCoverUrl(storageService.saveCover(cover));
         }
 
         StoryEntity saved = storyRepository.save(story);
@@ -109,19 +137,73 @@ public class StoryService {
         return toResponse(saved, tagDtos);
     }
 
-    //response cho controller ->  FE
-    private StoryResponse toResponse(StoryEntity s, List<TagDto> tags) {
+    private void validateCreateStoryRequest(CreateStoryRequest req) {
+        if (req.title() == null || req.title().isBlank()) {
+            throw new IllegalArgumentException("title is required");
+        }
+    }
+
+    private StoryResponse toResponse(StoryEntity story, List<TagDto> tags) {
+        long readerCount = readingHistoryRepository.countByStory_Id(story.getId());
+        long wordCount = countStoryWords(story.getId(), story.getSummary());
+        LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
+        BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
+
+        String authorPenName = story.getAuthor() != null ? story.getAuthor().getAuthorPenName() : null;
+        String translatorPenName = story.getKind() == StoryKind.translated ? authorPenName : null;
+        Long originalAuthorUserId = story.getOriginalAuthorUser() != null ? story.getOriginalAuthorUser().getId() : null;
+
         return new StoryResponse(
-                s.getId(),
-                s.getAuthor().getId(),
-                s.getAuthor().getAuthorPenName(),
-                s.getTitle(),
-                s.getSummary(),
-                s.getCoverUrl(),
-                s.getStatus().name(),     // enum -> String
+                story.getId(),
+                story.getAuthor() != null ? story.getAuthor().getId() : null,
+                authorPenName,
+                translatorPenName,
+                story.getTitle(),
+                story.getSummary(),
+                story.getCoverUrl(),
+                story.getStatus() != null ? story.getStatus().name() : null,
+                story.getKind() != null ? story.getKind().name() : null,
+                story.getCompletionStatus() != null ? story.getCompletionStatus().name() : null,
+                story.getCompletedAt(),
+                story.getOriginalAuthorName(),
+                originalAuthorUserId,
+                story.getRatingSum(),
+                story.getRatingCount(),
+                ratingAvg,
+                readerCount,
+                wordCount,
+                lastUpdatedAt,
                 tags,
-                s.getCreatedAt()
+                story.getCreatedAt()
         );
+    }
+
+    private BigDecimal computeRatingAverage(long ratingSum, int ratingCount) {
+        if (ratingCount <= 0) {
+            return null;
+        }
+        return BigDecimal.valueOf(ratingSum)
+                .divide(BigDecimal.valueOf(ratingCount), 2, RoundingMode.HALF_UP);
+    }
+
+    private long countStoryWords(Long storyId, String summaryHtml) {
+        long total = countWordsFromHtml(summaryHtml);
+        List<String> segments = chapterSegmentRepository.findSegmentTextsByStoryId(storyId);
+        for (String segment : segments) {
+            total += countWordsFromHtml(segment);
+        }
+        return total;
+    }
+
+    private long countWordsFromHtml(String html) {
+        if (html == null || html.isBlank()) {
+            return 0L;
+        }
+        String plain = Jsoup.parse(html).text();
+        if (plain == null || plain.isBlank()) {
+            return 0L;
+        }
+        return plain.trim().split("\\s+").length;
     }
 
     private StoryStatus resolveStatus(CreateStoryRequest req) {
@@ -138,6 +220,45 @@ public class StoryService {
         return StoryStatus.draft;
     }
 
+    private StoryKind parseKind(String kindRaw, StoryKind fallback) {
+        if (kindRaw == null || kindRaw.isBlank()) {
+            return fallback;
+        }
+        try {
+            return StoryKind.valueOf(kindRaw.trim().toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            return fallback;
+        }
+    }
+
+    private StoryCompletionStatus parseCompletionStatus(String raw, StoryCompletionStatus fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            return StoryCompletionStatus.valueOf(raw.trim().toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            return fallback;
+        }
+    }
+
+    private String normalizeOriginalAuthorName(StoryKind kind, String name) {
+        if (kind != StoryKind.translated) {
+            return null;
+        }
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("originalAuthorName is required for translated story");
+        }
+        return name.trim();
+    }
+
+    private UserEntity resolveOriginalAuthorUser(Long originalAuthorUserId) {
+        if (originalAuthorUserId == null) {
+            return null;
+        }
+        return userRepository.findById(originalAuthorUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "originalAuthorUserId not found"));
+    }
 
     private List<TagDto> syncStoryTags(StoryEntity story, List<Long> tagIds, boolean replaceExisting) {
         if (replaceExisting) {
@@ -172,6 +293,7 @@ public class StoryService {
                 .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
                 .toList();
     }
+
     private static List<Long> normalizeIds(List<Long> ids) {
         if (ids == null) return List.of();
         return ids.stream()
@@ -180,5 +302,4 @@ public class StoryService {
                 .distinct()
                 .toList();
     }
-
 }

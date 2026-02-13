@@ -1,7 +1,9 @@
 package com.example.WebTruyen.entity.model.CoreIdentity;
 
 
+import com.example.WebTruyen.entity.model.Content.StoryReviewEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -62,6 +64,12 @@ public class UserEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "profile_slug", length = 255, unique = true)
+    private String profileSlug;
+
     // 1-1 wallets (PK=FK)
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private WalletEntity wallet;
@@ -75,4 +83,16 @@ public class UserEntity {
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     @Builder.Default
     private List<StoryEntity> stories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "originalAuthorUser", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<StoryEntity> translatedStories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<StoryReviewEntity> storyReviews = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ReadingHistoryEntity> readingHistories = new ArrayList<>();
 }

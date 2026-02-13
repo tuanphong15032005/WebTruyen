@@ -20,10 +20,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api")
@@ -35,6 +37,12 @@ public class StoryController {
     private final VolumeService volumeService;
     private final ChapterService chapterService;
 
+    private UserEntity requireUser(UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return userPrincipal.getUser();
+    }
 
     @PostMapping(value = "/stories", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public <userPrincipal> StoryResponse createStory(
@@ -43,7 +51,7 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) throws Exception {
         CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
-        UserEntity currentUser = userPrincipal.getUser();
+        UserEntity currentUser = requireUser(userPrincipal);
         return storyService.createStory(currentUser, data, cover);
     }
 
@@ -62,7 +70,7 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) throws Exception {
         CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
-        UserEntity currentUser = userPrincipal.getUser();
+        UserEntity currentUser = requireUser(userPrincipal);
         return storyService.updateStory(currentUser, storyId, data, cover);
     }
 
@@ -78,7 +86,7 @@ public class StoryController {
             @RequestBody CreateVolumeRequest req,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        UserEntity currentUser = userPrincipal.getUser();
+        UserEntity currentUser = requireUser(userPrincipal);
         return volumeService.createVolume(currentUser, storyId, req);
     }
 
@@ -95,8 +103,20 @@ public class StoryController {
             @RequestBody CreateChapterRequest req,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        UserEntity currentUser = userPrincipal.getUser();
+        UserEntity currentUser = requireUser(userPrincipal);
         return chapterService.createChapterFromHtml( currentUser,  storyId,  volumeId, req);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CreateChapterResponse updateChapter(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @PathVariable("chapterId") Long chapterId,
+            @RequestBody CreateChapterRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return chapterService.updateChapterFromHtml(currentUser, storyId, volumeId, chapterId, req);
     }
 
     @GetMapping("/stories/{storyId}/chapters/{chapterId}/content")

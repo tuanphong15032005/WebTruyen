@@ -3,6 +3,8 @@ import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +28,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
 
     @Query("select coalesce(max(c.sequenceIndex), 0) from ChapterEntity c where c.volume.id = :volumeId")
     Integer findMaxSequenceIndexByVolumeId(@Param("volumeId") Long volumeId);
+
+    @Query("select max(c.lastUpdateAt) from ChapterEntity c where c.volume.story.id = :storyId")
+    LocalDateTime findLatestUpdateAtByStoryId(@Param("storyId") Long storyId);
 }
