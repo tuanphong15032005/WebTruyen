@@ -66,8 +66,6 @@ public class UserEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "profile_slug", length = 255, unique = true)
-    private String profileSlug;
 
 
     // 1-1 wallets (PK=FK)

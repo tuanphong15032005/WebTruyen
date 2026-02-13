@@ -21,17 +21,88 @@ import {
 export default function UserProfile({ userData }) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(userData?.displayName || 'Thảo Trịnh');
-  const [favoriteQuote, setFavoriteQuote] = useState(userData?.favoriteQuote || '');
+  const [favoriteQuote, setFavoriteQuote] = useState(userData?.bio || '');
   const [tempName, setTempName] = useState(displayName);
+  const [bioMessage, setBioMessage] = useState('');
+  const [nameMessage, setNameMessage] = useState('');
+  const [profileData, setProfileData] = useState(userData || {});
 
-  const handleUpdateQuote = () => {
-    alert('Trích dẫn đã được cập nhật!');
+  // Fetch profile data from API if not provided
+  React.useEffect(() => {
+    if (!userData || !userData.email) {
+      const fetchProfile = async () => {
+        try {
+          const userId = profileData?.id || 1;
+          const response = await fetch(`http://localhost:8081/api/users/profile/${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setProfileData(data);
+            setDisplayName(data.displayName || 'Thảo Trịnh');
+            setFavoriteQuote(data.bio || '');
+            setTempName(data.displayName || 'Thảo Trịnh');
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      };
+      fetchProfile();
+    }
+  }, [userData]);
+
+  const handleUpdateQuote = async () => {
+    try {
+      const userId = profileData?.id || 1;
+      const response = await fetch(`http://localhost:8081/api/users/profile/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bio: favoriteQuote
+        })
+      });
+      
+      if (response.ok) {
+        setBioMessage('Trích dẫn đã được cập nhật!');
+        setTimeout(() => setBioMessage(''), 3000);
+      } else {
+        setBioMessage('Cập nhật thất bại, vui lòng thử lại!');
+        setTimeout(() => setBioMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error updating bio:', error);
+      setBioMessage('Có lỗi xảy ra, vui lòng thử lại!');
+      setTimeout(() => setBioMessage(''), 3000);
+    }
   };
 
-  const handleChangeName = () => {
+  const handleChangeName = async () => {
     if (tempName.trim()) {
-      setDisplayName(tempName);
-      alert('Tên hiển thị đã được thay đổi!');
+      try {
+        const userId = profileData?.id || 1;
+        const response = await fetch(`http://localhost:8081/api/users/profile/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            displayName: tempName
+          })
+        });
+        
+        if (response.ok) {
+          setDisplayName(tempName);
+          setNameMessage('Tên hiển thị đã được thay đổi!');
+          setTimeout(() => setNameMessage(''), 3000);
+        } else {
+          setNameMessage('Cập nhật thất bại, vui lòng thử lại!');
+          setTimeout(() => setNameMessage(''), 3000);
+        }
+      } catch (error) {
+        console.error('Error updating displayName:', error);
+        setNameMessage('Có lỗi xảy ra, vui lòng thử lại!');
+        setTimeout(() => setNameMessage(''), 3000);
+      }
     }
   };
 
@@ -275,7 +346,7 @@ export default function UserProfile({ userData }) {
                 fontSize: '14px'
               }}>
                 <Mail size={16} />
-                {userData?.email || 'thao.trinh@email.com'}
+                {profileData?.email || 'thao.trinh@email.com'}
               </p>
               <div style={{
                 width: '100%',
@@ -287,7 +358,7 @@ export default function UserProfile({ userData }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '18px', fontWeight: 'bold' }}>
                   <Coins size={24} style={{ color: '#ffd700' }} />
-                  <span>{userData?.coin || 0} Vàng</span>
+                  <span>{profileData?.coin || 0} Coin</span>
                 </div>
               </div>
             </div>
@@ -415,7 +486,7 @@ export default function UserProfile({ userData }) {
                     <span style={{ fontWeight: '500' }}>Email</span>
                   </div>
                   <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
-                    {userData?.email || 'thao.trinh@email.com'}
+                    {profileData?.email || 'thao.trinh@email.com'}
                   </p>
                 </div>
 
@@ -493,7 +564,7 @@ export default function UserProfile({ userData }) {
                     gap: '8px' 
                   }}>
                     <Coins size={28} style={{ color: '#ffd700' }} />
-                    {userData?.coin || 0} Coin
+                    {profileData?.coin || 0} Coin
                   </p>
                 </div>
               </div>
@@ -538,6 +609,7 @@ export default function UserProfile({ userData }) {
                 borderRadius: '12px',
                 fontSize: '16px',
                 backgroundColor: '#f8f9fa',
+                color: '#333',
                 resize: 'none',
                 outline: 'none',
                 transition: 'border-color 0.3s',
@@ -545,6 +617,20 @@ export default function UserProfile({ userData }) {
                 boxSizing: 'border-box'
               }}
             />
+            {bioMessage && (
+              <div style={{
+                marginTop: '12px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                backgroundColor: bioMessage.includes('thất bại') || bioMessage.includes('lỗi') ? '#f8d7da' : '#d4edda',
+                color: bioMessage.includes('thất bại') || bioMessage.includes('lỗi') ? '#721c24' : '#155724',
+                border: `1px solid ${bioMessage.includes('thất bại') || bioMessage.includes('lỗi') ? '#f5c6cb' : '#c3e6cb'}`
+              }}>
+                {bioMessage}
+              </div>
+            )}
             <button
               onClick={handleUpdateQuote}
               style={{
@@ -607,6 +693,7 @@ export default function UserProfile({ userData }) {
                   borderRadius: '12px',
                   fontSize: '16px',
                   backgroundColor: '#f8f9fa',
+                  color: '#333',
                   outline: 'none',
                   transition: 'border-color 0.3s',
                   boxSizing: 'border-box'
@@ -634,6 +721,20 @@ export default function UserProfile({ userData }) {
                 <Edit3 size={20} />
                 Thay đổi
               </button>
+              {nameMessage && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  backgroundColor: nameMessage.includes('thất bại') || nameMessage.includes('lỗi') ? '#f8d7da' : '#d4edda',
+                  color: nameMessage.includes('thất bại') || nameMessage.includes('lỗi') ? '#721c24' : '#155724',
+                  border: `1px solid ${nameMessage.includes('thất bại') || nameMessage.includes('lỗi') ? '#f5c6cb' : '#c3e6cb'}`
+                }}>
+                  {nameMessage}
+                </div>
+              )}
             </div>
           </div>
         </main>
