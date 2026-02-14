@@ -6,6 +6,7 @@ import VerifyCode from './pages/VerifyCode';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ContentModeration from './pages/ContentModeration';
+import AuthorCommentManagement from './pages/AuthorCommentManagement';
 import './App.css';
 
 // Trang chủ đơn giản
@@ -31,6 +32,7 @@ function App() {
             <Route path="/admin/moderation" element={<ContentModeration mode="pending" />} />
             <Route path="/admin/moderation/approved" element={<ContentModeration mode="approved" />} />
             <Route path="/admin/moderation/rejected" element={<ContentModeration mode="rejected" />} />
+            <Route path="/author/comments" element={<AuthorCommentManagement />} />
         </Routes>
     </MainLayout>
   );

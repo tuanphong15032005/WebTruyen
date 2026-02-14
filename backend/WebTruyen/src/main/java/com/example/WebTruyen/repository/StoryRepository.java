@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface StoryRepository extends JpaRepository<StoryEntity, Long> {
     List<StoryEntity> findAllByStatus(StoryStatus status);
+    List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
 }

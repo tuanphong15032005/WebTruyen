@@ -26,6 +26,7 @@ import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.StoryRepository;
+import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.security.UserPrincipal;
 
 import jakarta.persistence.EntityManager;
@@ -91,6 +92,7 @@ public class ModerationService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final ModerationActionRepository moderationActionRepository;
+    private final UserRepository userRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -178,8 +180,9 @@ public class ModerationService {
                               String actionType,
                               ModerationActionRequest request) {
         UserEntity admin = requireAdmin();
+        UserEntity managedAdmin = userRepository.getReferenceById(admin.getId());
         ModerationActionEntity action = ModerationActionEntity.builder()
-                .admin(admin)
+                .admin(managedAdmin)
                 .actionType(actionType)
                 .targetKind(targetKind)
                 .targetId(targetId)

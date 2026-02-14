@@ -42,9 +42,10 @@ public class StoryEntity {
     @Column(nullable = false)
     private StoryStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private StoryVisibility visibility;
+    /** Not persisted: column was removed from DB (stories). Default for in-memory use only. */
+    @Transient
+    @Builder.Default
+    private StoryVisibility visibility = StoryVisibility.public_;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

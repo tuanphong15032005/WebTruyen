@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     List<ChapterEntity> findAllByStatus(ChapterStatus status);
+    List<ChapterEntity> findByVolume_Story_IdOrderByVolume_SequenceIndexAscSequenceIndexAsc(Long storyId);
 }
