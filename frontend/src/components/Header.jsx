@@ -54,6 +54,9 @@ function Header() {
                         {/* Dropdown Menu */}
                         {showDropdown && (
                             <div className="dropdown-menu">
+                                <Link to="/admin/moderation" className="dropdown-item">Kiểm duyệt nội dung</Link>
+                                <Link to="/admin/moderation/approved" className="dropdown-item">Nội dung đã duyệt</Link>
+                                <Link to="/admin/moderation/rejected" className="dropdown-item">Nội dung bị từ chối</Link>
                                 <Link to="/profile" className="dropdown-item">Hồ sơ cá nhân</Link>
                                 <div className="dropdown-divider"></div>
                                 <button onClick={handleLogout} className="dropdown-item logout-btn">

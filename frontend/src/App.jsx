@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import VerifyCode from './pages/VerifyCode';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import ContentModeration from './pages/ContentModeration';
 import './App.css';
 
 // Trang chủ đơn giản
@@ -27,6 +28,9 @@ function App() {
             <Route path="/verify" element={<VerifyCode />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin/moderation" element={<ContentModeration mode="pending" />} />
+            <Route path="/admin/moderation/approved" element={<ContentModeration mode="approved" />} />
+            <Route path="/admin/moderation/rejected" element={<ContentModeration mode="rejected" />} />
         </Routes>
     </MainLayout>
   );
