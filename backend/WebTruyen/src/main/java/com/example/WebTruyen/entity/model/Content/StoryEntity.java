@@ -1,13 +1,35 @@
 package com.example.WebTruyen.entity.model.Content;
 
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.enums.StoryVisibility;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
-import jakarta.persistence.*;
-import lombok.*;
-import java.time.LocalDateTime;
-import java.util.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "stories",
@@ -42,7 +64,6 @@ public class StoryEntity {
     @Column(nullable = false)
     private StoryStatus status;
 
-    /** Not persisted: column was removed from DB (stories). Default for in-memory use only. */
     @Transient
     @Builder.Default
     private StoryVisibility visibility = StoryVisibility.public_;
