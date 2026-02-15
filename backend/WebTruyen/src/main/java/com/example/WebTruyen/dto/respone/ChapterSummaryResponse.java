@@ -6,5 +6,6 @@ public record ChapterSummaryResponse(
         Long id,
         String title,
         Integer sequenceIndex,
-        LocalDateTime lastUpdateAt
+        LocalDateTime lastUpdateAt,
+        String status
 ) {}

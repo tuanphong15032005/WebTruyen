@@ -11,8 +11,10 @@ import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
+import com.example.WebTruyen.repository.FollowStoryRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
@@ -47,6 +49,7 @@ public class StoryService {
     private final ReadingHistoryRepository readingHistoryRepository;
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
+    private final FollowStoryRepository followStoryRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
@@ -60,6 +63,9 @@ public class StoryService {
         StoryKind kind = parseKind(req.kind(), StoryKind.original);
         StoryCompletionStatus completionStatus = parseCompletionStatus(req.completionStatus(), StoryCompletionStatus.ongoing);
         String originalAuthorName = normalizeOriginalAuthorName(kind, req.originalAuthorName());
+        UserEntity originalAuthorUser = kind == StoryKind.translated
+                ? resolveOriginalAuthorUser(req.originalAuthorUserId())
+                : null;
 
         StoryEntity story = StoryEntity.builder()
                 .author(currentUser)
@@ -71,7 +77,7 @@ public class StoryService {
                 .originalAuthorName(originalAuthorName)
                 .completionStatus(completionStatus)
                 .completedAt(completionStatus == StoryCompletionStatus.completed ? LocalDateTime.now() : null)
-                .originalAuthorUser(resolveOriginalAuthorUser(req.originalAuthorUserId()))
+                .originalAuthorUser(originalAuthorUser)
                 .build();
 
         StoryEntity saved = storyRepository.save(story);
@@ -81,8 +87,7 @@ public class StoryService {
 
     @Transactional
     public StoryResponse getStoryById(Integer storyId) {
-        StoryEntity story = storyRepository.findById(storyId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+        StoryEntity story = requireStoryById(storyId.longValue());
 
         List<TagDto> tagDtos = story.getStoryTags().stream()
                 .map(StoryTagEntity::getTag)
@@ -91,6 +96,49 @@ public class StoryService {
                 .toList();
 
         return toResponse(story, tagDtos);
+    }
+
+    @Transactional
+    public StoryResponse getPublishedStoryById(Integer storyId) {
+        StoryEntity story = requirePublishedStoryById(storyId.longValue());
+
+        List<TagDto> tagDtos = story.getStoryTags().stream()
+                .map(StoryTagEntity::getTag)
+                .filter(Objects::nonNull)
+                .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
+                .toList();
+
+        return toResponse(story, tagDtos);
+    }
+
+    @Transactional
+    public boolean getNotifyNewChapterStatus(UserEntity currentUser, Long storyId) {
+        if (currentUser == null) {
+            return false;
+        }
+        requireStoryById(storyId);
+        return followStoryRepository.findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .map(FollowStoryEntity::isNotifyNewChapter)
+                .orElse(false);
+    }
+
+    @Transactional
+    public boolean toggleNotifyNewChapter(UserEntity currentUser, Long storyId) {
+        StoryEntity story = requireStoryById(storyId);
+        FollowStoryEntity follow = followStoryRepository.findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .orElseGet(() -> FollowStoryEntity.builder()
+                        .user(currentUser)
+                        .story(story)
+                        .notifyNewChapter(true)
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+        if (follow.getId() != null) {
+            follow.setNotifyNewChapter(!follow.isNotifyNewChapter());
+        }
+
+        FollowStoryEntity saved = followStoryRepository.save(follow);
+        return saved.isNotifyNewChapter();
     }
 
     @Transactional
@@ -114,7 +162,9 @@ public class StoryService {
         StoryKind kind = parseKind(req.kind(), story.getKind() == null ? StoryKind.original : story.getKind());
         story.setKind(kind);
         story.setOriginalAuthorName(normalizeOriginalAuthorName(kind, req.originalAuthorName()));
-        story.setOriginalAuthorUser(resolveOriginalAuthorUser(req.originalAuthorUserId()));
+        story.setOriginalAuthorUser(kind == StoryKind.translated
+                ? resolveOriginalAuthorUser(req.originalAuthorUserId())
+                : null);
 
         StoryCompletionStatus completionStatus = parseCompletionStatus(
                 req.completionStatus(),
@@ -187,10 +237,13 @@ public class StoryService {
     }
 
     private long countStoryWords(Long storyId, String summaryHtml) {
-        long total = countWordsFromHtml(summaryHtml);
+        long total = 0L;
         List<String> segments = chapterSegmentRepository.findSegmentTextsByStoryId(storyId);
         for (String segment : segments) {
             total += countWordsFromHtml(segment);
+        }
+        if (total == 0) {
+            total = countWordsFromHtml(summaryHtml);
         }
         return total;
     }
@@ -301,5 +354,27 @@ public class StoryService {
                 .filter(id -> id > 0)
                 .distinct()
                 .toList();
+    }
+
+    private StoryEntity requireStoryById(Long storyId) {
+        if (storyId == null || storyId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid story id");
+        }
+        int rawId;
+        try {
+            rawId = Math.toIntExact(storyId);
+        } catch (ArithmeticException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid story id");
+        }
+        return storyRepository.findById(rawId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+    }
+
+    private StoryEntity requirePublishedStoryById(Long storyId) {
+        StoryEntity story = requireStoryById(storyId);
+        if (story.getStatus() != StoryStatus.published) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story is not public");
+        }
+        return story;
     }
 }

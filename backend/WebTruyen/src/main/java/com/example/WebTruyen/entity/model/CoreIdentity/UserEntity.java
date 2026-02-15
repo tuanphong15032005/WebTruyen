@@ -4,8 +4,11 @@ package com.example.WebTruyen.entity.model.CoreIdentity;
 import com.example.WebTruyen.entity.model.Content.StoryReviewEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
+import com.example.WebTruyen.entity.model.CoreIdentity.NotificationEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import tools.jackson.databind.ser.jdk.JDKKeySerializers;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -67,10 +70,13 @@ public class UserEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "profile_slug", length = 255, unique = true)
-    private String profileSlug;
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts;
 
-    // 1-1 wallets (PK=FK)
+    @Column(name = "lock_until")
+    private LocalDateTime lockUntil;
+
+  // 1-1 wallets (PK=FK)
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private WalletEntity wallet;
 
@@ -95,4 +101,8 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
     private List<ReadingHistoryEntity> readingHistories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<NotificationEntity> notifications = new ArrayList<>();
 }

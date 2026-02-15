@@ -52,6 +52,9 @@ public class StoryEntity {
     @Column(name = "original_author_name", length = 300)
     private String originalAuthorName;
 
+    @Column(name = "view_count", nullable = false)
+    private long viewCount;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "original_author_user_id",
             foreignKey = @ForeignKey(name = "fk_stories_original_author_user"))

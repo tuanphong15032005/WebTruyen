@@ -9,13 +9,11 @@ import com.example.WebTruyen.dto.respone.CreateVolumeResponse;
 import com.example.WebTruyen.dto.respone.StoryResponse;
 import com.example.WebTruyen.dto.respone.VolumeSummaryResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
-import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.query.Page;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 
@@ -45,7 +42,7 @@ public class StoryController {
     }
 
     @PostMapping(value = "/stories", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public <userPrincipal> StoryResponse createStory(
+    public StoryResponse createStory(
             @RequestPart("data") String dataJson,
             @RequestPart(value = "cover", required = false) MultipartFile cover,
             @AuthenticationPrincipal UserPrincipal userPrincipal
@@ -59,6 +56,31 @@ public class StoryController {
     @GetMapping("/stories/{storyId}")
     public StoryResponse getStory(@PathVariable Integer storyId) {
         return storyService.getStoryById(storyId);
+    }
+
+    @GetMapping("/public/stories/{storyId}")
+    public StoryResponse getPublicStory(@PathVariable Integer storyId) {
+        return storyService.getPublishedStoryById(storyId);
+    }
+
+    @GetMapping("/stories/{storyId}/notify-status")
+    public Map<String, Boolean> getNotifyStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        boolean enabled = storyService.getNotifyNewChapterStatus(currentUser, storyId);
+        return Map.of("enabled", enabled);
+    }
+
+    @PostMapping("/stories/{storyId}/notify-status/toggle")
+    public Map<String, Boolean> toggleNotifyStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        boolean enabled = storyService.toggleNotifyNewChapter(currentUser, storyId);
+        return Map.of("enabled", enabled);
     }
 
     // C?p nh?t truy?n theo id
@@ -78,6 +100,11 @@ public class StoryController {
     @GetMapping("/stories/{storyId}/volumes")
     public java.util.List<VolumeSummaryResponse> getVolumes(@PathVariable Long storyId) {
         return volumeService.listVolumesWithChapters(storyId);
+    }
+
+    @GetMapping("/public/stories/{storyId}/volumes")
+    public java.util.List<VolumeSummaryResponse> getPublicVolumes(@PathVariable Long storyId) {
+        return volumeService.listPublishedVolumesWithPublishedChapters(storyId);
     }
 
     @PostMapping(value = "/stories/{storyId}/volumes", consumes = MediaType.APPLICATION_JSON_VALUE)

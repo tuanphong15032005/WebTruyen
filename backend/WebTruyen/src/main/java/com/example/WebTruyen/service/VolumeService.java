@@ -7,6 +7,7 @@ import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
+import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.repository.VolumeRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.ChapterRepository;
@@ -85,7 +86,43 @@ public class VolumeService {
                             c.getId(),
                             c.getTitle(),
                             c.getSequenceIndex(),
-                            c.getLastUpdateAt()
+                            c.getLastUpdateAt(),
+                            c.getStatus() != null ? c.getStatus().name() : null
+                    ))
+                    .toList();
+            result.add(new VolumeSummaryResponse(
+                    volume.getId(),
+                    volume.getStory().getId(),
+                    volume.getTitle(),
+                    volume.getSequenceIndex(),
+                    chapterDtos.size(),
+                    chapterDtos
+            ));
+        }
+        return result;
+    }
+
+    // Lấy danh sách volume/chapter public cho độc giả (chỉ published story + published chapter).
+    @Transactional(readOnly = true)
+    public List<VolumeSummaryResponse> listPublishedVolumesWithPublishedChapters(Long storyId) {
+        StoryEntity story = storyRepository.findById(Math.toIntExact(storyId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+        if (story.getStatus() != StoryStatus.published) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story is not public");
+        }
+
+        List<VolumeEntity> volumes = volumeRepository.findByStory_IdOrderBySequenceIndexAsc(storyId);
+        List<VolumeSummaryResponse> result = new java.util.ArrayList<>();
+        for (VolumeEntity volume : volumes) {
+            List<ChapterEntity> chapters = chapterRepository.findByVolume_IdOrderBySequenceIndexAsc(volume.getId());
+            List<ChapterSummaryResponse> chapterDtos = chapters.stream()
+                    .filter(c -> c.getStatus() != null && "published".equalsIgnoreCase(c.getStatus().name()))
+                    .map(c -> new ChapterSummaryResponse(
+                            c.getId(),
+                            c.getTitle(),
+                            c.getSequenceIndex(),
+                            c.getLastUpdateAt(),
+                            c.getStatus().name()
                     ))
                     .toList();
             result.add(new VolumeSummaryResponse(
