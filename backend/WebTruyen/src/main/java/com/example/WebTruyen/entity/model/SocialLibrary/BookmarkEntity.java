@@ -1,11 +1,10 @@
 package com.example.WebTruyen.entity.model.SocialLibrary;
 
-import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
-
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

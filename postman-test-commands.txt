@@ -1,0 +1,77 @@
+=== WEBTRUYEN API TEST COLLECTION ===
+Base URL: http://localhost:8081
+
+1. ROOT ENDPOINT (Public)
+   Method: GET
+   URL: http://localhost:8081/
+   Headers: None
+   Expected: 200 OK
+
+2. PUBLIC TEST ENDPOINT (Public)
+   Method: GET
+   URL: http://localhost:8081/api/test/public
+   Headers: None
+   Expected: 200 OK
+   Response: "This is a public endpoint - no authentication required"
+
+3. PROTECTED TEST ENDPOINT (Requires JWT)
+   Method: GET
+   URL: http://localhost:8081/api/test/protected
+   Headers: 
+     Authorization: Bearer YOUR_JWT_TOKEN_HERE
+   Expected: 401 Unauthorized (without token) or 200 OK (with valid token)
+
+4. REGISTER USER (Public)
+   Method: POST
+   URL: http://localhost:8081/api/auth/register
+   Headers: 
+     Content-Type: application/json
+   Body (raw JSON):
+   {
+     "username": "testuser",
+     "email": "test@example.com",
+     "password": "password123",
+     "displayName": "Test User"
+   }
+   Expected: 201 Created
+
+5. LOGIN USER (Public)
+   Method: POST
+   URL: http://localhost:8081/api/auth/login
+   Headers: 
+     Content-Type: application/json
+   Body (raw JSON):
+   {
+     "username": "testuser",
+     "password": "password123"
+   }
+   Expected: 200 OK
+   Response contains JWT token in "token" field
+
+=== TESTING STEPS ===
+1. Test Root and Public endpoints (should work immediately)
+2. Register a new user
+3. Login with the new user to get JWT token
+4. Use the JWT token to test protected endpoints
+5. Test other API endpoints as needed
+
+=== CURL COMMANDS FOR TESTING ===
+# Test root
+curl -X GET http://localhost:8081/
+
+# Test public endpoint
+curl -X GET http://localhost:8081/api/test/public
+
+# Register user
+curl -X POST http://localhost:8081/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","email":"test@example.com","password":"password123","displayName":"Test User"}'
+
+# Login user
+curl -X POST http://localhost:8081/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"password123"}'
+
+# Test protected endpoint (replace TOKEN with actual JWT)
+curl -X GET http://localhost:8081/api/test/protected \
+  -H "Authorization: Bearer TOKEN"
