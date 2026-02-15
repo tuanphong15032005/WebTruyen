@@ -5,6 +5,7 @@ const storyService = {
   createStory: (formData) => api.post('/api/stories', formData),
 
   getStory: (storyId) => api.get(`/api/stories/${storyId}`),
+  getPublicStory: (storyId) => api.get(`/api/public/stories/${storyId}`),
 
   updateStory: (storyId, formData) => api.put(`/api/stories/${storyId}`, formData),
 
@@ -12,6 +13,12 @@ const storyService = {
     api.post(`/api/stories/${storyId}/volumes`, payload),
 
   getVolumes: (storyId) => api.get(`/api/stories/${storyId}/volumes`),
+  getPublicVolumes: (storyId) => api.get(`/api/public/stories/${storyId}/volumes`),
+
+  getNotifyStatus: (storyId) => api.get(`/api/stories/${storyId}/notify-status`),
+
+  toggleNotifyStatus: (storyId) =>
+    api.post(`/api/stories/${storyId}/notify-status/toggle`),
 
   createChapter: (storyId, volumeId, payload) =>
     api.post(`/api/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
@@ -25,7 +32,7 @@ const storyService = {
   getTags: async () => {
     try {
       return await api.get('/api/tags');
-    } catch (error) {
+    } catch {
       // Fallback for legacy tag endpoint.
       return api.get('/api/v1/tags');
     }

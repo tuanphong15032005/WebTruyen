@@ -1,18 +1,19 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../App.css';
 
 function Header() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  });
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -28,7 +29,7 @@ function Header() {
           to='/'
           style={{
             textDecoration: 'none',
-            color: 'white',
+            color: '#26374f',
             fontSize: '24px',
             fontWeight: 'bold',
           }}
@@ -42,7 +43,7 @@ function Header() {
           <div style={{ position: 'relative' }}>
             <div
               className='user-info'
-              onClick={() => setShowDropdown(!showDropdown)}
+              onClick={() => setShowDropdown((prev) => !prev)}
             >
               <span style={{ marginRight: '10px' }}>
                 Xin chào, <strong>{user.username}</strong>
@@ -58,7 +59,11 @@ function Header() {
                   Hồ sơ cá nhân
                 </Link>
                 <div className='dropdown-divider'></div>
-                <button onClick={handleLogout} className='dropdown-item logout-btn'>
+                <button
+                  type='button'
+                  onClick={handleLogout}
+                  className='dropdown-item logout-btn'
+                >
                   Đăng xuất
                 </button>
               </div>

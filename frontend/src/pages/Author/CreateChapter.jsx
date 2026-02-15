@@ -10,6 +10,12 @@ import storyService from '../../services/storyService';
 import uploadService from '../../services/uploadService';
 import { isEmptyHtml } from '../../utils/helpers';
 
+const CHAPTER_STATUS_LABELS = {
+  draft: 'Nháp',
+  published: 'Công khai',
+  archived: 'Lưu trữ',
+};
+
 const CreateChapter = () => {
   const { storyId, volumeId } = useParams();
   const [searchParams] = useSearchParams();
@@ -293,6 +299,9 @@ const CreateChapter = () => {
             <option value='published'>Công khai</option>
             <option value='archived'>Lưu trữ</option>
           </select>
+          <span className='field-hint'>
+            Tình trạng hiện tại: {CHAPTER_STATUS_LABELS[status] || 'Nháp'}
+          </span>
         </div>
         <div className='field'>
           <span className='field-label'>Nội dung</span>

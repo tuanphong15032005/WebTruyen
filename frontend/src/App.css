@@ -1,118 +1,116 @@
-/* --- Header Styles --- */
 .header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 40px;
-    background-color: #1a1a1a;
-    border-bottom: 1px solid #333;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e6c978;
+  box-shadow: 0 10px 22px rgba(176, 138, 49, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .nav-button {
-    background-color: var(--accent);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: bold;
+  background-color: var(--accent);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
 }
-.nav-button:hover { background-color: var(--accent-dark); }
 
-/* --- User Avatar & Dropdown --- */
+.nav-button:hover {
+  background-color: var(--accent-dark);
+}
+
 .user-info {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  color: #30405d;
 }
 
 .avatar {
-    width: 35px;
-    height: 35px;
-    background-color: var(--accent);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
+  width: 35px;
+  height: 35px;
+  background-color: var(--accent);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
 }
 
-/* Dropdown Box */
 .dropdown-menu {
-    position: absolute;
-    top: 120%; /* Nằm ngay dưới avatar */
-    right: 0;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 8px;
-    width: 180px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    padding: 5px 0;
-    z-index: 1001;
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #e6c978;
+  border-radius: 10px;
+  width: 180px;
+  box-shadow: 0 12px 28px rgba(176, 138, 49, 0.16);
+  padding: 5px 0;
+  z-index: 1001;
 }
 
 .dropdown-item {
-    display: block;
-    padding: 10px 15px;
-    color: #e0e0e0;
-    text-decoration: none;
-    text-align: left;
-    transition: background 0.2s;
-    width: 100%;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 14px;
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  color: #32435f;
+  text-decoration: none;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 .dropdown-item:hover {
-    background-color: #3a3a3a;
-    color: white;
+  background-color: #fff7e6;
+  color: #26374f;
 }
 
 .dropdown-divider {
-    height: 1px;
-    background-color: #444;
-    margin: 5px 0;
+  height: 1px;
+  background-color: #ecd699;
+  margin: 5px 0;
 }
 
 .logout-btn {
-    color: #ff6b6b; /* Màu đỏ cho nút logout */
+  color: #d64545;
 }
-/* Xóa bỏ giới hạn chiều rộng để web full màn hình */
+
 #root {
   width: 100%;
   margin: 0;
   padding: 0;
-  /* Nếu muốn căn giữa toàn bộ nội dung trong #root */
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* Chiều cao tối thiểu bằng màn hình */
+  min-height: 100vh;
 }
 
-/* Class cho container chính của trang Home/Login */
 .container-center {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Căn giữa ngang */
-  justify-content: center; /* Căn giữa dọc */
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
   text-align: center;
-  background-color: #0f1724; /* Màu nền tối */
-  color: white;
+  background-color: #ffffff;
+  color: #2d3f5e;
 }
 
-/* Style cho link */
 .nav-link {
   margin: 0 15px;
   color: var(--accent);
   text-decoration: none;
   font-size: 1.2rem;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .nav-link:hover {

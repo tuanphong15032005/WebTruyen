@@ -1,10 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import Header from './components/Header';
 import Footer from './components/Footer';
-import CreateStory from './pages/Author/CreateStory'; //tên để gọi thay cho đường link
-import StoryDetail from './pages/Author/StoryDetail'; //đường dẫn này quy định bằng vị trí tương đối của File.
+import Header from './components/Header';
 import CreateChapter from './pages/Author/CreateChapter';
+import CreateStory from './pages/Author/CreateStory';
+import StoryDetail from './pages/Author/StoryDetail';
+import StoryMetadata from './pages/Reader/StoryMetadata';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyCode from './pages/VerifyCode';
@@ -20,6 +21,7 @@ const App = () => {
             <Route path='/author/create-story' element={<CreateStory />} />
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
+            <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
             <Route
               path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
               element={<CreateChapter />}

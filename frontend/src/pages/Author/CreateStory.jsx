@@ -297,7 +297,7 @@ const CreateStory = () => {
                     : '1px solid var(--border)',
                   background: tagIds.includes(String(tag.value)) ? '#1c2a3b' : '#141f2d',
                   cursor: 'pointer',
-                  color: 'inherit',
+                  color: '#ffffff',
                 }}
               >
                 {tag.label}

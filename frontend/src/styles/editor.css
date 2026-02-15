@@ -8,14 +8,14 @@
 .ql-toolbar.ql-snow {
   border: none;
   border-bottom: 1px solid var(--border);
-  background: #0f1724;
+  background: #fff7e5;
 }
 
 .ql-container.ql-snow {
   border: none;
   min-height: 320px;
   font-family: 'Be Vietnam Pro', 'Segoe UI', Tahoma, sans-serif;
-  background: #0b1320;
+  background: #ffffff;
   color: var(--text);
   width: 100%;
   box-sizing: border-box;
@@ -34,14 +34,14 @@
 }
 
 .ql-snow .ql-stroke {
-  stroke: #cbd5e1;
+  stroke: #566987;
 }
 
 .ql-snow .ql-fill,
 .ql-snow .ql-stroke.ql-fill {
-  fill: #cbd5e1;
+  fill: #566987;
 }
 
 .ql-snow .ql-picker {
-  color: #cbd5e1;
+  color: #566987;
 }
