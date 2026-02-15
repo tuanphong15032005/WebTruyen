@@ -26,7 +26,7 @@ public class UploadController {
     @PostMapping("/image")
     public Map<String, String> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
-            String url = storageService.saveCover(file);
+            String url = storageService.saveImage(file);
             if (url == null) throw new RuntimeException("Upload returned null url");
             return Collections.singletonMap("url", url);
         } catch (Exception ex) {
