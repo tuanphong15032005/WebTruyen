@@ -59,6 +59,7 @@ function Header() {
                                 <Link to="/admin/moderation/approved" className="dropdown-item">Nội dung đã duyệt</Link>
                                 <Link to="/admin/moderation/rejected" className="dropdown-item">Nội dung bị từ chối</Link>
                                 <Link to="/author/comments" className="dropdown-item">Quản lý bình luận</Link>
+                                <Link to="/author/analytics" className="dropdown-item">Thống kê tác phẩm</Link>
                                 <Link to="/profile" className="dropdown-item">Hồ sơ cá nhân</Link>
                                 <div className="dropdown-divider"></div>
                                 <button onClick={handleLogout} className="dropdown-item logout-btn">
