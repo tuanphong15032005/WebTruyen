@@ -8,4 +8,12 @@ import java.util.List;
 public interface ReportRepository extends JpaRepository<ReportEntity, Long> {
 
     boolean existsByComment_IdAndStatusIn(Long commentId, List<ReportEntity.ReportStatus> statuses);
+
+    List<ReportEntity> findByStatusInOrderByCreatedAtDesc(List<ReportEntity.ReportStatus> statuses);
+
+    long deleteByStory_Id(Long storyId);
+
+    long deleteByChapter_Id(Long chapterId);
+
+    long deleteByComment_Id(Long commentId);
 }

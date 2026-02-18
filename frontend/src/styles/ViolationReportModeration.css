@@ -1,0 +1,172 @@
+.report-moderation-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.report-moderation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.report-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.report-tabs {
+    display: flex;
+    gap: 8px;
+    background: #1f1f1f;
+    padding: 6px;
+    border-radius: 999px;
+}
+
+.report-tab {
+    padding: 6px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #c9c9c9;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.report-tab.active {
+    background: #2f6bff;
+    color: #fff;
+}
+
+.report-moderation-header h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+}
+
+.report-moderation-header p {
+    margin: 0;
+    color: #c9c9c9;
+}
+
+.report-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.report-row {
+    display: grid;
+    grid-template-columns: 60px 140px minmax(220px, 1.8fr) minmax(130px, 1fr) minmax(220px, 1.6fr) minmax(240px, 1.8fr);
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #2b2b2b;
+    align-items: center;
+}
+
+.report-header {
+    background: #1f1f1f;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: #b7b7b7;
+    font-weight: 700;
+}
+
+.report-empty {
+    display: block;
+    text-align: center;
+    color: #bdbdbd;
+}
+
+.content-main {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.content-sub {
+    font-size: 13px;
+    color: #bdbdbd;
+}
+
+.details-text {
+    white-space: pre-wrap;
+    line-height: 1.45;
+}
+
+.violation-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.violation-badge.copyright {
+    background: rgba(52, 152, 219, 0.2);
+    color: #8ac9ff;
+}
+
+.violation-badge.sexual {
+    background: rgba(231, 76, 60, 0.2);
+    color: #ffb2a8;
+}
+
+.violation-badge.hate {
+    background: rgba(230, 126, 34, 0.25);
+    color: #ffc58f;
+}
+
+.violation-badge.spam {
+    background: rgba(241, 196, 15, 0.25);
+    color: #ffe48b;
+}
+
+.violation-badge.other {
+    background: rgba(149, 165, 166, 0.25);
+    color: #d6dcdc;
+}
+
+.action-button.dismiss {
+    background: #7f8c8d;
+}
+
+.action-button.hide {
+    background: #f39c12;
+    color: #2c2c2c;
+}
+
+.action-button.remove {
+    background: #e74c3c;
+}
+
+.action-button.sanction {
+    background: #8e44ad;
+}
+
+.result-info {
+    display: grid;
+    gap: 4px;
+}
+
+.result-status {
+    font-weight: 700;
+}
+
+.result-action {
+    color: #c9c9c9;
+    font-size: 13px;
+}
+
+@media (max-width: 1200px) {
+    .report-row {
+        grid-template-columns: 1fr;
+    }
+
+    .report-header {
+        display: none;
+    }
+}

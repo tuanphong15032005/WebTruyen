@@ -14,17 +14,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.WebTruyen.dto.request.ReportSanctionRequest;
 import com.example.WebTruyen.dto.request.ModerationActionRequest;
 import com.example.WebTruyen.dto.response.ContentPreviewResponse;
 import com.example.WebTruyen.dto.response.PendingContentItem;
+import com.example.WebTruyen.dto.response.ViolationReportItem;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
+import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
 import com.example.WebTruyen.entity.model.CommentAndMod.ModerationActionEntity;
+import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
+import com.example.WebTruyen.repository.CommentRepository;
 import com.example.WebTruyen.repository.ModerationActionRepository;
+import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.security.UserPrincipal;
@@ -88,9 +94,13 @@ public class ModerationService {
             GROUP BY c.title, d.content
             """;
     private static final int PREVIEW_LIMIT = 1200;
+    private static final List<ReportEntity.ReportStatus> OPEN_REPORT_STATUSES =
+            List.of(ReportEntity.ReportStatus.open, ReportEntity.ReportStatus.in_review);
 
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
+    private final CommentRepository commentRepository;
+    private final ReportRepository reportRepository;
     private final ModerationActionRepository moderationActionRepository;
     private final UserRepository userRepository;
 
@@ -175,6 +185,67 @@ public class ModerationService {
         recordAction(chapterId, ModerationActionEntity.ModerationTargetKind.chapter, "request_edit", request);
     }
 
+    @Transactional(readOnly = true)
+    public List<ViolationReportItem> getPendingViolationReports() {
+        return getViolationReportsByView("pending");
+    }
+
+    @Transactional(readOnly = true)
+    public List<ViolationReportItem> getViolationReportsByView(String view) {
+        List<ReportEntity.ReportStatus> statuses = mapReportViewToStatuses(view);
+        List<ReportEntity> reports = reportRepository.findByStatusInOrderByCreatedAtDesc(statuses);
+        return reports.stream()
+                .map(this::toViolationReportItem)
+                .toList();
+    }
+
+    @Transactional
+    public void dismissReport(Long reportId) {
+        ReportEntity report = findOpenReport(reportId);
+        resolveReport(report, "dismiss", ReportEntity.ReportStatus.rejected);
+    }
+
+    @Transactional
+    public void hideReportedContent(Long reportId) {
+        ReportEntity report = findOpenReport(reportId);
+        switch (report.getTargetKind()) {
+            case story -> {
+                StoryEntity story = requireStoryTarget(report);
+                story.setStatus(StoryStatus.archived);
+            }
+            case chapter -> {
+                ChapterEntity chapter = requireChapterTarget(report);
+                chapter.setStatus(ChapterStatus.archived);
+            }
+            case comment -> {
+                CommentEntity comment = requireCommentTarget(report);
+                comment.setIsHidden(true);
+            }
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported report target");
+        }
+        resolveReport(report, "hide_content", ReportEntity.ReportStatus.resolved);
+    }
+
+    @Transactional
+    public void removeReportedContent(Long reportId) {
+        throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED, "Remove content action is disabled");
+    }
+
+    @Transactional
+    public void applyUserSanction(Long reportId, ReportSanctionRequest request) {
+        ReportEntity report = findOpenReport(reportId);
+        UserEntity violatingUser = requireViolatingUser(report);
+
+        String sanctionType = normalizeSanctionType(request != null ? request.getSanctionType() : null);
+        if ("ban".equals(sanctionType)) {
+            int banHours = normalizeBanHours(request != null ? request.getBanHours() : null);
+            violatingUser.setLockUntil(LocalDateTime.now().plusHours(banHours));
+            resolveReport(report, "ban_user", ReportEntity.ReportStatus.resolved);
+        } else {
+            resolveReport(report, "warn_user", ReportEntity.ReportStatus.resolved);
+        }
+    }
+
     private void recordAction(Long targetId,
                               ModerationActionEntity.ModerationTargetKind targetKind,
                               String actionType,
@@ -191,6 +262,246 @@ public class ModerationService {
                 .createdAt(LocalDateTime.now())
                 .build();
         moderationActionRepository.save(action);
+    }
+
+    private ViolationReportItem toViolationReportItem(ReportEntity report) {
+        return ViolationReportItem.builder()
+                .reportId(report.getId())
+                .violationType(normalizeViolationType(report.getReason()))
+                .reportedContentType(formatTargetKind(report.getTargetKind()))
+                .reportedContent(resolveReportedContent(report))
+                .reportedBy(resolveDisplayName(report.getReporter()))
+                .reportDetails(resolveReportDetails(report))
+                .reportedAt(report.getCreatedAt())
+                .reportStatus(formatReportStatus(report.getStatus()))
+                .handledAction(formatHandledAction(report.getAction()))
+                .handledAt(report.getResolvedAt())
+                .build();
+    }
+
+    private List<ReportEntity.ReportStatus> mapReportViewToStatuses(String view) {
+        if (!StringUtils.hasText(view) || "pending".equalsIgnoreCase(view.trim())) {
+            return OPEN_REPORT_STATUSES;
+        }
+
+        String normalized = view.trim().toLowerCase();
+        return switch (normalized) {
+            case "resolved" -> List.of(ReportEntity.ReportStatus.resolved);
+            case "rejected" -> List.of(ReportEntity.ReportStatus.rejected);
+            case "all" -> List.of(
+                    ReportEntity.ReportStatus.open,
+                    ReportEntity.ReportStatus.in_review,
+                    ReportEntity.ReportStatus.resolved,
+                    ReportEntity.ReportStatus.rejected
+            );
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported report view");
+        };
+    }
+
+    private String normalizeViolationType(String rawValue) {
+        if (!StringUtils.hasText(rawValue)) {
+            return "Khac";
+        }
+        String normalized = rawValue.trim().toLowerCase();
+        if (normalized.contains("copyright") || normalized.contains("ban quyen")) {
+            return "Copyright";
+        }
+        if (normalized.contains("sexual") || normalized.contains("sex") || normalized.contains("18+") || normalized.contains("tinh duc")) {
+            return "Sexual";
+        }
+        if (normalized.contains("hate") || normalized.contains("thu han") || normalized.contains("ky thi")) {
+            return "Hate";
+        }
+        if (normalized.contains("spam")) {
+            return "Spam";
+        }
+        return "Khac";
+    }
+
+    private String formatTargetKind(ReportEntity.ReportTargetKind targetKind) {
+        if (targetKind == null) {
+            return "Unknown";
+        }
+        return switch (targetKind) {
+            case story -> "Story";
+            case chapter -> "Chapter";
+            case comment -> "Comment";
+        };
+    }
+
+    private String resolveReportedContent(ReportEntity report) {
+        return switch (report.getTargetKind()) {
+            case story -> {
+                StoryEntity story = report.getStory();
+                yield story != null && StringUtils.hasText(story.getTitle())
+                        ? story.getTitle()
+                        : "Story da bi xoa";
+            }
+            case chapter -> {
+                ChapterEntity chapter = report.getChapter();
+                if (chapter == null) {
+                    yield "Chapter da bi xoa";
+                }
+                String storyTitle = chapter.getVolume() != null
+                        && chapter.getVolume().getStory() != null
+                        ? chapter.getVolume().getStory().getTitle()
+                        : null;
+                if (StringUtils.hasText(storyTitle) && StringUtils.hasText(chapter.getTitle())) {
+                    yield storyTitle + " - " + chapter.getTitle();
+                }
+                yield StringUtils.hasText(chapter.getTitle()) ? chapter.getTitle() : "Chapter da bi xoa";
+            }
+            case comment -> {
+                CommentEntity comment = report.getComment();
+                if (comment == null || !StringUtils.hasText(comment.getContent())) {
+                    yield "Comment da bi xoa";
+                }
+                String content = comment.getContent().trim();
+                if (content.length() > 120) {
+                    yield content.substring(0, 120) + "...";
+                }
+                yield content;
+            }
+        };
+    }
+
+    private String resolveReportDetails(ReportEntity report) {
+        if (StringUtils.hasText(report.getDetails())) {
+            return report.getDetails().trim();
+        }
+        if (StringUtils.hasText(report.getReason())) {
+            return report.getReason().trim();
+        }
+        return "Khong co mo ta";
+    }
+
+    private String formatReportStatus(ReportEntity.ReportStatus status) {
+        if (status == null) {
+            return "Unknown";
+        }
+        return switch (status) {
+            case open -> "Open";
+            case in_review -> "In review";
+            case resolved -> "Resolved";
+            case rejected -> "Rejected";
+        };
+    }
+
+    private String formatHandledAction(String action) {
+        if (!StringUtils.hasText(action)) {
+            return null;
+        }
+        return switch (action) {
+            case "dismiss" -> "Dismissed";
+            case "hide_content" -> "Hidden content";
+            case "remove_content" -> "Removed content";
+            case "warn_user" -> "Warned user";
+            case "ban_user" -> "Banned user";
+            default -> action;
+        };
+    }
+
+    private String resolveDisplayName(UserEntity user) {
+        if (user == null) {
+            return "Unknown";
+        }
+        if (StringUtils.hasText(user.getDisplayName())) {
+            return user.getDisplayName().trim();
+        }
+        if (StringUtils.hasText(user.getAuthorPenName())) {
+            return user.getAuthorPenName().trim();
+        }
+        if (StringUtils.hasText(user.getUsername())) {
+            return user.getUsername().trim();
+        }
+        return "User#" + user.getId();
+    }
+
+    private ReportEntity findOpenReport(Long reportId) {
+        ReportEntity report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
+        if (!OPEN_REPORT_STATUSES.contains(report.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Report already handled");
+        }
+        return report;
+    }
+
+    private void resolveReport(ReportEntity report, String action, ReportEntity.ReportStatus status) {
+        UserEntity admin = requireAdmin();
+        report.setAction(action);
+        report.setStatus(status);
+        report.setResolvedAt(LocalDateTime.now());
+        report.setActionTakenBy(userRepository.getReferenceById(admin.getId()));
+        reportRepository.save(report);
+    }
+
+    private StoryEntity requireStoryTarget(ReportEntity report) {
+        StoryEntity story = report.getStory();
+        if (story == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story target not found");
+        }
+        return story;
+    }
+
+    private ChapterEntity requireChapterTarget(ReportEntity report) {
+        ChapterEntity chapter = report.getChapter();
+        if (chapter == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter target not found");
+        }
+        return chapter;
+    }
+
+    private CommentEntity requireCommentTarget(ReportEntity report) {
+        CommentEntity comment = report.getComment();
+        if (comment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment target not found");
+        }
+        return comment;
+    }
+
+    private UserEntity requireViolatingUser(ReportEntity report) {
+        return switch (report.getTargetKind()) {
+            case story -> {
+                StoryEntity story = requireStoryTarget(report);
+                if (story.getAuthor() == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Story author not found");
+                }
+                yield story.getAuthor();
+            }
+            case chapter -> {
+                ChapterEntity chapter = requireChapterTarget(report);
+                if (chapter.getVolume() == null || chapter.getVolume().getStory() == null || chapter.getVolume().getStory().getAuthor() == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chapter author not found");
+                }
+                yield chapter.getVolume().getStory().getAuthor();
+            }
+            case comment -> {
+                CommentEntity comment = requireCommentTarget(report);
+                if (comment.getUser() == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment user not found");
+                }
+                yield comment.getUser();
+            }
+        };
+    }
+
+    private String normalizeSanctionType(String sanctionType) {
+        if (!StringUtils.hasText(sanctionType)) {
+            return "warn";
+        }
+        String normalized = sanctionType.trim().toLowerCase();
+        if (!normalized.equals("warn") && !normalized.equals("ban")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sanction type must be warn or ban");
+        }
+        return normalized;
+    }
+
+    private int normalizeBanHours(Integer banHours) {
+        int value = banHours == null ? 24 : banHours;
+        if (value < 1 || value > 24 * 365) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ban duration must be between 1 and 8760 hours");
+        }
+        return value;
     }
 
     private UserEntity requireAdmin() {

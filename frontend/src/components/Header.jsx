@@ -55,6 +55,7 @@ function Header() {
                         {showDropdown && (
                             <div className="dropdown-menu">
                                 <Link to="/admin/moderation" className="dropdown-item">Kiểm duyệt nội dung</Link>
+                                <Link to="/admin/moderation/reports" className="dropdown-item">Xử lý báo cáo vi phạm</Link>
                                 <Link to="/admin/moderation/approved" className="dropdown-item">Nội dung đã duyệt</Link>
                                 <Link to="/admin/moderation/rejected" className="dropdown-item">Nội dung bị từ chối</Link>
                                 <Link to="/author/comments" className="dropdown-item">Quản lý bình luận</Link>

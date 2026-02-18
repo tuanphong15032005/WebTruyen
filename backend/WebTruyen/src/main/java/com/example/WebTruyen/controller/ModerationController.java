@@ -1,8 +1,10 @@
 package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.request.ModerationActionRequest;
+import com.example.WebTruyen.dto.request.ReportSanctionRequest;
 import com.example.WebTruyen.dto.response.ContentPreviewResponse;
 import com.example.WebTruyen.dto.response.PendingContentItem;
+import com.example.WebTruyen.dto.response.ViolationReportItem;
 import com.example.WebTruyen.service.ModerationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +39,42 @@ public class ModerationController {
     public ResponseEntity<ContentPreviewResponse> getPreview(@RequestParam("type") String type,
                                                              @RequestParam("id") Long id) {
         return ResponseEntity.ok(moderationService.getPreview(type, id));
+    }
+
+    @GetMapping("/reports/pending")
+    public ResponseEntity<List<ViolationReportItem>> getPendingReports() {
+        return ResponseEntity.ok(moderationService.getPendingViolationReports());
+    }
+
+    @GetMapping("/reports")
+    public ResponseEntity<List<ViolationReportItem>> getReportsByView(
+            @RequestParam(name = "view", defaultValue = "pending") String view) {
+        return ResponseEntity.ok(moderationService.getViolationReportsByView(view));
+    }
+
+    @PostMapping("/reports/{id}/dismiss")
+    public ResponseEntity<Map<String, String>> dismissReport(@PathVariable Long id) {
+        moderationService.dismissReport(id);
+        return ResponseEntity.ok(Map.of("message", "Report dismissed"));
+    }
+
+    @PostMapping("/reports/{id}/hide-content")
+    public ResponseEntity<Map<String, String>> hideReportedContent(@PathVariable Long id) {
+        moderationService.hideReportedContent(id);
+        return ResponseEntity.ok(Map.of("message", "Content hidden"));
+    }
+
+    @PostMapping("/reports/{id}/remove-content")
+    public ResponseEntity<Map<String, String>> removeReportedContent(@PathVariable Long id) {
+        moderationService.removeReportedContent(id);
+        return ResponseEntity.ok(Map.of("message", "Content removed"));
+    }
+
+    @PostMapping("/reports/{id}/sanction")
+    public ResponseEntity<Map<String, String>> sanctionUser(@PathVariable Long id,
+                                                            @RequestBody(required = false) ReportSanctionRequest request) {
+        moderationService.applyUserSanction(id, request == null ? new ReportSanctionRequest() : request);
+        return ResponseEntity.ok(Map.of("message", "User sanction applied"));
     }
 
     @PostMapping("/stories/{id}/approve")
