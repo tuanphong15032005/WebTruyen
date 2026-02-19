@@ -9,6 +9,7 @@ import ContentModeration from './pages/ContentModeration';
 import AuthorCommentManagement from './pages/AuthorCommentManagement';
 import ViolationReportModeration from './pages/ViolationReportModeration';
 import AuthorAnalytics from './pages/AuthorAnalytics';
+import ConversionRateManagement from './pages/ConversionRateManagement';
 import './App.css';
 
 // Trang chủ đơn giản
@@ -37,6 +38,7 @@ function App() {
             <Route path="/admin/moderation/reports" element={<ViolationReportModeration mode="pending" />} />
             <Route path="/admin/moderation/reports/resolved" element={<ViolationReportModeration mode="resolved" />} />
             <Route path="/admin/moderation/reports/rejected" element={<ViolationReportModeration mode="rejected" />} />
+            <Route path="/admin/conversion-rate" element={<ConversionRateManagement />} />
             <Route path="/author/comments" element={<AuthorCommentManagement />} />
             <Route path="/author/analytics" element={<AuthorAnalytics />} />
         </Routes>

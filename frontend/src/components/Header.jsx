@@ -58,6 +58,7 @@ function Header() {
                                 <Link to="/admin/moderation/reports" className="dropdown-item">Xử lý báo cáo vi phạm</Link>
                                 <Link to="/admin/moderation/approved" className="dropdown-item">Nội dung đã duyệt</Link>
                                 <Link to="/admin/moderation/rejected" className="dropdown-item">Nội dung bị từ chối</Link>
+                                <Link to="/admin/conversion-rate" className="dropdown-item">Tỷ lệ quy đổi Coin</Link>
                                 <Link to="/author/comments" className="dropdown-item">Quản lý bình luận</Link>
                                 <Link to="/author/analytics" className="dropdown-item">Thống kê tác phẩm</Link>
                                 <Link to="/profile" className="dropdown-item">Hồ sơ cá nhân</Link>

@@ -15,16 +15,21 @@ const getAuthHeaders = () => {
     }
 };
 
-const formatNumber = (value) => {
+const formatNumber = (value, fractionDigits = 0) => {
     if (value === null || value === undefined) return '0';
-    return new Intl.NumberFormat('vi-VN').format(Number(value) || 0);
+    const number = Number(value) || 0;
+    return new Intl.NumberFormat('vi-VN', {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    }).format(number);
 };
 
 function MetricCard({ label, value }) {
+    const displayValue = typeof value === 'string' ? value : formatNumber(value);
     return (
         <div className="analytics-metric-card">
             <div className="analytics-metric-label">{label}</div>
-            <div className="analytics-metric-value">{formatNumber(value)}</div>
+            <div className="analytics-metric-value">{displayValue}</div>
         </div>
     );
 }
@@ -157,6 +162,8 @@ export default function AuthorAnalytics() {
                     <div className="analytics-metrics-grid">
                         <MetricCard label="Tổng lượt xem" value={analytics.totalViews} />
                         <MetricCard label="Tổng Coin nhận được" value={analytics.totalCoinEarned} />
+                        <MetricCard label="Tỷ lệ hiện hành (1 Coin)" value={`${formatNumber(analytics.currentCoinToCashRate, 6)} VND`} />
+                        <MetricCard label="Doanh thu ước tính (VND)" value={formatNumber(analytics.estimatedCashRevenue, 2)} />
                         <MetricCard label="Tổng người theo dõi" value={analytics.totalFollowers} />
                     </div>
 

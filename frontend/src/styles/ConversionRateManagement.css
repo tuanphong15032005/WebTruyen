@@ -1,0 +1,178 @@
+.conversion-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.conversion-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.conversion-header h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+}
+
+.conversion-header p {
+    margin: 0;
+    color: #bdbdbd;
+}
+
+.conversion-message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.conversion-message.success {
+    background: rgba(46, 204, 113, 0.2);
+    color: #9af3c2;
+}
+
+.conversion-message.error {
+    background: rgba(231, 76, 60, 0.2);
+    color: #ffb2a8;
+}
+
+.conversion-current-rate-card,
+.conversion-form-card,
+.conversion-history-card {
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.field-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #a8a8a8;
+    margin-bottom: 8px;
+}
+
+.field-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.field-subtext {
+    margin-top: 8px;
+    color: #b7b7b7;
+    font-size: 13px;
+}
+
+.conversion-form-card h3,
+.conversion-history-card h3 {
+    margin: 0 0 14px;
+}
+
+.conversion-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.conversion-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #b7b7b7;
+    font-weight: 600;
+}
+
+.conversion-form-grid input {
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #f0f0f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.conversion-form-grid input:read-only {
+    color: #c9c9c9;
+    cursor: default;
+}
+
+.conversion-action-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+}
+
+.action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.action-button.save {
+    background: #2f6bff;
+}
+
+.action-button.update {
+    background: #1abc9c;
+}
+
+.action-button.cancel {
+    background: #7f8c8d;
+}
+
+.history-table-wrap {
+    overflow-x: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+.history-table th,
+.history-table td {
+    border-bottom: 1px solid #333;
+    padding: 10px;
+    text-align: left;
+}
+
+.history-table th {
+    color: #b7b7b7;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.table-empty {
+    text-align: center;
+    color: #9f9f9f;
+}
+
+.table-edit-button {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: #fff;
+    font-weight: 600;
+    background: #34495e;
+    cursor: pointer;
+}
+
+@media (max-width: 900px) {
+    .conversion-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
