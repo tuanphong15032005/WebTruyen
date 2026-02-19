@@ -32,6 +32,9 @@ public class FollowStoryEntity {
             foreignKey = @ForeignKey(name = "fk_follows_stories_story"))
     private StoryEntity story;
 
+    @Column(name = "notify_new_chapter", nullable = false)
+    private boolean notifyNewChapter;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }
