@@ -1,8 +1,14 @@
 package com.example.WebTruyen.entity.model.CoreIdentity;
 
+
+import com.example.WebTruyen.entity.model.Content.StoryReviewEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
+import com.example.WebTruyen.entity.model.CoreIdentity.NotificationEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import tools.jackson.databind.ser.jdk.JDKKeySerializers;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -58,19 +64,23 @@ public class UserEntity {
     @Column(name = "pin_hash", length = 255)
     private String pinHash;
 
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Column(name = "failed_login_attempts", nullable = false)
-    @Builder.Default
-    private int failedLoginAttempts = 0;
+    private int failedLoginAttempts;
 
     @Column(name = "lock_until")
     private LocalDateTime lockUntil;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
+  // 1-1 wallets (PK=FK)
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private WalletEntity wallet;
 
+    // N-N roles via join table users_roles
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
     private List<UserRoleEntity> userRoles = new ArrayList<>();
@@ -79,4 +89,20 @@ public class UserEntity {
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     @Builder.Default
     private List<StoryEntity> stories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "originalAuthorUser", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<StoryEntity> translatedStories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<StoryReviewEntity> storyReviews = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ReadingHistoryEntity> readingHistories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<NotificationEntity> notifications = new ArrayList<>();
 }

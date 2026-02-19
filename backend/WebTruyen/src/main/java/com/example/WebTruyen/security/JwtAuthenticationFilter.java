@@ -38,16 +38,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = tokenProvider.getUserIdFromToken(jwt);
                 String username = tokenProvider.getUsernameFromToken(jwt);
 
-                UserEntity user = userRepository.findByUsername(username)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                UserEntity user = userRepository.findById(userId).orElse(null);
+                
+                if (user != null) {
+                    UserPrincipal userPrincipal = new UserPrincipal(user);
 
-                UserPrincipal userPrincipal = new UserPrincipal(user);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userPrincipal, null, new ArrayList<>());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userPrincipal, null, new ArrayList<>());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    logger.warn("User not found for userId: " + userId + ". Token may be invalid or user deleted.");
+                }
             }
         } catch (Exception ex) {
             logger.error("Could not set user authentication in security context", ex);

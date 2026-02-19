@@ -3,7 +3,9 @@ package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.request.ForgotPasswordRequest;
 import com.example.WebTruyen.dto.request.ResetPasswordRequest;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
 import com.example.WebTruyen.repository.UserRepository;
+import com.example.WebTruyen.repository.WalletRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +37,9 @@ public class AuthService {
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+
+    @Autowired
+    private WalletRepository walletRepository;
 
     public UserEntity authenticate(String username, String password) {
         UserEntity user = userRepository.findByUsername(username)
@@ -114,7 +119,20 @@ public class AuthService {
         // upgradeToAuthor is accepted from client (UC01) but role assignment is not implemented here
         // because the project currently has no Role/UserRole repositories wired.
 
-        return userRepository.save(newUser);
+        UserEntity savedUser = userRepository.save(newUser);
+
+        if (!walletRepository.existsById(savedUser.getId())) {
+            WalletEntity wallet = WalletEntity.builder()
+                    .user(savedUser)
+                    .balanceCoinA(0L)
+                    .balanceCoinB(0L)
+                    .reservedCoinB(0L)
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            walletRepository.save(wallet);
+        }
+
+        return savedUser;
     }
 
     private String normalizeUsername(String username, String email) {
