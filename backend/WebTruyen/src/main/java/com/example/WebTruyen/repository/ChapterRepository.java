@@ -16,6 +16,8 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
      */
     Optional<ChapterEntity> findByIdAndVolume_Id(Long id, Long volumeId);
 
+    Optional<ChapterEntity> findByIdAndVolume_Story_Id(Long id, Long storyId);
+
     /**
      * Lấy danh sách chapter theo volume, sắp xếp theo sequenceIndex
      */

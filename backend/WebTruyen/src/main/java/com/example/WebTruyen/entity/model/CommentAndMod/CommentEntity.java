@@ -1,6 +1,7 @@
 package com.example.WebTruyen.entity.model.CommentAndMod;
 
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
+import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,10 +26,15 @@ public class CommentEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    // N-1
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "chapter_id", nullable = false)
+    // N-1 (nullable when this is a story-level comment)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chapter_id")
     private ChapterEntity chapter;
+
+    // N-1 (nullable when this is a chapter-level comment)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "story_id")
+    private StoryEntity story;
 
     // N-1 self
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,4 +63,14 @@ public class CommentEntity {
     @OneToMany(mappedBy = "parentComment", fetch = FetchType.LAZY)
     @Builder.Default
     private List<CommentEntity> replies = new ArrayList<>();
+
+    @PrePersist
+    @PreUpdate
+    private void validateTarget() {
+        boolean hasChapter = chapter != null;
+        boolean hasStory = story != null;
+        if (hasChapter == hasStory) {
+            throw new IllegalStateException("Comment must target either chapter or story");
+        }
+    }
 }

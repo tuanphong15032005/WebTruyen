@@ -2,15 +2,22 @@ package com.example.WebTruyen.controller;
 
 
 import com.example.WebTruyen.dto.request.CreateChapterRequest;
+import com.example.WebTruyen.dto.request.CreateCommentRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.request.CreateVolumeRequest;
+import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
+import com.example.WebTruyen.dto.respone.CommentResponse;
 import com.example.WebTruyen.dto.respone.CreateChapterResponse;
 import com.example.WebTruyen.dto.respone.CreateVolumeResponse;
+import com.example.WebTruyen.dto.respone.PagedResponse;
+import com.example.WebTruyen.dto.respone.StoryReviewResponse;
 import com.example.WebTruyen.dto.respone.StoryResponse;
 import com.example.WebTruyen.dto.respone.VolumeSummaryResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
+import com.example.WebTruyen.service.CommentService;
+import com.example.WebTruyen.service.StoryReviewService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 
@@ -33,6 +41,8 @@ public class StoryController {
     private final StoryService storyService;
     private final VolumeService volumeService;
     private final ChapterService chapterService;
+    private final StoryReviewService storyReviewService;
+    private final CommentService commentService;
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
@@ -105,6 +115,65 @@ public class StoryController {
     @GetMapping("/public/stories/{storyId}/volumes")
     public java.util.List<VolumeSummaryResponse> getPublicVolumes(@PathVariable Long storyId) {
         return volumeService.listPublishedVolumesWithPublishedChapters(storyId);
+    }
+
+    @GetMapping("/public/stories/{storyId}/reviews")
+    public PagedResponse<StoryReviewResponse> getPublicStoryReviews(
+            @PathVariable Integer storyId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "8") Integer size
+    ) {
+        return storyReviewService.listPublishedStoryReviews(storyId, page, size);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/reviews", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public StoryReviewResponse upsertStoryReview(
+            @PathVariable Integer storyId,
+            @RequestBody UpsertStoryReviewRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyReviewService.createReview(currentUser, storyId, req);
+    }
+
+    @GetMapping("/public/stories/{storyId}/comments")
+    public PagedResponse<CommentResponse> getPublicStoryComments(
+            @PathVariable Integer storyId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "8") Integer size
+    ) {
+        return commentService.listPublishedStoryComments(storyId, page, size);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse createStoryComment(
+            @PathVariable Integer storyId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.createStoryComment(currentUser, storyId, req);
+    }
+
+    @GetMapping("/public/stories/{storyId}/chapters/{chapterId}/comments")
+    public PagedResponse<CommentResponse> getPublicChapterComments(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "8") Integer size
+    ) {
+        return commentService.listPublishedChapterComments(storyId, chapterId, page, size);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse createChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.createChapterComment(currentUser, storyId, chapterId, req);
     }
 
     @PostMapping(value = "/stories/{storyId}/volumes", consumes = MediaType.APPLICATION_JSON_VALUE)

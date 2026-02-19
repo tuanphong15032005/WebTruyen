@@ -3,6 +3,7 @@ package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.respone.StoryResponse;
 import com.example.WebTruyen.dto.respone.TagDto;
+import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
@@ -82,7 +83,7 @@ public class StoryService {
 
         StoryEntity saved = storyRepository.save(story);
         List<TagDto> tagDtos = syncStoryTags(saved, normalizeIds(req.tagIds()), true);
-        return toResponse(saved, tagDtos);
+        return toResponse(saved, tagDtos, false);
     }
 
     @Transactional
@@ -95,7 +96,7 @@ public class StoryService {
                 .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
                 .toList();
 
-        return toResponse(story, tagDtos);
+        return toResponse(story, tagDtos, false);
     }
 
     @Transactional
@@ -108,7 +109,7 @@ public class StoryService {
                 .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
                 .toList();
 
-        return toResponse(story, tagDtos);
+        return toResponse(story, tagDtos, true);
     }
 
     @Transactional
@@ -184,7 +185,7 @@ public class StoryService {
 
         StoryEntity saved = storyRepository.save(story);
         List<TagDto> tagDtos = syncStoryTags(saved, normalizeIds(req.tagIds()), true);
-        return toResponse(saved, tagDtos);
+        return toResponse(saved, tagDtos, false);
     }
 
     private void validateCreateStoryRequest(CreateStoryRequest req) {
@@ -193,9 +194,9 @@ public class StoryService {
         }
     }
 
-    private StoryResponse toResponse(StoryEntity story, List<TagDto> tags) {
+    private StoryResponse toResponse(StoryEntity story, List<TagDto> tags, boolean publishedOnly) {
         long readerCount = readingHistoryRepository.countByStory_Id(story.getId());
-        long wordCount = countStoryWords(story.getId(), story.getSummary());
+        long wordCount = countStoryWords(story.getId(), publishedOnly);
         LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
         BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
 
@@ -236,14 +237,13 @@ public class StoryService {
                 .divide(BigDecimal.valueOf(ratingCount), 2, RoundingMode.HALF_UP);
     }
 
-    private long countStoryWords(Long storyId, String summaryHtml) {
+    private long countStoryWords(Long storyId, boolean publishedOnly) {
         long total = 0L;
-        List<String> segments = chapterSegmentRepository.findSegmentTextsByStoryId(storyId);
+        List<String> segments = publishedOnly
+                ? chapterSegmentRepository.findSegmentTextsByStoryIdAndChapterStatus(storyId, ChapterStatus.published)
+                : chapterSegmentRepository.findSegmentTextsByStoryId(storyId);
         for (String segment : segments) {
             total += countWordsFromHtml(segment);
-        }
-        if (total == 0) {
-            total = countWordsFromHtml(summaryHtml);
         }
         return total;
     }
