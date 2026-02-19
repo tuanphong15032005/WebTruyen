@@ -12,7 +12,7 @@
   --success: #22c55e;
   --error: #ef4444;
   --info: #38bdf8;
-  --shadow: 0 16px 34px rgba(176, 138, 49, 0.16);
+  --shadow: 0 18px 38px rgba(0, 0, 0, 0.12);
 }
 
 * {
@@ -22,7 +22,7 @@
 body {
   margin: 0;
   font-family: 'Be Vietnam Pro', 'Segoe UI', Tahoma, sans-serif;
-  background: linear-gradient(180deg, #fffefb 0%, #fff9ea 100%);
+  background: #ffffff;
   color: var(--text);
 }
 

@@ -15,6 +15,23 @@ const storyService = {
   getVolumes: (storyId) => api.get(`/api/stories/${storyId}/volumes`),
   getPublicVolumes: (storyId) => api.get(`/api/public/stories/${storyId}/volumes`),
 
+  getStoryReviews: (storyId, params = {}) =>
+    api.get(`/api/public/stories/${storyId}/reviews`, { params }),
+  upsertStoryReview: (storyId, payload) =>
+    api.post(`/api/stories/${storyId}/reviews`, payload),
+
+  getStoryComments: (storyId, params = {}) =>
+    api.get(`/api/public/stories/${storyId}/comments`, { params }),
+  createStoryComment: (storyId, payload) =>
+    api.post(`/api/stories/${storyId}/comments`, payload),
+
+  getChapterComments: (storyId, chapterId, params = {}) =>
+    api.get(`/api/public/stories/${storyId}/chapters/${chapterId}/comments`, {
+      params,
+    }),
+  createChapterComment: (storyId, chapterId, payload) =>
+    api.post(`/api/stories/${storyId}/chapters/${chapterId}/comments`, payload),
+
   getNotifyStatus: (storyId) => api.get(`/api/stories/${storyId}/notify-status`),
 
   toggleNotifyStatus: (storyId) =>

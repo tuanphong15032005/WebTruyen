@@ -186,7 +186,7 @@ const StoryDetail = () => {
     const avg = Number(story?.ratingAvg || 0)
       .toFixed(2)
       .replace('.', ',');
-    return `${avg} / ${formatNumber(count)}`;
+    return `${avg} / 5`;
   }, [story]);
 
   const readerText = useMemo(() => {
@@ -222,7 +222,8 @@ const StoryDetail = () => {
   };
 
   const handleViewMetadata = () => {
-    const isPublished = String(story?.status || '').toLowerCase() === 'published';
+    const isPublished =
+      String(story?.status || '').toLowerCase() === 'published';
     if (!isPublished) {
       notify('Truyện chưa publish', 'info');
       return;
@@ -410,9 +411,7 @@ const StoryDetail = () => {
                         <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0-4a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
                       </svg>
                     </span>
-                    <span className='story-detail__row-label'>
-                      Trạng thái truyện:
-                    </span>
+                    <span className='story-detail__row-label'>Hiển thị:</span>
                     <strong>{storyStatusLabel}</strong>
                   </div>
                   <div className='story-detail__row'>

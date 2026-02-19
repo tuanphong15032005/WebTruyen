@@ -6,6 +6,7 @@ import CreateChapter from './pages/Author/CreateChapter';
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
+import StoryReviews from './pages/Reader/StoryReviews';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyCode from './pages/VerifyCode';
@@ -22,6 +23,7 @@ const App = () => {
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
+            <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
             <Route
               path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
               element={<CreateChapter />}
