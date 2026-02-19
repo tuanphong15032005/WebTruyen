@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.io.Serializable;
 
-@Embeddable
+@Embeddable //có thể được lồng trong Entity khác - nhúng
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode
