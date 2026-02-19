@@ -4,22 +4,38 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px 40px;
-    background-color: #1a1a1a;
-    border-bottom: 1px solid #333;
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 1000;
 }
 
+.logo-link {
+    text-decoration: none;
+    color: var(--text);
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .nav-button {
-    background-color: #646cff;
+    background-color: var(--primary);
     color: white;
     padding: 8px 16px;
     border-radius: 4px;
     text-decoration: none;
     font-weight: bold;
 }
-.nav-button:hover { background-color: #535bf2; }
+
+.nav-button:hover {
+    background-color: var(--primary-hover);
+}
 
 /* --- User Avatar & Dropdown --- */
 .user-info {
@@ -32,7 +48,7 @@
 .avatar {
     width: 35px;
     height: 35px;
-    background-color: #646cff;
+    background-color: var(--primary);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -46,8 +62,8 @@
     position: absolute;
     top: 120%; /* Nằm ngay dưới avatar */
     right: 0;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
+    background-color: var(--surface-2);
+    border: 1px solid var(--border-2);
     border-radius: 8px;
     width: 180px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
@@ -58,7 +74,7 @@
 .dropdown-item {
     display: block;
     padding: 10px 15px;
-    color: #e0e0e0;
+    color: var(--text);
     text-decoration: none;
     text-align: left;
     transition: background 0.2s;
@@ -70,19 +86,20 @@
 }
 
 .dropdown-item:hover {
-    background-color: #3a3a3a;
+    background-color: var(--surface-hover);
     color: white;
 }
 
 .dropdown-divider {
     height: 1px;
-    background-color: #444;
+    background-color: var(--border-2);
     margin: 5px 0;
 }
 
 .logout-btn {
-    color: #ff6b6b; /* Màu đỏ cho nút logout */
+    color: var(--danger); /* Màu đỏ cho nút logout */
 }
+
 /* Xóa bỏ giới hạn chiều rộng để web full màn hình */
 #root {
   width: 100%;
@@ -102,20 +119,27 @@
   justify-content: center; /* Căn giữa dọc */
   min-height: 100vh;
   text-align: center;
-  background-color: #242424; /* Màu nền tối */
-  color: white;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 /* Style cho link */
 .nav-link {
   margin: 0 15px;
-  color: #646cff;
+  color: var(--primary);
   text-decoration: none;
   font-size: 1.2rem;
   font-weight: bold;
 }
 
 .nav-link:hover {
-  color: #535bf2;
+  color: var(--primary-hover);
   text-decoration: underline;
 }
