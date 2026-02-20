@@ -3,6 +3,7 @@ package com.example.WebTruyen.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -12,6 +13,8 @@ public class AuthorStoryAnalyticsResponse {
     private String storyTitle;
     private Long totalViews;
     private Long totalCoinEarned;
+    private BigDecimal currentCoinToCashRate;
+    private BigDecimal estimatedCashRevenue;
     private Long totalFollowers;
     private List<AuthorAnalyticsPoint> viewsOverTime;
     private List<AuthorAnalyticsPoint> coinRevenueOverTime;
