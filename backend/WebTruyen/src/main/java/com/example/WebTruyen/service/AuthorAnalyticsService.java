@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -113,6 +115,14 @@ public class AuthorAnalyticsService {
             ORDER BY v.sequence_index ASC, c.sequence_index ASC
             """;
 
+    private static final String CURRENT_COIN_TO_CASH_RATE_SQL = """
+            SELECT cash_amount / coin_amount
+            FROM coin_conversion_rates
+            WHERE is_active = 1 AND effective_date <= CURRENT_DATE()
+            ORDER BY effective_date DESC, id DESC
+            LIMIT 1
+            """;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -121,6 +131,8 @@ public class AuthorAnalyticsService {
         Object[] storyInfo = getStoryInfo(storyId, authorId);
         Long totalCoin = getSingleLong(TOTAL_COIN_SQL, storyId);
         Long totalFollowers = getSingleLong(TOTAL_FOLLOWERS_SQL, storyId);
+        BigDecimal currentCoinToCashRate = getCurrentCoinToCashRate();
+        BigDecimal estimatedCashRevenue = calculateCashRevenue(totalCoin, currentCoinToCashRate);
 
         LocalDate today = LocalDate.now();
         LocalDate startDay = today.minusDays(CHART_DAYS - 1L);
@@ -155,12 +167,37 @@ public class AuthorAnalyticsService {
                 .storyTitle(toString(storyInfo[1]))
                 .totalViews(toLong(storyInfo[2]))
                 .totalCoinEarned(totalCoin)
+                .currentCoinToCashRate(currentCoinToCashRate)
+                .estimatedCashRevenue(estimatedCashRevenue)
                 .totalFollowers(totalFollowers)
                 .viewsOverTime(viewsSeries)
                 .coinRevenueOverTime(revenueSeries)
                 .followerGrowthOverTime(followerGrowthSeries)
                 .chapterPerformance(chapterItems)
                 .build();
+    }
+
+    private BigDecimal getCurrentCoinToCashRate() {
+        try {
+            List<?> rows = entityManager.createNativeQuery(CURRENT_COIN_TO_CASH_RATE_SQL).getResultList();
+            if (rows.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            BigDecimal rate = toBigDecimal(rows.get(0));
+            return rate == null ? BigDecimal.ZERO : rate;
+        } catch (Exception ignored) {
+            // Conversion table might not be available in older environments.
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal calculateCashRevenue(Long totalCoin, BigDecimal rate) {
+        if (totalCoin == null || totalCoin <= 0 || rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(totalCoin)
+                .multiply(rate)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private Object[] getStoryInfo(Long storyId, Long authorId) {
@@ -271,5 +308,15 @@ public class AuthorAnalyticsService {
 
     private String toString(Object value) {
         return value == null ? null : value.toString();
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        return null;
     }
 }

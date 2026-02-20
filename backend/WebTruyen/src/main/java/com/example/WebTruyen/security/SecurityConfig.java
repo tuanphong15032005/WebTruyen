@@ -49,6 +49,7 @@ public class SecurityConfig {
                         // 2. SỬA ĐƯỜNG DẪN: Thêm /api vào trước để khớp với frontend
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/moderation/**").permitAll()
+                        .requestMatchers("/api/admin/conversion-rates/**").permitAll()
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
