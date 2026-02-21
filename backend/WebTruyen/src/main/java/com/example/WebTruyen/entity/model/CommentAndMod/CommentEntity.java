@@ -1,9 +1,9 @@
 package com.example.WebTruyen.entity.model.CommentAndMod;
 
-import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

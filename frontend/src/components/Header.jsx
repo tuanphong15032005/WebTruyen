@@ -1,110 +1,206 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import '../App.css'; // Để dùng CSS chung
 import { WalletContext } from '../context/WalletContext.jsx';
+import { Search, ChevronDown } from 'lucide-react';
 
 function Header() {
     const [user, setUser] = useState(() => {
         const storedUser = localStorage.getItem('user');
-        if (!storedUser) {
-            return null;
-        }
-
+        if (!storedUser) return null;
         try {
             return JSON.parse(storedUser);
         } catch {
             return null;
         }
     });
+
     const [showDropdown, setShowDropdown] = useState(false);
     const navigate = useNavigate();
-    const { wallet, refreshWallet, isLoggedIn } = React.useContext(WalletContext);
+    const { wallet, refreshWallet, isLoggedIn } = useContext(WalletContext);
 
     const handleLogout = () => {
-        localStorage.removeItem('user'); // Xóa user khỏi bộ nhớ
+        localStorage.removeItem('user');
         setUser(null);
         setShowDropdown(false);
-
         refreshWallet();
-
-        navigate('/login'); // Quay về trang login
+        navigate('/login');
     };
 
     return (
-        <header className="header-container">
-            {/* Logo bên trái */}
-            <div className="logo">
-                <Link to="/" className="logo-link">
-                    📚 WebTruyen
-                </Link>
+        <header style={{
+            backgroundColor: 'white',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+            padding: '10px 32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100
+        }}>
+
+            {/* Logo */}
+            <div
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                onClick={() => navigate('/')}
+            >
+                <div style={{
+                    width: '40px',
+                    height: '40px',
+                    background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '20px'
+                }}>
+                    📖
+                </div>
+                <h2 style={{
+                    margin: 0,
+                    fontWeight: 'bold',
+                    fontSize: '22px',
+                    background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                }}>
+                    WebTruyen
+                </h2>
             </div>
 
-            {/* Menu bên phải */}
-            <nav className="nav-menu">
-                {isLoggedIn ? (
-                    <div className="flex items-center gap-3 mr-4">
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-                            <span className="text-lg">💎</span>
-                            <span className="font-semibold">{wallet.coinB}</span>
-                            <button
-                                type="button"
-                                className="ml-1 px-2 py-1 rounded-md border border-[var(--border)] hover:bg-[var(--surface-hover)]"
-                                onClick={() => navigate('/wallet/topup')}
-                                title="Top up"
-                            >
-                                +
-                            </button>
+            {/* Menu giữa */}
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    Danh sách <ChevronDown size={16} />
+                </button>
+
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    Thể loại <ChevronDown size={16} />
+                </button>
+            </nav>
+
+            {/* Search */}
+            <div style={{ position: 'relative', width: '300px' }}>
+                <input
+                    type="text"
+                    placeholder="Tìm kiếm truyện..."
+                    style={{
+                        width: '100%',
+                        padding: '10px 16px 10px 40px',
+                        borderRadius: '10px',
+                        border: '1px solid #ddd',
+                        outline: 'none'
+                    }}
+                />
+                <Search size={18} style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#888'
+                }} />
+            </div>
+
+            {/* Right side */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+                {/* Wallet */}
+                {isLoggedIn && (
+                    <>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <div style={{ padding: '0px 0px 0px 5px', border: '1px solid #ddd', borderRadius: '8px', color: '#000', display: 'flex', alignItems: 'center' }}>
+                                💎 {wallet.coinB}
+                                <button
+                                    onClick={() => navigate('/wallet/topup')}
+                                    style={{ marginLeft: '5px', border: 'none', background: 'none', cursor: 'pointer' }}
+                                >
+                                    +
+                                </button>
+                            </div>
+
+                            <div style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', color: '#000', display: 'flex', alignItems: 'center' }}>
+                                🪙 {wallet.coinA}
+                            </div>
+
+
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-                            <span className="text-lg">🪙</span>
-                            <span className="font-semibold">{wallet.coinA}</span>
-                        </div>
-                        <button
-                            type="button"
-                            className="px-2 py-1 rounded-md border border-[var(--border)] hover:bg-[var(--surface-hover)]"
-                            onClick={() => refreshWallet()}
-                            title="Refresh wallet"
-                        >
-                            ⟳
-                        </button>
-                    </div>
-                ) : null}
+                    </>
+                )}
+
+                {/* User */}
                 {user ? (
-                    // --- TRƯỜNG HỢP ĐÃ ĐĂNG NHẬP ---
                     <div style={{ position: 'relative' }}>
-                        <div 
-                            className="user-info" 
+                        <div
                             onClick={() => setShowDropdown(!showDropdown)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer'
+                            }}
                         >
-                            <span style={{ marginRight: '10px' }}>Xin chào, <strong>{user.username}</strong></span>
-                            {/* Avatar giả lập bằng chữ cái đầu */}
-                            <div className="avatar">
+                            <span style = {{color: 'black'}} >Xin chào, <strong>{user.username}</strong></span>
+                            <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold'
+                            }}>
                                 {user.username.charAt(0).toUpperCase()}
                             </div>
                         </div>
 
-                        {/* Dropdown Menu */}
                         {showDropdown && (
-                            <div className="dropdown-menu">
-                                <Link to="/profile" className="dropdown-item">Hồ sơ cá nhân</Link>
-                                <Link to="/donation-history" className="dropdown-item">Lịch sử giao dịch</Link>
-                                <div className="dropdown-divider"></div>
-                                <button onClick={handleLogout} className="dropdown-item logout-btn">
+                            <div style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: '120%',
+                                background: 'white',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                borderRadius: '10px',
+                                overflow: 'hidden',
+                                minWidth: '180px'
+                            }}>
+                                <Link to="/profile" style={dropdownItemStyle}>Hồ sơ cá nhân</Link>
+                                <Link to="/donation-history" style={dropdownItemStyle}>Lịch sử giao dịch</Link>
+                                <div style={{ borderTop: '1px solid #eee' }}></div>
+                                <button onClick={handleLogout} style={{ ...dropdownItemStyle, width: '100%', textAlign: 'left', background: 'none', border: 'none' }}>
                                     Đăng xuất
                                 </button>
                             </div>
                         )}
                     </div>
                 ) : (
-                    // --- TRƯỜNG HỢP CHƯA ĐĂNG NHẬP ---
-                    <div>
-                        <Link to="/login" className="nav-link">Đăng Nhập</Link>
-                        <Link to="/register" className="nav-button">Đăng Ký</Link>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <Link to="/login">Đăng nhập</Link>
+                        <Link to="/register" style={{
+                            padding: '6px 12px',
+                            background: '#17a2b8',
+                            color: 'white',
+                            borderRadius: '8px',
+                            textDecoration: 'none'
+                        }}>
+                            Đăng ký
+                        </Link>
                     </div>
                 )}
-            </nav>
+            </div>
         </header>
     );
 }
+
+const dropdownItemStyle = {
+    display: 'block',
+    padding: '10px 16px',
+    textDecoration: 'none',
+    color: '#333',
+    cursor: 'pointer'
+};
 
 export default Header;

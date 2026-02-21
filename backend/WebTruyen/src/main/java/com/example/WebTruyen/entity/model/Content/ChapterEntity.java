@@ -49,6 +49,9 @@ public class ChapterEntity {
     @Column(name = "last_update_at")
     private LocalDateTime lastUpdateAt;
 
+    @Column(name = "scheduled_publish_at")
+    private LocalDateTime scheduledPublishAt;
+
     @OneToMany(mappedBy = "chapter", fetch = FetchType.LAZY)
     @Builder.Default
     private List<ChapterSegmentEntity> segments = new ArrayList<>();

@@ -22,3 +22,13 @@ public class TestController {
         return "Hello " + userPrincipal.getUser().getUsername() + "! This is a protected endpoint.";
     }
 }
+
+@RestController
+@CrossOrigin(origins = {"http://localhost:5173"})
+class RootController {
+    
+    @GetMapping("/")
+    public String root() {
+        return "WebTruyen Backend API is running! Frontend should access API endpoints at /api/*";
+    }
+}
