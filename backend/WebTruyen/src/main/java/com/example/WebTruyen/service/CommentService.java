@@ -1,16 +1,20 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
+import com.example.WebTruyen.dto.request.ReportCommentRequest;
+import com.example.WebTruyen.dto.request.UpdateCommentRequest;
 import com.example.WebTruyen.dto.respone.CommentResponse;
 import com.example.WebTruyen.dto.respone.PagedResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
+import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.CommentRepository;
+import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,6 +39,7 @@ public class CommentService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final CommentRepository commentRepository;
+    private final ReportRepository reportRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<CommentResponse> listPublishedChapterComments(
@@ -53,7 +58,8 @@ public class CommentService {
                         PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"))
                 );
 
-        return buildPagedResponse(dataPage, safePage, safeSize);
+        long totalComments = commentRepository.countByChapter_IdAndIsHiddenFalse(chapter.getId());
+        return buildPagedResponse(dataPage, safePage, safeSize, totalComments);
     }
 
     @Transactional(readOnly = true)
@@ -73,7 +79,8 @@ public class CommentService {
                         PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"))
                 );
 
-        return buildPagedResponse(dataPage, safePage, safeSize);
+        long totalComments = commentRepository.countByStory_IdAndIsHiddenFalse(targetStoryId);
+        return buildPagedResponse(dataPage, safePage, safeSize, totalComments);
     }
 
     @Transactional
@@ -148,6 +155,97 @@ public class CommentService {
         return toResponse(commentRepository.save(comment), List.of());
     }
 
+    @Transactional
+    public CommentResponse updateStoryComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long commentId,
+            UpdateCommentRequest req
+    ) {
+        StoryEntity story = requirePublishedStory(storyId);
+        Integer targetStoryId = Math.toIntExact(story.getId());
+        CommentEntity comment = commentRepository.findByIdAndStory_IdAndIsHiddenFalse(commentId, targetStoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        Long ownerId = comment.getUser() != null ? comment.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot edit this comment");
+        }
+
+        comment.setContent(normalizeContent(req != null ? req.content() : null));
+        CommentEntity saved = commentRepository.save(comment);
+        return toResponse(saved, List.of());
+    }
+
+    @Transactional
+    public void deleteStoryComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long commentId
+    ) {
+        StoryEntity story = requirePublishedStory(storyId);
+        Integer targetStoryId = Math.toIntExact(story.getId());
+        CommentEntity comment = commentRepository.findByIdAndStory_IdAndIsHiddenFalse(commentId, targetStoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        Long ownerId = comment.getUser() != null ? comment.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot delete this comment");
+        }
+
+        List<CommentEntity> commentsToHide = new ArrayList<>();
+        commentsToHide.add(comment);
+
+        if (comment.getParentComment() == null) {
+            List<CommentEntity> replies = commentRepository.findByRootComment_IdAndIsHiddenFalseOrderByCreatedAtAsc(comment.getId());
+            commentsToHide.addAll(replies);
+        } else {
+            Long rootId = comment.getRootComment() != null ? comment.getRootComment().getId() : null;
+            if (rootId != null) {
+                List<CommentEntity> allReplies = commentRepository.findByRootComment_IdAndIsHiddenFalseOrderByCreatedAtAsc(rootId);
+                commentsToHide.addAll(collectDescendants(comment.getId(), allReplies));
+            }
+        }
+
+        commentsToHide.forEach(item -> item.setIsHidden(true));
+        commentRepository.saveAll(commentsToHide);
+    }
+
+    @Transactional
+    public void reportStoryComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long commentId,
+            ReportCommentRequest req
+    ) {
+        StoryEntity story = requirePublishedStory(storyId);
+        Integer targetStoryId = Math.toIntExact(story.getId());
+        CommentEntity comment = commentRepository.findByIdAndStory_IdAndIsHiddenFalse(commentId, targetStoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        String reason = req != null && req.reason() != null ? req.reason().trim() : "";
+        String details = req != null && req.details() != null ? req.details().trim() : null;
+        if (reason.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Report reason is required");
+        }
+
+        ReportEntity report = ReportEntity.builder()
+                .reporter(currentUser)
+                .targetKind(ReportEntity.ReportTargetKind.comment)
+                .story(null)
+                .chapter(null)
+                .comment(comment)
+                .reason(reason)
+                .details(details != null && !details.isBlank() ? details : null)
+                .status(ReportEntity.ReportStatus.open)
+                .actionTakenBy(null)
+                .action(null)
+                .createdAt(LocalDateTime.now())
+                .resolvedAt(null)
+                .build();
+        reportRepository.save(report);
+    }
+
     private StoryEntity requirePublishedStory(Integer storyId) {
         StoryEntity story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
@@ -170,10 +268,17 @@ public class CommentService {
     }
 
     private String normalizeContent(CreateCommentRequest req) {
-        if (req == null || req.content() == null || req.content().isBlank()) {
+        if (req == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment content is required");
         }
-        String content = req.content().trim();
+        return normalizeContent(req.content());
+    }
+
+    private String normalizeContent(String rawContent) {
+        if (rawContent == null || rawContent.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment content is required");
+        }
+        String content = rawContent.trim();
         if (content.length() > 4000) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment is too long");
         }
@@ -183,7 +288,8 @@ public class CommentService {
     private PagedResponse<CommentResponse> buildPagedResponse(
             Page<CommentEntity> dataPage,
             int safePage,
-            int safeSize
+            int safeSize,
+            long totalElements
     ) {
         List<CommentEntity> rootComments = dataPage.getContent();
         List<Long> rootIds = rootComments.stream().map(CommentEntity::getId).toList();
@@ -209,7 +315,7 @@ public class CommentService {
                 items,
                 safePage,
                 safeSize,
-                dataPage.getTotalElements(),
+                totalElements,
                 dataPage.getTotalPages(),
                 dataPage.hasNext()
         );
@@ -229,9 +335,44 @@ public class CommentService {
                 comment.getContent(),
                 comment.getCreatedAt(),
                 comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                comment.getParentComment() != null && comment.getParentComment().getUser() != null
+                        ? comment.getParentComment().getUser().getId()
+                        : null,
+                comment.getParentComment() != null && comment.getParentComment().getUser() != null
+                        ? comment.getParentComment().getUser().getUsername()
+                        : null,
                 comment.getDepth(),
                 replyResponses
         );
+    }
+
+    private List<CommentEntity> collectDescendants(Long targetCommentId, List<CommentEntity> allReplies) {
+        if (allReplies.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, List<CommentEntity>> childrenByParentId = new HashMap<>();
+        for (CommentEntity reply : allReplies) {
+            Long parentId = reply.getParentComment() != null ? reply.getParentComment().getId() : null;
+            if (parentId == null) {
+                continue;
+            }
+            childrenByParentId.computeIfAbsent(parentId, ignored -> new ArrayList<>()).add(reply);
+        }
+
+        List<CommentEntity> descendants = new ArrayList<>();
+        ArrayList<Long> queue = new ArrayList<>();
+        queue.add(targetCommentId);
+        int cursor = 0;
+        while (cursor < queue.size()) {
+            Long parentId = queue.get(cursor++);
+            List<CommentEntity> children = childrenByParentId.getOrDefault(parentId, List.of());
+            for (CommentEntity child : children) {
+                descendants.add(child);
+                queue.add(child.getId());
+            }
+        }
+        return descendants;
     }
 
     private int normalizePage(Integer page) {

@@ -3,15 +3,18 @@ package com.example.WebTruyen.service;
 // package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateChapterRequest;
+import com.example.WebTruyen.dto.request.SaveChapterDraftRequest;
 import com.example.WebTruyen.dto.respone.CreateChapterResponse;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
+import com.example.WebTruyen.entity.model.Content.DraftEntity;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
+import com.example.WebTruyen.repository.DraftRepository;
 import com.example.WebTruyen.repository.VolumeRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +42,7 @@ public class ChapterService {
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
+    private final DraftRepository draftRepository;
     private final StorageService storageService;
 
     /**
@@ -301,5 +305,74 @@ public class ChapterService {
         out.put("segments", segDtos);
         out.put("fullHtml", sb.toString());
         return out;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getChapterDraft(UserEntity currentUser, Long storyId, Long volumeId, Long chapterId) {
+        ChapterEntity chapter = requireOwnedChapter(currentUser, storyId, volumeId, chapterId);
+        DraftEntity draft = draftRepository.findById(chapter.getId()).orElse(null);
+
+        Map<String, Object> out = new HashMap<>();
+        out.put("hasDraft", draft != null);
+        out.put("chapterId", chapter.getId());
+        out.put("content", draft != null ? draft.getContent() : null);
+        out.put("createdAt", draft != null ? draft.getCreatedAt() : null);
+        out.put("updatedAt", draft != null ? draft.getUpdatedAt() : null);
+        return out;
+    }
+
+    @Transactional
+    public Map<String, Object> upsertChapterDraft(
+            UserEntity currentUser,
+            Long storyId,
+            Long volumeId,
+            Long chapterId,
+            SaveChapterDraftRequest req
+    ) {
+        ChapterEntity chapter = requireOwnedChapter(currentUser, storyId, volumeId, chapterId);
+        DraftEntity draft = draftRepository.findById(chapter.getId()).orElse(null);
+        if (draft == null) {
+            draft = DraftEntity.builder()
+                    .chapter(chapter)
+                    .content(req != null ? req.getDraftContent() : null)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+        } else {
+            draft.setContent(req != null ? req.getDraftContent() : null);
+            draft.setUpdatedAt(LocalDateTime.now());
+        }
+        DraftEntity saved = draftRepository.save(draft);
+
+        Map<String, Object> out = new HashMap<>();
+        out.put("hasDraft", true);
+        out.put("chapterId", chapter.getId());
+        out.put("content", saved.getContent());
+        out.put("createdAt", saved.getCreatedAt());
+        out.put("updatedAt", saved.getUpdatedAt());
+        return out;
+    }
+
+    @Transactional
+    public void deleteChapterDraft(UserEntity currentUser, Long storyId, Long volumeId, Long chapterId) {
+        requireOwnedChapter(currentUser, storyId, volumeId, chapterId);
+        draftRepository.deleteById(chapterId);
+    }
+
+    private ChapterEntity requireOwnedChapter(UserEntity currentUser, Long storyId, Long volumeId, Long chapterId) {
+        VolumeEntity volume = volumeRepository.findById(volumeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Volume not found"));
+
+        if (volume.getStory() == null || !volume.getStory().getId().equals(storyId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Volume does not belong to story");
+        }
+
+        StoryEntity story = volume.getStory();
+        if (story.getAuthor() == null || !story.getAuthor().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner of story");
+        }
+
+        return chapterRepository.findByIdAndVolume_Id(chapterId, volumeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
     }
 }

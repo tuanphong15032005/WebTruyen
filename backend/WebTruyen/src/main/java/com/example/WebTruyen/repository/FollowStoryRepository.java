@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface FollowStoryRepository extends JpaRepository<FollowStoryEntity, Long> {
 
     Optional<FollowStoryEntity> findByUser_IdAndStory_Id(Long userId, Long storyId);
+
+    long countByStory_Id(Long storyId);
 }

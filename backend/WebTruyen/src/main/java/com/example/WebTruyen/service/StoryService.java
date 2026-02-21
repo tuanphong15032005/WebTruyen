@@ -13,9 +13,11 @@ import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.repository.LibraryEntryRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
@@ -51,6 +53,7 @@ public class StoryService {
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final FollowStoryRepository followStoryRepository;
+    private final LibraryEntryRepository libraryEntryRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
@@ -143,6 +146,35 @@ public class StoryService {
     }
 
     @Transactional
+    public boolean getLibraryStatus(UserEntity currentUser, Long storyId) {
+        if (currentUser == null) {
+            return false;
+        }
+        requirePublishedStoryById(storyId);
+        return libraryEntryRepository.findByUser_IdAndStory_Id(currentUser.getId(), storyId).isPresent();
+    }
+
+    @Transactional
+    public boolean toggleLibraryEntry(UserEntity currentUser, Long storyId) {
+        StoryEntity story = requirePublishedStoryById(storyId);
+        return libraryEntryRepository.findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .map(existing -> {
+                    libraryEntryRepository.delete(existing);
+                    return false;
+                })
+                .orElseGet(() -> {
+                    LibraryEntryEntity entry = LibraryEntryEntity.builder()
+                            .user(currentUser)
+                            .story(story)
+                            .addedAt(LocalDateTime.now())
+                            .favorite(false)
+                            .build();
+                    libraryEntryRepository.save(entry);
+                    return true;
+                });
+    }
+
+    @Transactional
     public StoryResponse updateStory(UserEntity currentUser, Integer storyId, CreateStoryRequest req, MultipartFile cover) {
         StoryEntity story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
@@ -196,6 +228,7 @@ public class StoryService {
 
     private StoryResponse toResponse(StoryEntity story, List<TagDto> tags, boolean publishedOnly) {
         long readerCount = readingHistoryRepository.countByStory_Id(story.getId());
+        long savedCount = libraryEntryRepository.countByStory_Id(story.getId());
         long wordCount = countStoryWords(story.getId(), publishedOnly);
         LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
         BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
@@ -222,6 +255,7 @@ public class StoryService {
                 story.getRatingCount(),
                 ratingAvg,
                 readerCount,
+                savedCount,
                 wordCount,
                 lastUpdatedAt,
                 tags,

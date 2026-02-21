@@ -11,6 +11,8 @@ public record CommentResponse(
         String content,
         LocalDateTime createdAt,
         Long parentCommentId,
+        Long parentUserId,
+        String parentUsername,
         Integer depth,
         List<CommentResponse> replies
 ) {}

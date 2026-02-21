@@ -5,6 +5,9 @@ import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.request.CreateVolumeRequest;
+import com.example.WebTruyen.dto.request.ReportCommentRequest;
+import com.example.WebTruyen.dto.request.SaveChapterDraftRequest;
+import com.example.WebTruyen.dto.request.UpdateCommentRequest;
 import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
 import com.example.WebTruyen.dto.respone.CommentResponse;
 import com.example.WebTruyen.dto.respone.CreateChapterResponse;
@@ -15,11 +18,13 @@ import com.example.WebTruyen.dto.respone.StoryResponse;
 import com.example.WebTruyen.dto.respone.VolumeSummaryResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
+import com.example.WebTruyen.security.JwtTokenProvider;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.CommentService;
 import com.example.WebTruyen.service.StoryReviewService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
+import com.example.WebTruyen.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,12 +48,27 @@ public class StoryController {
     private final ChapterService chapterService;
     private final StoryReviewService storyReviewService;
     private final CommentService commentService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
         return userPrincipal.getUser();
+    }
+
+    private UserEntity requireUserByToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        String token = rawToken.startsWith("Bearer ") ? rawToken.substring(7) : rawToken;
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
     }
 
     @PostMapping(value = "/stories", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -91,6 +111,26 @@ public class StoryController {
         UserEntity currentUser = requireUser(userPrincipal);
         boolean enabled = storyService.toggleNotifyNewChapter(currentUser, storyId);
         return Map.of("enabled", enabled);
+    }
+
+    @GetMapping("/stories/{storyId}/library-status")
+    public Map<String, Boolean> getLibraryStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        boolean saved = storyService.getLibraryStatus(currentUser, storyId);
+        return Map.of("saved", saved);
+    }
+
+    @PostMapping("/stories/{storyId}/library/toggle")
+    public Map<String, Boolean> toggleLibraryStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        boolean saved = storyService.toggleLibraryEntry(currentUser, storyId);
+        return Map.of("saved", saved);
     }
 
     // C?p nh?t truy?n theo id
@@ -153,6 +193,39 @@ public class StoryController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return commentService.createStoryComment(currentUser, storyId, req);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse updateStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @RequestBody UpdateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.updateStoryComment(currentUser, storyId, commentId, req);
+    }
+    @DeleteMapping("/stories/{storyId}/comments/{commentId}")
+    public Map<String, Boolean> deleteStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteStoryComment(currentUser, storyId, commentId);
+        return Map.of("success", true);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/comments/{commentId}/report", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Boolean> reportStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @RequestBody ReportCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.reportStoryComment(currentUser, storyId, commentId, req);
+        return Map.of("success", true);
     }
 
     @GetMapping("/public/stories/{storyId}/chapters/{chapterId}/comments")
@@ -221,6 +294,53 @@ public class StoryController {
             @PathVariable Long chapterId
     ) {
         return chapterService.getChapterContent(chapterId);
+    }
+
+    @GetMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Object> getChapterDraft(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @PathVariable("chapterId") Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return chapterService.getChapterDraft(currentUser, storyId, volumeId, chapterId);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> upsertChapterDraft(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @PathVariable("chapterId") Long chapterId,
+            @RequestBody SaveChapterDraftRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return chapterService.upsertChapterDraft(currentUser, storyId, volumeId, chapterId, req);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft/beacon", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
+    public Map<String, Object> upsertChapterDraftByBeacon(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @PathVariable("chapterId") Long chapterId,
+            @RequestParam("token") String token,
+            @RequestBody SaveChapterDraftRequest req
+    ) {
+        UserEntity currentUser = requireUserByToken(token);
+        return chapterService.upsertChapterDraft(currentUser, storyId, volumeId, chapterId, req);
+    }
+
+    @DeleteMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Boolean> deleteChapterDraft(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @PathVariable("chapterId") Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        chapterService.deleteChapterDraft(currentUser, storyId, volumeId, chapterId);
+        return Map.of("success", true);
     }
 
 }
