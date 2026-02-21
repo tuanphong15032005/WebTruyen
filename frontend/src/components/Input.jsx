@@ -1,0 +1,17 @@
+import React from 'react';
+
+const Input = ({ label, error, as = 'input', className = '', ...props }) => {
+  const FieldTag = as;
+  return (
+    <label className={`field ${className}`.trim()}>
+      {label && <span className='field-label'>{label}</span>}
+      <FieldTag
+        className={`field-input ${error ? 'has-error' : ''}`}
+        {...props}
+      />
+      {error && <span className='field-error'>{error}</span>}
+    </label>
+  );
+};
+
+export default Input;

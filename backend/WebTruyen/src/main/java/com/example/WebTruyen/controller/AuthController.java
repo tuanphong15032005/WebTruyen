@@ -36,20 +36,20 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             UserEntity user = authService.authenticate(request.getUsername(), request.getPassword());
-            
+
             if (!user.isVerified()) {
                 return ResponseEntity.badRequest().body("Please verify your email before logging in.");
             }
-            
+
             String token = tokenProvider.generateToken(user.getId(), user.getUsername());
-            
+
             LoginResponse response = new LoginResponse(
                 token,
                 "Bearer",
                 user.getId(),
                 user.getUsername()
             );
-            
+
             return ResponseEntity.ok(response);
         } catch (AccountLockedException e) {
             Map<String, Object> body = new HashMap<>();
@@ -67,13 +67,17 @@ public class AuthController {
             UserEntity newUser = authService.registerUser(
                 request.getUsername(),
                 request.getEmail(),
+//<<<<<<< HEAD
                 request.getPassword(),
                 request.getDisplayName(),
                 request.getUpgradeToAuthor()
+//=======
+//                request.getPassword()
+//>>>>>>> author-create-content
             );
-            
+
             authService.sendOtp(request.getEmail());
-            
+
             return ResponseEntity.ok("Registration successful! Please check your email for OTP verification.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

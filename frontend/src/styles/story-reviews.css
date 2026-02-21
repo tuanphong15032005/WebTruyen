@@ -1,0 +1,175 @@
+.story-reviews {
+  display: grid;
+}
+
+.story-reviews__frame {
+  background: #ffffff;
+  border: 1px solid #b7d9b1;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  padding: 18px;
+}
+
+.story-reviews__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.story-reviews__header h2 {
+  margin: 0;
+  color: #22365a;
+}
+
+.story-reviews__back {
+  color: #3d67b8;
+  font-weight: 600;
+}
+
+.story-reviews__story-title {
+  margin: 8px 0 0;
+  color: #2d4773;
+  font-size: 1.1rem;
+}
+
+.story-reviews__form {
+  margin-top: 14px;
+  border: 1px solid #d4dfef;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fcfeff;
+  display: grid;
+  gap: 8px;
+}
+
+.story-reviews__form p {
+  margin: 0;
+  color: #536887;
+}
+
+.story-reviews__stars {
+  display: flex;
+  gap: 4px;
+}
+
+.story-reviews__star {
+  border: none;
+  background: transparent;
+  color: #d1d9e8;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.story-reviews__star.active {
+  color: #ffb300;
+}
+
+.story-reviews__form textarea {
+  min-height: 120px;
+  border: 1px solid #c2ccdd;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+.story-reviews__form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #7b8faa;
+  font-size: 0.85rem;
+}
+
+.story-reviews__form-footer button {
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid #3573dd;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.story-reviews__form-footer button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.story-reviews__list {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.story-reviews__item {
+  border: 1px solid #d4dfef;
+  border-radius: 10px;
+  background: #fcfeff;
+  padding: 12px;
+}
+
+.story-reviews__item-head {
+  display: flex;
+  gap: 10px;
+}
+
+.story-reviews__item-head img,
+.story-reviews__avatar-fallback {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #c4d1e6;
+}
+
+.story-reviews__avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf1ff;
+  color: #2f4f7b;
+  font-weight: 700;
+}
+
+.story-reviews__item-head strong {
+  color: #213a62;
+}
+
+.story-reviews__item-stars {
+  display: flex;
+  gap: 2px;
+  color: #d0d8e6;
+}
+
+.story-reviews__item-stars .active {
+  color: #ffb300;
+}
+
+.story-reviews__item-head small {
+  color: #7b8ea8;
+}
+
+.story-reviews__item p {
+  margin: 10px 0 0;
+  color: #2d4367;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.story-reviews__load-more {
+  margin-top: 14px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #4a99ea;
+  background: #ffffff;
+  color: #2d8ce8;
+  font-weight: 600;
+  cursor: pointer;
+}

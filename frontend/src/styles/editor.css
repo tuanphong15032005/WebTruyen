@@ -1,0 +1,47 @@
+.editor-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: #fff7e5;
+}
+
+.ql-container.ql-snow {
+  border: none;
+  min-height: 320px;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', Tahoma, sans-serif;
+  background: #ffffff;
+  color: var(--text);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ql-editor {
+  min-height: 280px;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+}
+
+.ql-snow .ql-stroke {
+  stroke: #566987;
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+  fill: #566987;
+}
+
+.ql-snow .ql-picker {
+  color: #566987;
+}

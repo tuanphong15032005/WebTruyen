@@ -1,0 +1,363 @@
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import '../../styles/editor.css';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
+import useNotify from '../../hooks/useNotify';
+import storyService from '../../services/storyService';
+import uploadService from '../../services/uploadService';
+import { isEmptyHtml } from '../../utils/helpers';
+
+const CHAPTER_STATUS_LABELS = {
+  draft: 'Nháp',
+  published: 'Công khai',
+  archived: 'Lưu trữ',
+};
+
+const CreateChapter = () => {
+  const { storyId, volumeId } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const editChapterId = searchParams.get('chapterId');
+  const { notify } = useNotify();
+  const quillRef = useRef(null);
+
+  const [title, setTitle] = useState('');
+  const [isFree, setIsFree] = useState(true);
+  const [priceCoin, setPriceCoin] = useState('');
+  const [status, setStatus] = useState('draft');
+  const [content, setContent] = useState('');
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [chapterId, setChapterId] = useState(editChapterId || '');
+  const [segmentIds, setSegmentIds] = useState([]);
+  const [savedHtml, setSavedHtml] = useState('');
+  const [editorReady, setEditorReady] = useState(false);
+  const isEditing = Boolean(editChapterId);
+
+  const handleImageUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        notify('Đang tải ảnh lên...', 'info');
+        const url = await uploadService.uploadImage(file);
+        if (!url) {
+          notify('Tải ảnh thất bại', 'error');
+          return;
+        }
+        const quill = quillRef.current?.getEditor();
+        if (!quill) {
+          notify('Editor chưa sẵn sàng', 'error');
+          return;
+        }
+        const range = quill.getSelection(true);
+        const insertIndex = range ? range.index : quill.getLength();
+        quill.insertEmbed(insertIndex, 'image', url);
+        quill.setSelection(insertIndex + 1);
+      } catch (error) {
+        console.error('uploadImage error', error);
+        notify('Tải ảnh thất bại', 'error');
+      }
+    };
+    input.click();
+  }, [notify]);
+
+  const modules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['link', 'image'],
+        ],
+        handlers: {
+          image: () => handleImageUpload(),
+        },
+      },
+    }),
+    [handleImageUpload],
+  );
+
+  const formats = [
+    'header',
+    'bold',
+    'italic',
+    'underline',
+    'list',
+    'bullet',
+    'link',
+    'image',
+  ];
+
+  useEffect(() => {
+    if (quillRef.current) {
+      setEditorReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!editChapterId || !editorReady) return;
+    const loadContent = async () => {
+      try {
+        setLoadingContent(true);
+        const response = await storyService.getChapterContent(storyId, editChapterId);
+        const data = response?.data || {};
+        setChapterId(editChapterId);
+        setTitle(data.title ?? '');
+        setIsFree(typeof data.isFree === 'boolean' ? data.isFree : true);
+        setPriceCoin(
+          data.priceCoin !== null && data.priceCoin !== undefined
+            ? String(data.priceCoin)
+            : '',
+        );
+        if (typeof data.status === 'string' && data.status.trim()) {
+          setStatus(data.status.toLowerCase());
+        }
+        setSavedHtml(data.fullHtml || '');
+        const quill = quillRef.current?.getEditor();
+        if (data.contentDelta && quill) {
+          try {
+            quill.setContents(JSON.parse(data.contentDelta));
+            setContent(quill.root.innerHTML);
+          } catch (err) {
+            quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
+            setContent(data.fullHtml || '');
+          }
+        } else if (quill) {
+          quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
+          setContent(data.fullHtml || '');
+        }
+      } catch (error) {
+        console.error('getChapterContent error', error);
+        notify('Không tải được nội dung chapter', 'error');
+      } finally {
+        setLoadingContent(false);
+      }
+    };
+    loadContent();
+  }, [editChapterId, editorReady, notify, storyId]);
+
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    const handlePaste = (event) => {
+      const items = event.clipboardData?.items || [];
+      const hasImage = Array.from(items).some((item) =>
+        item.type?.startsWith('image/'),
+      );
+      if (hasImage) {
+        event.preventDefault();
+        notify('Vui lòng dùng nút Upload ảnh', 'info');
+      }
+    };
+
+    const handleDrop = (event) => {
+      const files = event.dataTransfer?.files || [];
+      const hasImage = Array.from(files).some((file) =>
+        file.type?.startsWith('image/'),
+      );
+      if (hasImage) {
+        event.preventDefault();
+        notify('Vui lòng dùng nút Upload ảnh', 'info');
+      }
+    };
+
+    quill.root.addEventListener('paste', handlePaste);
+    quill.root.addEventListener('drop', handleDrop);
+
+    return () => {
+      quill.root.removeEventListener('paste', handlePaste);
+      quill.root.removeEventListener('drop', handleDrop);
+    };
+  }, [notify]);
+
+  const validate = () => {
+    const nextErrors = {};
+    if (!title.trim()) nextErrors.title = 'Tiêu đề chapter là bắt buộc';
+    const quill = quillRef.current?.getEditor();
+    const html = quill?.root?.innerHTML || content;
+    if (!html || isEmptyHtml(html)) {
+      nextErrors.content = 'Nội dung không được để trống';
+    }
+    if (!isFree && (!priceCoin || Number(priceCoin) <= 0)) {
+      nextErrors.priceCoin = 'Giá phải lớn hơn 0';
+    }
+    return nextErrors;
+  };
+
+  const handleSave = async () => {
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+    if (!volumeId) {
+      notify('Thiếu thông tin volume để lưu chapter', 'error');
+      return;
+    }
+    const targetChapterId = editChapterId || chapterId;
+    if (isEditing && !targetChapterId) {
+      notify('Không tìm thấy chapter để cập nhật', 'error');
+      return;
+    }
+    try {
+      setSaving(true);
+      const quill = quillRef.current?.getEditor();
+      const contentHtml = quill?.root?.innerHTML || content;
+      const payload = {
+        title: title.trim(),
+        isFree,
+        priceCoin: isFree ? null : Number(priceCoin),
+        status,
+        contentHtml,
+        contentDelta: JSON.stringify(quill?.getContents() || {}),
+      };
+      const response = isEditing
+        ? await storyService.updateChapter(storyId, volumeId, targetChapterId, payload)
+        : await storyService.createChapter(storyId, volumeId, payload);
+      const data = response?.data || {};
+      setChapterId(data.chapterId || '');
+      setSegmentIds(data.segmentIds || []);
+      notify(isEditing ? 'Cập nhật chapter thành công' : 'Lưu chapter thành công', 'success');
+      navigate(`/author/stories/${storyId}?tab=volumes&volumeId=${volumeId}`);
+    } catch (error) {
+      console.error('saveChapter error', error);
+      notify(
+        isEditing
+          ? 'Không thể cập nhật chapter. Vui lòng thử lại.'
+          : 'Không thể lưu chapter. Vui lòng thử lại.',
+        'error',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleViewChapter = async () => {
+    if (!chapterId) return;
+    try {
+      const response = await storyService.getChapterContent(storyId, chapterId);
+      const data = response?.data || {};
+      setSavedHtml(data.fullHtml || '');
+      notify('Đã tải nội dung chapter', 'success');
+    } catch (error) {
+      console.error('getChapterContent error', error);
+      notify('Không tải được nội dung chapter', 'error');
+    }
+  };
+
+  return (
+    <div className='page'>
+      <div className='page-header'>
+        <h2>{isEditing ? 'Chỉnh sửa Chapter' : 'Tạo Chapter'}</h2>
+      </div>
+
+      <div className='card form'>
+        <Input
+          label='Tiêu đề Chapter'
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          error={errors.title}
+          placeholder='Nhập tiêu đề chapter'
+        />
+        <div className='field'>
+          <span className='field-label'>Miễn phí</span>
+          <label className='switch'>
+            <input
+              type='checkbox'
+              checked={isFree}
+              onChange={(e) => setIsFree(e.target.checked)}
+            />
+            <span>{isFree ? 'Miễn phí' : 'Trả phí'}</span>
+          </label>
+        </div>
+        {!isFree && (
+          <Input
+            label='Giá (coin)'
+            type='number'
+            min='1'
+            value={priceCoin}
+            onChange={(e) => setPriceCoin(e.target.value)}
+            error={errors.priceCoin}
+          />
+        )}
+        <div className='field'>
+          <span className='field-label'>Trạng thái chapter</span>
+          <select
+            className='field-input'
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value='draft'>Nháp</option>
+            <option value='published'>Công khai</option>
+            <option value='archived'>Lưu trữ</option>
+          </select>
+          <span className='field-hint'>
+            Tình trạng hiện tại: {CHAPTER_STATUS_LABELS[status] || 'Nháp'}
+          </span>
+        </div>
+        <div className='field'>
+          <span className='field-label'>Nội dung</span>
+          {errors.content && <span className='field-error'>{errors.content}</span>}
+          <div className='editor-wrapper'>
+            <ReactQuill
+              ref={quillRef}
+              theme='snow'
+              value={content}
+              onChange={setContent}
+              modules={modules}
+              formats={formats}
+              placeholder='Viết nội dung chapter...'
+            />
+          </div>
+          <span className='field-hint'>
+            Không hỗ trợ dán ảnh trực tiếp. Dùng nút Upload ảnh.
+          </span>
+        </div>
+        <div className='form-actions'>
+          <Button type='button' loading={saving} onClick={handleSave}>
+            Lưu Chapter
+          </Button>
+          {loadingContent && <span className='field-hint'>Đang tải nội dung...</span>}
+        </div>
+      </div>
+
+      {segmentIds.length > 0 && (
+        <div className='card'>
+          <h3>Danh sách Segment ID</h3>
+          <div className='segment-ids'>
+            {segmentIds.map((id) => (
+              <span key={id} className='chip'>
+                {id}
+              </span>
+            ))}
+          </div>
+          <div className='form-actions'>
+            <Button type='button' variant='ghost' onClick={handleViewChapter}>
+              Xem Chapter
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {savedHtml && (
+        <div className='card'>
+          <h3>Nội dung đã lưu</h3>
+          <div
+            className='segment-preview'
+            dangerouslySetInnerHTML={{ __html: savedHtml }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CreateChapter;

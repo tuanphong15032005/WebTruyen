@@ -1,19 +1,43 @@
 package com.example.WebTruyen.repository;
+//<<<<<<< HEAD
 
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.util.Optional;
+
 @Repository
 public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
+    /**
+     * Lấy chapter theo id và kiểm tra thuộc volumeId.
+     * Dùng để đảm bảo endpoint /volumes/{volumeId}/chapters/{chapterId}
+     */
+    Optional<ChapterEntity> findByIdAndVolume_Id(Long id, Long volumeId);
 
-    @Query("SELECT COALESCE(MAX(c.sequenceIndex), 0) FROM ChapterEntity c WHERE c.volume.id = :volumeId")
-    Integer findMaxSequenceIndexByVolume(@Param("volumeId") Long volumeId);
+    Optional<ChapterEntity> findByIdAndVolume_Story_Id(Long id, Long storyId);
+
+    /**
+     * Lấy danh sách chapter theo volume, sắp xếp theo sequenceIndex
+     */
+    List<ChapterEntity> findByVolume_IdOrderBySequenceIndexAsc(Long volumeId);
+
+    /**
+     * Kiểm tra tồn tại chapter cùng sequenceIndex trong volume (tránh trùng thứ tự)
+     */
+    boolean existsByVolume_IdAndSequenceIndex(Long volumeId, Integer sequenceIndex);
+
+    @Query("select coalesce(max(c.sequenceIndex), 0) from ChapterEntity c where c.volume.id = :volumeId")
+    Integer findMaxSequenceIndexByVolumeId(@Param("volumeId") Long volumeId);
+
+    @Query("select max(c.lastUpdateAt) from ChapterEntity c where c.volume.story.id = :storyId")
+    LocalDateTime findLatestUpdateAtByStoryId(@Param("storyId") Long storyId);
 
     @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.id = :storyId ORDER BY c.sequenceIndex")
     List<ChapterEntity> findByStoryId(@Param("storyId") Long storyId);
@@ -27,5 +51,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.author.id = :authorId AND c.status = :status ORDER BY c.lastUpdateAt DESC")
     List<ChapterEntity> findByAuthorIdAndStatus(@Param("authorId") Long authorId, @Param("status") ChapterStatus status);
 
-    boolean existsByVolumeIdAndSequenceIndex(Long volumeId, Integer sequenceIndex);
+//=======
 }
+//>>>>>> author-create-content
+

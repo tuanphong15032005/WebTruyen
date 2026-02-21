@@ -1,27 +1,35 @@
 package com.example.WebTruyen.repository;
 
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
+//<<<<<<< HEAD
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
-    
-    List<CommentEntity> findByChapterIdOrderByCreatedAtAsc(Long chapterId);
-    
-    List<CommentEntity> findByParentCommentIdOrderByCreatedAtAsc(Long parentCommentId);
-    
-    List<CommentEntity> findByRootCommentIdOrderByCreatedAtAsc(Long rootCommentId);
+
+    List<CommentEntity> findByChapter_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Long chapterId);
+
+    Page<CommentEntity> findByChapter_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Long chapterId, Pageable pageable);
+
+    Page<CommentEntity> findByStory_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Integer storyId, Pageable pageable);
+
+    List<CommentEntity> findByRootComment_IdInAndParentCommentIsNotNullAndIsHiddenFalseOrderByCreatedAtAsc(List<Long> rootCommentIds);
+
+    Optional<CommentEntity> findByIdAndChapter_IdAndIsHiddenFalse(Long id, Long chapterId);
+
+    Optional<CommentEntity> findByIdAndStory_IdAndIsHiddenFalse(Long id, Integer storyId);
     
     List<CommentEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
-    
-    @Query("SELECT c FROM CommentEntity c WHERE c.chapter.id = :chapterId AND c.parentComment IS NULL ORDER BY c.createdAt ASC")
-    List<CommentEntity> findRootCommentsByChapterId(@Param("chapterId") Long chapterId);
-    
-    @Query("SELECT c FROM CommentEntity c WHERE c.isHidden = false ORDER BY c.createdAt DESC")
-    List<CommentEntity> findVisibleComments();
+
+//=======
+//>>>>>>> author-create-content
 }

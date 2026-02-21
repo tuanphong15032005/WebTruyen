@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../services/api'; // Sử dụng Axios API từ nhánh kia
 import '../styles/Login.css';
 
 function Login() {
@@ -9,7 +10,9 @@ function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [lockSecondsRemaining, setLockSecondsRemaining] = useState(0);
+    const navigate = useNavigate(); // Sử dụng hook chuyển trang của React Router
 
+    // Hiệu ứng đếm ngược thời gian khóa
     useEffect(() => {
         if (lockSecondsRemaining <= 0) {
             return;
@@ -53,7 +56,7 @@ function Login() {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
         setMessage('');
-        // Clear error for this field when user starts typing
+        // Clear error cho field này khi người dùng gõ
         if (errors[name]) {
             setErrors({ ...errors, [name]: '' });
         }
@@ -62,53 +65,46 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (lockSecondsRemaining > 0) {
-            return;
-        }
-
-        if (!validateForm()) {
-            return;
-        }
+        if (lockSecondsRemaining > 0) return;
+        if (!validateForm()) return;
 
         setIsLoading(true);
         setMessage('');
 
         try {
-            const response = await fetch('http://localhost:8081/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            // Thay thế fetch bằng Axios API instance
+            const response = await api.post('/api/auth/login', formData);
+            
+            // Axios tự parse JSON nên chỉ cần gọi response.data
+            const user = response.data; 
+            localStorage.setItem('user', JSON.stringify(user));
 
-            if (response.ok) {
-                const user = await response.json();
-                localStorage.setItem('user', JSON.stringify(user));
+            setMessage('Đăng nhập thành công! Đang chuyển hướng...');
+            setTimeout(() => {
+                navigate('/'); // Chuyển trang mượt mà không reload
+            }, 1000);
 
-                // Show success message before redirect
-                setMessage('Đăng nhập thành công! Đang chuyển hướng...');
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1000);
-            } else {
-                const contentType = response.headers.get('content-type') || '';
-                if (response.status === 423 && contentType.includes('application/json')) {
-                    const body = await response.json();
-                    const secondsRemaining = Number(body?.secondsRemaining);
-                    setLockSecondsRemaining(Number.isFinite(secondsRemaining) && secondsRemaining > 0 ? Math.ceil(secondsRemaining) : 60);
-                    setMessage('Tài khoản đã bị vô hiệu trong 1 phút. Vui lòng thử lại sau.');
-                } else {
-                    const errorText = await response.text();
-                    if ((errorText || '').includes('Account is temporarily locked')) {
-                        setLockSecondsRemaining(60);
-                        setMessage('Tài khoản đã bị vô hiệu trong 1 phút. Vui lòng thử lại sau.');
-                    } else {
-                        setMessage(errorText || 'Tên đăng nhập hoặc mật khẩu không đúng');
-                    }
-                }
-            }
         } catch (error) {
             console.error('Login error:', error);
-            setMessage("Lỗi kết nối server! Vui lòng thử lại sau.");
+            
+            // Xử lý lỗi với Axios
+            const status = error?.response?.status;
+            const errorData = error?.response?.data;
+            const contentType = error?.response?.headers?.['content-type'] || '';
+
+            if (status === 423 && contentType.includes('application/json')) {
+                const secondsRemaining = Number(errorData?.secondsRemaining);
+                setLockSecondsRemaining(Number.isFinite(secondsRemaining) && secondsRemaining > 0 ? Math.ceil(secondsRemaining) : 60);
+                setMessage('Tài khoản đã bị vô hiệu trong 1 phút. Vui lòng thử lại sau.');
+            } else {
+                const errorText = typeof errorData === 'string' ? errorData : errorData?.message || '';
+                if (errorText.includes('Account is temporarily locked')) {
+                    setLockSecondsRemaining(60);
+                    setMessage('Tài khoản đã bị vô hiệu trong 1 phút. Vui lòng thử lại sau.');
+                } else {
+                    setMessage(errorText || 'Tên đăng nhập hoặc mật khẩu không đúng');
+                }
+            }
         } finally {
             setIsLoading(false);
         }

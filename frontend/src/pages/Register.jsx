@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../styles/Login.css';
+import api from '../services/api';
 
 function Register() {
     const [formData, setFormData] = useState({
@@ -89,43 +90,44 @@ function Register() {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+            e.preventDefault();
 
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsLoading(true);
-        setMessage('');
-
-        try {
-            const payload = {
-                username: formData.username,
-                email: formData.email,
-                password: formData.password,
-                displayName: formData.fullName,
-            };
-
-            const response = await fetch('http://localhost:8081/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const text = await response.text();
-
-            if (response.ok) {
-                navigate('/verify', { state: { email: formData.email } });
-            } else {
-                setMessage(text || 'Đăng ký thất bại. Vui lòng thử lại.');
+            if (!validateForm()) {
+                return;
             }
-        } catch (error) {
-            console.error('Register error:', error);
-            setMessage('Lỗi kết nối server! Vui lòng thử lại sau.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+
+            setIsLoading(true);
+            setMessage('');
+
+            try {
+                const payload = {
+                    username: formData.username,
+                    email: formData.email,
+                    password: formData.password,
+                    displayName: formData.fullName,
+                };
+
+                // 1. Gọi API bằng Axios
+                const response = await api.post('/api/auth/register', payload);
+
+                // 2. Axios coi các mã status 2xx (200, 201) là thành công
+                if (response.status === 200 || response.status === 201) {
+                    navigate('/verify', { state: { email: formData.email } });
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                // 3. Axios tự động nhảy vào catch nếu server trả về lỗi (400, 401, 500...)
+                // Lấy câu thông báo lỗi từ server (ví dụ: "Email đã tồn tại")
+                const errorText = error?.response?.data;
+                setMessage(
+                    typeof errorText === 'string'
+                    ? errorText
+                    : 'Đăng ký thất bại. Vui lòng thử lại.'
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
     return (
         <div className="login-container">

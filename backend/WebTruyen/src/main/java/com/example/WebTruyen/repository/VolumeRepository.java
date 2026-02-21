@@ -4,6 +4,7 @@ import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+//<<<<<<< HEAD
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,10 +13,19 @@ import java.util.Optional;
 @Repository
 public interface VolumeRepository extends JpaRepository<VolumeEntity, Long> {
 
-    List<VolumeEntity> findByStoryIdOrderBySequenceIndex(Long storyId);
+    /**
+     * Lấy volume theo id và đảm bảo volume thuộc storyId.
+     * Sử dụng để kiểm tra route /stories/{storyId}/volumes/{volumeId}
+     */
+    Optional<VolumeEntity> findByIdAndStory_Id(Long id, Long storyId);
 
-    @Query("SELECT v FROM VolumeEntity v WHERE v.story.id = :storyId ORDER BY v.sequenceIndex")
-    List<VolumeEntity> findByStoryId(@Param("storyId") Long storyId);
+    /**
+     * Lấy danh sách volume của 1 story, sắp xếp theo sequenceIndex
+     */
+    List<VolumeEntity> findByStory_IdOrderBySequenceIndexAsc(Long storyId);
+
+    @Query("select coalesce(max(v.sequenceIndex), 0) from VolumeEntity v where v.story.id = :storyId")
+    Integer findMaxSequenceIndexByStoryId(@Param("storyId") Long storyId);
 
     Optional<VolumeEntity> findByStoryIdAndSequenceIndex(Long storyId, Integer sequenceIndex);
 

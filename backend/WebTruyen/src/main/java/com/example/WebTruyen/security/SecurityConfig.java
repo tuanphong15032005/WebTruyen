@@ -51,6 +51,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/api/users/profile/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        //tạo permit cho api - nhớ xóa khi deploy
+                        .requestMatchers("/api/stories/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/uploads/image").permitAll()
+                        .requestMatchers("/api/tags").permitAll()
+                        .requestMatchers("/api/v1/tags").permitAll()
+                        //
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
