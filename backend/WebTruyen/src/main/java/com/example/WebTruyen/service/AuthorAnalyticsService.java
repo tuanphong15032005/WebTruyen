@@ -123,6 +123,12 @@ public class AuthorAnalyticsService {
             LIMIT 1
             """;
 
+    private static final String TABLE_EXISTS_SQL = """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE() AND table_name = ?
+            """;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -178,17 +184,23 @@ public class AuthorAnalyticsService {
     }
 
     private BigDecimal getCurrentCoinToCashRate() {
-        try {
-            List<?> rows = entityManager.createNativeQuery(CURRENT_COIN_TO_CASH_RATE_SQL).getResultList();
-            if (rows.isEmpty()) {
-                return BigDecimal.ZERO;
-            }
-            BigDecimal rate = toBigDecimal(rows.get(0));
-            return rate == null ? BigDecimal.ZERO : rate;
-        } catch (Exception ignored) {
-            // Conversion table might not be available in older environments.
+        if (!isTablePresent("coin_conversion_rates")) {
             return BigDecimal.ZERO;
         }
+        List<?> rows = entityManager.createNativeQuery(CURRENT_COIN_TO_CASH_RATE_SQL).getResultList();
+        if (rows.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal rate = toBigDecimal(rows.get(0));
+        return rate == null ? BigDecimal.ZERO : rate;
+    }
+
+    private boolean isTablePresent(String tableName) {
+        Object value = entityManager.createNativeQuery(TABLE_EXISTS_SQL)
+                .setParameter(1, tableName)
+                .getSingleResult();
+        Long count = toLong(value, 0L);
+        return count != null && count > 0;
     }
 
     private BigDecimal calculateCashRevenue(Long totalCoin, BigDecimal rate) {
