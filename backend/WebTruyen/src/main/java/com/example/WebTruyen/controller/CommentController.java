@@ -32,7 +32,7 @@ public class CommentController {
             parentComment = commentService.getCommentById(request.getParentCommentId());
         }
         
-        CommentEntity comment = commentService.createComment(
+        CommentEntity comment = commentService.createInternalComment(
                 request.getContent(), 
                 user, 
                 chapter, 

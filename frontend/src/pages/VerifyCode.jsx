@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import api from '../services/api'; // Import Axios
 import '../styles/Login.css';
 
 function VerifyCode() {
@@ -12,7 +11,6 @@ function VerifyCode() {
     const [isSending, setIsSending] = useState(false);
     const navigate = useNavigate();
 
-    // Hàm Gửi lại OTP
     const handleResend = async () => {
         if (!email) {
             setMessage('Thiếu email để gửi OTP.');
@@ -23,24 +21,26 @@ function VerifyCode() {
         setMessage('');
 
         try {
-            // Thay thế fetch bằng Axios
-            const response = await api.post('/api/auth/send-otp', { email });
+            const response = await fetch('http://localhost:8081/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
 
-            if (response.status === 200 || response.status === 201) {
-                // Lấy message từ server trả về, nếu không có thì dùng text mặc định
-                const text = response.data;
-                setMessage(typeof text === 'string' && text ? text : 'Đã gửi lại OTP. Vui lòng kiểm tra email.');
+            const text = await response.text();
+            if (response.ok) {
+                setMessage(text || 'Đã gửi lại OTP. Vui lòng kiểm tra email.');
+            } else {
+                setMessage(text || 'Gửi OTP thất bại.');
             }
         } catch (error) {
             console.error('Send OTP error:', error);
-            const errorText = error?.response?.data;
-            setMessage(typeof errorText === 'string' ? errorText : 'Gửi OTP thất bại.');
+            setMessage('Lỗi kết nối server!');
         } finally {
             setIsSending(false);
         }
     };
 
-    // Hàm Xác thực OTP
     const handleVerify = async (e) => {
         e.preventDefault();
 
@@ -53,19 +53,24 @@ function VerifyCode() {
         setMessage('');
 
         try {
-            // Thay thế fetch bằng Axios
-            const response = await api.post('/api/auth/verify-otp', { email, otp });
+            const response = await fetch('http://localhost:8081/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp }),
+            });
 
-            if (response.status === 200 || response.status === 201) {
+            const text = await response.text();
+            if (response.ok) {
                 setMessage('Xác thực email thành công! Bạn có thể đăng nhập và thiết lập hồ sơ.');
                 setTimeout(() => {
                     navigate('/login');
                 }, 900);
+            } else {
+                setMessage(text || 'OTP không hợp lệ hoặc đã hết hạn.');
             }
         } catch (error) {
             console.error('Verify OTP error:', error);
-            const errorText = error?.response?.data;
-            setMessage(typeof errorText === 'string' ? errorText : 'OTP không hợp lệ hoặc đã hết hạn.');
+            setMessage('Lỗi kết nối server!');
         } finally {
             setIsLoading(false);
         }
@@ -89,9 +94,9 @@ function VerifyCode() {
 
                 <form onSubmit={handleVerify} noValidate>
                     {message && (
-                        <div className={`message ${message.includes('thành công') || message.toLowerCase().includes('đã gửi') ? 'success-message' : 'error-message'}`}>
+                        <div className={`message ${message.includes('thành công') || message.toLowerCase().includes('sent') ? 'success-message' : 'error-message'}`}>
                             <span className="message-icon">
-                                {message.includes('thành công') || message.toLowerCase().includes('đã gửi') ? '✓' : '⚠'}
+                                {message.includes('thành công') || message.toLowerCase().includes('sent') ? '✓' : '⚠'}
                             </span>
                             {message}
                         </div>
