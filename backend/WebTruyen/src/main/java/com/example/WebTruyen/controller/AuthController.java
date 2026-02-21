@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,12 +43,21 @@ public class AuthController {
             }
             
             String token = tokenProvider.generateToken(user.getId(), user.getUsername());
+            UserEntity userWithRoles = userRepository.findByUsernameWithRoles(user.getUsername())
+                    .orElse(user);
+            List<String> roles = userWithRoles.getUserRoles().stream()
+                    .map(userRole -> userRole.getRole() != null ? userRole.getRole().getCode() : null)
+                    .filter(roleCode -> roleCode != null && !roleCode.isBlank())
+                    .map(String::toUpperCase)
+                    .distinct()
+                    .toList();
             
             LoginResponse response = new LoginResponse(
                 token,
                 "Bearer",
                 user.getId(),
-                user.getUsername()
+                user.getUsername(),
+                roles
             );
             
             return ResponseEntity.ok(response);

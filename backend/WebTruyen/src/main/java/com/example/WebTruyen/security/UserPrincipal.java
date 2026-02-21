@@ -6,8 +6,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class UserPrincipal implements UserDetails {
     private UserEntity user;
@@ -22,7 +22,23 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        List<SimpleGrantedAuthority> authorities = user.getUserRoles().stream()
+                .map(userRole -> userRole.getRole() != null ? userRole.getRole().getCode() : null)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(code -> !code.isEmpty())
+                .map(String::toUpperCase)
+                .map(code -> new SimpleGrantedAuthority("ROLE_" + code))
+                .distinct()
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+
+        // Seed data uses MOD, but moderation/admin screens should accept ADMIN semantics too.
+        if (authorities.stream().anyMatch(a -> "ROLE_MOD".equals(a.getAuthority()))
+                && authorities.stream().noneMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()))) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
+        return authorities;
     }
 
     @Override

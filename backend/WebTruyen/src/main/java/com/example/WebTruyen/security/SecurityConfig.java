@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer; // Cần import cái này
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -46,12 +45,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        // 2. SỬA ĐƯỜNG DẪN: Thêm /api vào trước để khớp với frontend
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/moderation/**").permitAll()
-                        .requestMatchers("/api/admin/conversion-rates/**").permitAll()
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/moderation/**").hasAnyRole("MOD", "ADMIN")
+                        .requestMatchers("/api/admin/conversion-rates/**").hasAnyRole("MOD", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

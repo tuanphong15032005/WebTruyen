@@ -17,6 +17,16 @@ function Header() {
     });
     const [showDropdown, setShowDropdown] = useState(false);
     const navigate = useNavigate();
+    const userRoles = Array.isArray(user?.roles)
+        ? user.roles
+            .filter((role) => typeof role === 'string' && role.trim() !== '')
+            .map((role) => role.trim().toUpperCase())
+        : [];
+    const normalizedRoles = userRoles.includes('MOD') && !userRoles.includes('ADMIN')
+        ? [...userRoles, 'ADMIN']
+        : userRoles;
+    const isAdmin = normalizedRoles.includes('ADMIN');
+    const isAuthor = normalizedRoles.includes('AUTHOR');
 
     const handleLogout = () => {
         localStorage.removeItem('user'); // Xóa user khỏi bộ nhớ
@@ -54,13 +64,21 @@ function Header() {
                         {/* Dropdown Menu */}
                         {showDropdown && (
                             <div className="dropdown-menu">
-                                <Link to="/admin/moderation" className="dropdown-item">Kiểm duyệt nội dung</Link>
-                                <Link to="/admin/moderation/reports" className="dropdown-item">Xử lý báo cáo vi phạm</Link>
-                                <Link to="/admin/moderation/approved" className="dropdown-item">Nội dung đã duyệt</Link>
-                                <Link to="/admin/moderation/rejected" className="dropdown-item">Nội dung bị từ chối</Link>
-                                <Link to="/admin/conversion-rate" className="dropdown-item">Tỷ lệ quy đổi Coin</Link>
-                                <Link to="/author/comments" className="dropdown-item">Quản lý bình luận</Link>
-                                <Link to="/author/analytics" className="dropdown-item">Thống kê tác phẩm</Link>
+                                {isAdmin && (
+                                    <>
+                                        <Link to="/admin/moderation" className="dropdown-item">Kiểm duyệt nội dung</Link>
+                                        <Link to="/admin/moderation/reports" className="dropdown-item">Xử lý báo cáo vi phạm</Link>
+                                        <Link to="/admin/moderation/approved" className="dropdown-item">Nội dung đã duyệt</Link>
+                                        <Link to="/admin/moderation/rejected" className="dropdown-item">Nội dung bị từ chối</Link>
+                                        <Link to="/admin/conversion-rate" className="dropdown-item">Tỷ lệ quy đổi Coin</Link>
+                                    </>
+                                )}
+                                {isAuthor && (
+                                    <>
+                                        <Link to="/author/comments" className="dropdown-item">Quản lý bình luận</Link>
+                                        <Link to="/author/analytics" className="dropdown-item">Thống kê tác phẩm</Link>
+                                    </>
+                                )}
                                 <Link to="/profile" className="dropdown-item">Hồ sơ cá nhân</Link>
                                 <div className="dropdown-divider"></div>
                                 <button onClick={handleLogout} className="dropdown-item logout-btn">

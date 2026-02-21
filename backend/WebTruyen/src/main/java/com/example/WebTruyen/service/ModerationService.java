@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -508,6 +509,12 @@ public class ModerationService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        boolean isAdminOrModerator = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> "ROLE_MOD".equals(authority) || "ROLE_ADMIN".equals(authority));
+        if (!isAdminOrModerator) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin or moderator role required");
         }
         UserEntity user = principal.getUser();
         if (user == null) {
