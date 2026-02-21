@@ -1,8 +1,8 @@
 package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.request.CreateVolumeRequest;
-import com.example.WebTruyen.dto.respone.CreateVolumeResponse;
-import com.example.WebTruyen.dto.respone.VolumeSummaryResponse;
-import com.example.WebTruyen.dto.respone.ChapterSummaryResponse;
+import com.example.WebTruyen.dto.response.CreateVolumeResponse;
+import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
+import com.example.WebTruyen.dto.response.ChapterSummaryResponse;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;

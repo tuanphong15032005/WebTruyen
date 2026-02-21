@@ -4,7 +4,7 @@ package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.request.SaveChapterDraftRequest;
-import com.example.WebTruyen.dto.respone.CreateChapterResponse;
+import com.example.WebTruyen.dto.response.CreateChapterResponse;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
 import com.example.WebTruyen.entity.model.Content.DraftEntity;
@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Pattern;

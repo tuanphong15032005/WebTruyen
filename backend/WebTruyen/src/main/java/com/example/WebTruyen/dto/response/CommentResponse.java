@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.respone;
+package com.example.WebTruyen.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;

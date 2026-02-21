@@ -1,8 +1,8 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
-import com.example.WebTruyen.dto.respone.StoryResponse;
-import com.example.WebTruyen.dto.respone.TagDto;
+import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;

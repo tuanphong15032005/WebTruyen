@@ -9,13 +9,13 @@ import com.example.WebTruyen.dto.request.ReportCommentRequest;
 import com.example.WebTruyen.dto.request.SaveChapterDraftRequest;
 import com.example.WebTruyen.dto.request.UpdateCommentRequest;
 import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
-import com.example.WebTruyen.dto.respone.CommentResponse;
-import com.example.WebTruyen.dto.respone.CreateChapterResponse;
-import com.example.WebTruyen.dto.respone.CreateVolumeResponse;
-import com.example.WebTruyen.dto.respone.PagedResponse;
-import com.example.WebTruyen.dto.respone.StoryReviewResponse;
-import com.example.WebTruyen.dto.respone.StoryResponse;
-import com.example.WebTruyen.dto.respone.VolumeSummaryResponse;
+import com.example.WebTruyen.dto.response.CommentResponse;
+import com.example.WebTruyen.dto.response.CreateChapterResponse;
+import com.example.WebTruyen.dto.response.CreateVolumeResponse;
+import com.example.WebTruyen.dto.response.PagedResponse;
+import com.example.WebTruyen.dto.response.StoryReviewResponse;
+import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.security.JwtTokenProvider;
@@ -33,7 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 

@@ -3,7 +3,7 @@ package com.example.WebTruyen.controller;
 import com.example.WebTruyen.dto.request.LoginRequest;
 import com.example.WebTruyen.dto.request.SendOtpRequest;
 import com.example.WebTruyen.dto.request.VerifyOtpRequest;
-import com.example.WebTruyen.dto.respone.LoginResponse;
+import com.example.WebTruyen.dto.response.LoginResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;

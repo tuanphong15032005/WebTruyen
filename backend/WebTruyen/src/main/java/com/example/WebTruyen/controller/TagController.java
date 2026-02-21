@@ -1,6 +1,6 @@
 package com.example.WebTruyen.controller;
 
-import com.example.WebTruyen.dto.respone.TagDto;
+import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.CrossOrigin;

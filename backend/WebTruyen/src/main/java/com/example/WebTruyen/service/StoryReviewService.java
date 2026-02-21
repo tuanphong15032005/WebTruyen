@@ -1,8 +1,8 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
-import com.example.WebTruyen.dto.respone.PagedResponse;
-import com.example.WebTruyen.dto.respone.StoryReviewResponse;
+import com.example.WebTruyen.dto.response.PagedResponse;
+import com.example.WebTruyen.dto.response.StoryReviewResponse;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryReviewEntity;
