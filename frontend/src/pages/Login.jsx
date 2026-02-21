@@ -24,7 +24,12 @@ function Login() {
                 // alert(`Xin chào, ${user.username}!`);
                 console.log("Thông tin user:", user);
                 // Lưu tạm vào localStorage để nhớ đăng nhập
-                localStorage.setItem('user', JSON.stringify(user)); 
+//                 localStorage.setItem('user', JSON.stringify(user));
+                //e thảo sửa
+               localStorage.setItem("accessToken", response.token);
+               localStorage.setItem("userId", response.userId);
+               localStorage.setItem("username", response.username);
+
                 window.location.href = '/'; 
             } else {
                 const errorText = await response.text();

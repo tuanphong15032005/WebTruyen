@@ -1,5 +1,6 @@
 package com.example.WebTruyen.service;
 
+import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 
@@ -13,4 +14,9 @@ public interface ChapterService {
     void deleteChapter(Long chapterId, Long authorId);
     ChapterResponse publishChapterNow(Long chapterId, Long authorId);
     ChapterEntity getChapterById(Long chapterId);
+    
+    // Chapter Reader Page methods
+    ChapterDetailResponse getChapterDetail(Long chapterId);
+    Long getNextChapterId(Long chapterId);
+    Long getPreviousChapterId(Long chapterId);
 }
