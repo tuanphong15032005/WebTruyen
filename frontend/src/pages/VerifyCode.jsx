@@ -17,18 +17,18 @@ function VerifyCode() {
       if (response.status === 200) {
         navigate('/login');
       } else {
-        setMessage(text || 'X?c th?c th?t b?i');
+        setMessage(text || 'Xác thực thất bại');
       }
     } catch (error) {
-      const errorText = error?.response?.data || 'L?i k?t n?i!';
+      const errorText = error?.response?.data || 'Lỗi kết nối!';
       setMessage(errorText);
     }
   };
 
   return (
     <div className='container-center'>
-      <h2>X?c th?c t?i kho?n</h2>
-      <p>M? OTP ?? ???c g?i ??n email c?a b?n.</p>
+      <h2>Xác thực tài khoản</h2>
+      <p>Mã OTP đã được gửi đến email của bạn.</p>
       <form
         onSubmit={handleVerify}
         style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -43,14 +43,14 @@ function VerifyCode() {
         />
         <input
           type='text'
-          placeholder='Nh?p m? OTP 6 s?'
+          placeholder='Nhập mã OTP 6 số'
           value={otp}
           onChange={(e) => setOtp(e.target.value)}
           required
           style={{ padding: '8px' }}
         />
         <button type='submit' style={{ padding: '10px' }}>
-          X?c nh?n
+          Xác nhận
         </button>
       </form>
       {message && <p style={{ color: 'red' }}>{message}</p>}

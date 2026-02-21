@@ -50,7 +50,7 @@ const FileUpload = ({
         onChange={handleChange}
         disabled={disabled || loading}
       />
-      {loading && <span className='field-hint'>?ang t?i l?n...</span>}
+      {loading && <span className='field-hint'>Đang tải lên...</span>}
       {preview && (
         <div className='file-preview'>
           <img src={preview} alt='preview' />

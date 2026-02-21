@@ -259,11 +259,14 @@ a {
 }
 
 .toast {
-  padding: 10px 14px;
-  border-radius: 10px;
+  min-width: 320px;
+  max-width: 460px;
+  padding: 14px 18px;
+  border-radius: 12px;
   color: #fff;
-  box-shadow: var(--shadow);
-  font-size: 0.9rem;
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.25);
+  font-size: 0.98rem;
+  font-weight: 600;
 }
 
 .toast-success {

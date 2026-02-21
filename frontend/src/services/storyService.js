@@ -24,6 +24,12 @@ const storyService = {
     api.get(`/api/public/stories/${storyId}/comments`, { params }),
   createStoryComment: (storyId, payload) =>
     api.post(`/api/stories/${storyId}/comments`, payload),
+  updateStoryComment: (storyId, commentId, payload) =>
+    api.put(`/api/stories/${storyId}/comments/${commentId}`, payload),
+  deleteStoryComment: (storyId, commentId) =>
+    api.delete(`/api/stories/${storyId}/comments/${commentId}`),
+  reportStoryComment: (storyId, commentId, payload) =>
+    api.post(`/api/stories/${storyId}/comments/${commentId}/report`, payload),
 
   getChapterComments: (storyId, chapterId, params = {}) =>
     api.get(`/api/public/stories/${storyId}/chapters/${chapterId}/comments`, {
@@ -37,6 +43,11 @@ const storyService = {
   toggleNotifyStatus: (storyId) =>
     api.post(`/api/stories/${storyId}/notify-status/toggle`),
 
+  getLibraryStatus: (storyId) => api.get(`/api/stories/${storyId}/library-status`),
+
+  toggleLibraryStatus: (storyId) =>
+    api.post(`/api/stories/${storyId}/library/toggle`),
+
   createChapter: (storyId, volumeId, payload) =>
     api.post(`/api/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
 
@@ -45,6 +56,18 @@ const storyService = {
 
   getChapterContent: (storyId, chapterId) =>
     api.get(`/api/stories/${storyId}/chapters/${chapterId}/content`),
+
+  getChapterDraft: (storyId, volumeId, chapterId) =>
+    api.get(`/api/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}/draft`),
+
+  saveChapterDraft: (storyId, volumeId, chapterId, payload) =>
+    api.put(
+      `/api/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}/draft`,
+      payload,
+    ),
+
+  deleteChapterDraft: (storyId, volumeId, chapterId) =>
+    api.delete(`/api/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}/draft`),
 
   getTags: async () => {
     try {

@@ -16,6 +16,8 @@ const CHAPTER_STATUS_LABELS = {
   archived: 'Lưu trữ',
 };
 
+const AUTOSAVE_INTERVAL_MS = 10_000;
+
 const CreateChapter = () => {
   const { storyId, volumeId } = useParams();
   const [searchParams] = useSearchParams();
@@ -36,7 +38,54 @@ const CreateChapter = () => {
   const [segmentIds, setSegmentIds] = useState([]);
   const [savedHtml, setSavedHtml] = useState('');
   const [editorReady, setEditorReady] = useState(false);
+  const [draftStatusText, setDraftStatusText] = useState('');
   const isEditing = Boolean(editChapterId);
+  const autosaveInFlightRef = useRef(false);
+  const hasManualSavedRef = useRef(false);
+  const dirtyRef = useRef(false);
+  const initialLoadDoneRef = useRef(false);
+  const draftCheckedRef = useRef(false);
+  const applyingDraftRef = useRef(false);
+  const apiBaseUrl = useMemo(
+    () => (import.meta.env.VITE_API_BASE || 'http://localhost:8081').replace(/\/$/, ''),
+    [],
+  );
+
+  const formatTime = useCallback((iso) => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('vi-VN');
+  }, []);
+
+  const getAuthToken = useCallback(() => {
+    const raw = localStorage.getItem('user');
+    if (!raw) return '';
+    try {
+      return JSON.parse(raw)?.token || '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const getDraftKey = useCallback(
+    (targetChapterId) =>
+      targetChapterId
+        ? `chapter-draft:${storyId}:${volumeId}:${targetChapterId}`
+        : `chapter-draft:new:${storyId}:${volumeId}`,
+    [storyId, volumeId],
+  );
+
+  const parseDraftSnapshot = useCallback((rawContent) => {
+    if (!rawContent || typeof rawContent !== 'string') return null;
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (!parsed || typeof parsed !== 'object') return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');
@@ -97,6 +146,274 @@ const CreateChapter = () => {
     'image',
   ];
 
+  const buildDraftSnapshot = useCallback(() => {
+    const quill = quillRef.current?.getEditor();
+    const contentHtml = quill?.root?.innerHTML || content || '';
+    const delta = quill?.getContents();
+    return {
+      title: title.trim(),
+      isFree,
+      priceCoin: isFree ? null : Number(priceCoin),
+      status,
+      contentHtml,
+      contentDelta: delta ? JSON.stringify(delta) : '',
+      savedAt: new Date().toISOString(),
+    };
+  }, [content, isFree, priceCoin, status, title]);
+
+  const saveLocalDraft = useCallback(
+    (targetChapterId, snapshot, source = 'fallback') => {
+      const savedAt = new Date().toISOString();
+      const key = getDraftKey(targetChapterId);
+      const payload = { savedAt, source, payload: snapshot };
+      localStorage.setItem(key, JSON.stringify(payload));
+      setDraftStatusText(`Đã lưu nháp cục bộ lúc ${formatTime(savedAt)}`);
+      return savedAt;
+    },
+    [formatTime, getDraftKey],
+  );
+
+  const clearLocalDraft = useCallback(
+    (targetChapterId) => {
+      const keys = new Set([getDraftKey(targetChapterId), getDraftKey('')]);
+      keys.forEach((key) => localStorage.removeItem(key));
+    },
+    [getDraftKey],
+  );
+
+  const applyDraftSnapshot = useCallback((snapshot) => {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    applyingDraftRef.current = true;
+    setTitle(snapshot.title || '');
+    setIsFree(typeof snapshot.isFree === 'boolean' ? snapshot.isFree : true);
+    setPriceCoin(
+      snapshot.priceCoin !== null && snapshot.priceCoin !== undefined
+        ? String(snapshot.priceCoin)
+        : '',
+    );
+    if (typeof snapshot.status === 'string' && snapshot.status.trim()) {
+      setStatus(snapshot.status.toLowerCase());
+    }
+    const html = snapshot.contentHtml || '';
+    const quill = quillRef.current?.getEditor();
+    if (quill) {
+      quill.clipboard.dangerouslyPasteHTML(html);
+    }
+    setContent(html);
+    applyingDraftRef.current = false;
+  }, []);
+
+  const tryRestoreDraft = useCallback(
+    async (targetChapterId) => {
+      const localKey = getDraftKey(targetChapterId);
+      const localRaw = localStorage.getItem(localKey);
+      let localCandidate = null;
+
+      if (localRaw) {
+        try {
+          const parsed = JSON.parse(localRaw);
+          const snapshot =
+            parsed?.payload && typeof parsed.payload === 'object'
+              ? parsed.payload
+              : parseDraftSnapshot(parsed?.payload);
+          const ts = Date.parse(parsed?.savedAt || snapshot?.savedAt || '');
+          if (snapshot) {
+            localCandidate = {
+              source: 'local',
+              snapshot,
+              updatedAt:
+                !Number.isNaN(ts) && ts > 0
+                  ? new Date(ts).toISOString()
+                  : snapshot.savedAt || null,
+              ts: !Number.isNaN(ts) ? ts : 0,
+            };
+          }
+        } catch {
+          // ignore invalid local draft
+        }
+      }
+
+      let serverCandidate = null;
+      if (targetChapterId) {
+        try {
+          const response = await storyService.getChapterDraft(
+            storyId,
+            volumeId,
+            targetChapterId,
+          );
+          const data = response?.data || {};
+          if (data.hasDraft && typeof data.content === 'string') {
+            const snapshot = parseDraftSnapshot(data.content);
+            if (snapshot) {
+              const ts = Date.parse(data.updatedAt || snapshot.savedAt || '');
+              serverCandidate = {
+                source: 'server',
+                snapshot,
+                updatedAt:
+                  !Number.isNaN(ts) && ts > 0
+                    ? new Date(ts).toISOString()
+                    : snapshot.savedAt || null,
+                ts: !Number.isNaN(ts) ? ts : 0,
+              };
+            }
+          }
+        } catch {
+          // ignore server draft errors, local draft still usable
+        }
+      }
+
+      const candidate = [serverCandidate, localCandidate]
+        .filter(Boolean)
+        .sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
+
+      if (!candidate) return;
+
+      const confirmMessage = `Phát hiện bản nháp ${
+        candidate.source === 'server' ? 'trên server' : 'cục bộ'
+      } lúc ${formatTime(candidate.updatedAt)}. Bạn có muốn khôi phục không?`;
+      const shouldRestore = window.confirm(confirmMessage);
+      if (!shouldRestore) return;
+
+      applyDraftSnapshot(candidate.snapshot);
+      dirtyRef.current = true;
+      setDraftStatusText(
+        `Đã khôi phục bản nháp ${
+          candidate.source === 'server' ? 'từ server' : 'từ máy'
+        } lúc ${formatTime(candidate.updatedAt)}`,
+      );
+    },
+    [
+      applyDraftSnapshot,
+      formatTime,
+      getDraftKey,
+      parseDraftSnapshot,
+      storyId,
+      volumeId,
+    ],
+  );
+
+  const persistDraft = useCallback(
+    async ({ reason = 'autosave' } = {}) => {
+      if (hasManualSavedRef.current || !initialLoadDoneRef.current || !dirtyRef.current) {
+        return;
+      }
+      const snapshot = buildDraftSnapshot();
+      const hasMeaningfulContent =
+        snapshot.title ||
+        (snapshot.contentHtml && !isEmptyHtml(snapshot.contentHtml)) ||
+        (!snapshot.isFree && snapshot.priceCoin);
+      if (!hasMeaningfulContent) {
+        return;
+      }
+
+      const targetChapterId = editChapterId || chapterId;
+      if (!targetChapterId) {
+        saveLocalDraft('', snapshot, 'local-only');
+        dirtyRef.current = false;
+        return;
+      }
+
+      const payload = {
+        draftContent: JSON.stringify(snapshot),
+        updatedAtClient: snapshot.savedAt,
+      };
+
+      try {
+        const response = await storyService.saveChapterDraft(
+          storyId,
+          volumeId,
+          targetChapterId,
+          payload,
+        );
+        const data = response?.data || {};
+        if (data?.updatedAt) {
+          setDraftStatusText(`Đã lưu nháp server lúc ${formatTime(data.updatedAt)}`);
+        } else {
+          setDraftStatusText(`Đã lưu nháp server (${reason})`);
+        }
+        clearLocalDraft(targetChapterId);
+        dirtyRef.current = false;
+      } catch {
+        saveLocalDraft(targetChapterId, snapshot, reason);
+        dirtyRef.current = false;
+      }
+    },
+    [
+      buildDraftSnapshot,
+      chapterId,
+      clearLocalDraft,
+      editChapterId,
+      formatTime,
+      saveLocalDraft,
+      storyId,
+      volumeId,
+    ],
+  );
+
+  const flushDraftOnExit = useCallback(() => {
+    if (
+      hasManualSavedRef.current ||
+      !initialLoadDoneRef.current ||
+      !dirtyRef.current
+    ) {
+      return;
+    }
+    const snapshot = buildDraftSnapshot();
+    const hasMeaningfulContent =
+      snapshot.title ||
+      (snapshot.contentHtml && !isEmptyHtml(snapshot.contentHtml)) ||
+      (!snapshot.isFree && snapshot.priceCoin);
+    if (!hasMeaningfulContent) return;
+
+    const targetChapterId = editChapterId || chapterId;
+    const savedAt = saveLocalDraft(targetChapterId || '', snapshot, 'exit');
+
+    if (!targetChapterId) return;
+    const token = getAuthToken();
+    if (!token) return;
+
+    const payload = {
+      draftContent: JSON.stringify(snapshot),
+      updatedAtClient: savedAt,
+    };
+
+    const draftUrl = `${apiBaseUrl}/api/stories/${storyId}/volumes/${volumeId}/chapters/${targetChapterId}/draft`;
+    try {
+      fetch(draftUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      });
+    } catch {
+      // ignore keepalive errors
+    }
+
+    if (navigator.sendBeacon) {
+      try {
+        const beaconUrl = `${apiBaseUrl}/api/stories/${storyId}/volumes/${volumeId}/chapters/${targetChapterId}/draft/beacon?token=${encodeURIComponent(token)}`;
+        const body = new Blob([JSON.stringify(payload)], {
+          type: 'application/json',
+        });
+        navigator.sendBeacon(beaconUrl, body);
+      } catch {
+        // ignore beacon errors
+      }
+    }
+  }, [
+    apiBaseUrl,
+    buildDraftSnapshot,
+    chapterId,
+    editChapterId,
+    getAuthToken,
+    saveLocalDraft,
+    storyId,
+    volumeId,
+  ]);
+
   useEffect(() => {
     if (quillRef.current) {
       setEditorReady(true);
@@ -104,10 +421,19 @@ const CreateChapter = () => {
   }, []);
 
   useEffect(() => {
+    draftCheckedRef.current = false;
+    initialLoadDoneRef.current = false;
+    dirtyRef.current = false;
+    hasManualSavedRef.current = false;
+    setDraftStatusText('');
+  }, [editChapterId, storyId, volumeId]);
+
+  useEffect(() => {
     if (!editChapterId || !editorReady) return;
     const loadContent = async () => {
       try {
         setLoadingContent(true);
+        applyingDraftRef.current = true;
         const response = await storyService.getChapterContent(storyId, editChapterId);
         const data = response?.data || {};
         setChapterId(editChapterId);
@@ -135,15 +461,86 @@ const CreateChapter = () => {
           quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
           setContent(data.fullHtml || '');
         }
+        dirtyRef.current = false;
       } catch (error) {
         console.error('getChapterContent error', error);
         notify('Không tải được nội dung chapter', 'error');
       } finally {
+        applyingDraftRef.current = false;
         setLoadingContent(false);
       }
     };
     loadContent();
   }, [editChapterId, editorReady, notify, storyId]);
+
+  useEffect(() => {
+    if (!editorReady) return;
+    if (draftCheckedRef.current) return;
+    if (isEditing && loadingContent) return;
+
+    draftCheckedRef.current = true;
+    const targetChapterId = editChapterId || chapterId || '';
+    Promise.resolve(tryRestoreDraft(targetChapterId))
+      .finally(() => {
+        initialLoadDoneRef.current = true;
+      });
+  }, [
+    chapterId,
+    editChapterId,
+    editorReady,
+    isEditing,
+    loadingContent,
+    tryRestoreDraft,
+  ]);
+
+  useEffect(() => {
+    if (!initialLoadDoneRef.current || applyingDraftRef.current || hasManualSavedRef.current) {
+      return;
+    }
+    dirtyRef.current = true;
+  }, [title, isFree, priceCoin, status, content]);
+
+  useEffect(() => {
+    if (!editorReady) return;
+    const intervalId = window.setInterval(() => {
+      if (autosaveInFlightRef.current) return;
+      autosaveInFlightRef.current = true;
+      Promise.resolve(persistDraft({ reason: 'autosave-10s' }))
+        .finally(() => {
+          autosaveInFlightRef.current = false;
+        });
+    }, AUTOSAVE_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [editorReady, persistDraft]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (
+        hasManualSavedRef.current ||
+        !initialLoadDoneRef.current ||
+        !dirtyRef.current
+      ) {
+        return;
+      }
+      flushDraftOnExit();
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    const handlePageHide = () => {
+      flushDraftOnExit();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [flushDraftOnExit]);
 
   useEffect(() => {
     const quill = quillRef.current?.getEditor();
@@ -223,8 +620,24 @@ const CreateChapter = () => {
         ? await storyService.updateChapter(storyId, volumeId, targetChapterId, payload)
         : await storyService.createChapter(storyId, volumeId, payload);
       const data = response?.data || {};
-      setChapterId(data.chapterId || '');
+      const persistedChapterId = data.chapterId || targetChapterId || '';
+      setChapterId(persistedChapterId);
       setSegmentIds(data.segmentIds || []);
+      hasManualSavedRef.current = true;
+      dirtyRef.current = false;
+      clearLocalDraft(persistedChapterId);
+      if (persistedChapterId) {
+        try {
+          await storyService.deleteChapterDraft(
+            storyId,
+            volumeId,
+            persistedChapterId,
+          );
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+      setDraftStatusText('');
       notify(isEditing ? 'Cập nhật chapter thành công' : 'Lưu chapter thành công', 'success');
       navigate(`/author/stories/${storyId}?tab=volumes&volumeId=${volumeId}`);
     } catch (error) {
@@ -326,6 +739,9 @@ const CreateChapter = () => {
             Lưu Chapter
           </Button>
           {loadingContent && <span className='field-hint'>Đang tải nội dung...</span>}
+          {!loadingContent && draftStatusText && (
+            <span className='field-hint'>{draftStatusText}</span>
+          )}
         </div>
       </div>
 

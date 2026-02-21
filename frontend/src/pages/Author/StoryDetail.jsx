@@ -195,6 +195,12 @@ const StoryDetail = () => {
     return formatNumber(readers);
   }, [story]);
 
+  const savedText = useMemo(() => {
+    const saved = Number(story?.savedCount || 0);
+    if (!saved) return 'Chưa có lượt lưu';
+    return formatNumber(saved);
+  }, [story]);
+
   const wordText = useMemo(() => {
     const apiWordCount = Number(story?.wordCount || 0);
     const fallback = countWordsFromHtml(story?.summaryHtml || '');
@@ -397,7 +403,7 @@ const StoryDetail = () => {
 
                 <div className='story-detail__rows'>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon'>
+                    <span className='story-detail__row-icon story-detail__row-icon--views'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
                       </svg>
@@ -406,7 +412,7 @@ const StoryDetail = () => {
                     <strong>{readerText}</strong>
                   </div>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon'>
+                    <span className='story-detail__row-icon story-detail__row-icon--visibility'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0-4a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
                       </svg>
@@ -415,7 +421,7 @@ const StoryDetail = () => {
                     <strong>{storyStatusLabel}</strong>
                   </div>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon'>
+                    <span className='story-detail__row-icon story-detail__row-icon--status'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0-4a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
                       </svg>
@@ -426,7 +432,7 @@ const StoryDetail = () => {
                     </strong>
                   </div>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon'>
+                    <span className='story-detail__row-icon story-detail__row-icon--rating'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='m12 17.3-6.16 3.24 1.18-6.88L2 8.76l6.92-1L12 1.5l3.08 6.26 6.92 1-5.02 4.9 1.18 6.88z' />
                       </svg>
@@ -435,7 +441,7 @@ const StoryDetail = () => {
                     <strong>{ratingText}</strong>
                   </div>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon'>
+                    <span className='story-detail__row-icon story-detail__row-icon--words'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M4 5a2 2 0 0 1 2-2h11a3 3 0 0 1 3 3v13a2 2 0 0 1-2 2H7a3 3 0 0 1-3-3V5zm3 0v13a1 1 0 0 0 1 1h10V6a1 1 0 0 0-1-1H7z' />
                       </svg>
@@ -444,13 +450,22 @@ const StoryDetail = () => {
                     <strong>{wordText}</strong>
                   </div>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon'>
+                    <span className='story-detail__row-icon story-detail__row-icon--updated'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
                       </svg>
                     </span>
                     <span className='story-detail__row-label'>Lần cuối:</span>
                     <strong>{formatRelativeTime(story.lastUpdatedAt)}</strong>
+                  </div>
+                  <div className='story-detail__row'>
+                    <span className='story-detail__row-icon story-detail__row-icon--saved'>
+                      <svg viewBox='0 0 24 24' aria-hidden='true'>
+                        <path d='M6 3h12a2 2 0 0 1 2 2v16l-8-3.8L4 21V5a2 2 0 0 1 2-2z' />
+                      </svg>
+                    </span>
+                    <span className='story-detail__row-label'>Lượt lưu:</span>
+                    <strong>{savedText}</strong>
                   </div>
                 </div>
 
