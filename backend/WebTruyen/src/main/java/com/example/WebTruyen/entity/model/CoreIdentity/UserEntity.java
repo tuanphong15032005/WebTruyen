@@ -61,7 +61,6 @@ public class UserEntity {
     @Column(name = "settings_json")
     private String settingsJson;
 
-
     @Column(name = "pin_hash", length = 255)
     private String pinHash;
 
@@ -70,7 +69,6 @@ public class UserEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
 
     @Column(name = "failed_login_attempts", nullable = false)
     private int failedLoginAttempts;
