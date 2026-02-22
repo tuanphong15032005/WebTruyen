@@ -51,7 +51,14 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.author.id = :authorId AND c.status = :status ORDER BY c.lastUpdateAt DESC")
     List<ChapterEntity> findByAuthorIdAndStatus(@Param("authorId") Long authorId, @Param("status") ChapterStatus status);
 
-//=======
+
+    boolean existsByVolumeIdAndSequenceIndex(Long volumeId, Integer sequenceIndex);
+
+    @Query("SELECT c FROM ChapterEntity c WHERE c.volume.id = :volumeId AND c.sequenceIndex > :currentSequenceIndex ORDER BY c.sequenceIndex ASC")
+    List<ChapterEntity> findNextChapters(@Param("volumeId") Long volumeId, @Param("currentSequenceIndex") Integer currentSequenceIndex);
+
+    @Query("SELECT c FROM ChapterEntity c WHERE c.volume.id = :volumeId AND c.sequenceIndex < :currentSequenceIndex ORDER BY c.sequenceIndex DESC")
+    List<ChapterEntity> findPreviousChapters(@Param("volumeId") Long volumeId, @Param("currentSequenceIndex") Integer currentSequenceIndex);
 }
-//>>>>>> author-create-content
+
 

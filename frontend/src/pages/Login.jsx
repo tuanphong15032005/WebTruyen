@@ -82,13 +82,28 @@ function Login() {
 
             if (response.ok) {
                 const user = await response.json();
+
+                // Lưu full user object
                 localStorage.setItem('user', JSON.stringify(user));
 
-                // Show success message before redirect
+                // Nếu backend trả JWT thì lưu riêng
+                if (user.accessToken) {
+                    localStorage.setItem("accessToken", user.accessToken);
+                }
+
+                if (user.userId) {
+                    localStorage.setItem("userId", user.userId);
+                }
+
+                if (user.username) {
+                    localStorage.setItem("username", user.username);
+                }
+
                 setMessage('Đăng nhập thành công! Đang chuyển hướng...');
+
                 setTimeout(() => {
                     window.location.href = '/';
-                }, 1000);
+                }, 800);
             } else {
                 const contentType = response.headers.get('content-type') || '';
                 if (response.status === 423 && contentType.includes('application/json')) {

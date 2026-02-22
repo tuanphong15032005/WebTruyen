@@ -48,7 +48,7 @@ function HomePage() {
           size: 20,
           sort: 'createdAt,desc'
         });
-        const storiesList = Array.isArray(response?.data) ? response.data : [];
+        const storiesList = Array.isArray(response) ? response : [];
         setStories(storiesList);
       } catch (error) {
         console.error('getPublicStories error', error);

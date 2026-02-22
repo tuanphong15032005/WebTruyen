@@ -120,7 +120,7 @@ const StoryMetadata = () => {
     try {
       setLoadingStory(true);
       const response = await storyService.getPublicStory(storyId);
-      setStory(response?.data || null);
+      setStory(response || null);
     } catch (error) {
       console.error('getStory metadata error', error);
       setStory(null);
@@ -134,7 +134,7 @@ const StoryMetadata = () => {
     try {
       setLoadingVolumes(true);
       const response = await storyService.getPublicVolumes(storyId);
-      const list = Array.isArray(response?.data) ? response.data : [];
+      const list = Array.isArray(response) ? response : [];
       setVolumes(list);
 
       if (list.length > 0) {
@@ -158,8 +158,8 @@ const StoryMetadata = () => {
         page: 0,
         size: 1,
       });
-      const items = Array.isArray(response?.data?.items)
-        ? response.data.items
+      const items = Array.isArray(response?.items)
+        ? response.items
         : [];
       setLatestReview(items[0] || null);
     } catch (error) {
@@ -173,7 +173,7 @@ const StoryMetadata = () => {
   const fetchNotifyStatus = useCallback(async () => {
     try {
       const response = await storyService.getNotifyStatus(storyId);
-      setNotifyEnabled(Boolean(response?.data?.enabled));
+      setNotifyEnabled(Boolean(response?.enabled));
     } catch {
       setNotifyEnabled(false);
     }
@@ -194,13 +194,13 @@ const StoryMetadata = () => {
           page: pageIndex,
           size: COMMENTS_PAGE_SIZE,
         });
-        const items = Array.isArray(response?.data?.items)
-          ? response.data.items
+        const items = Array.isArray(response?.items)
+          ? response.items
           : [];
         setComments((prev) => (append ? [...prev, ...items] : items));
-        setCommentsPage(Number(response?.data?.page || pageIndex));
-        setCommentsHasMore(Boolean(response?.data?.hasMore));
-        setCommentsTotal(Number(response?.data?.totalElements || 0));
+        setCommentsPage(Number(response?.page || pageIndex));
+        setCommentsHasMore(Boolean(response?.hasMore));
+        setCommentsTotal(Number(response?.totalElements || 0));
         if (!append) {
           setReplyForId(null);
           setReplyContent('');
@@ -309,7 +309,7 @@ const StoryMetadata = () => {
     try {
       setNotifyLoading(true);
       const response = await storyService.toggleNotifyStatus(storyId);
-      const enabled = Boolean(response?.data?.enabled);
+      const enabled = Boolean(response?.enabled);
       setNotifyEnabled(enabled);
       notify(
         enabled
@@ -405,7 +405,7 @@ const StoryMetadata = () => {
         parentCommentId,
       });
 
-      const createdReply = response?.data;
+      const createdReply = response;
       const normalizedReply = createdReply
         ? {
             ...createdReply,
