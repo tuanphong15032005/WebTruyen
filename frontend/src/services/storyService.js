@@ -54,6 +54,9 @@ const storyService = {
       return api.get('/api/v1/tags');
     }
   },
+
+  getPublicStories: (params = {}) => 
+    api.get('/api/public/stories', { params }),
 };
 
 export default storyService;

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/Button';
-import FileUpload from '../../components/FileUpload';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
+import '../../styles/create-story.css';
 
 const STORY_STATUS_OPTIONS = [
   { value: 'draft', label: 'Nháp' },
@@ -41,11 +41,23 @@ const CreateStory = () => {
   const [tagIds, setTagIds] = useState([]);
   const [coverFile, setCoverFile] = useState(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState('');
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
   const [tags, setTags] = useState([]);
   const [loadingStory, setLoadingStory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [selectedLabels, setSelectedLabels] = useState([]);
+  const coverInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!coverFile) {
+      setCoverPreviewUrl('');
+      return;
+    }
+    const objectUrl = URL.createObjectURL(coverFile);
+    setCoverPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [coverFile]);
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -140,6 +152,12 @@ const CreateStory = () => {
     setTagIds((prev) => prev.filter((item) => item !== id));
   };
 
+  const handleCoverChange = (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+    setCoverFile(selected);
+  };
+
   const validate = () => {
     const nextErrors = {};
     if (!title.trim()) nextErrors.title = 'Tiêu đề là bắt buộc';
@@ -205,144 +223,213 @@ const CreateStory = () => {
   };
 
   return (
-    <div className='page'>
-      <h2>{isEditing ? 'Sửa truyện' : 'Tạo truyện mới'}</h2>
+    <div className='page create-story-page'>
+      <div className='create-story-page__hero'>
+        <h2>{isEditing ? 'Sửa truyện' : 'Tạo truyện mới'}</h2>
+        <p className='create-story-page__subtitle'>
+          Bắt đầu hành trình sáng tác và chia sẻ câu chuyện của bạn với hàng triệu độc giả.
+        </p>
+      </div>
+
       {loadingStory && <p className='field-hint'>Đang tải dữ liệu...</p>}
-      <form className='card form' onSubmit={handleSubmit}>
-        <Input
-          label='Tiêu đề'
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          error={errors.title}
-          placeholder='Nhập tiêu đề truyện'
-        />
 
-        <Input
-          label='Tóm tắt'
-          as='textarea'
-          rows='4'
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          error={errors.summary}
-          placeholder='Tóm tắt nội dung'
-        />
-
-        <Select
-          label='Trạng thái truyện'
-          options={STORY_STATUS_OPTIONS}
-          value={status}
-          onChange={setStatus}
-          placeholder='Chọn trạng thái'
-        />
-
-        <Select
-          label='Loại truyện'
-          options={STORY_KIND_OPTIONS}
-          value={kind}
-          onChange={(value) => {
-            setKind(value);
-            if (value !== 'translated') {
-              setOriginalAuthorName('');
-            }
-          }}
-          placeholder='Chọn loại truyện'
-        />
-
-        {kind === 'translated' && (
-          <Input
-            label='Tác giả gốc'
-            value={originalAuthorName}
-            onChange={(e) => setOriginalAuthorName(e.target.value)}
-            error={errors.originalAuthorName}
-            placeholder='Nhập tên tác giả gốc'
-          />
-        )}
-
-        <Select
-          label='Tình trạng'
-          options={COMPLETION_STATUS_OPTIONS}
-          value={completionStatus}
-          onChange={setCompletionStatus}
-          placeholder='Chọn tình trạng'
-        />
-
-        <FileUpload label='Ảnh bìa' onFileSelect={setCoverFile} />
-        {existingCoverUrl && !coverFile && (
-          <div className='file-preview'>
-            <img src={existingCoverUrl} alt='cover' />
-          </div>
-        )}
-
-        <Select
-          label='Danh mục'
-          options={tags}
-          value={categoryId}
-          onChange={setCategoryId}
-          error={errors.category}
-          placeholder='Chọn danh mục'
-        />
-
-        <div className='field'>
-          <span className='field-label'>Thể loại</span>
-          <div className='segment-ids' style={{ gap: '10px', flexWrap: 'wrap' }}>
-            {tags.map((tag) => (
+      <form className='create-story-form' onSubmit={handleSubmit}>
+        <div className='create-story-form__grid'>
+          <div className='create-story-form__left'>
+            <label className='field create-story-cover'>
+              <span className='field-label'>Ảnh bìa truyện</span>
+              <input
+                ref={coverInputRef}
+                className='create-story-cover__input'
+                type='file'
+                accept='image/*'
+                onChange={handleCoverChange}
+              />
               <button
-                key={tag.value}
+                className='create-story-cover__box'
                 type='button'
-                className='chip'
-                onClick={() => handleAddTag(String(tag.value))}
-                style={{
-                  border: tagIds.includes(String(tag.value))
-                    ? '1px solid #3b82f6'
-                    : '1px solid var(--border)',
-                  background: tagIds.includes(String(tag.value)) ? '#1c2a3b' : '#141f2d',
-                  cursor: 'pointer',
-                  color: '#ffffff',
-                }}
+                onClick={() => coverInputRef.current?.click()}
               >
-                {tag.label}
+                {coverPreviewUrl || existingCoverUrl ? (
+                  <img
+                    src={coverPreviewUrl || existingCoverUrl}
+                    alt='cover'
+                    className='create-story-cover__preview'
+                  />
+                ) : (
+                  <span className='create-story-cover__placeholder'>Tải ảnh lên</span>
+                )}
               </button>
-            ))}
+              <span className='field-hint create-story-cover__hint'>
+                Mẹo: Một ảnh bìa đẹp sẽ giúp truyện của bạn thu hút nhiều độc giả hơn.
+              </span>
+            </label>
+
+            <Select
+              label='Trạng thái truyện'
+              options={STORY_STATUS_OPTIONS}
+              value={status}
+              onChange={setStatus}
+              placeholder='Chọn trạng thái'
+            />
+
+            <Select
+              label='Tình trạng'
+              options={COMPLETION_STATUS_OPTIONS}
+              value={completionStatus}
+              onChange={setCompletionStatus}
+              placeholder='Chọn tình trạng'
+            />
           </div>
-          {tags.length === 0 && <span className='field-hint'>Chưa có thể loại.</span>}
+
+          <div className='create-story-form__right'>
+            <Input
+              label='Tiêu đề truyện'
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              error={errors.title}
+              placeholder='Nhập tiêu đề truyện'
+            />
+
+            <Input
+              label='Tóm tắt nội dung'
+              as='textarea'
+              rows='5'
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              error={errors.summary}
+              placeholder='Viết một đoạn ngắn giới thiệu về nội dung truyện của bạn...'
+            />
+
+            <div className='create-story-form__row'>
+              <Select
+                label='Loại truyện'
+                options={STORY_KIND_OPTIONS}
+                value={kind}
+                onChange={(value) => {
+                  setKind(value);
+                  if (value !== 'translated') {
+                    setOriginalAuthorName('');
+                  }
+                }}
+                placeholder='Chọn loại truyện'
+              />
+
+              <Select
+                label='Danh mục chính'
+                options={tags}
+                value={categoryId}
+                onChange={setCategoryId}
+                error={errors.category}
+                placeholder='Chọn danh mục'
+              />
+            </div>
+
+            {kind === 'translated' && (
+              <Input
+                label='Tác giả gốc'
+                value={originalAuthorName}
+                onChange={(e) => setOriginalAuthorName(e.target.value)}
+                error={errors.originalAuthorName}
+                placeholder='Nhập tên tác giả gốc'
+              />
+            )}
+
+            <div className='field'>
+              <span className='field-label'>Thể loại (Tags)</span>
+              <div className='create-story-tags'>
+                {tags.map((tag) => {
+                  const selected = tagIds.includes(String(tag.value));
+                  return (
+                    <button
+                      key={tag.value}
+                      type='button'
+                      className={`create-story-tag ${selected ? 'is-selected' : ''}`}
+                      onClick={() => handleAddTag(String(tag.value))}
+                    >
+                      {tag.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {tags.length === 0 && <span className='field-hint'>Chưa có thể loại.</span>}
+            </div>
+
+            {selectedLabels.length > 0 && (
+              <div className='field'>
+                <span className='field-label'>Đã chọn</span>
+                <div className='create-story-selected'>
+                  {selectedLabels.map((item) => (
+                    <span key={item.id} className='create-story-selected__chip'>
+                      {item.label}
+                      {item.type === 'tag' && (
+                        <button
+                          type='button'
+                          className='create-story-selected__remove'
+                          onClick={() => handleRemoveTag(item.id)}
+                          aria-label={`Bỏ ${item.label}`}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {selectedLabels.length > 0 && (
-          <div className='field'>
-            <span className='field-label'>Đã chọn</span>
-            <div className='segment-ids'>
-              {selectedLabels.map((item) => (
-                <span key={item.id} className='chip'>
-                  {item.label}
-                  {item.type === 'tag' && (
-                    <button
-                      type='button'
-                      onClick={() => handleRemoveTag(item.id)}
-                      style={{
-                        marginLeft: '6px',
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontWeight: 700,
-                        color: 'inherit',
-                      }}
-                      aria-label={`Bỏ ${item.label}`}
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className='form-actions'>
-          <Button type='submit' loading={loading}>
-            {isEditing ? 'Cập nhật truyện' : 'Tạo truyện'}
+        <div className='create-story-form__actions'>
+          <Button
+            type='button'
+            variant='ghost'
+            className='create-story-form__cancel'
+            onClick={() => navigate(-1)}
+          >
+            Hủy bỏ
+          </Button>
+          <Button type='submit' loading={loading} className='create-story-form__submit'>
+            {isEditing ? 'Cập nhật truyện' : 'Tạo truyện ngay'}
           </Button>
         </div>
       </form>
+
+      <div className='create-story-meta-cards'>
+        <article className='create-story-meta-card'>
+          <h4>
+            <span className='create-story-meta-card__icon' aria-hidden='true'>
+              <svg viewBox='0 0 24 24'>
+                <path d='M12 2 4 5v6c0 5.2 3.4 10 8 11 4.6-1 8-5.8 8-11V5l-8-3Zm0 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm3.5 9h-7a3.5 3.5 0 0 1 7 0Z' />
+              </svg>
+            </span>
+            Bản quyền
+          </h4>
+          <p>Hãy đảm bảo bạn sở hữu bản quyền hoặc có quyền đăng tải truyện này.</p>
+        </article>
+        <article className='create-story-meta-card'>
+          <h4>
+            <span className='create-story-meta-card__icon' aria-hidden='true'>
+              <svg viewBox='0 0 24 24'>
+                <path d='M12 5c5.5 0 9.8 4.6 10 4.8l.7.8-.7.8c-.2.2-4.5 4.8-10 4.8S2.2 11.6 2 11.4l-.7-.8.7-.8C2.2 9.6 6.5 5 12 5Zm0 3.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z' />
+              </svg>
+            </span>
+            Kiểm duyệt
+          </h4>
+          <p>Truyện sẽ được phản hồi nhanh nếu tuân thủ đúng quy định cộng đồng.</p>
+        </article>
+        <article className='create-story-meta-card'>
+          <h4>
+            <span className='create-story-meta-card__icon' aria-hidden='true'>
+              <svg viewBox='0 0 24 24'>
+                <path d='M4 17h2.8l4-5 3 2.7 5.1-6.4L21 10V4h-6l2.5 2.3-3.9 4.8-3-2.6L6.1 14H4v3Z' />
+              </svg>
+            </span>
+            Phát triển
+          </h4>
+          <p>Cập nhật chương mới thường xuyên để giữ chân độc giả và tăng thứ hạng.</p>
+        </article>
+      </div>
     </div>
   );
 };

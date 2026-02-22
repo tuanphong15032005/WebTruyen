@@ -113,6 +113,65 @@ public class StoryService {
     }
 
     @Transactional
+    public List<StoryResponse> getPublishedStories(Integer page, Integer size, String sort) {
+        // Parse sort parameter, default to createdAt desc (newest first)
+        String sortField = "createdAt";
+        String sortDirection = "desc";
+        
+        if (sort != null && !sort.isBlank()) {
+            String[] parts = sort.split(",");
+            if (parts.length >= 1) {
+                sortField = parts[0];
+            }
+            if (parts.length >= 2) {
+                sortDirection = parts[1];
+            }
+        }
+        
+        // Get published stories with sorting
+        List<StoryEntity> stories;
+        switch (sortField.toLowerCase()) {
+            case "createdat":
+            case "lastupdatedat": // fallback for frontend
+            default:
+                if ("asc".equalsIgnoreCase(sortDirection)) {
+                    stories = storyRepository.findByStatusOrderByCreatedAtAsc(StoryStatus.published);
+                } else {
+                    stories = storyRepository.findByStatusOrderByCreatedAtDesc(StoryStatus.published);
+                }
+                break;
+            case "title":
+                if ("asc".equalsIgnoreCase(sortDirection)) {
+                    stories = storyRepository.findByStatusOrderByTitleAsc(StoryStatus.published);
+                } else {
+                    stories = storyRepository.findByStatusOrderByTitleDesc(StoryStatus.published);
+                }
+                break;
+        }
+        
+        // Apply pagination
+        int startIndex = page * size;
+        int endIndex = Math.min(startIndex + size, stories.size());
+        
+        if (startIndex >= stories.size()) {
+            return List.of();
+        }
+        
+        List<StoryEntity> pagedStories = stories.subList(startIndex, endIndex);
+        
+        return pagedStories.stream()
+                .map(story -> {
+                    List<TagDto> tagDtos = story.getStoryTags().stream()
+                            .map(StoryTagEntity::getTag)
+                            .filter(Objects::nonNull)
+                            .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
+                            .toList();
+                    return toResponse(story, tagDtos, true);
+                })
+                .toList();
+    }
+
+    @Transactional
     public boolean getNotifyNewChapterStatus(UserEntity currentUser, Long storyId) {
         if (currentUser == null) {
             return false;

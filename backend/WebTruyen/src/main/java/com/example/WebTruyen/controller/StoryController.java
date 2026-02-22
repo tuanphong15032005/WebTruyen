@@ -72,6 +72,15 @@ public class StoryController {
         return storyService.getPublishedStoryById(storyId);
     }
 
+    @GetMapping("/public/stories")
+    public java.util.List<StoryResponse> getPublicStories(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort
+    ) {
+        return storyService.getPublishedStories(page, size, sort);
+    }
+
     @GetMapping("/stories/{storyId}/notify-status")
     public Map<String, Boolean> getNotifyStatus(
             @PathVariable Long storyId,

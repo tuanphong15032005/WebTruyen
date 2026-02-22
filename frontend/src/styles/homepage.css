@@ -1,0 +1,250 @@
+/* Homepage Styles */
+.homepage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.homepage__header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.homepage__header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 10px 0;
+}
+
+.homepage__header p {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.homepage__content {
+  min-height: 400px;
+}
+
+.homepage__loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.homepage__loading p {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+}
+
+.homepage__empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.homepage__empty p {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+}
+
+/* Stories Grid */
+.stories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+/* Story Card */
+.story-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.story-card__link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.story-card__cover {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.story-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.story-card:hover .story-card__cover img {
+  transform: scale(1.05);
+}
+
+.story-card__cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #95a5a6;
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.story-card__content {
+  padding: 16px;
+}
+
+.story-card__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.story-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.story-card__author {
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.story-card__category {
+  background: #3498db;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.story-card__summary {
+  font-size: 0.9rem;
+  color: #5d6d7e;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.story-card__stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.story-card__stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.story-card__stat svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.story-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.story-card__status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.story-card__status.ongoing {
+  background: #e8f5e8;
+  color: #27ae60;
+}
+
+.story-card__status.completed {
+  background: #e3f2fd;
+  color: #2196f3;
+}
+
+.story-card__status.cancelled {
+  background: #ffebee;
+  color: #f44336;
+}
+
+.story-card__word-count {
+  color: #95a5a6;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .homepage {
+    padding: 16px;
+  }
+  
+  .homepage__header h1 {
+    font-size: 2rem;
+  }
+  
+  .stories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  
+  .story-card__cover {
+    height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stories-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .story-card__cover {
+    height: 160px;
+  }
+  
+  .story-card__content {
+    padding: 12px;
+  }
+  
+  .story-card__title {
+    font-size: 1rem;
+  }
+  
+  .story-card__stats {
+    gap: 12px;
+  }
+}
