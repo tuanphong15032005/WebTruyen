@@ -2,16 +2,21 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
+import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
+import com.example.WebTruyen.dto.response.AuthorCommentResponse;
+import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.dto.response.CommentResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
+import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.CommentRepository;
+import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,6 +41,7 @@ public class CommentService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final CommentRepository commentRepository;
+    private final ReportRepository reportRepository;
 
     // =========================================================================
     // PHẦN 1: LOGIC TỪ NHÁNH author-create-content (API, DTO, Pagination)
@@ -222,6 +228,116 @@ public class CommentService {
     }
 
     // =========================================================================
+    // PHẦN 3: AUTHOR COMMENT MANAGEMENT
+    // =========================================================================
+
+    @Transactional(readOnly = true)
+    public List<AuthorStoryOptionResponse> listAuthorStories(Long authorId) {
+        return storyRepository.findByAuthor_IdOrderByCreatedAtDesc(authorId)
+                .stream()
+                .map(story -> new AuthorStoryOptionResponse(story.getId(), story.getTitle()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuthorChapterOptionResponse> listAuthorChapters(Long authorId, Integer storyId) {
+        StoryEntity story = requireAuthorStory(authorId, storyId);
+        return chapterRepository.findByStoryId(story.getId())
+                .stream()
+                .map(chapter -> new AuthorChapterOptionResponse(
+                        chapter.getId(),
+                        chapter.getTitle(),
+                        chapter.getSequenceIndex()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuthorCommentResponse> listAuthorComments(Long authorId, Integer storyId, Long chapterId) {
+        StoryEntity story = requireAuthorStory(authorId, storyId);
+        List<CommentEntity> roots;
+
+        if (chapterId != null) {
+            chapterRepository.findByIdAndVolume_Story_Id(chapterId, story.getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+            roots = commentRepository.findByChapter_IdAndParentCommentIsNullOrderByCreatedAtDesc(chapterId);
+        } else {
+            roots = commentRepository.findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(storyId);
+        }
+
+        List<Long> rootIds = roots.stream().map(CommentEntity::getId).toList();
+        List<CommentEntity> replies = rootIds.isEmpty()
+                ? List.of()
+                : commentRepository.findByRootComment_IdInAndParentCommentIsNotNullOrderByCreatedAtAsc(rootIds);
+        Map<Long, List<CommentEntity>> repliesByRootId = new HashMap<>();
+        for (CommentEntity reply : replies) {
+            Long rootId = reply.getRootComment() != null ? reply.getRootComment().getId() : null;
+            if (rootId == null) {
+                continue;
+            }
+            repliesByRootId.computeIfAbsent(rootId, key -> new ArrayList<>()).add(reply);
+        }
+
+        return roots.stream()
+                .map(root -> toAuthorResponse(root, repliesByRootId.getOrDefault(root.getId(), List.of())))
+                .toList();
+    }
+
+    @Transactional
+    public AuthorCommentResponse replyAsAuthor(UserEntity currentUser, Long parentCommentId, String content) {
+        CommentEntity parent = commentRepository.findAuthorOwnedCommentById(parentCommentId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        String normalizedContent = normalizeAuthorReplyContent(content);
+
+        CommentEntity reply = CommentEntity.builder()
+                .user(currentUser)
+                .chapter(parent.getChapter())
+                .story(parent.getStory())
+                .parentComment(parent)
+                .rootComment(parent.getRootComment() != null ? parent.getRootComment() : parent)
+                .content(normalizedContent)
+                .depth(Math.min(parent.getDepth() + 1, 5))
+                .isHidden(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        CommentEntity saved = commentRepository.save(reply);
+        return toAuthorResponse(saved, List.of());
+    }
+
+    @Transactional
+    public void hideAuthorComment(Long authorId, Long commentId) {
+        CommentEntity comment = commentRepository.findAuthorOwnedCommentById(commentId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        comment.setIsHidden(true);
+        commentRepository.save(comment);
+    }
+
+    @Transactional
+    public void unhideAuthorComment(Long authorId, Long commentId) {
+        CommentEntity comment = commentRepository.findAuthorOwnedCommentById(commentId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        comment.setIsHidden(false);
+        commentRepository.save(comment);
+    }
+
+    @Transactional
+    public void deleteAuthorComment(Long authorId, Long commentId) {
+        CommentEntity comment = commentRepository.findAuthorOwnedCommentById(commentId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        deleteCommentAndDescendantsFromDb(comment);
+    }
+
+    /** Permanently deletes the comment and all its replies from the database, and any reports targeting them. */
+    private void deleteCommentAndDescendantsFromDb(CommentEntity comment) {
+        reportRepository.deleteByComment_Id(comment.getId());
+        for (CommentEntity child : commentRepository.findByParentComment_Id(comment.getId())) {
+            deleteCommentAndDescendantsFromDb(child);
+        }
+        commentRepository.delete(comment);
+    }
+
+    // =========================================================================
     // HELPER METHODS
     // =========================================================================
 
@@ -330,6 +446,74 @@ public class CommentService {
             return 8;
         }
         return Math.min(size, 50);
+    }
+
+    private StoryEntity requireAuthorStory(Long authorId, Integer storyId) {
+        if (storyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Story is required");
+        }
+        return storyRepository.findByIdAndAuthorId(storyId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+    }
+
+    private String normalizeAuthorReplyContent(String content) {
+        if (content == null || content.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reply content is required");
+        }
+        String value = content.trim();
+        if (value.length() > 4000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reply is too long");
+        }
+        return value;
+    }
+
+    private AuthorCommentResponse toAuthorResponse(CommentEntity root, List<CommentEntity> flatReplies) {
+        Map<Long, List<CommentEntity>> repliesByParentId = new HashMap<>();
+        for (CommentEntity reply : flatReplies) {
+            Long parentId = reply.getParentComment() != null ? reply.getParentComment().getId() : null;
+            if (parentId == null) {
+                continue;
+            }
+            repliesByParentId.computeIfAbsent(parentId, key -> new ArrayList<>()).add(reply);
+        }
+        return toAuthorNode(root, repliesByParentId);
+    }
+
+    private AuthorCommentResponse toAuthorNode(CommentEntity comment, Map<Long, List<CommentEntity>> repliesByParentId) {
+        UserEntity user = comment.getUser();
+        String displayName = user != null
+                ? ((user.getDisplayName() != null && !user.getDisplayName().isBlank()) ? user.getDisplayName() : user.getUsername())
+                : "Unknown";
+        List<CommentEntity> directReplies = repliesByParentId.getOrDefault(comment.getId(), List.of());
+        List<AuthorCommentResponse> replyDtos = directReplies.stream()
+                .map(reply -> toAuthorNode(reply, repliesByParentId))
+                .toList();
+        return new AuthorCommentResponse(
+                comment.getId(),
+                user != null ? user.getId() : null,
+                displayName,
+                user != null ? user.getAvatarUrl() : null,
+                comment.getContent(),
+                comment.getCreatedAt(),
+                resolveCommentStatus(comment),
+                comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                comment.getDepth(),
+                replyDtos
+        );
+    }
+
+    private String resolveCommentStatus(CommentEntity comment) {
+        if (Boolean.TRUE.equals(comment.getIsHidden())) {
+            return "Hidden";
+        }
+        long reportCount = reportRepository.countByComment_IdAndStatusIn(
+                comment.getId(),
+                List.of(ReportEntity.ReportStatus.open, ReportEntity.ReportStatus.in_review)
+        );
+        if (reportCount > 0) {
+            return "Reported";
+        }
+        return "Normal";
     }
 }
 

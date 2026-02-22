@@ -170,6 +170,8 @@ function Header() {
                             }}>
                                 <Link to="/profile" style={dropdownItemStyle}>Hồ sơ cá nhân</Link>
                                 <Link to="/donation-history" style={dropdownItemStyle}>Lịch sử giao dịch</Link>
+                                <Link to="/author/comments" style={dropdownItemStyle}>Quản lý bình luận</Link>
+                                <Link to="/admin/content-moderation" style={dropdownItemStyle}>Quản lý kiểm duyệt nội dung</Link>
                                 <div style={{ borderTop: '1px solid #eee' }}></div>
                                 <button onClick={handleLogout} style={{ ...dropdownItemStyle, width: '100%', textAlign: 'left', background: 'none', border: 'none' }}>
                                     Đăng xuất

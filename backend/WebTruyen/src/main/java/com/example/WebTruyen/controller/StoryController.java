@@ -13,6 +13,9 @@ import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
+import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
+import com.example.WebTruyen.dto.response.AuthorCommentResponse;
+import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
@@ -29,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 
 @RestController
@@ -184,6 +188,73 @@ public class StoryController {
         return commentService.createChapterComment(currentUser, storyId, chapterId, req);
     }
 
+    @GetMapping("/author/comments/stories")
+    public List<AuthorStoryOptionResponse> getAuthorCommentStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorStories(currentUser.getId());
+    }
+
+    @GetMapping("/author/comments/stories/{storyId}/chapters")
+    public List<AuthorChapterOptionResponse> getAuthorCommentChapters(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorChapters(currentUser.getId(), storyId);
+    }
+
+    @GetMapping("/author/comments")
+    public List<AuthorCommentResponse> getAuthorComments(
+            @RequestParam Integer storyId,
+            @RequestParam(required = false) Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId);
+    }
+
+    @PostMapping(value = "/author/comments/{parentCommentId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public AuthorCommentResponse replyAuthorComment(
+            @PathVariable Long parentCommentId,
+            @RequestBody AuthorReplyRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.replyAsAuthor(currentUser, parentCommentId, req.content());
+    }
+
+    @PostMapping("/author/comments/{commentId}/hide")
+    public Map<String, String> hideAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.hideAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment hidden");
+    }
+
+    @PostMapping("/author/comments/{commentId}/unhide")
+    public Map<String, String> unhideAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.unhideAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment unhidden");
+    }
+
+    @DeleteMapping("/author/comments/{commentId}")
+    public Map<String, String> deleteAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment deleted");
+    }
+
     @PostMapping(value = "/stories/{storyId}/volumes", consumes = MediaType.APPLICATION_JSON_VALUE)
     public CreateVolumeResponse createVolume(
             @PathVariable("storyId") Integer storyId,
@@ -231,4 +302,5 @@ public class StoryController {
         return chapterService.getChapterContent(chapterId);
     }
 
+    public record AuthorReplyRequest(String content) {}
 }

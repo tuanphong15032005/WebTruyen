@@ -21,4 +21,6 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     List<StoryEntity> findByStatusOrderByCreatedAtAsc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleDesc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleAsc(StoryStatus status);
+
+    List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
 }

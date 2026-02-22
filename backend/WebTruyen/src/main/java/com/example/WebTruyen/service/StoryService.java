@@ -1,6 +1,7 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
+import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
@@ -8,6 +9,8 @@ import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.keys.StoryTagId;
+import com.example.WebTruyen.entity.model.CommentAndMod.ModerationActionEntity;
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
@@ -16,11 +19,13 @@ import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
 import com.example.WebTruyen.repository.TagRepository;
 import com.example.WebTruyen.repository.UserRepository;
+import com.example.WebTruyen.repository.UserRoleRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
@@ -33,10 +38,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +60,8 @@ public class StoryService {
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final FollowStoryRepository followStoryRepository;
+    private final ModerationActionRepository moderationActionRepository;
+    private final UserRoleRepository userRoleRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
@@ -413,6 +424,289 @@ public class StoryService {
                 .filter(id -> id > 0)
                 .distinct()
                 .toList();
+    }
+
+    @Transactional
+    public List<AdminPendingContentResponse> getPendingModerationContent(UserEntity currentUser) {
+        requireModerator(currentUser);
+
+        List<ModerationActionEntity> actions = moderationActionRepository.findByTargetKindInOrderByCreatedAtDesc(
+                Arrays.asList(
+                        ModerationActionEntity.ModerationTargetKind.story,
+                        ModerationActionEntity.ModerationTargetKind.chapter
+                )
+        );
+        Map<String, ModerationActionEntity> latestActionByTarget = latestActionByTarget(actions);
+
+        List<AdminPendingContentResponse> draftStories = storyRepository.findByStatusOrderByCreatedAtDesc(StoryStatus.draft)
+                .stream()
+                .filter(story -> !latestActionByTarget.containsKey(buildTargetKey(
+                        ModerationActionEntity.ModerationTargetKind.story,
+                        story.getId()
+                )))
+                .map(story -> new AdminPendingContentResponse(
+                        story.getId(),
+                        "story",
+                        story.getId(),
+                        story.getTitle(),
+                        resolveAuthorName(story),
+                        resolveGenre(story),
+                        resolveRatingAgeClassification(story),
+                        story.getCreatedAt(),
+                        "pending",
+                        null,
+                        null,
+                        null
+                ))
+                .toList();
+
+        List<AdminPendingContentResponse> draftChapters = chapterRepository.findByStatusOrderByCreatedAtDesc(ChapterStatus.draft)
+                .stream()
+                .filter(chapter -> !latestActionByTarget.containsKey(buildTargetKey(
+                        ModerationActionEntity.ModerationTargetKind.chapter,
+                        chapter.getId()
+                )))
+                .map(chapter -> toPendingChapterResponse(chapter, null))
+                .toList();
+
+        Set<String> seenTargets = new HashSet<>();
+        draftStories.forEach(item -> seenTargets.add("story:" + item.contentId()));
+        draftChapters.forEach(item -> seenTargets.add("chapter:" + item.contentId()));
+
+        List<AdminPendingContentResponse> processedItems = latestActionByTarget.values().stream()
+                .map(this::toProcessedModerationResponse)
+                .filter(Objects::nonNull)
+                .filter(item -> seenTargets.add(item.contentType() + ":" + item.contentId()))
+                .toList();
+
+        return Stream.concat(Stream.concat(draftStories.stream(), draftChapters.stream()), processedItems.stream())
+                .sorted((a, b) -> {
+                    LocalDateTime left = a.moderationProcessedAt() != null ? a.moderationProcessedAt() : a.submissionDate();
+                    LocalDateTime right = b.moderationProcessedAt() != null ? b.moderationProcessedAt() : b.submissionDate();
+                    if (left == null && right == null) return 0;
+                    if (left == null) return 1;
+                    if (right == null) return -1;
+                    return right.compareTo(left);
+                })
+                .toList();
+    }
+
+    @Transactional
+    public void approveStoryModeration(UserEntity currentUser, Long storyId) {
+        requireModerator(currentUser);
+        StoryEntity story = requireStoryById(storyId);
+        story.setStatus(StoryStatus.published);
+        storyRepository.save(story);
+        saveModerationAction(currentUser, "approve", ModerationActionEntity.ModerationTargetKind.story, storyId, null);
+    }
+
+    @Transactional
+    public void rejectStoryModeration(UserEntity currentUser, Long storyId, String note) {
+        requireModerator(currentUser);
+        StoryEntity story = requireStoryById(storyId);
+        story.setStatus(StoryStatus.archived);
+        storyRepository.save(story);
+        saveModerationAction(currentUser, "reject", ModerationActionEntity.ModerationTargetKind.story, storyId, note);
+    }
+
+    @Transactional
+    public void requestStoryEditModeration(UserEntity currentUser, Long storyId, String note) {
+        requireModerator(currentUser);
+        requireStoryById(storyId);
+        saveModerationAction(currentUser, "request_edit", ModerationActionEntity.ModerationTargetKind.story, storyId, note);
+    }
+
+    @Transactional
+    public void approveChapterModeration(UserEntity currentUser, Long chapterId) {
+        requireModerator(currentUser);
+        ChapterEntity chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+        chapter.setStatus(ChapterStatus.published);
+        chapter.setLastUpdateAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+        saveModerationAction(currentUser, "approve", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, null);
+    }
+
+    @Transactional
+    public void rejectChapterModeration(UserEntity currentUser, Long chapterId, String note) {
+        requireModerator(currentUser);
+        ChapterEntity chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+        chapter.setStatus(ChapterStatus.archived);
+        chapter.setLastUpdateAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+        saveModerationAction(currentUser, "reject", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, note);
+    }
+
+    @Transactional
+    public void requestChapterEditModeration(UserEntity currentUser, Long chapterId, String note) {
+        requireModerator(currentUser);
+        chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+        saveModerationAction(currentUser, "request_edit", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, note);
+    }
+
+    private AdminPendingContentResponse toPendingChapterResponse(ChapterEntity chapter, ModerationActionEntity action) {
+        StoryEntity story = chapter.getVolume().getStory();
+        return new AdminPendingContentResponse(
+                chapter.getId(),
+                "chapter",
+                story.getId(),
+                story.getTitle(),
+                resolveAuthorName(story),
+                resolveGenre(story),
+                resolveRatingAgeClassification(story),
+                chapter.getCreatedAt(),
+                action == null ? "pending" : resolveModerationStatus(action.getActionType()),
+                action == null ? null : action.getActionType(),
+                action == null ? null : action.getNotes(),
+                action == null ? null : action.getCreatedAt()
+        );
+    }
+
+    private Map<String, ModerationActionEntity> latestActionByTarget(List<ModerationActionEntity> actions) {
+        Map<String, ModerationActionEntity> latest = new HashMap<>();
+        for (ModerationActionEntity action : actions) {
+            String key = buildTargetKey(action.getTargetKind(), action.getTargetId());
+            latest.putIfAbsent(key, action);
+        }
+        return latest;
+    }
+
+    private String buildTargetKey(ModerationActionEntity.ModerationTargetKind targetKind, Long targetId) {
+        return targetKind.name() + ":" + targetId;
+    }
+
+    private AdminPendingContentResponse toProcessedModerationResponse(ModerationActionEntity action) {
+        if (action.getTargetKind() == ModerationActionEntity.ModerationTargetKind.story) {
+            StoryEntity story = requireStoryByIdOrNull(action.getTargetId());
+            if (story == null) {
+                return null;
+            }
+            return new AdminPendingContentResponse(
+                    story.getId(),
+                    "story",
+                    story.getId(),
+                    story.getTitle(),
+                    resolveAuthorName(story),
+                    resolveGenre(story),
+                    resolveRatingAgeClassification(story),
+                    story.getCreatedAt(),
+                    resolveModerationStatus(action.getActionType()),
+                    action.getActionType(),
+                    action.getNotes(),
+                    action.getCreatedAt()
+            );
+        }
+        if (action.getTargetKind() == ModerationActionEntity.ModerationTargetKind.chapter) {
+            ChapterEntity chapter = chapterRepository.findById(action.getTargetId()).orElse(null);
+            if (chapter == null) {
+                return null;
+            }
+            return toPendingChapterResponse(chapter, action);
+        }
+        return null;
+    }
+
+    private StoryEntity requireStoryByIdOrNull(Long storyId) {
+        if (storyId == null || storyId <= 0) {
+            return null;
+        }
+        int rawId;
+        try {
+            rawId = Math.toIntExact(storyId);
+        } catch (ArithmeticException ex) {
+            return null;
+        }
+        return storyRepository.findById(rawId).orElse(null);
+    }
+
+    private String resolveModerationStatus(String actionType) {
+        if (actionType == null || actionType.isBlank()) {
+            return "processed";
+        }
+        String normalized = actionType.trim().toLowerCase();
+        if (normalized.contains("approve")) {
+            return "approved";
+        }
+        if (normalized.contains("reject")) {
+            return "rejected";
+        }
+        if (normalized.contains("request_edit") || normalized.contains("request-edit") || normalized.contains("edit")) {
+            return "request_edit";
+        }
+        return "processed";
+    }
+
+    private void saveModerationAction(
+            UserEntity admin,
+            String actionType,
+            ModerationActionEntity.ModerationTargetKind targetKind,
+            Long targetId,
+            String note
+    ) {
+        ModerationActionEntity action = ModerationActionEntity.builder()
+                .admin(admin)
+                .actionType(actionType)
+                .targetKind(targetKind)
+                .targetId(targetId)
+                .notes(note)
+                .createdAt(LocalDateTime.now())
+                .build();
+        moderationActionRepository.save(action);
+    }
+
+    private String resolveAuthorName(StoryEntity story) {
+        if (story.getAuthor() == null) {
+            return "Unknown";
+        }
+        String penName = story.getAuthor().getAuthorPenName();
+        if (penName != null && !penName.isBlank()) {
+            return penName;
+        }
+        String username = story.getAuthor().getUsername();
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return "Unknown";
+    }
+
+    private String resolveGenre(StoryEntity story) {
+        List<String> genres = story.getStoryTags().stream()
+                .map(StoryTagEntity::getTag)
+                .filter(Objects::nonNull)
+                .map(TagEntity::getName)
+                .filter(Objects::nonNull)
+                .filter(name -> !name.isBlank())
+                .toList();
+        if (genres.isEmpty()) {
+            return "Uncategorized";
+        }
+        return String.join(", ", genres);
+    }
+
+    private String resolveRatingAgeClassification(StoryEntity story) {
+        if (story.getRatingCount() > 0 && story.getRatingAvg() != null) {
+            return "Rating " + story.getRatingAvg();
+        }
+        return "Unrated / N-A";
+    }
+
+    private void requireModerator(UserEntity currentUser) {
+        if (currentUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        Long userId = currentUser.getId();
+        boolean allowed = userId != null && (
+                userRoleRepository.existsByUser_IdAndRole_Code(userId, "ADMIN")
+                        || userRoleRepository.existsByUser_IdAndRole_Code(userId, "MOD")
+                        || userRoleRepository.existsByUser_IdAndRole_Code(userId, "REVIEWER")
+        );
+
+        if (!allowed) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
     }
 
     private StoryEntity requireStoryById(Long storyId) {

@@ -55,11 +55,13 @@ api.interceptors.response.use(
   (error) => {
     const message =
       error.response?.data?.message ||
-      error.response?.data ||
+      (typeof error.response?.data === 'string' ? error.response.data : null) ||
       error.message ||
       'Đã xảy ra lỗi, vui lòng thử lại';
 
-    return Promise.reject(new Error(message));
+    const err = new Error(message);
+    err.response = error.response;
+    return Promise.reject(err);
   }
 );
 
