@@ -813,7 +813,11 @@ const StoryMetadata = () => {
                       <p className='story-metadata__muted'>Chưa có chương nào.</p>
                     )}
                     {chapters.map((chapter) => (
-                      <div key={chapter.id} className='story-metadata__chapter-row'>
+                      <Link 
+                        key={chapter.id} 
+                        to={`/stories/${storyId}/chapters/${chapter.id}`}
+                        className='story-metadata__chapter-row'
+                      >
                         <span>
                           {chapter.sequenceIndex
                             ? `Chương ${chapter.sequenceIndex}: `
@@ -827,7 +831,7 @@ const StoryMetadata = () => {
                               )
                             : 'Chưa cập nhật'}
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

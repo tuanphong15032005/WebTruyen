@@ -15,6 +15,7 @@ import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
+import ChapterPage from './pages/ChapterPage';
 import CreateChapter from './pages/Author/CreateChapter';
 import './App.css';
 function App() {
@@ -32,18 +33,16 @@ function App() {
             <Route path="/donation-history" element={<CoinTransactionHistoryPage />} />
             <Route path="/profile" element={<UserProfile />} />
 
-            <Route path='/' element={<Navigate to='/author/create-story' />} />
             <Route path='/author/create-story' element={<CreateStory />} />
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
             <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
+            <Route path='/stories/:storyId/chapters/:chapterId' element={<ChapterPage />} />
             <Route
               path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
               element={<CreateChapter />}
             />
-
-            <Route path='*' element={<Navigate to='/author/create-story' />} />
         </Routes>
     </MainLayout>
   );

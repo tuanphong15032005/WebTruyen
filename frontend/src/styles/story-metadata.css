@@ -459,6 +459,15 @@
   border-top: 1px dashed #dbe8d8;
   padding: 10px 0;
   color: #2e3f59;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.story-metadata__chapter-row:hover {
+  color: #1a5490;
+  background: rgba(149, 191, 139, 0.1);
+  border-radius: 8px;
+  padding: 10px 8px;
 }
 
 .story-metadata__chapter-row:first-child {
