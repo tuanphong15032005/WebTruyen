@@ -1,0 +1,102 @@
+.story-hub {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.story-hub__header h1 {
+  margin: 0;
+  color: #1f2d45;
+  font-size: 2rem;
+}
+
+.story-hub__header p {
+  margin: 8px 0 0;
+  color: #6c7b91;
+}
+
+.story-hub__filters {
+  margin-top: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.story-hub__filter {
+  border: 1px solid #d7e0ef;
+  background: #f7faff;
+  color: #3f587d;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.story-hub__filter.active {
+  border-color: #2f6be9;
+  background: #2f6be9;
+  color: #ffffff;
+}
+
+.story-hub__muted {
+  color: #6f7f97;
+}
+
+.story-hub__empty {
+  border: 1px dashed #cad6eb;
+  border-radius: 12px;
+  padding: 18px;
+  color: #6f7f97;
+  background: #fbfdff;
+  text-align: center;
+}
+
+.story-hub__card {
+  display: flex;
+  flex-direction: column;
+}
+
+.story-hub__card .story-card__link {
+  flex: 1;
+}
+
+.story-hub__actions {
+  padding: 0 16px 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.story-hub__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid #2f6be9;
+  background: #2f6be9;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  padding: 0 12px;
+}
+
+.story-hub__action-btn.ghost {
+  border-color: #c9d6ec;
+  background: #f8fbff;
+  color: #2d4b77;
+}
+
+.story-card__status.archived {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+@media (max-width: 768px) {
+  .story-hub {
+    padding: 16px;
+  }
+}
