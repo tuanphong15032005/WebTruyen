@@ -18,6 +18,9 @@ const storyService = {
 
   getStory: (storyId) => api.get(`/stories/${storyId}`),
   getPublicStory: (storyId) => api.get(`/public/stories/${storyId}`),
+  // Muc dich: Lay du lieu sidebar metadata (thong tin them/truyen tuong tu/cung tac gia). Hieuson + 10h30
+  getPublicStorySidebar: (storyId) =>
+    api.get(`/public/stories/${storyId}/sidebar`),
 
   updateStory: (storyId, formData) => {
     return api.put(`/stories/${storyId}`, formData, {
@@ -103,6 +106,7 @@ const storyService = {
       api.get(`/public/stories`, { params }),
 
     getMyStories: () => api.get(`/stories/my`),
+    getLibraryStories: () => api.get(`/stories/library`),
 };
 
 export default storyService;

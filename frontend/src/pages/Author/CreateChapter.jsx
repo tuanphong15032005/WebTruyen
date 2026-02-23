@@ -696,12 +696,14 @@ const CreateChapter = () => {
   };
 
   return (
-    <div className='page'>
-      <div className='page-header'>
-        <h2>{isEditing ? 'Chỉnh sửa Chapter' : 'Tạo Chapter'}</h2>
+    <div className='page story-detail__chapter-page'>
+      <div className='page-header story-detail__chapter-header'>
+        <h2 className='story-detail__chapter-title'>
+          {isEditing ? 'Chỉnh sửa Chapter' : 'Tạo Chapter'}
+        </h2>
       </div>
 
-      <div className='card form'>
+      <div className='card form story-detail__chapter-form'>
         <Input
           label='Tiêu đề Chapter'
           value={title}

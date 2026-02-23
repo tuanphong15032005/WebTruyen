@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -14,12 +14,6 @@ const KIND_LABELS = {
   original: 'Truyện gốc',
   translated: 'Truyện dịch',
   ai: 'Truyện AI',
-};
-
-const STORY_STATUS_LABELS = {
-  draft: 'Nháp',
-  published: 'Công khai',
-  archived: 'Lưu trữ',
 };
 
 const STAR_VALUES = [1, 2, 3, 4, 5];
@@ -65,6 +59,38 @@ const truncateText = (text, maxLen) => {
   return `${value.slice(0, maxLen).trim()}...`;
 };
 
+const formatRatingValue = (value) => {
+  const raw = Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  return raw.toFixed(2).replace('.', ',');
+};
+
+// Muc dich: Hien thi sao rating theo ti le day cua gia tri trung binh. Hieuson + 10h30
+const RatingStars = ({ rating = 0, className = '' }) => {
+  const safeRating = Number.isFinite(Number(rating))
+    ? Math.max(0, Math.min(5, Number(rating)))
+    : 0;
+
+  return (
+    <div className={`story-metadata__stars ${className}`.trim()}>
+      {STAR_VALUES.map((star) => {
+        const fill = Math.max(0, Math.min(1, safeRating - (star - 1)));
+        return (
+          <span key={star} className='story-metadata__star'>
+            <span className='story-metadata__star-base'>★</span>
+            <span
+              className='story-metadata__star-fill'
+              style={{ width: `${fill * 100}%` }}
+            >
+              ★
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 const MetaLine = ({ icon, label, value, iconClass = '', valueClass = '' }) => (
   <p className='story-metadata__meta-line'>
     <span className={`story-metadata__icon ${iconClass}`} aria-hidden='true'>
@@ -86,11 +112,13 @@ const StoryMetadata = () => {
   const [volumes, setVolumes] = useState([]);
   const [latestReview, setLatestReview] = useState(null);
   const [comments, setComments] = useState([]);
+  const [sidebar, setSidebar] = useState(null);
 
   const [loadingStory, setLoadingStory] = useState(false);
   const [loadingVolumes, setLoadingVolumes] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [loadingSidebar, setLoadingSidebar] = useState(false);
 
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [expandedVolumes, setExpandedVolumes] = useState(() => new Set());
@@ -169,9 +197,7 @@ const StoryMetadata = () => {
         page: 0,
         size: 1,
       });
-      const items = Array.isArray(response?.items)
-        ? response.items
-        : [];
+      const items = Array.isArray(response?.items) ? response.items : [];
       setLatestReview(items[0] || null);
     } catch (error) {
       console.error('getStoryReviews error', error);
@@ -180,6 +206,20 @@ const StoryMetadata = () => {
       setLoadingReviews(false);
     }
   }, [notify, storyId]);
+
+  // Muc dich: Goi endpoint sidebar de lay thong tin them + goi y truyen. Hieuson + 10h30
+  const fetchSidebar = useCallback(async () => {
+    try {
+      setLoadingSidebar(true);
+      const response = await storyService.getPublicStorySidebar(storyId);
+      setSidebar(response || null);
+    } catch (error) {
+      console.error('getPublicStorySidebar error', error);
+      setSidebar(null);
+    } finally {
+      setLoadingSidebar(false);
+    }
+  }, [storyId]);
 
   const fetchNotifyStatus = useCallback(async () => {
     try {
@@ -203,9 +243,11 @@ const StoryMetadata = () => {
     fetchStory();
     fetchVolumes();
     fetchLatestReview();
+    fetchSidebar();
     fetchNotifyStatus();
     fetchLibraryStatus();
   }, [
+    fetchSidebar,
     fetchLibraryStatus,
     fetchNotifyStatus,
     fetchLatestReview,
@@ -221,9 +263,7 @@ const StoryMetadata = () => {
           page: pageIndex,
           size: COMMENTS_PAGE_SIZE,
         });
-        const items = Array.isArray(response?.items)
-          ? response.items
-          : [];
+        const items = Array.isArray(response?.items) ? response.items : [];
         setComments((prev) => (append ? [...prev, ...items] : items));
         setCommentsPage(Number(response?.page || pageIndex));
         setCommentsHasMore(Boolean(response?.hasMore));
@@ -282,24 +322,10 @@ const StoryMetadata = () => {
     return KIND_LABELS[key] || 'Truyện gốc';
   }, [story]);
 
-  const visibilityLabel = useMemo(() => {
-    const key = String(story?.status || '').toLowerCase();
-    return STORY_STATUS_LABELS[key] || 'Nháp';
-  }, [story]);
-
   const isTranslated = useMemo(
     () => String(story?.kind || '').toLowerCase() === 'translated',
     [story],
   );
-
-  const ratingText = useMemo(() => {
-    const count = Number(story?.ratingCount || 0);
-    if (!count) return 'Chưa có đánh giá';
-    const avg = Number(story?.ratingAvg || 0)
-      .toFixed(2)
-      .replace('.', ',');
-    return `${avg} / 5`;
-  }, [story]);
 
   const readerText = useMemo(() => {
     const readers = Number(story?.readerCount || 0);
@@ -307,19 +333,43 @@ const StoryMetadata = () => {
     return formatNumber(readers);
   }, [story]);
 
-  const savedText = useMemo(() => {
-    const saved = Number(story?.savedCount || 0);
-    if (!saved) return 'Chưa có lượt lưu';
-    return formatNumber(saved);
-  }, [story]);
-
   const wordText = useMemo(
     () => formatNumber(Number(story?.wordCount || 0)),
     [story],
   );
 
+  const sidebarRatingText = useMemo(() => {
+    const ratingCount = Number(sidebar?.ratingCount || 0);
+    if (!ratingCount) return 'Chưa có đánh giá';
+    const ratingAvgText = formatRatingValue(sidebar?.ratingAvg);
+    return ratingAvgText ? `${ratingAvgText} / 5` : 'Chưa có đánh giá';
+  }, [sidebar]);
+
+  const followerText = useMemo(
+    () => formatNumber(Number(sidebar?.followerCount || 0)),
+    [sidebar],
+  );
+
+  const weeklyRankText = useMemo(() => {
+    const rank = Number(sidebar?.weeklyRank || 0);
+    if (!rank) return 'Chưa xếp hạng';
+    return `#${rank}`;
+  }, [sidebar]);
+
+  const similarStories = useMemo(
+    () => (Array.isArray(sidebar?.similarStories) ? sidebar.similarStories : []),
+    [sidebar],
+  );
+
+  const sameAuthorStories = useMemo(
+    () =>
+      Array.isArray(sidebar?.sameAuthorStories) ? sidebar.sameAuthorStories : [],
+    [sidebar],
+  );
+
   const translatorName = useMemo(
-    () => story?.translatorPenName || story?.authorPenName || 'Chưa có bút danh',
+    () =>
+      story?.translatorPenName || story?.authorPenName || 'Chưa có bút danh',
     [story],
   );
 
@@ -334,8 +384,24 @@ const StoryMetadata = () => {
     latestReviewContent,
     REVIEW_PREVIEW_LENGTH,
   );
-  const latestReviewIsLong =
-    latestReviewContent.length > REVIEW_PREVIEW_LENGTH;
+  const latestReviewIsLong = latestReviewContent.length > REVIEW_PREVIEW_LENGTH;
+
+  // Muc dich: Render dung dang rating + sao cho cac card sidebar. Hieuson + 10h30
+  const renderSidebarItemRating = (item) => {
+    const ratingCount = Number(item?.ratingCount || 0);
+    const ratingValue = Number(item?.ratingAvg || 0);
+    if (!ratingCount || ratingValue <= 0) {
+      return <span className='story-metadata__sidebar-item-empty'>Chưa có đánh giá</span>;
+    }
+
+    const ratingText = formatRatingValue(ratingValue) || '0,00';
+    return (
+      <div className='story-metadata__sidebar-item-rating'>
+        <span>{ratingText} / 5</span>
+        <RatingStars rating={ratingValue} className='compact' />
+      </div>
+    );
+  };
 
   const handleToggleVolume = (volumeId) => {
     setExpandedVolumes((prev) => {
@@ -375,7 +441,10 @@ const StoryMetadata = () => {
   };
 
   const scrollToComments = useCallback(() => {
-    commentsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    commentsAnchorRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   }, []);
 
   const normalizeCommentNode = useCallback(
@@ -426,16 +495,22 @@ const StoryMetadata = () => {
       const response = await storyService.toggleLibraryStatus(storyId);
       const saved = Boolean(response?.saved);
       setLibrarySaved(saved);
-      setStory((prev) => {
+      setSidebar((prev) => {
         if (!prev) return prev;
-        const current = Number(prev.savedCount || 0);
-        const next = Math.max(0, current + (saved ? 1 : -1));
+        const currentFollowers = Number(prev.followerCount || 0);
+        const nextFollowers = Math.max(
+          0,
+          currentFollowers + (saved ? 1 : -1),
+        );
         return {
           ...prev,
-          savedCount: next,
+          followerCount: nextFollowers,
         };
       });
-      notify(saved ? 'Đã lưu vào thư viện' : 'Đã bỏ lưu khỏi thư viện', 'success');
+      notify(
+        saved ? 'Đã lưu vào thư viện' : 'Đã bỏ lưu khỏi thư viện',
+        'success',
+      );
     } catch (error) {
       console.error('toggle library error', error);
       notify('Không thể cập nhật thư viện', 'error');
@@ -545,7 +620,10 @@ const StoryMetadata = () => {
             String(root.id) === targetRootId
               ? {
                   ...root,
-                  replies: [...(Array.isArray(root.replies) ? root.replies : []), normalizedReply],
+                  replies: [
+                    ...(Array.isArray(root.replies) ? root.replies : []),
+                    normalizedReply,
+                  ],
                 }
               : root,
           ),
@@ -701,7 +779,11 @@ const StoryMetadata = () => {
             <button type='button' className='ghost' onClick={closeReplyForm}>
               Hủy
             </button>
-            <button type='button' disabled={submittingReply} onClick={handleSubmitReply}>
+            <button
+              type='button'
+              disabled={submittingReply}
+              onClick={handleSubmitReply}
+            >
               {submittingReply ? 'Đang gửi...' : 'Gửi trả lời'}
             </button>
           </div>
@@ -725,7 +807,11 @@ const StoryMetadata = () => {
     return (
       <article
         key={comment.id}
-        className={isReply ? 'story-metadata__reply-item' : 'story-metadata__comment-item'}
+        className={
+          isReply
+            ? 'story-metadata__reply-item'
+            : 'story-metadata__comment-item'
+        }
       >
         <div className='story-metadata__comment-avatar-wrap'>
           {comment.avatarUrl ? (
@@ -757,14 +843,20 @@ const StoryMetadata = () => {
                 >
                   {savingComment ? 'Đang lưu...' : 'Lưu'}
                 </button>
-                <button type='button' className='ghost' onClick={handleCancelEdit}>
+                <button
+                  type='button'
+                  className='ghost'
+                  onClick={handleCancelEdit}
+                >
                   Hủy
                 </button>
               </div>
             </div>
           ) : (
             <p>
-              {mention && <span className='story-metadata__mention'>{mention}</span>}
+              {mention && (
+                <span className='story-metadata__mention'>{mention}</span>
+              )}
               {comment.content}
             </p>
           )}
@@ -803,7 +895,9 @@ const StoryMetadata = () => {
                   onClick={() => handleReportComment(comment.id)}
                   disabled={submittingReportForId === comment.id}
                 >
-                  {submittingReportForId === comment.id ? 'Đang gửi...' : 'Báo cáo'}
+                  {submittingReportForId === comment.id
+                    ? 'Đang gửi...'
+                    : 'Báo cáo'}
                 </button>
               )}
             </div>
@@ -818,9 +912,12 @@ const StoryMetadata = () => {
   return (
     <div className='story-metadata'>
       <div className='story-metadata__layout'>
-        <section className='story-metadata__frame'>
+        <div className='story-metadata__main'>
+          <section className='story-metadata__frame'>
           {loadingStory && (
-            <p className='story-metadata__muted'>Đang tải thông tin truyện...</p>
+            <p className='story-metadata__muted'>
+              Đang tải thông tin truyện...
+            </p>
           )}
 
           {story && (
@@ -855,7 +952,10 @@ const StoryMetadata = () => {
                         : 'Lưu vào thư viện'}
                   </span>
                 </button>
-                <button type='button' className='story-metadata__side-btn ghost'>
+                <button
+                  type='button'
+                  className='story-metadata__side-btn ghost'
+                >
                   <svg viewBox='0 0 24 24' aria-hidden='true'>
                     <path d='M12 2 2 6v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V6L12 2zm0 6a1.6 1.6 0 1 1 0 3.2A1.6 1.6 0 0 1 12 8zm1.2 10h-2.4v-1.8h.9v-3.4h-.9V11h2.4v5.2h.9V18z' />
                   </svg>
@@ -954,16 +1054,6 @@ const StoryMetadata = () => {
                   <MetaLine
                     icon={
                       <svg viewBox='0 0 24 24'>
-                        <path d='M12 4a8 8 0 0 1 7.84 6.4h-2.06A6 6 0 0 0 6.22 10.4h2.06A4 4 0 0 1 12 8c1.34 0 2.52.66 3.25 1.67l1.55-1.2A6 6 0 0 0 12 6a6 6 0 0 0-4.8 2.47l1.55 1.2A4 4 0 0 1 12 8zm-8 8a8 8 0 0 1 .16-1.6h2.06a6 6 0 0 0 11.56 0h2.06A8 8 0 1 1 4 12zm6.2.8a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--visibility'
-                    label='Hiển thị:'
-                    value={visibilityLabel}
-                  />
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
                         <path d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm4.3 6.7-5.1 5.1-2.5-2.5-1.4 1.4 3.9 3.9 6.5-6.5-1.4-1.4z' />
                       </svg>
                     }
@@ -975,16 +1065,6 @@ const StoryMetadata = () => {
                   <MetaLine
                     icon={
                       <svg viewBox='0 0 24 24'>
-                        <path d='m12 17.3-6.16 3.24 1.18-6.88L2 8.76l6.92-1L12 1.5l3.08 6.26 6.92 1-5.02 4.9 1.18 6.88z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--rating'
-                    label='Đánh giá:'
-                    value={ratingText}
-                  />
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
                         <path d='M7 3h8a2 2 0 0 1 2 2v14H7a3 3 0 0 0-3 3V5a2 2 0 0 1 2-2zm10 16V5a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H7a1 1 0 0 1 1-1h9z' />
                       </svg>
                     }
@@ -992,31 +1072,10 @@ const StoryMetadata = () => {
                     label='Số từ:'
                     value={wordText}
                   />
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M6 3h12a2 2 0 0 1 2 2v16l-8-3.8L4 21V5a2 2 0 0 1 2-2z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--saved'
-                    label='Lượt lưu:'
-                    value={savedText}
-                  />
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M12 1.8a10.2 10.2 0 1 0 10.2 10.2A10.2 10.2 0 0 0 12 1.8zm0 2a8.2 8.2 0 1 1-8.2 8.2A8.2 8.2 0 0 1 12 3.8zm-.1 2.7a1 1 0 0 0-1 1v5.2c0 .27.11.52.3.7l3.5 3.5a1 1 0 1 0 1.4-1.4l-3.2-3.2V7.5a1 1 0 0 0-1-1z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--updated'
-                    label='Cập nhật lần cuối:'
-                    value={formatRelativeTime(story.lastUpdatedAt)}
-                  />
                 </div>
 
                 <div className='story-metadata__summary-header'>
                   <span>Nội dung</span>
-                  <span>( Cập nhật: {formatDateTime(story.lastUpdatedAt)} )</span>
                 </div>
 
                 <div
@@ -1037,15 +1096,23 @@ const StoryMetadata = () => {
 
                 <div className='story-metadata__actions-row'>
                   <div className='story-metadata__actions'>
-                    <button type='button' className='story-metadata__action-btn'>
+                    <button
+                      type='button'
+                      className='story-metadata__action-btn'
+                    >
                       Đọc từ đầu
                     </button>
-                    <button type='button' className='story-metadata__action-btn ghost'>
+                    <button
+                      type='button'
+                      className='story-metadata__action-btn ghost'
+                    >
                       Đọc mới nhất
                     </button>
                   </div>
                   <div className='story-metadata__notify-wrap'>
-                    <span className='story-metadata__notify-text'>Bật thông báo:</span>
+                    <span className='story-metadata__notify-text'>
+                      Bật thông báo:
+                    </span>
                     <button
                       type='button'
                       className={`story-metadata__notify-switch ${notifyEnabled ? 'is-enabled' : ''}`}
@@ -1062,13 +1129,13 @@ const StoryMetadata = () => {
               </article>
             </div>
           )}
-        </section>
+          </section>
 
-        <section className='story-metadata__review-preview'>
-          <div className='story-metadata__review-preview-head'>
-            <h3>Reviews mới</h3>
-            <Link to={`/stories/${storyId}/reviews`}>Xem trang đánh giá</Link>
-          </div>
+          <section className='story-metadata__review-preview'>
+            <div className='story-metadata__review-preview-head'>
+              <h3>Reviews mới</h3>
+              <Link to={`/stories/${storyId}/reviews`}>Xem trang đánh giá</Link>
+            </div>
 
           {loadingReviews && (
             <p className='story-metadata__muted'>Đang tải review...</p>
@@ -1109,7 +1176,7 @@ const StoryMetadata = () => {
               </div>
             </article>
           )}
-        </section>
+          </section>
 
         <section className='story-metadata__volume-section'>
           <h2>Danh sách Tập & Chương</h2>
@@ -1138,7 +1205,9 @@ const StoryMetadata = () => {
                 >
                   <span>
                     {volume.title || `Tập ${volume.sequenceIndex || ''}`}
-                    <small>{volume.chapterCount ?? chapters.length} chương</small>
+                    <small>
+                      {volume.chapterCount ?? chapters.length} chương
+                    </small>
                   </span>
                   <span>{isOpen ? '▾' : '▸'}</span>
                 </button>
@@ -1146,10 +1215,16 @@ const StoryMetadata = () => {
                 {isOpen && (
                   <div className='story-metadata__chapter-list'>
                     {chapters.length === 0 && (
-                      <p className='story-metadata__muted'>Chưa có chương nào.</p>
+                      <p className='story-metadata__muted'>
+                        Chưa có chương nào.
+                      </p>
                     )}
                     {chapters.map((chapter) => (
-                      <div key={chapter.id} className='story-metadata__chapter-row'>
+                      <Link
+                        key={chapter.id || chapter.chapterId}
+                        className='story-metadata__chapter-row'
+                        to={`/stories/${storyId}/chapters/${chapter.id || chapter.chapterId}`}
+                      >
                         <span>
                           {chapter.sequenceIndex
                             ? `Chương ${chapter.sequenceIndex}: `
@@ -1163,7 +1238,7 @@ const StoryMetadata = () => {
                               )
                             : 'Chưa cập nhật'}
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -1172,7 +1247,10 @@ const StoryMetadata = () => {
           })}
         </section>
 
-        <section className='story-metadata__comments-section' ref={commentsAnchorRef}>
+          <section
+            className='story-metadata__comments-section'
+            ref={commentsAnchorRef}
+          >
           <h3>Tổng bình luận ({commentsTotal})</h3>
 
           <form
@@ -1199,13 +1277,17 @@ const StoryMetadata = () => {
           )}
 
           {!loadingComments && comments.length === 0 && (
-            <div className='story-metadata__empty-review'>Chưa có bình luận nào.</div>
+            <div className='story-metadata__empty-review'>
+              Chưa có bình luận nào.
+            </div>
           )}
 
           <div className='story-metadata__comment-list'>
             {comments.map((comment) => {
               const rootId = String(comment.id);
-              const replies = Array.isArray(comment.replies) ? comment.replies : [];
+              const replies = Array.isArray(comment.replies)
+                ? comment.replies
+                : [];
               const visibleReplyCount =
                 visibleRepliesByRoot[rootId] ?? Math.min(2, replies.length);
               const displayedReplies = replies.slice(0, visibleReplyCount);
@@ -1228,9 +1310,12 @@ const StoryMetadata = () => {
                         <button
                           type='button'
                           className='story-metadata__reply-load-btn'
-                          onClick={() => handleLoadMoreReplies(rootId, replies.length)}
+                          onClick={() =>
+                            handleLoadMoreReplies(rootId, replies.length)
+                          }
                         >
-                          Xem {Math.min(2, replies.length - visibleReplyCount)} trả lời
+                          Xem {Math.min(2, replies.length - visibleReplyCount)}{' '}
+                          trả lời
                         </button>
                       )}
                       {visibleReplyCount > 2 && (
@@ -1259,7 +1344,105 @@ const StoryMetadata = () => {
               {loadingComments ? 'Đang tải...' : 'Xem Thêm Bình Luận →'}
             </button>
           )}
-        </section>
+          </section>
+        </div>
+
+        {/* Muc dich: Cot phai hien thi thong tin bo sung va goi y truyen. Hieuson + 10h30 */}
+        <aside className='story-metadata__sidebar'>
+          <section className='story-metadata__sidebar-card'>
+            <h3>Thông tin thêm</h3>
+            {loadingSidebar ? (
+              <p className='story-metadata__muted'>Đang tải thông tin...</p>
+            ) : (
+              <>
+                <div className='story-metadata__sidebar-info'>
+                  <div className='story-metadata__sidebar-info-row'>
+                    <span>Chương mới nhất</span>
+                    <strong>
+                      {sidebar?.latestChapterTitle
+                        ? `${sidebar.latestChapterTitle}`
+                        : 'Chưa có chương'}
+                    </strong>
+                  </div>
+                  <div className='story-metadata__sidebar-info-row'>
+                    <span>Người theo dõi</span>
+                    <strong>{followerText}</strong>
+                  </div>
+                  <div className='story-metadata__sidebar-info-row'>
+                    <span>Xếp hạng tuần</span>
+                    <strong>{weeklyRankText}</strong>
+                  </div>
+                  <div className='story-metadata__sidebar-info-row'>
+                    <span>Đánh giá</span>
+                    <strong>{sidebarRatingText}</strong>
+                  </div>
+                </div>
+                <RatingStars rating={sidebar?.ratingAvg || 0} />
+              </>
+            )}
+          </section>
+
+          <section className='story-metadata__sidebar-card'>
+            <h3>Truyện tương tự</h3>
+            {similarStories.length === 0 && (
+              <p className='story-metadata__muted'>Chưa có truyện tương tự.</p>
+            )}
+            <div className='story-metadata__sidebar-list'>
+              {similarStories.map((item) => (
+                <Link
+                  key={`similar-${item.storyId}`}
+                  className='story-metadata__sidebar-item'
+                  to={`/stories/${item.storyId}/metadata`}
+                >
+                  {item.coverUrl ? (
+                    <img src={item.coverUrl} alt={item.title} />
+                  ) : (
+                    <div className='story-metadata__sidebar-item-cover-empty'>
+                      No cover
+                    </div>
+                  )}
+                  <div className='story-metadata__sidebar-item-body'>
+                    <strong>{item.title}</strong>
+                    <span>{item.authorPenName || 'Chưa có bút danh'}</span>
+                    {renderSidebarItemRating(item)}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className='story-metadata__sidebar-card'>
+            <h3>Cùng tác giả</h3>
+            {sameAuthorStories.length === 0 && (
+              <p className='story-metadata__muted'>Chưa có truyện cùng tác giả.</p>
+            )}
+            <div className='story-metadata__sidebar-list'>
+              {sameAuthorStories.map((item) => (
+                <Link
+                  key={`author-${item.storyId}`}
+                  className='story-metadata__sidebar-item'
+                  to={`/stories/${item.storyId}/metadata`}
+                >
+                  {item.coverUrl ? (
+                    <img src={item.coverUrl} alt={item.title} />
+                  ) : (
+                    <div className='story-metadata__sidebar-item-cover-empty'>
+                      No cover
+                    </div>
+                  )}
+                  <div className='story-metadata__sidebar-item-body'>
+                    <strong>{item.title}</strong>
+                    <span>{item.authorPenName || 'Chưa có bút danh'}</span>
+                    <span>
+                      {Number(item.chapterCount || 0).toLocaleString('vi-VN')}{' '}
+                      chương
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   );

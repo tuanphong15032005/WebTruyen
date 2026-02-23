@@ -80,11 +80,12 @@ button {
 button:hover {
   border-color: var(--primary);
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+button:focus {
+  outline: none;
 }
 
-/*  frontend/src/index.css */
-@import './styles/global.css';
+button:focus-visible {
+  outline: 2px solid rgba(46, 103, 232, 0.55);
+  outline-offset: 2px;
+}
 

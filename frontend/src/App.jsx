@@ -11,6 +11,7 @@ import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
 import CoinTransactionHistoryPage from './pages/DonationHistoryPage';
 import UserProfile from './pages/UserProfile';
 import ManageStories from './pages/ManageStories';
+import LibraryStories from './pages/LibraryStories';
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
@@ -26,36 +27,47 @@ import ResponseDebug from './debug/ResponseDebug';
 function App() {
   return (
     <MainLayout>
-        <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify" element={<VerifyCode />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/wallet/topup" element={<WalletTopupPage />} />
-            <Route path="/wallet/confirmation/:id" element={<PaymentConfirmationPage />} />
-            <Route path="/donation-history" element={<CoinTransactionHistoryPage />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/authordashboard" element={<AuthorDashboard />} />
+      <Routes>
+        <Route path='/' element={<HomePage />} />
+        <Route path='/login' element={<Login />} />
+        <Route path='/register' element={<Register />} />
+        <Route path='/verify' element={<VerifyCode />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/reset-password' element={<ResetPassword />} />
+        <Route path='/wallet/topup' element={<WalletTopupPage />} />
+        <Route
+          path='/wallet/confirmation/:id'
+          element={<PaymentConfirmationPage />}
+        />
+        <Route
+          path='/donation-history'
+          element={<CoinTransactionHistoryPage />}
+        />
+        <Route path='/profile' element={<UserProfile />} />
+        <Route path='/authordashboard' element={<AuthorDashboard />} />
 
-            <Route path='/author/my-stories' element={<ManageStories />} />
-            <Route path='/author/create-story' element={<CreateStory />} />
-            <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
-            <Route path='/author/stories/:storyId' element={<StoryDetail />} />
-            <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
-            <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
-            <Route path='/stories/:storyId/chapters/:chapterId' element={<ChapterPage />} />
-            <Route
-              path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
-              element={<CreateChapter />}
-            />
-            <Route path="/debug/tags" element={<TagsDebug />} />
-            <Route path="/debug/auth" element={<AuthDebug />} />
-            <Route path="/debug/request" element={<RequestDebug />} />
-            <Route path="/debug/token" element={<TokenDebug />} />
-            <Route path="/debug/response" element={<ResponseDebug />} />
-        </Routes>
+        <Route path='/author/my-stories' element={<ManageStories />} />
+        <Route path='/manage-stories' element={<ManageStories />} />
+        <Route path='/library' element={<LibraryStories />} />
+        <Route path='/author/create-story' element={<CreateStory />} />
+        <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
+        <Route path='/author/stories/:storyId' element={<StoryDetail />} />
+        <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
+        <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
+        <Route
+          path='/stories/:storyId/chapters/:chapterId'
+          element={<ChapterPage />}
+        />
+        <Route
+          path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
+          element={<CreateChapter />}
+        />
+        <Route path='/debug/tags' element={<TagsDebug />} />
+        <Route path='/debug/auth' element={<AuthDebug />} />
+        <Route path='/debug/request' element={<RequestDebug />} />
+        <Route path='/debug/token' element={<TokenDebug />} />
+        <Route path='/debug/response' element={<ResponseDebug />} />
+      </Routes>
     </MainLayout>
   );
 }

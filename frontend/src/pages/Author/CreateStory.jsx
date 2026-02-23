@@ -67,6 +67,10 @@ const CreateStory = () => {
         const list = Array.isArray(raw) ? raw : [];
         const normalized = list
           .filter((tag) => tag && tag.id != null)
+          .filter((tag) => {
+            const name = String(tag.name || '').trim().toLowerCase();
+            return !(name === '+ thêm' || name === 'thêm' || name === '+ them');
+          })
           .map((tag) => ({
             value: String(tag.id),
             label: tag.name || String(tag.id),

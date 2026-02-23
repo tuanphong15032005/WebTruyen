@@ -405,7 +405,7 @@ const StoryDetail = () => {
                   <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--visibility'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
+                        <path d='M12 4a8 8 0 0 1 7.84 6.4h-2.06A6 6 0 0 0 6.22 10.4h2.06A4 4 0 0 1 12 8c1.34 0 2.52.66 3.25 1.67l1.55-1.2A6 6 0 0 0 12 6a6 6 0 0 0-4.8 2.47l1.55 1.2A4 4 0 0 1 12 8zm-8 8a8 8 0 0 1 .16-1.6h2.06a6 6 0 0 0 11.56 0h2.06A8 8 0 1 1 4 12zm6.2.8a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z' />
                       </svg>
                     </span>
                     <span className='story-detail__row-label'>Hiển thị:</span>
@@ -434,7 +434,7 @@ const StoryDetail = () => {
                   <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--words'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M4 5a2 2 0 0 1 2-2h11a3 3 0 0 1 3 3v13a2 2 0 0 1-2 2H7a3 3 0 0 1-3-3V5zm3 0v13a1 1 0 0 0 1 1h10V6a1 1 0 0 0-1-1H7z' />
+                        <path d='M7 3h8a2 2 0 0 1 2 2v14H7a3 3 0 0 0-3 3V5a2 2 0 0 1 2-2zm10 16V5a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H7a1 1 0 0 1 1-1h9z' />
                       </svg>
                     </span>
                     <span className='story-detail__row-label'>Số từ:</span>
@@ -443,7 +443,7 @@ const StoryDetail = () => {
                   <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--updated'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
+                        <path d='M12 1.8a10.2 10.2 0 1 0 10.2 10.2A10.2 10.2 0 0 0 12 1.8zm0 2a8.2 8.2 0 1 1-8.2 8.2A8.2 8.2 0 0 1 12 3.8zm-.1 2.7a1 1 0 0 0-1 1v5.2c0 .27.11.52.3.7l3.5 3.5a1 1 0 1 0 1.4-1.4l-3.2-3.2V7.5a1 1 0 0 0-1-1z' />
                       </svg>
                     </span>
                     <span className='story-detail__row-label'>Lần cuối:</span>
