@@ -18,7 +18,7 @@ const MyStories = () => {
         // API service đã unwrap response.data ở interceptor
         setStories(response || []);
       } catch (error) {
-        console.error("Lỗi gọi API:", error);
+        console.error('Lỗi gọi API:', error);
       }
     };
 
@@ -26,13 +26,21 @@ const MyStories = () => {
   }, []);
 
   return (
-    <div className="my-stories-page">
+    <div className='my-stories-page'>
       <h2>Danh sách truyện của tôi</h2>
-      <div className="story-list">
+      <div className='story-list'>
         {stories.length === 0 ? <p>Bạn chưa có truyện nào.</p> : null}
 
-        {stories.map(story => (
-          <div key={story.id} className="story-item" style={{ border: '1px solid #ccc', margin: '10px', padding: '10px' }}>
+        {stories.map((story) => (
+          <div
+            key={story.id}
+            className='story-item'
+            style={{
+              border: '1px solid #ccc',
+              margin: '10px',
+              padding: '10px',
+            }}
+          >
             <h3>{story.title}</h3>
             <p>Trạng thái: {story.status}</p>
             {/* Nút để vào sửa truyện */}
