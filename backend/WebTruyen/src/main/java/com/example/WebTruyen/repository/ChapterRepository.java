@@ -1,5 +1,4 @@
 package com.example.WebTruyen.repository;
-//<<<<<<< HEAD
 
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import org.springframework.data.jpa.repository.JpaRepository;

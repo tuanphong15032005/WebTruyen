@@ -8,16 +8,16 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import WalletTopupPage from './pages/WalletTopupPage';
 import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
-import ProfilePage from './pages/ProfilePage';
 import CoinTransactionHistoryPage from './pages/DonationHistoryPage';
 import UserProfile from './pages/UserProfile';
+import ManageStories from './pages/ManageStories';
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
+import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
-import './App.css';
 function App() {
   return (
     <MainLayout>
@@ -32,6 +32,8 @@ function App() {
             <Route path="/wallet/confirmation/:id" element={<PaymentConfirmationPage />} />
             <Route path="/donation-history" element={<CoinTransactionHistoryPage />} />
             <Route path="/profile" element={<UserProfile />} />
+            <Route path="/manage-stories" element={<ManageStories />} />
+            <Route path="/authordashboard" element={<AuthorDashboard />} />
 
             <Route path='/author/create-story' element={<CreateStory />} />
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />

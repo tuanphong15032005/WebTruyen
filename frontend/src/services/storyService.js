@@ -4,47 +4,47 @@ import api from './api';
 const storyService = {
   createStory: (formData) => api.post('/stories', formData),
 
-  getStory: (storyId) => api.get(`/stories/${storyId}`),
-  getPublicStory: (storyId) => api.get(`/public/stories/${storyId}`),
+  getStory: (storyId) => api.get('/stories/${storyId}'),
+  getPublicStory: (storyId) => api.get('/public/stories/${storyId}'),
 
-  updateStory: (storyId, formData) => api.put(`/stories/${storyId}`, formData),
+  updateStory: (storyId, formData) => api.put('/stories/${storyId}', formData),
 
   createVolume: (storyId, payload) =>
-    api.post(`/stories/${storyId}/volumes`, payload),
+    api.post('/stories/${storyId}/volumes', payload),
 
-  getVolumes: (storyId) => api.get(`/stories/${storyId}/volumes`),
-  getPublicVolumes: (storyId) => api.get(`/public/stories/${storyId}/volumes`),
+  getVolumes: (storyId) => api.get('/stories/${storyId}/volumes'),
+  getPublicVolumes: (storyId) => api.get('/public/stories/${storyId}/volumes'),
 
   getStoryReviews: (storyId, params = {}) =>
-    api.get(`/public/stories/${storyId}/reviews`, { params }),
+    api.get('/public/stories/${storyId}/reviews', { params }),
   upsertStoryReview: (storyId, payload) =>
-    api.post(`/stories/${storyId}/reviews`, payload),
+    api.post('/stories/${storyId}/reviews', payload),
 
   getStoryComments: (storyId, params = {}) =>
-    api.get(`/public/stories/${storyId}/comments`, { params }),
+    api.get('/public/stories/${storyId}/comments', { params }),
   createStoryComment: (storyId, payload) =>
-    api.post(`/stories/${storyId}/comments`, payload),
+    api.post('/stories/${storyId}/comments', payload),
 
   getChapterComments: (storyId, chapterId, params = {}) =>
-    api.get(`/public/stories/${storyId}/chapters/${chapterId}/comments`, {
+    api.get('/public/stories/${storyId}/chapters/${chapterId}/comments', {
       params,
     }),
   createChapterComment: (storyId, chapterId, payload) =>
-    api.post(`/stories/${storyId}/chapters/${chapterId}/comments`, payload),
+    api.post('/stories/${storyId}/chapters/${chapterId}/comments', payload),
 
-  getNotifyStatus: (storyId) => api.get(`/stories/${storyId}/notify-status`),
+  getNotifyStatus: (storyId) => api.get('/stories/${storyId}/notify-status'),
 
   toggleNotifyStatus: (storyId) =>
-    api.post(`/stories/${storyId}/notify-status/toggle`),
+    api.post('/stories/${storyId}/notify-status/toggle'),
 
   createChapter: (storyId, volumeId, payload) =>
-    api.post(`/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
+    api.post('/stories/${storyId}/volumes/${volumeId}/chapters', payload),
 
   updateChapter: (storyId, volumeId, chapterId, payload) =>
-    api.put(`/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}`, payload),
+    api.put('/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}', payload),
 
   getChapterContent: (storyId, chapterId) =>
-    api.get(`/stories/${storyId}/chapters/${chapterId}/content`),
+    api.get('/stories/${storyId}/chapters/${chapterId}/content'),
 
   getTags: async () => {
     try {
@@ -56,6 +56,8 @@ const storyService = {
 
   getPublicStories: (params = {}) => 
     api.get('/public/stories', { params }),
+
+  getMyStories: () => api.get('/stories/my'),
 };
 
 export default storyService;

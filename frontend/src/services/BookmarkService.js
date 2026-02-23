@@ -6,7 +6,7 @@ import api from './api';
  * @returns {Promise<BookmarkResponse[]>}
  */
 export const getBookmarksByChapter = (chapterId) =>
-  api.get(`/bookmarks/chapter/${chapterId}`);
+  api.get('/bookmarks/chapter/${chapterId}');
 
 /**
  * Tạo bookmark mới.
@@ -22,4 +22,4 @@ export const createBookmark = (payload) =>
  * @returns {Promise<void>}
  */
 export const deleteBookmark = (bookmarkId) =>
-  api.delete(`/bookmarks/${bookmarkId}`);
+  api.delete('/bookmarks/${bookmarkId}');

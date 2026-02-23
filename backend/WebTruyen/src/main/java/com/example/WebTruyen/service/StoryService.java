@@ -172,6 +172,21 @@ public class StoryService {
     }
 
     @Transactional
+    public List<StoryResponse> getStoriesByAuthor(UserEntity currentUser) {
+        List<StoryEntity> stories = storyRepository.findByAuthor_IdOrderByCreatedAtDesc(currentUser.getId());
+        return stories.stream()
+                .map(story -> {
+                    List<TagDto> tagDtos = story.getStoryTags().stream()
+                            .map(StoryTagEntity::getTag)
+                            .filter(Objects::nonNull)
+                            .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
+                            .toList();
+                    return toResponse(story, tagDtos, false);
+                })
+                .toList();
+    }
+
+    @Transactional
     public boolean getNotifyNewChapterStatus(UserEntity currentUser, Long storyId) {
         if (currentUser == null) {
             return false;

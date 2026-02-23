@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -18,15 +18,23 @@ import {
   Save,
   Gem
 } from 'lucide-react';
+import { dailyCheckIn, getUserProfileById } from '../api/userApi';
+import { getWallet } from '../api/walletApi';
+import { WalletContext } from '../context/WalletContext';
 
 export default function UserProfile({ userData }) {
   const navigate = useNavigate();
+  const { refreshWallet } = useContext(WalletContext);
   const [displayName, setDisplayName] = useState(userData?.displayName || 'Thảo Trịnh');
   const [favoriteQuote, setFavoriteQuote] = useState(userData?.bio || '');
   const [tempName, setTempName] = useState(displayName);
   const [bioMessage, setBioMessage] = useState('');
   const [nameMessage, setNameMessage] = useState('');
   const [profileData, setProfileData] = useState(userData || {});
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [lastCheckInAmount, setLastCheckInAmount] = useState(0);
+  const [coinAnimation, setCoinAnimation] = useState(false);
+  const [walletData, setWalletData] = useState(null);
 
   // Fetch profile data from API if not provided
   React.useEffect(() => {
@@ -50,6 +58,27 @@ export default function UserProfile({ userData }) {
     }
   }, [userData]);
 
+  // Fetch wallet data
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const data = await getWallet();
+        setWalletData(data);
+      } catch (error) {
+        console.error('Error fetching wallet:', error);
+      }
+    };
+    fetchWallet();
+  }, [userData]);
+
+  // Set profileData when userData is available
+  useEffect(() => {
+    if (userData && userData.email) {
+      setProfileData(userData);
+    }
+  }, [userData]);
+
+  
   const handleUpdateQuote = async () => {
     try {
       const userId = profileData?.id || 1;
@@ -97,6 +126,50 @@ export default function UserProfile({ userData }) {
     }
   };
 
+  const handleCheckIn = async () => {
+    const userId = profileData?.id || userData?.id || 1;
+    
+    setCheckInLoading(true);
+    try {
+      // Call the backend API to add 5000 coin A to database
+      const response = await dailyCheckIn();
+      
+      // Calculate new balance (current + 5000)
+      const currentCoins = profileData?.wallet?.balance_coin_a ?? 0;
+      const newCoinBalance = currentCoins + (response.addedAmount || 5000);
+      
+      // Update profile data with new coin balance
+      const updatedProfileData = {
+        ...profileData,
+        wallet: {
+          ...profileData?.wallet,
+          balance_coin_a: newCoinBalance
+        }
+      };
+      setProfileData(updatedProfileData);
+      setLastCheckInAmount(response.addedAmount || 5000);
+      
+      // Trigger coin animation
+      setCoinAnimation(true);
+      setTimeout(() => setCoinAnimation(false), 1000);
+      
+      // Refresh wallet data to get updated balance
+      try {
+        const updatedWallet = await getWallet();
+        setWalletData(updatedWallet);
+        // Refresh wallet context to update Header display
+        await refreshWallet();
+      } catch (error) {
+        console.error('Error refreshing wallet:', error);
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      alert('Nhận coin thất bại. Vui lòng thử lại sau.');
+    } finally {
+      setCheckInLoading(false);
+    }
+  };
+
   const menuItems = [
     { icon: User, label: 'Hồ sơ', active: true, path: '/profile' },
     { icon: Edit3, label: 'Khu vực tác giả', active: false, path: '/authordashboard' },
@@ -107,9 +180,9 @@ export default function UserProfile({ userData }) {
 
   const handleMenuClick = (path) => { navigate(path); };
 
-  // Coin values from DB wallet (balance_coin_a, balance_coin_b)
-  const coinA = profileData?.wallet?.balance_coin_a ?? profileData?.coinA ?? profileData?.balance_coin_a ?? 0;
-  const coinB = profileData?.wallet?.balance_coin_b ?? profileData?.coinB ?? profileData?.balance_coin_b ?? 0;
+  // Coin values from DB wallet (coinA, coinB from backend API)
+  const coinA = walletData?.coinA ?? profileData?.wallet?.balance_coin_a ?? profileData?.coinA ?? profileData?.balance_coin_a ?? 0;
+  const coinB = walletData?.coinB ?? profileData?.wallet?.balance_coin_b ?? profileData?.coinB ?? profileData?.balance_coin_b ?? 0;
   const username = profileData?.username || 'username';
 
   return (
@@ -142,8 +215,29 @@ export default function UserProfile({ userData }) {
               {/* ✅ CHANGED: Hiển thị 2 loại coin: A (xu) và B (kim cương) */}
               <div style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.3)', boxSizing: 'border-box' }}>
                 {/* Coin A */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  <Coins size={22} style={{ color: '#ffd700' }} />
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '8px', 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  marginBottom: '8px',
+                  transition: 'all 0.3s ease',
+                  transform: coinAnimation ? 'scale(1.1)' : 'scale(1)',
+                  backgroundColor: coinAnimation ? 'rgba(255,215,0,0.2)' : 'transparent',
+                  borderRadius: '8px',
+                  padding: '4px 8px'
+                }}>
+                  <Coins size={22} style={{ 
+                    color: '#ffd700',
+                    animation: coinAnimation ? 'spin 0.5s ease-in-out' : 'none',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '50%': { transform: 'rotate(180deg)' },
+                      '100%': { transform: 'rotate(360deg)' }
+                    }
+                  }} />
                   <span>{coinA} Coin</span>
                 </div>
                 {/* Divider */}
@@ -220,12 +314,11 @@ export default function UserProfile({ userData }) {
                 <div style={{ backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '16px', border: '1px solid #e9ecef', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
                     <Calendar size={20} />
-                    <span style={{ fontWeight: '500' }}>Điểm danh</span>
+                    <span style={{ fontWeight: '500' }}>Nhận Coin</span>
                   </div>
-                  <a href="#" style={{ color: '#17a2b8', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Nhận coin miễn phí
-                    <ChevronDown size={16} style={{ transform: 'rotate(-90deg)' }} />
-                  </a>
+                  <button onClick={handleCheckIn} disabled={checkInLoading} style={{ color: '#28a745', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '6px', padding: '4px 8px', cursor: checkInLoading ? 'not-allowed' : 'pointer' }}>
+                    {checkInLoading ? 'Đang xử lý...' : '🎁 Nhận 5000 coin'}
+                                      </button>
                 </div>
 
                 {/* ✅ CHANGED: 2 ô coin riêng biệt thay vì 1 ô */}
@@ -299,6 +392,81 @@ export default function UserProfile({ userData }) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Author Area */}
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', marginTop: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '6px', height: '32px', background: 'linear-gradient(180deg, #17a2b8, #138496)', borderRadius: '3px' }}></div>
+              Khu vực tác giả
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/author/create-story')}
+                style={{
+                  background: 'linear-gradient(135deg, #28a745, #20c997)',
+                  color: 'white',
+                  padding: '16px 32px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  flex: '1',
+                  minWidth: '200px'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(40, 167, 69, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)';
+                }}
+              >
+                <BookOpen size={24} />
+                Thêm truyện mới
+              </button>
+              <button
+                onClick={() => navigate('/manage-stories')}
+                style={{
+                  background: 'linear-gradient(135deg, #007bff, #6610f2)',
+                  color: 'white',
+                  padding: '16px 32px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  boxShadow: '0 4px 12px rgba(0, 123, 255, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  flex: '1',
+                  minWidth: '200px'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(0, 123, 255, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
+                }}
+              >
+                <Edit3 size={24} />
+                Quản lý truyện
+              </button>
+            </div>
+            <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}>
+              Quản lý các tác phẩm của bạn: tạo truyện mới, chỉnh sửa thông tin truyện và thêm/sửa chương.
+            </p>
           </div>
         </main>
       </div>

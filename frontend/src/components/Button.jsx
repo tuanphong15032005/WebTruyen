@@ -17,7 +17,7 @@ const Button = ({
       onClick={onClick}
       disabled={isDisabled}
     >
-      {loading ? '?ang x? l?...' : children}
+      {loading ? 'Dang xu li...' : children}
     </button>
   );
 };

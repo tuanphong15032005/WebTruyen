@@ -81,6 +81,14 @@ public class StoryController {
         return storyService.getPublishedStories(page, size, sort);
     }
 
+    @GetMapping("/stories/my")
+    public java.util.List<StoryResponse> getMyStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getStoriesByAuthor(currentUser);
+    }
+
     @GetMapping("/stories/{storyId}/notify-status")
     public Map<String, Boolean> getNotifyStatus(
             @PathVariable Long storyId,

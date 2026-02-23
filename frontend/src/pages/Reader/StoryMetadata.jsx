@@ -813,8 +813,8 @@ const StoryMetadata = () => {
                       <p className='story-metadata__muted'>Chưa có chương nào.</p>
                     )}
                     {chapters.map((chapter) => (
-                      <Link 
-                        key={chapter.id} 
+                      <Link
+                        key={chapter.id}
                         to={`/stories/${storyId}/chapters/${chapter.id}`}
                         className='story-metadata__chapter-row'
                       >

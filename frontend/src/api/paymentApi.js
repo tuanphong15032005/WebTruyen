@@ -6,12 +6,12 @@ export async function createPaymentOrder(payload) {
 }
 
 export async function confirmPayment(orderId) {
-  const res = await axiosClient.post(`/api/payments/${orderId}/confirm`)
+  const res = await axiosClient.post('/api/payments/${orderId}/confirm')
   return res.data
 }
 
 export async function getPaymentDetail(orderId) {
-  const res = await axiosClient.get(`/api/payments/${orderId}`)
+  const res = await axiosClient.get('/api/payments/${orderId}')
   return res.data
 }
 

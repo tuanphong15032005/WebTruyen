@@ -8,7 +8,7 @@ import api from './api';
 //export const getChapterDetail = (chapterId) =>
 //  api.get(`/chapters/${chapterId}/detail`);
 export const getChapterDetail = (chapterId) =>
-    api.get(`/chapters/${chapterId}`);
+    api.get('/chapters/${chapterId}');
 
 /**
  * Lấy danh sách chương của một truyện (dùng cho side panel).
@@ -16,5 +16,5 @@ export const getChapterDetail = (chapterId) =>
  * @returns {Promise<ChapterResponse[]>}
  */
 export const getChaptersByStory = (storyId) =>
-  api.get(`/chapters/story/${storyId}`);
+  api.get('/chapters/story/${storyId}');
 

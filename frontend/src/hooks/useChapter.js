@@ -60,6 +60,11 @@ const useChapter = (initialChapterId) => {
     loading,
     error,
     navigateToChapter,
+    refreshChapter: () => {
+      const currentId = chapterId;
+      setChapterId(null);
+      setTimeout(() => setChapterId(currentId), 100);
+    },
   };
 };
 

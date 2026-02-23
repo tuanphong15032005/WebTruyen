@@ -16,6 +16,8 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     // Lay tu auth ID + title xem title truyen co bi trung khong
     boolean existsByAuthor_IdAndTitle(Long authorId, String title);
     
+    List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
+    
     // Query methods for published stories with sorting
     List<StoryEntity> findByStatusOrderByCreatedAtDesc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByCreatedAtAsc(StoryStatus status);
