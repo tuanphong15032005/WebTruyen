@@ -152,6 +152,7 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     @Transactional(readOnly = true)
     public ChapterDetailResponse getChapterDetail(Long chapterId) {
+        // Lấy entity chapter (kiểm tra tồn tại)
 
         ChapterEntity chapter = getChapterById(chapterId);
 

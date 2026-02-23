@@ -339,8 +339,16 @@ const LockedChapter = ({ chapter, onPurchase }) => (
   </div>
 );
 
-const CommentsSection = ({ chapterId }) => {
-  const { comments, addComment } = useComments(chapterId);
+const CommentsSection = ({ chapter, storyId }) => {
+  const { 
+    comments, 
+    addComment, 
+    loading, 
+    error, 
+    loadMore, 
+    hasMore, 
+    totalElements 
+  } = useComments(storyId, chapter?.id);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -351,27 +359,26 @@ const CommentsSection = ({ chapterId }) => {
  const handleSubmit = async (e) => {
    e.preventDefault();
 
-   // 1. Kiểm tra nội dung comment
+   // Same validation as Metadata
    if (!newComment.trim() || submitting) return;
 
    setSubmitting(true);
 
    try {
-     // 2. Gọi API tạo comment (backend sẽ tự kiểm tra xác thực)
-     await addComment(newComment.trim(), replyingTo);
+     // Same API call format as Metadata
+     const commentData = {
+       content: newComment.trim(),
+       ...(replyingTo && { parentCommentId: replyingTo })
+     };
+     
+     await addComment(commentData);
 
-     // 3. Reset input sau khi gửi thành công
+     // Same reset logic as Metadata
      setNewComment('');
      setReplyingTo(null);
    } catch (error) {
      console.error('Comment error:', error);
-     // Hiển thị thông báo từ backend nếu có
-     const errorMessage = error.message || 'Không thể gửi bình luận. Vui lòng thử lại.';
-     if (errorMessage.includes('đăng nhập')) {
-       alert('Vui lòng đăng nhập để gửi bình luận');
-     } else {
-       alert(errorMessage);
-     }
+     alert(error.message || 'Không thể gửi bình luận. Vui lòng thử lại.');
    } finally {
      setSubmitting(false);
    }
@@ -415,7 +422,7 @@ const CommentsSection = ({ chapterId }) => {
 
   return (
     <div className="comments-section">
-      <h3 className="comments-title">Bình luận ({totalCount(comments)})</h3>
+      <h3 className="comments-title">Bình luận ({totalElements})</h3>
 
       <form onSubmit={handleSubmit} className="comment-form">
         {replyingTo && (
@@ -438,7 +445,25 @@ const CommentsSection = ({ chapterId }) => {
         </button>
       </form>
 
-      <div className="comments-list">{comments.map((c) => renderComment(c))}</div>
+      {error && (
+        <div className="comment-error">
+          {error}
+        </div>
+      )}
+
+      <div className="comments-list">
+        {comments.map((c) => renderComment(c))}
+      </div>
+
+      {hasMore && (
+        <button 
+          className="load-more-comments-btn" 
+          onClick={loadMore}
+          disabled={loading}
+        >
+          {loading ? 'Đang tải...' : 'Xem thêm bình luận'}
+        </button>
+      )}
     </div>
   );
 };
@@ -648,8 +673,8 @@ const ChapterPage = () => {
               </button>
             </div>
 
-            {/* Comments – tự fetch bằng hook riêng */}
-            <CommentsSection chapterId={chapterId} />
+            {/* Comments – using same system as Metadata */}
+            <CommentsSection chapter={chapter} storyId={chapter?.storyId} />
           </>
         )}
       </div>
