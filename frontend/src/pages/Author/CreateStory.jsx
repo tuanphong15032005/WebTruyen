@@ -164,7 +164,8 @@ const CreateStory = () => {
     if (!summary.trim()) nextErrors.summary = 'Tóm tắt là bắt buộc';
     if (!categoryId) nextErrors.category = 'Danh mục là bắt buộc';
     if (kind === 'translated' && !originalAuthorName.trim()) {
-      nextErrors.originalAuthorName = 'Tên tác giả gốc là bắt buộc với truyện dịch';
+      nextErrors.originalAuthorName =
+        'Tên tác giả gốc là bắt buộc với truyện dịch';
     }
     return nextErrors;
   };
@@ -190,7 +191,8 @@ const CreateStory = () => {
         status,
         visibility: status === 'published' ? 'PUBLIC' : 'DRAFT',
         kind,
-        originalAuthorName: kind === 'translated' ? originalAuthorName.trim() : null,
+        originalAuthorName:
+          kind === 'translated' ? originalAuthorName.trim() : null,
         completionStatus,
       };
 
@@ -204,7 +206,8 @@ const CreateStory = () => {
         ? await storyService.updateStory(storyId, formData)
         : await storyService.createStory(formData);
 
-      const nextStoryId = response?.data?.id || response?.data?.storyId || storyId;
+      const nextStoryId =
+        response?.data?.id || response?.data?.storyId || storyId;
       if (nextStoryId) {
         notify(
           isEditing ? 'Cập nhật truyện thành công' : 'Tạo truyện thành công',
@@ -227,7 +230,8 @@ const CreateStory = () => {
       <div className='create-story-page__hero'>
         <h2>{isEditing ? 'Sửa truyện' : 'Tạo truyện mới'}</h2>
         <p className='create-story-page__subtitle'>
-          Bắt đầu hành trình sáng tác và chia sẻ câu chuyện của bạn với hàng triệu độc giả.
+          Bắt đầu hành trình sáng tác và chia sẻ câu chuyện của bạn với hàng
+          triệu độc giả.
         </p>
       </div>
 
@@ -257,11 +261,14 @@ const CreateStory = () => {
                     className='create-story-cover__preview'
                   />
                 ) : (
-                  <span className='create-story-cover__placeholder'>Tải ảnh lên</span>
+                  <span className='create-story-cover__placeholder'>
+                    Tải ảnh lên
+                  </span>
                 )}
               </button>
               <span className='field-hint create-story-cover__hint'>
-                Mẹo: Một ảnh bìa đẹp sẽ giúp truyện của bạn thu hút nhiều độc giả hơn.
+                Mẹo: Một ảnh bìa đẹp sẽ giúp truyện của bạn thu hút nhiều độc
+                giả hơn.
               </span>
             </label>
 
@@ -352,7 +359,9 @@ const CreateStory = () => {
                   );
                 })}
               </div>
-              {tags.length === 0 && <span className='field-hint'>Chưa có thể loại.</span>}
+              {tags.length === 0 && (
+                <span className='field-hint'>Chưa có thể loại.</span>
+              )}
             </div>
 
             {selectedLabels.length > 0 && (
@@ -389,7 +398,11 @@ const CreateStory = () => {
           >
             Hủy bỏ
           </Button>
-          <Button type='submit' loading={loading} className='create-story-form__submit'>
+          <Button
+            type='submit'
+            loading={loading}
+            className='create-story-form__submit'
+          >
             {isEditing ? 'Cập nhật truyện' : 'Tạo truyện ngay'}
           </Button>
         </div>
@@ -405,7 +418,9 @@ const CreateStory = () => {
             </span>
             Bản quyền
           </h4>
-          <p>Hãy đảm bảo bạn sở hữu bản quyền hoặc có quyền đăng tải truyện này.</p>
+          <p>
+            Hãy đảm bảo bạn sở hữu bản quyền hoặc có quyền đăng tải truyện này.
+          </p>
         </article>
         <article className='create-story-meta-card'>
           <h4>
@@ -416,7 +431,9 @@ const CreateStory = () => {
             </span>
             Kiểm duyệt
           </h4>
-          <p>Truyện sẽ được phản hồi nhanh nếu tuân thủ đúng quy định cộng đồng.</p>
+          <p>
+            Truyện sẽ được phản hồi nhanh nếu tuân thủ đúng quy định cộng đồng.
+          </p>
         </article>
         <article className='create-story-meta-card'>
           <h4>
@@ -427,7 +444,10 @@ const CreateStory = () => {
             </span>
             Phát triển
           </h4>
-          <p>Cập nhật chương mới thường xuyên để giữ chân độc giả và tăng thứ hạng.</p>
+          <p>
+            Cập nhật chương mới thường xuyên để giữ chân độc giả và tăng thứ
+            hạng.
+          </p>
         </article>
       </div>
     </div>

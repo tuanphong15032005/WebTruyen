@@ -21,6 +21,7 @@ public interface VolumeRepository extends JpaRepository<VolumeEntity, Long> {
      * Lấy danh sách volume của 1 story, sắp xếp theo sequenceIndex
      */
     List<VolumeEntity> findByStory_IdOrderBySequenceIndexAsc(Long storyId);
+    List<VolumeEntity> findByStory_IdOrderBySequenceIndexDesc(Long storyId);
 
     @Query("select coalesce(max(v.sequenceIndex), 0) from VolumeEntity v where v.story.id = :storyId")
     Integer findMaxSequenceIndexByStoryId(@Param("storyId") Long storyId);

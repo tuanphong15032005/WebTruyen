@@ -65,12 +65,6 @@ const htmlToText = (html) => {
     .trim();
 };
 
-const countWordsFromHtml = (html) => {
-  const text = htmlToText(html);
-  if (!text) return 0;
-  return text.split(' ').length;
-};
-
 const StoryDetail = () => {
   const { storyId } = useParams();
   const navigate = useNavigate();
@@ -202,10 +196,7 @@ const StoryDetail = () => {
   }, [story]);
 
   const wordText = useMemo(() => {
-    const apiWordCount = Number(story?.wordCount || 0);
-    const fallback = countWordsFromHtml(story?.summaryHtml || '');
-    const value = apiWordCount > 0 ? apiWordCount : fallback;
-    return formatNumber(value);
+    return formatNumber(Number(story?.wordCount || 0));
   }, [story]);
 
   const summaryText = useMemo(
@@ -414,7 +405,7 @@ const StoryDetail = () => {
                   <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--visibility'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0-4a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
+                        <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
                       </svg>
                     </span>
                     <span className='story-detail__row-label'>Hiển thị:</span>
@@ -423,7 +414,7 @@ const StoryDetail = () => {
                   <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--status'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 6a1 1 0 0 1 1 1v5h4a1 1 0 1 1 0 2h-5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0-4a10 10 0 1 1 0 20 10 10 0 0 1 0-20z' />
+                        <path d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm4.3 6.7-5.1 5.1-2.5-2.5-1.4 1.4 3.9 3.9 6.5-6.5-1.4-1.4z' />
                       </svg>
                     </span>
                     <span className='story-detail__row-label'>Trạng thái:</span>

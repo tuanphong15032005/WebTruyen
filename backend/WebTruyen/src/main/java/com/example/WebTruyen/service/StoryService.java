@@ -1,9 +1,12 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
+import com.example.WebTruyen.dto.response.StorySidebarItemResponse;
+import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
@@ -11,6 +14,7 @@ import com.example.WebTruyen.entity.keys.StoryTagId;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
+import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
@@ -23,6 +27,7 @@ import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
 import com.example.WebTruyen.repository.TagRepository;
 import com.example.WebTruyen.repository.UserRepository;
+import com.example.WebTruyen.repository.VolumeRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
@@ -35,6 +40,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +58,7 @@ public class StoryService {
     private final ReadingHistoryRepository readingHistoryRepository;
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
+    private final VolumeRepository volumeRepository;
     private final FollowStoryRepository followStoryRepository;
     private final LibraryEntryRepository libraryEntryRepository;
 
@@ -114,6 +121,7 @@ public class StoryService {
 
         return toResponse(story, tagDtos, true);
     }
+
 
     @Transactional
     public boolean getNotifyNewChapterStatus(UserEntity currentUser, Long storyId) {
@@ -291,6 +299,27 @@ public class StoryService {
             return 0L;
         }
         return plain.trim().split("\\s+").length;
+    }
+
+
+
+    private List<StorySidebarItemResponse> toSidebarItems(List<StoryEntity> stories, Map<Long, Long> chapterCountMap) {
+        if (stories == null || stories.isEmpty()) {
+            return List.of();
+        }
+
+        return stories.stream()
+                .map(story -> new StorySidebarItemResponse(
+                        story.getId(),
+                        story.getTitle(),
+                        story.getCoverUrl(),
+                        story.getAuthor() != null ? story.getAuthor().getAuthorPenName() : null,
+                        computeRatingAverage(story.getRatingSum(), story.getRatingCount()),
+                        story.getRatingCount(),
+                        story.getViewCount(),
+                        chapterCountMap.getOrDefault(story.getId(), 0L)
+                ))
+                .toList();
     }
 
     private StoryStatus resolveStatus(CreateStoryRequest req) {

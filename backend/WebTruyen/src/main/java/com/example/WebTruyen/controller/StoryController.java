@@ -15,6 +15,7 @@ import com.example.WebTruyen.dto.response.CreateVolumeResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
@@ -91,6 +92,7 @@ public class StoryController {
     public StoryResponse getPublicStory(@PathVariable Integer storyId) {
         return storyService.getPublishedStoryById(storyId);
     }
+
 
     @GetMapping("/stories/{storyId}/notify-status")
     public Map<String, Boolean> getNotifyStatus(
