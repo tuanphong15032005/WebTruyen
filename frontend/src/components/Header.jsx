@@ -171,6 +171,7 @@ function Header() {
                                 <Link to="/profile" style={dropdownItemStyle}>Hồ sơ cá nhân</Link>
                                 <Link to="/donation-history" style={dropdownItemStyle}>Lịch sử giao dịch</Link>
                                 <Link to="/author/comments" style={dropdownItemStyle}>Quản lý bình luận</Link>
+                                <Link to="/author/performance-analytics" style={dropdownItemStyle}>Báo cáo hiệu suất truyện</Link>
                                 <Link to="/admin/content-moderation" style={dropdownItemStyle}>Quản lý kiểm duyệt nội dung</Link>
                                 <Link to="/admin/violation-reports" style={dropdownItemStyle}>Quản lý báo cáo vi phạm</Link>
                                 <div style={{ borderTop: '1px solid #eee' }}></div>

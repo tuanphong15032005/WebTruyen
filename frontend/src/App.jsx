@@ -18,6 +18,7 @@ import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import CreateChapter from './pages/Author/CreateChapter';
 import CommentManagement from './pages/Author/CommentManagement';
+import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import './App.css';
@@ -40,6 +41,7 @@ function App() {
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
             <Route path='/author/comments' element={<CommentManagement />} />
+            <Route path='/author/performance-analytics' element={<PerformanceAnalytics />} />
             <Route path='/admin/content-moderation' element={<ContentModeration />} />
             <Route path='/admin/violation-reports' element={<ViolationReportManagement />} />
             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
