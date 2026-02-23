@@ -1,6 +1,8 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
+import com.example.WebTruyen.dto.response.StorySidebarItemResponse;
+import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
@@ -8,14 +10,17 @@ import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.keys.StoryTagId;
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.repository.LibraryEntryRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
@@ -33,6 +38,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +57,7 @@ public class StoryService {
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final FollowStoryRepository followStoryRepository;
+    private final LibraryEntryRepository libraryEntryRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
@@ -110,6 +117,46 @@ public class StoryService {
                 .toList();
 
         return toResponse(story, tagDtos, true);
+    }
+
+    // Muc dich: Tong hop du lieu sidebar metadata (thong tin them, truyen tuong tu, cung tac gia). Hieuson + 10h30
+    @Transactional
+    public StorySidebarResponse getPublicStorySidebar(Integer storyId) {
+        StoryEntity story = requirePublishedStoryById(storyId.longValue());
+
+        ChapterEntity latestChapter = chapterRepository
+                .findTopByVolume_Story_IdAndStatusOrderByVolume_SequenceIndexDescSequenceIndexDesc(
+                        story.getId(),
+                        ChapterStatus.published
+                )
+                .orElse(null);
+
+        Long latestChapterId = latestChapter != null ? latestChapter.getId() : null;
+        String latestChapterTitle = latestChapter != null ? latestChapter.getTitle() : null;
+        Long latestVolumeId = latestChapter != null && latestChapter.getVolume() != null
+                ? latestChapter.getVolume().getId()
+                : null;
+        String latestVolumeTitle = latestChapter != null && latestChapter.getVolume() != null
+                ? latestChapter.getVolume().getTitle()
+                : null;
+
+        long followerCount = storyRepository.countLibraryEntriesByStoryId(story.getId());
+        Integer weeklyRank = resolveWeeklyRank(story.getId());
+        BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
+
+        return new StorySidebarResponse(
+                story.getId(),
+                latestChapterId,
+                latestChapterTitle,
+                latestVolumeId,
+                latestVolumeTitle,
+                followerCount,
+                weeklyRank,
+                ratingAvg,
+                story.getRatingCount(),
+                resolveSimilarStories(story),
+                resolveSameAuthorStories(story)
+        );
     }
 
     @Transactional
@@ -187,6 +234,22 @@ public class StoryService {
     }
 
     @Transactional
+    public List<StoryResponse> getLibraryStories(UserEntity currentUser) {
+        List<StoryEntity> stories = storyRepository
+                .findLibraryStoriesByUserIdOrderByAddedAtDesc(currentUser.getId());
+        return stories.stream()
+                .map(story -> {
+                    List<TagDto> tagDtos = story.getStoryTags().stream()
+                            .map(StoryTagEntity::getTag)
+                            .filter(Objects::nonNull)
+                            .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
+                            .toList();
+                    return toResponse(story, tagDtos, false);
+                })
+                .toList();
+    }
+
+    @Transactional
     public boolean getNotifyNewChapterStatus(UserEntity currentUser, Long storyId) {
         if (currentUser == null) {
             return false;
@@ -214,6 +277,39 @@ public class StoryService {
 
         FollowStoryEntity saved = followStoryRepository.save(follow);
         return saved.isNotifyNewChapter();
+    }
+
+    @Transactional
+    public boolean getLibraryStatus(UserEntity currentUser, Long storyId) {
+        if (currentUser == null) {
+            return false;
+        }
+        requireStoryById(storyId);
+        return libraryEntryRepository
+                .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .isPresent();
+    }
+
+    @Transactional
+    public boolean toggleLibraryStatus(UserEntity currentUser, Long storyId) {
+        StoryEntity story = requireStoryById(storyId);
+        return libraryEntryRepository
+                .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .map(existing -> {
+                    libraryEntryRepository.delete(existing);
+                    return false;
+                })
+                .orElseGet(() -> {
+                    libraryEntryRepository.save(
+                            LibraryEntryEntity.builder()
+                                    .user(currentUser)
+                                    .story(story)
+                                    .favorite(false)
+                                    .addedAt(LocalDateTime.now())
+                                    .build()
+                    );
+                    return true;
+                });
     }
 
     @Transactional
@@ -309,6 +405,86 @@ public class StoryService {
         }
         return BigDecimal.valueOf(ratingSum)
                 .divide(BigDecimal.valueOf(ratingCount), 2, RoundingMode.HALF_UP);
+    }
+
+    // Muc dich: Quy doi StoryEntity sang item sidebar gon nhe cho FE. Hieuson + 10h30
+    private StorySidebarItemResponse toSidebarItemResponse(StoryEntity story) {
+        long chapterCount = chapterRepository.countByVolume_Story_IdAndStatus(
+                story.getId(),
+                ChapterStatus.published
+        );
+        String authorPenName = story.getAuthor() != null
+                ? story.getAuthor().getAuthorPenName()
+                : null;
+        return new StorySidebarItemResponse(
+                story.getId(),
+                story.getTitle(),
+                story.getCoverUrl(),
+                authorPenName,
+                computeRatingAverage(story.getRatingSum(), story.getRatingCount()),
+                story.getRatingCount(),
+                chapterCount
+        );
+    }
+
+    // Muc dich: Tinh xep hang theo luot xem trong danh sach truyen cong khai. Hieuson + 10h30
+    private Integer resolveWeeklyRank(Long storyId) {
+        List<Long> rankedStoryIds = storyRepository
+                .findStoryIdsByStatusOrderByViewCountDescCreatedAtDesc(StoryStatus.published);
+        for (int index = 0; index < rankedStoryIds.size(); index++) {
+            if (Objects.equals(rankedStoryIds.get(index), storyId)) {
+                return index + 1;
+            }
+        }
+        return null;
+    }
+
+    // Muc dich: Lay truyen tuong tu theo tag dau tien va tron ngau nhien de da dang sidebar. Hieuson + 10h30
+    private List<StorySidebarItemResponse> resolveSimilarStories(StoryEntity story) {
+        Long mainTagId = story.getStoryTags().stream()
+                .map(StoryTagEntity::getTag)
+                .filter(Objects::nonNull)
+                .map(TagEntity::getId)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+        if (mainTagId == null) {
+            return List.of();
+        }
+
+        List<StoryEntity> candidates = new ArrayList<>(
+                storyRepository.findPublishedByTagExcludingStory(
+                        StoryStatus.published,
+                        mainTagId,
+                        story.getId()
+                )
+        );
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        Collections.shuffle(candidates);
+        return candidates.stream()
+                .limit(4)
+                .map(this::toSidebarItemResponse)
+                .toList();
+    }
+
+    // Muc dich: Lay top truyen cung tac gia theo luot xem cho block sidebar. Hieuson + 10h30
+    private List<StorySidebarItemResponse> resolveSameAuthorStories(StoryEntity story) {
+        if (story.getAuthor() == null || story.getAuthor().getId() == null) {
+            return List.of();
+        }
+
+        List<StoryEntity> stories = storyRepository
+                .findTop3ByAuthor_IdAndStatusAndIdNotOrderByViewCountDescCreatedAtDesc(
+                        story.getAuthor().getId(),
+                        StoryStatus.published,
+                        story.getId()
+                );
+        return stories.stream()
+                .map(this::toSidebarItemResponse)
+                .toList();
     }
 
     private long countStoryWords(Long storyId, boolean publishedOnly) {

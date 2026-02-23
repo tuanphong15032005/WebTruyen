@@ -7,11 +7,13 @@ import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
+import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.CommentRepository;
+import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,6 +38,7 @@ public class CommentService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final CommentRepository commentRepository;
+    private final ReportRepository reportRepository;
 
     // =========================================================================
     // PHẦN 1: LOGIC TỪ NHÁNH author-create-content (API, DTO, Pagination)
@@ -153,6 +156,83 @@ public class CommentService {
         return toResponse(commentRepository.save(comment), List.of());
     }
 
+    @Transactional
+    public CommentResponse updateStoryComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long commentId,
+            CreateCommentRequest req
+    ) {
+        StoryEntity story = requirePublishedStory(storyId);
+        Integer targetStoryId = Math.toIntExact(story.getId());
+        CommentEntity comment = commentRepository
+                .findByIdAndStory_IdAndIsHiddenFalse(commentId, targetStoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        Long ownerId = comment.getUser() != null ? comment.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot edit this comment");
+        }
+
+        comment.setContent(normalizeContent(req));
+        return toResponse(commentRepository.save(comment), List.of());
+    }
+
+    @Transactional
+    public void deleteStoryComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long commentId
+    ) {
+        StoryEntity story = requirePublishedStory(storyId);
+        Integer targetStoryId = Math.toIntExact(story.getId());
+        CommentEntity comment = commentRepository
+                .findByIdAndStory_IdAndIsHiddenFalse(commentId, targetStoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        Long ownerId = comment.getUser() != null ? comment.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot delete this comment");
+        }
+
+        hideCommentSubtree(comment);
+    }
+
+    @Transactional
+    public void reportStoryComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long commentId,
+            String reason
+    ) {
+        StoryEntity story = requirePublishedStory(storyId);
+        Integer targetStoryId = Math.toIntExact(story.getId());
+        CommentEntity comment = commentRepository
+                .findByIdAndStory_IdAndIsHiddenFalse(commentId, targetStoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        String normalizedReason = reason == null || reason.isBlank()
+                ? "Bình luận không phù hợp"
+                : reason.trim();
+
+        ReportEntity report = ReportEntity.builder()
+                .reporter(currentUser)
+                .targetKind(ReportEntity.ReportTargetKind.comment)
+                .story(null)
+                .chapter(null)
+                .comment(comment)
+                .reason(normalizedReason)
+                .details(null)
+                .status(ReportEntity.ReportStatus.open)
+                .actionTakenBy(null)
+                .action(null)
+                .createdAt(LocalDateTime.now())
+                .resolvedAt(null)
+                .build();
+
+        reportRepository.save(report);
+    }
+
     // =========================================================================
     // PHẦN 2: LOGIC TỪ NHÁNH HEAD (Internal / Admin / Simple Operations)
     // =========================================================================
@@ -230,6 +310,16 @@ public class CommentService {
             return 0;
         }
         return parentComment.getDepth() + 1;
+    }
+
+    private void hideCommentSubtree(CommentEntity comment) {
+        comment.setIsHidden(true);
+        commentRepository.save(comment);
+
+        List<CommentEntity> children = commentRepository.findByParentComment_IdOrderByCreatedAtAsc(comment.getId());
+        for (CommentEntity child : children) {
+            hideCommentSubtree(child);
+        }
     }
 
     private StoryEntity requirePublishedStory(Integer storyId) {

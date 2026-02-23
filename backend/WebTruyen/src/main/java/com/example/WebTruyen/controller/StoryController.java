@@ -12,6 +12,7 @@ import com.example.WebTruyen.dto.response.CreateVolumeResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
@@ -72,6 +73,12 @@ public class StoryController {
         return storyService.getPublishedStoryById(storyId);
     }
 
+    // Muc dich: Endpoint tra du lieu sidebar cho trang story metadata reader. Hieuson + 10h30
+    @GetMapping("/public/stories/{storyId}/sidebar")
+    public StorySidebarResponse getPublicStorySidebar(@PathVariable Integer storyId) {
+        return storyService.getPublicStorySidebar(storyId);
+    }
+
     @GetMapping("/public/stories")
     public java.util.List<StoryResponse> getPublicStories(
             @RequestParam(defaultValue = "0") Integer page,
@@ -87,6 +94,14 @@ public class StoryController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return storyService.getStoriesByAuthor(currentUser);
+    }
+
+    @GetMapping("/stories/library")
+    public java.util.List<StoryResponse> getLibraryStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getLibraryStories(currentUser);
     }
 
     @GetMapping("/stories/{storyId}/notify-status")
@@ -107,6 +122,26 @@ public class StoryController {
         UserEntity currentUser = requireUser(userPrincipal);
         boolean enabled = storyService.toggleNotifyNewChapter(currentUser, storyId);
         return Map.of("enabled", enabled);
+    }
+
+    @GetMapping("/stories/{storyId}/library-status")
+    public Map<String, Boolean> getLibraryStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        boolean saved = storyService.getLibraryStatus(currentUser, storyId);
+        return Map.of("saved", saved);
+    }
+
+    @PostMapping("/stories/{storyId}/library/toggle")
+    public Map<String, Boolean> toggleLibraryStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        boolean saved = storyService.toggleLibraryStatus(currentUser, storyId);
+        return Map.of("saved", saved);
     }
 
     // C?p nh?t truy?n theo id
@@ -171,6 +206,41 @@ public class StoryController {
         return commentService.createStoryComment(currentUser, storyId, req);
     }
 
+    @PutMapping(value = "/stories/{storyId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse updateStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.updateStoryComment(currentUser, storyId, commentId, req);
+    }
+
+    @DeleteMapping("/stories/{storyId}/comments/{commentId}")
+    public Map<String, Boolean> deleteStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteStoryComment(currentUser, storyId, commentId);
+        return Map.of("deleted", true);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/comments/{commentId}/report", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Boolean> reportStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @RequestBody(required = false) Map<String, String> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String reason = payload != null ? payload.getOrDefault("reason", "") : "";
+        commentService.reportStoryComment(currentUser, storyId, commentId, reason);
+        return Map.of("reported", true);
+    }
+
     @GetMapping("/public/stories/{storyId}/chapters/{chapterId}/comments")
     public PagedResponse<CommentResponse> getPublicChapterComments(
             @PathVariable Integer storyId,
@@ -230,7 +300,7 @@ public class StoryController {
         UserEntity currentUser = requireUser(userPrincipal);
         return chapterService.updateChapterFromHtml(currentUser, storyId, volumeId, chapterId, req);
     }
-
+    
     @GetMapping("/stories/{storyId}/chapters/{chapterId}/content")
     public Map<String, Object> getChapterContent(
             @PathVariable Long storyId,

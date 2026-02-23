@@ -27,6 +27,8 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
     Optional<CommentEntity> findByIdAndChapter_IdAndIsHiddenFalse(Long id, Long chapterId);
 
     Optional<CommentEntity> findByIdAndStory_IdAndIsHiddenFalse(Long id, Integer storyId);
+
+    List<CommentEntity> findByParentComment_IdOrderByCreatedAtAsc(Long parentCommentId);
     
     List<CommentEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
 

@@ -38,6 +38,15 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     @Query("select max(c.lastUpdateAt) from ChapterEntity c where c.volume.story.id = :storyId")
     LocalDateTime findLatestUpdateAtByStoryId(@Param("storyId") Long storyId);
 
+    // Muc dich: Lay chuong moi nhat cua tap moi nhat cho sidebar metadata. Hieuson + 10h30
+    Optional<ChapterEntity> findTopByVolume_Story_IdAndStatusOrderByVolume_SequenceIndexDescSequenceIndexDesc(
+            Long storyId,
+            ChapterStatus status
+    );
+
+    // Muc dich: Dem tong so chuong cong khai cua mot truyen (hien thi "Cung tac gia"). Hieuson + 10h30
+    long countByVolume_Story_IdAndStatus(Long storyId, ChapterStatus status);
+
     @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.id = :storyId ORDER BY c.sequenceIndex")
     List<ChapterEntity> findByStoryId(@Param("storyId") Long storyId);
 
