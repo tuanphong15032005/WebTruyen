@@ -11,6 +11,7 @@ public interface ReportRepository extends JpaRepository<ReportEntity, Long> {
     long countByComment_IdAndStatusIn(Long commentId, List<ReportEntity.ReportStatus> statuses);
 
     List<ReportEntity> findByStatusInOrderByCreatedAtDesc(List<ReportEntity.ReportStatus> statuses);
+    List<ReportEntity> findAllByOrderByCreatedAtDesc();
 
     long deleteByStory_Id(Long storyId);
 

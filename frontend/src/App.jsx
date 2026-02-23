@@ -19,6 +19,7 @@ import ChapterPage from './pages/ChapterPage';
 import CreateChapter from './pages/Author/CreateChapter';
 import CommentManagement from './pages/Author/CommentManagement';
 import ContentModeration from './pages/Admin/ContentModeration';
+import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import './App.css';
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
             <Route path='/author/comments' element={<CommentManagement />} />
             <Route path='/admin/content-moderation' element={<ContentModeration />} />
+            <Route path='/admin/violation-reports' element={<ViolationReportManagement />} />
             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
             <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
             <Route path='/stories/:storyId/chapters/:chapterId' element={<ChapterPage />} />
