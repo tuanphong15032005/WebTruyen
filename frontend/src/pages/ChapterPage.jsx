@@ -198,7 +198,7 @@ const SidePanel = ({
           {mode === 'chapters' ? (
             <div className="chapters-list">
               {chapters.map((ch) => {
-                const locked = !ch.free && ch.status !== 'PUBLISHED';
+                const locked = !ch.free;
                 return (
                   <div
                     key={ch.id}
@@ -464,6 +464,21 @@ const ChapterPage = () => {
   const { chapterId, chapter, allChapters, loading, error, navigateToChapter, refreshChapter } =
     useChapter(initialId);
 
+  // Create a manual refresh function to force chapter update
+  const forceRefreshChapter = async () => {
+    try {
+      const { getChapterDetail } = await import('../services/chapterService');
+      const updatedChapter = await getChapterDetail(chapterId);
+      // Manually update chapter state to trigger re-render
+      if (updatedChapter) {
+        // This will trigger a re-render with the updated chapter data
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Force refresh failed:', error);
+    }
+  };
+
   const { bookmarks, toggleBookmark, removeBookmark } = useBookmarks(chapterId);
   const { wallet, refreshWallet } = useContext(WalletContext);
 
@@ -505,7 +520,7 @@ const ChapterPage = () => {
 
   const sentences = buildSentences(chapter?.segments);
 
-  const isLocked = chapter && !chapter.free && chapter.status !== 'published';
+  const isLocked = chapter && !chapter.free;
 
   const handleSentenceClick = (index) => {
     setSelectedIndex(selectedIndex === index ? null : index);
@@ -565,10 +580,12 @@ const ChapterPage = () => {
         setShowPurchaseModal(false);
         setShowSuccessModal(true);
 
-        // Reload page after a short delay to show updated content
-        // (Hoặc có thể cập nhật state chapter tại đây để mở khóa ngay mà không cần reload)
+        // Refresh chapter immediately to unlock
+        await forceRefreshChapter();
+        
+        // Close success modal after showing and refresh again to ensure data is updated
         setTimeout(() => {
-          // Refresh chapter để mở khóa ngay lập tức
+          setShowSuccessModal(false);
           refreshChapter();
         }, 2000);
       } else {

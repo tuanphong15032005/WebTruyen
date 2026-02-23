@@ -9,9 +9,6 @@ const BASE_URL =
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // ==========================
@@ -50,6 +47,7 @@ api.interceptors.request.use(
 // ==========================
 // RESPONSE INTERCEPTOR
 // ==========================
+
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {

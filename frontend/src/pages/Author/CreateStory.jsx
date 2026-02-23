@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -60,25 +60,33 @@ const CreateStory = () => {
   }, [coverFile]);
 
   useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const response = await storyService.getTags();
-        const raw = response?.data?.data || response?.data || [];
-        const list = Array.isArray(raw) ? raw : [];
-        const normalized = list
-          .filter((tag) => tag && tag.id != null)
-          .map((tag) => ({
-            value: String(tag.id),
-            label: tag.name || String(tag.id),
-          }));
-        setTags(normalized);
-      } catch (error) {
-        console.error('getTags error', error);
-        notify('Không tải được danh sách thể loại', 'error');
-      }
-    };
-    fetchTags();
-  }, [notify]);
+      const fetchTags = async () => {
+        try {
+          const response = await storyService.getTags();
+          console.log("Tags API response:", response);
+
+          // API trả về array trực tiếp, không cần response.data
+          const raw = Array.isArray(response) ? response : [];
+          const list = raw.filter((tag) => tag && tag.id != null);
+          const normalized = list
+            .map((tag) => ({
+              value: String(tag.id),
+              label: tag.name || tag.title || String(tag.id),
+            }));
+
+          console.log("Normalized tags:", normalized);
+          setTags(normalized);
+
+          if (normalized.length === 0) {
+            notify('Không tải được danh sách thể loại. Vui lòng thử lại.', 'error');
+          }
+        } catch (error) {
+          console.error('getTags error', error);
+          notify('Không tải được danh sách thể loại', 'error');
+        }
+      };
+      fetchTags();
+    }, [notify]);
 
   useEffect(() => {
     if (!storyId) return;
@@ -204,7 +212,7 @@ const CreateStory = () => {
         ? await storyService.updateStory(storyId, formData)
         : await storyService.createStory(formData);
 
-      const nextStoryId = response?.data?.id || response?.data?.storyId || storyId;
+      const nextStoryId = response?.id || response?.storyId || storyId;
       if (nextStoryId) {
         notify(
           isEditing ? 'Cập nhật truyện thành công' : 'Tạo truyện thành công',
@@ -216,7 +224,20 @@ const CreateStory = () => {
       }
     } catch (error) {
       console.error('saveStory error', error);
-      notify('Không thể lưu truyện. Vui lòng thử lại.', 'error');
+      // Extract meaningful error message
+      let errorMessage = 'Không thể lưu truyện. Vui lòng thử lại.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data) {
+        errorMessage = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : JSON.stringify(error.response.data);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      notify(errorMessage, 'error');
     } finally {
       setLoading(false);
     }

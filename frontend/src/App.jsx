@@ -18,6 +18,11 @@ import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
+import TagsDebug from './debug/TagsDebug';
+import AuthDebug from './debug/AuthDebug';
+import RequestDebug from './debug/RequestDebug';
+import TokenDebug from './debug/TokenDebug';
+import ResponseDebug from './debug/ResponseDebug';
 function App() {
   return (
     <MainLayout>
@@ -32,9 +37,9 @@ function App() {
             <Route path="/wallet/confirmation/:id" element={<PaymentConfirmationPage />} />
             <Route path="/donation-history" element={<CoinTransactionHistoryPage />} />
             <Route path="/profile" element={<UserProfile />} />
-            <Route path="/manage-stories" element={<ManageStories />} />
             <Route path="/authordashboard" element={<AuthorDashboard />} />
 
+            <Route path='/author/my-stories' element={<ManageStories />} />
             <Route path='/author/create-story' element={<CreateStory />} />
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
@@ -45,6 +50,11 @@ function App() {
               path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
               element={<CreateChapter />}
             />
+            <Route path="/debug/tags" element={<TagsDebug />} />
+            <Route path="/debug/auth" element={<AuthDebug />} />
+            <Route path="/debug/request" element={<RequestDebug />} />
+            <Route path="/debug/token" element={<TokenDebug />} />
+            <Route path="/debug/response" element={<ResponseDebug />} />
         </Routes>
     </MainLayout>
   );

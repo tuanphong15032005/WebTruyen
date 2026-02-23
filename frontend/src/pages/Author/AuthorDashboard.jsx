@@ -14,10 +14,11 @@ const AuthorDashboard = () => {
         >
           Tạo truyện mới hoàn toàn
         </Button>
-        <Button 
-          onClick={() => navigate('')}
+        {/* Sửa đường dẫn ở đây để đến trang danh sách truyện */}
+        <Button
+          onClick={() => navigate('/author/my-stories')}
         >
-          Sửa nội dung truyện cũ, thêm sửa xóa volume và chương
+          Quản lý truyện đã đăng
         </Button>
       </div>
     </div>

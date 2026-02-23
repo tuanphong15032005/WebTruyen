@@ -114,10 +114,11 @@ public class WalletService {
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
 
-        // Unlock the chapter by setting status to published
+        // Unlock the chapter by setting status to published and free to true
         ChapterEntity chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
         chapter.setStatus(ChapterStatus.published);
+        chapter.setFree(true); // User has purchased, so chapter is now free for them
         chapterRepository.save(chapter);
         
         // Return response

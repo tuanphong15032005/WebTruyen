@@ -13,7 +13,7 @@ const ManageStories = () => {
     const fetchStories = async () => {
       try {
         const response = await storyService.getMyStories();
-        setStories(response.data);
+        setStories(Array.isArray(response) ? response : []);
       } catch (error) {
         notify('Error fetching stories', 'error');
       } finally {

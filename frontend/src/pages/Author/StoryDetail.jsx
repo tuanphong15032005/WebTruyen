@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Link,
   useNavigate,
@@ -95,7 +95,7 @@ const StoryDetail = () => {
     try {
       setLoadingStory(true);
       const response = await storyService.getStory(storyId);
-      setStory(response?.data || null);
+      setStory(response || null);
     } catch (error) {
       console.error('getStory error', error);
       notify('Không tải được thông tin truyện', 'error');
@@ -108,7 +108,7 @@ const StoryDetail = () => {
     try {
       setLoadingVolumes(true);
       const response = await storyService.getVolumes(storyId);
-      const list = Array.isArray(response?.data) ? response.data : [];
+      const list = Array.isArray(response) ? response : [];
       setVolumes(list);
     } catch (error) {
       console.error('getVolumes error', error);
