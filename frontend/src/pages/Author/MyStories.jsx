@@ -12,11 +12,11 @@ const MyStories = () => {
     const fetchStories = async () => {
       try {
         const response = await storyService.getMyStories();
-        // Kiểm tra log xem dữ liệu trả về dạng nào: response.data hay response.data.data
+        // Kiểm tra log xem dữ liệu trả về dạng nào
         console.log('API Response:', response);
 
-        // Giả sử API trả về mảng trực tiếp trong response.data
-        setStories(response.data || []);
+        // API service đã unwrap response.data ở interceptor
+        setStories(response || []);
       } catch (error) {
         console.error("Lỗi gọi API:", error);
       }

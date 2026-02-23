@@ -8,7 +8,7 @@ const uploadService = {
     const response = await api.post("/uploads/image", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    return response?.data?.url;
+    return response?.url;
   },
 };
 

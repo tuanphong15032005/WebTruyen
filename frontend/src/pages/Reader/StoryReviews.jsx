@@ -55,12 +55,12 @@ const StoryReviews = () => {
         page: pageIndex,
         size: PAGE_SIZE,
       });
-      const items = Array.isArray(response?.data?.items)
-        ? response.data.items
+      const items = Array.isArray(response?.items)
+        ? response.items
         : [];
       setReviews((prev) => (append ? [...prev, ...items] : items));
-      setPage(Number(response?.data?.page || pageIndex));
-      setHasMore(Boolean(response?.data?.hasMore));
+      setPage(Number(response?.page || pageIndex));
+      setHasMore(Boolean(response?.hasMore));
     },
     [storyId],
   );
@@ -69,7 +69,7 @@ const StoryReviews = () => {
     try {
       setLoading(true);
       const storyRes = await storyService.getPublicStory(storyId);
-      setStory(storyRes?.data || null);
+      setStory(storyRes || null);
       await fetchReviewsPage(0, false);
     } catch (error) {
       console.error('fetch story reviews page error', error);

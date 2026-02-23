@@ -27,10 +27,10 @@ const CreateVolume = ({ storyId, onCreated, onCancel }) => {
         title: title.trim(),
       };
       const response = await storyService.createVolume(storyId, payload);
-      const volumeId = response?.data?.id || response?.data?.volumeId;
+      const volumeId = response?.id || response?.volumeId;
       notify('Tạo volume thành công', 'success');
       setTitle('');
-      onCreated?.(volumeId || response?.data);
+      onCreated?.(volumeId || response);
     } catch (error) {
       console.error('createVolume error', error);
       notify('Không thể tạo volume. Vui lòng thử lại.', 'error');
@@ -40,7 +40,10 @@ const CreateVolume = ({ storyId, onCreated, onCancel }) => {
   };
 
   return (
-    <form className='card form story-detail__volume-form' onSubmit={handleSubmit}>
+    <form
+      className='card form story-detail__volume-form'
+      onSubmit={handleSubmit}
+    >
       <h3>Tạo tập mới</h3>
       <Input
         label='Tên tập'
