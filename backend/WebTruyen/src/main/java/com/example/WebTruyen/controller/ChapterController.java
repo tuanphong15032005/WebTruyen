@@ -2,10 +2,12 @@ package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
+import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -19,10 +21,13 @@ public class ChapterController {
     private final ChapterService chapterService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<ChapterDetailResponse> getChapterDetail(@PathVariable Long id) {
+    public ResponseEntity<ChapterDetailResponse> getChapterDetail(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
         log.info("Getting chapter detail for chapter ID: {}", id);
         
-        ChapterDetailResponse response = chapterService.getChapterDetail(id);
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null) ? userPrincipal.getUser().getId() : null;
+        ChapterDetailResponse response = chapterService.getChapterDetail(id, userId);
         
         return ResponseEntity.ok(response);
     }

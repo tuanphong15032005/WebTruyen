@@ -2,10 +2,13 @@ package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.response.WalletResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.enums.CoinType;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
+import com.example.WebTruyen.entity.model.Payment.ChapterUnlockEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
+import com.example.WebTruyen.repository.ChapterUnlockRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +32,9 @@ public class WalletService {
 
     @Autowired
     private ChapterRepository chapterRepository;
+
+    @Autowired
+    private ChapterUnlockRepository chapterUnlockRepository;
 
     public WalletResponse getWallet(Long userId) {
         WalletEntity wallet = walletRepository.findById(userId)
@@ -88,6 +94,16 @@ public class WalletService {
     }
 
     public Map<String, Object> purchaseChapter(Long userId, Long chapterPrice, Long chapterId) {
+        // Verify chapter exists first
+        ChapterEntity chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+
+        // Check if chapter is already unlocked BEFORE deducting coins
+        if (chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Chương này đã được mua rồi");
+        }
+
         WalletEntity wallet = getOrCreateWalletEntity(userId);
         
         // Check if user has enough coins (prefer coin A first, then coin B)
@@ -114,12 +130,19 @@ public class WalletService {
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
 
-        // Unlock the chapter by setting status to published and free to true
-        ChapterEntity chapter = chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
-        chapter.setStatus(ChapterStatus.published);
-        chapter.setFree(true); // User has purchased, so chapter is now free for them
-        chapterRepository.save(chapter);
+        // Create chapter unlock record
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
+        ChapterUnlockEntity unlock = ChapterUnlockEntity.builder()
+                .user(user)
+                .chapter(chapter)
+                .paidCoin(deductFromA > 0 ? CoinType.A : CoinType.B)
+                .coinCost(chapterPrice)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        chapterUnlockRepository.save(unlock);
         
         // Return response
         Map<String, Object> response = new HashMap<>();

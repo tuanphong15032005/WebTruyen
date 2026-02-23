@@ -161,12 +161,6 @@ public class ChapterServiceImpl implements ChapterService {
 
         ChapterEntity chapter = getChapterById(chapterId);
 
-        // Check if chapter is unlocked for the user
-        boolean isUnlocked = chapter.isFree();
-        if (!isUnlocked && userId != null) {
-            isUnlocked = chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
-        }
-
         List<ChapterSegmentEntity> segments =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapterId);
 
@@ -185,7 +179,6 @@ public class ChapterServiceImpl implements ChapterService {
                 .volumeId(chapter.getVolume().getId())
                 .title(chapter.getTitle())
                 .free(chapter.isFree())
-                .unlocked(isUnlocked)
                 .priceCoin(chapter.getPriceCoin())
                 .status(chapter.getStatus())
                 .sequenceIndex(chapter.getSequenceIndex())

@@ -49,6 +49,7 @@ public class WalletController {
 
         Long chapterPrice = request.get("chapterPrice");
         Long chapterId = request.get("chapterId");
+        
         if (chapterPrice == null || chapterPrice <= 0) {
             return ResponseEntity.badRequest().body("Invalid chapter price");
         }

@@ -19,11 +19,7 @@ import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
-import TagsDebug from './debug/TagsDebug';
-import AuthDebug from './debug/AuthDebug';
-import RequestDebug from './debug/RequestDebug';
-import TokenDebug from './debug/TokenDebug';
-import ResponseDebug from './debug/ResponseDebug';
+
 function App() {
   return (
     <MainLayout>
@@ -45,7 +41,6 @@ function App() {
         />
         <Route path='/profile' element={<UserProfile />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
-
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
         <Route path='/library' element={<LibraryStories />} />

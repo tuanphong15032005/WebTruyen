@@ -20,6 +20,7 @@ public class ChapterDetailResponse {
     private Long volumeId;
     private String title;
     private Boolean free;
+    private Boolean unlocked;
     private Long priceCoin;
     private ChapterStatus status;
     private Integer sequenceIndex;

@@ -38,7 +38,7 @@ public interface ChapterService {
     Map<String, Object> getChapterContent(Long chapterId);
 
     // ===== Chapter Reader Page (ChapterPage branch) =====
-    ChapterDetailResponse getChapterDetail(Long chapterId);
+    ChapterDetailResponse getChapterDetail(Long chapterId, Long userId);
     Long getNextChapterId(Long chapterId);
     Long getPreviousChapterId(Long chapterId);
 }

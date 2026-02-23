@@ -519,8 +519,22 @@ const ChapterPage = () => {
   }, [chapterId]);
 
   const sentences = buildSentences(chapter?.segments);
+  
+  // Debug chapter data
+  useEffect(() => {
+    if (chapter) {
+      console.log('Chapter data:', {
+        id: chapter.id,
+        title: chapter.title,
+        priceCoin: chapter.priceCoin,
+        free: chapter.free,
+        unlocked: chapter.unlocked,
+        status: chapter.status
+      });
+    }
+  }, [chapter]);
 
-  const isLocked = chapter && !chapter.free;
+  const isLocked = chapter && !chapter.free && !chapter.unlocked;
 
   const handleSentenceClick = (index) => {
     setSelectedIndex(selectedIndex === index ? null : index);
@@ -562,9 +576,43 @@ const ChapterPage = () => {
 
   // Logic gọi API mua chương (được gọi từ PurchaseConfirmationModal)
   const handleConfirmPurchase = async () => {
-    if (!chapter || !chapter.priceCoin) return;
+    if (!chapter) return;
+    
+    // Check if chapter is free - shouldn't happen but just in case
+    if (chapter.free) {
+      setPurchaseError('Chương này miễn phí, không cần mua.');
+      setShowPurchaseModal(false);
+      setShowErrorModal(true);
+      return;
+    }
+    
+    if (!chapter.priceCoin) {
+      setPurchaseError('Chương này không có giá. Vui lòng tải lại trang.');
+      setShowPurchaseModal(false);
+      setShowErrorModal(true);
+      return;
+    }
 
     const chapterPrice = chapter.priceCoin;
+    
+    // Validate chapterId before making API call
+    if (!chapterId || chapterId <= 0) {
+      console.error('Invalid chapterId:', chapterId);
+      setPurchaseError('ID chương không hợp lệ. Vui lòng tải lại trang.');
+      setShowPurchaseModal(false);
+      setShowErrorModal(true);
+      return;
+    }
+    
+    // Validate chapterPrice
+    if (!chapterPrice || chapterPrice <= 0) {
+      console.error('Invalid chapterPrice:', chapterPrice);
+      setPurchaseError('Giá chương không hợp lệ. Vui lòng tải lại trang.');
+      setShowPurchaseModal(false);
+      setShowErrorModal(true);
+      return;
+    }
+
     setPurchaseLoading(true);
 
     try {
@@ -595,7 +643,24 @@ const ChapterPage = () => {
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      const errorMessage = error.response?.data || error.message || 'Không thể mua chương. Vui lòng thử lại.';
+      
+      let errorMessage = 'Không thể mua chương. Vui lòng thử lại.';
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData?.message || errorData?.error) {
+          errorMessage = errorData.message || errorData.error;
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setPurchaseError(errorMessage);
       setShowPurchaseModal(false);
       setShowErrorModal(true);
