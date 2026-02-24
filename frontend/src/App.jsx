@@ -57,11 +57,6 @@ function App() {
           path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}
         />
-        <Route path='/debug/tags' element={<TagsDebug />} />
-        <Route path='/debug/auth' element={<AuthDebug />} />
-        <Route path='/debug/request' element={<RequestDebug />} />
-        <Route path='/debug/token' element={<TokenDebug />} />
-        <Route path='/debug/response' element={<ResponseDebug />} />
       </Routes>
     </MainLayout>
   );

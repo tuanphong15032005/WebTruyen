@@ -489,9 +489,12 @@ const CreateChapter = () => {
           } else {
             setTimeout(setEditorContent, 500);
           }
-        } else if (quill) {
-          quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
-          setContent(data.fullHtml || '');
+        };
+        
+        if (quillRef.current?.getEditor()) {
+          setEditorContent();
+        } else {
+          setTimeout(setEditorContent, 500);
         }
         dirtyRef.current = false;
       } catch (error) {

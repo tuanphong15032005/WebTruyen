@@ -33,15 +33,30 @@ import PurchaseErrorModal from '../components/PurchaseErrorModal';
  * để bookmark đúng theo API.
  */
 
+const stripHtml = (html) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+};
+
 const buildSentences = (segments = []) => {
   const result = [];
+
   segments.forEach((seg) => {
-    const raw = seg.segmentText || '';
-    const parts = raw.match(/[^.!?]+[.!?]+/g) || [raw];
-    parts.forEach((text, i) =>
-      result.push({ text, segmentId: seg.id, partIndex: i })
-    );
+    // 1. Strip HTML trước
+    const cleanText = stripHtml(seg.segmentText || '');
+
+    // 2. Sau đó mới tách câu
+    const parts = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+
+    parts.forEach((text, i) => {
+      result.push({
+        text,
+        segmentId: seg.id,
+        partIndex: i,
+      });
+    });
   });
+
   return result;
 };
 
