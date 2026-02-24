@@ -3,12 +3,15 @@ package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.response.WalletResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.CoinType;
+import com.example.WebTruyen.entity.enums.LedgerReason;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
 import com.example.WebTruyen.entity.model.Payment.ChapterUnlockEntity;
+import com.example.WebTruyen.entity.model.Payment.LedgerEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
+import com.example.WebTruyen.repository.LedgerEntryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,9 @@ public class WalletService {
 
     @Autowired
     private ChapterUnlockRepository chapterUnlockRepository;
+
+    @Autowired
+    private LedgerEntryRepository ledgerEntryRepository;
 
     public WalletResponse getWallet(Long userId) {
         WalletEntity wallet = walletRepository.findById(userId)
@@ -144,6 +150,16 @@ public class WalletService {
         
         chapterUnlockRepository.save(unlock);
         
+        // Create ledger entries for the transaction
+        if (deductFromA > 0) {
+            createLedgerEntry(userId, CoinType.A, -deductFromA, LedgerReason.SPEND_CHAPTER, 
+                "CHAPTER", chapterId, "Mua chương " + chapter.getTitle());
+        }
+        if (deductFromB > 0) {
+            createLedgerEntry(userId, CoinType.B, -deductFromB, LedgerReason.SPEND_CHAPTER, 
+                "CHAPTER", chapterId, "Mua chương " + chapter.getTitle());
+        }
+        
         // Return response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -156,5 +172,28 @@ public class WalletService {
         response.put("message", "Mua chương thành công!");
         
         return response;
+    }
+
+    private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
+                                  LedgerReason reason, String refType, Long refId, String description) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
+        String idempotencyKey = String.format("SPEND_CHAPTER_%d_%d_%s", userId, refId, coinType);
+        
+        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey)) {
+            LedgerEntryEntity entry = LedgerEntryEntity.builder()
+                    .user(user)
+                    .coin(coinType)
+                    .delta(delta)
+                    .reason(reason)
+                    .refType(refType)
+                    .refId(refId)
+                    .idempotencyKey(idempotencyKey)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            
+            ledgerEntryRepository.save(entry);
+        }
     }
 }

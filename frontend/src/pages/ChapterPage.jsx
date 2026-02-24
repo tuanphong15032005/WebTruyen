@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,7 @@ import {
   Trash2,
   Check,
 } from 'lucide-react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import useChapter from '../hooks/useChapter';
 import useComments from '../hooks/useComments';
@@ -453,16 +453,27 @@ const CommentsSection = ({ chapterId }) => {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-const INITIAL_CHAPTER_ID = 1; // fallback nếu không có query param
+const INITIAL_CHAPTER_ID = 1; // fallback nếu không có path parameter
 
 const ChapterPage = () => {
-  const [searchParams] = useSearchParams();
+  const { chapterId: chapterIdFromParams, storyId } = useParams();
   const navigate = useNavigate();
 
-  const initialId = Number(searchParams.get('chapterId')) || INITIAL_CHAPTER_ID;
+  console.log('ChapterPage params:', { chapterIdFromParams, storyId });
 
-  const { chapterId, chapter, allChapters, loading, error, navigateToChapter, refreshChapter } =
+  const initialId = Number(chapterIdFromParams) || INITIAL_CHAPTER_ID;
+
+  const { chapterId, chapter, allChapters, loading, error, refreshChapter } =
     useChapter(initialId);
+
+  // Force re-fetch when URL params change
+  useEffect(() => {
+    console.log('ChapterPage: chapterIdFromParams changed to', chapterIdFromParams, 'current chapterId:', chapterId);
+    if (chapterIdFromParams && Number(chapterIdFromParams) !== chapterId) {
+      console.log('URL chapterId differs from hook chapterId, reloading page');
+      window.location.reload();
+    }
+  }, [chapterIdFromParams, chapterId]);
 
   // Create a manual refresh function to force chapter update
   const forceRefreshChapter = async () => {
@@ -512,11 +523,10 @@ const ChapterPage = () => {
 
   // Sync chapterId vào URL để share link hoạt động
   useEffect(() => {
-    const current = Number(searchParams.get('chapterId'));
-    if (current !== chapterId) {
-      navigate(`?chapterId=${chapterId}`, { replace: true });
+    if (storyId && chapterId && Number(chapterIdFromParams) !== chapterId) {
+      navigate(`/stories/${storyId}/chapters/${chapterId}`, { replace: true });
     }
-  }, [chapterId]);
+  }, [chapterId, chapterIdFromParams, storyId, navigate]);
 
   const sentences = buildSentences(chapter?.segments);
   
@@ -529,12 +539,79 @@ const ChapterPage = () => {
         priceCoin: chapter.priceCoin,
         free: chapter.free,
         unlocked: chapter.unlocked,
-        status: chapter.status
+        status: chapter.status,
+        nextChapterId: chapter.nextChapterId,
+        previousChapterId: chapter.previousChapterId,
+        sequenceIndex: chapter.sequenceIndex
       });
     }
   }, [chapter]);
 
+  // Debug allChapters
+  useEffect(() => {
+    console.log('All chapters:', allChapters.map(ch => ({
+      id: ch.id,
+      title: ch.title,
+      sequenceIndex: ch.sequenceIndex
+    })));
+  }, [allChapters]);
+
   const isLocked = chapter && !chapter.free && !chapter.unlocked;
+
+  // Calculate next/previous chapter from allChapters if backend doesn't provide them
+  const nextChapterId = useMemo(() => {
+    console.log('Calculating nextChapterId...');
+    console.log('chapter.nextChapterId:', chapter?.nextChapterId);
+    
+    if (chapter?.nextChapterId) {
+      console.log('Using backend nextChapterId:', chapter.nextChapterId);
+      return chapter.nextChapterId;
+    }
+    
+    // Fallback: calculate from allChapters
+    console.log('Calculating from allChapters...');
+    console.log('Current chapter ID:', chapter?.id);
+    console.log('All chapters:', allChapters);
+    
+    const currentIndex = allChapters.findIndex(ch => ch.id === chapter?.id);
+    console.log('Current index in allChapters:', currentIndex);
+    
+    if (currentIndex !== -1 && currentIndex < allChapters.length - 1) {
+      const nextId = allChapters[currentIndex + 1].id;
+      console.log('Next chapter ID from allChapters:', nextId);
+      return nextId;
+    }
+    
+    console.log('No next chapter found');
+    return null;
+  }, [chapter?.nextChapterId, chapter?.id, allChapters]);
+
+  const previousChapterId = useMemo(() => {
+    console.log('Calculating previousChapterId...');
+    console.log('chapter.previousChapterId:', chapter?.previousChapterId);
+    
+    if (chapter?.previousChapterId) {
+      console.log('Using backend previousChapterId:', chapter.previousChapterId);
+      return chapter.previousChapterId;
+    }
+    
+    // Fallback: calculate from allChapters
+    console.log('Calculating from allChapters...');
+    console.log('Current chapter ID:', chapter?.id);
+    console.log('All chapters:', allChapters);
+    
+    const currentIndex = allChapters.findIndex(ch => ch.id === chapter?.id);
+    console.log('Current index in allChapters:', currentIndex);
+    
+    if (currentIndex > 0) {
+      const prevId = allChapters[currentIndex - 1].id;
+      console.log('Previous chapter ID from allChapters:', prevId);
+      return prevId;
+    }
+    
+    console.log('No previous chapter found');
+    return null;
+  }, [chapter?.previousChapterId, chapter?.id, allChapters]);
 
   const handleSentenceClick = (index) => {
     setSelectedIndex(selectedIndex === index ? null : index);
@@ -550,6 +627,18 @@ const ChapterPage = () => {
   const handleOpenSidePanel = (mode) => {
     setSidePanelMode(mode);
     setShowSidePanel(true);
+  };
+
+  // Handle navigation to chapter with proper URL
+  const handleNavigateToChapter = (chapterId) => {
+    console.log('handleNavigateToChapter called with:', chapterId, 'storyId:', storyId);
+    if (storyId) {
+      const newUrl = `/stories/${storyId}/chapters/${chapterId}`;
+      console.log('Navigating to:', newUrl);
+      navigate(newUrl);
+    } else {
+      console.error('storyId is undefined, cannot navigate');
+    }
   };
 
   // Logic mở Modal xác nhận mua chương
@@ -728,14 +817,14 @@ const ChapterPage = () => {
     >
       {/* Vertical Toolbar */}
       <VerticalToolbar
-        onPrevChapter={() => chapter.previousChapterId && navigateToChapter(chapter.previousChapterId)}
-        onNextChapter={() => chapter.nextChapterId && navigateToChapter(chapter.nextChapterId)}
+        onPrevChapter={() => previousChapterId && handleNavigateToChapter(previousChapterId)}
+        onNextChapter={() => nextChapterId && handleNavigateToChapter(nextChapterId)}
         onHome={() => navigate('/')}
         onSettings={() => setShowSettings(true)}
         onInfo={() => handleOpenSidePanel('chapters')}
         onBookmarks={() => handleOpenSidePanel('bookmarks')}
-        hasPrev={!!chapter.previousChapterId}
-        hasNext={!!chapter.nextChapterId}
+        hasPrev={!!previousChapterId}
+        hasNext={!!nextChapterId}
       />
 
       {/* Main Content */}
@@ -774,16 +863,16 @@ const ChapterPage = () => {
             <div className="chapter-navigation">
               <button
                 className="nav-btn prev"
-                onClick={() => chapter.previousChapterId && navigateToChapter(chapter.previousChapterId)}
-                disabled={!chapter.previousChapterId}
+                onClick={() => previousChapterId && handleNavigateToChapter(previousChapterId)}
+                disabled={!previousChapterId}
               >
                 <ChevronLeft size={20} />
                 Chương trước
               </button>
               <button
                 className="nav-btn next"
-                onClick={() => chapter.nextChapterId && navigateToChapter(chapter.nextChapterId)}
-                disabled={!chapter.nextChapterId}
+                onClick={() => nextChapterId && handleNavigateToChapter(nextChapterId)}
+                disabled={!nextChapterId}
               >
                 Chương sau
                 <ChevronRight size={20} />
@@ -827,7 +916,7 @@ const ChapterPage = () => {
         chapters={allChapters}
         currentChapterId={chapterId}
         bookmarks={bookmarks}
-        onChapterSelect={navigateToChapter}
+        onChapterSelect={handleNavigateToChapter}
         onBookmarkDelete={removeBookmark}
       />
 

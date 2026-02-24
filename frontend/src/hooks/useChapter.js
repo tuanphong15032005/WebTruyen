@@ -46,7 +46,7 @@ const useChapter = (initialChapterId) => {
     return () => {
       cancelled = true;
     };
-  }, [chapterId]);
+  }, [chapterId, allChapters.length]);
 
   const navigateToChapter = useCallback((id) => {
     setChapterId(id);

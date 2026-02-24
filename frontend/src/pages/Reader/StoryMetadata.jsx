@@ -538,6 +538,7 @@ const StoryMetadata = () => {
     setReplyContent('');
   };
 
+//<<<<<<< HEAD
   const closeReplyForm = () => {
     setReplyForId(null);
     setReplyTarget(null);
@@ -591,6 +592,52 @@ const StoryMetadata = () => {
   }, []);
 
   const handleSubmitReply = async () => {
+// =======
+//   const handleReadFromStart = () => {
+//     // Find the first chapter from the first volume
+//     if (volumes.length > 0 && volumes[0].chapters && volumes[0].chapters.length > 0) {
+//       const firstVolume = volumes[0];
+//       const sortedChapters = [...firstVolume.chapters].sort(
+//         (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
+//       );
+//       const firstChapter = sortedChapters[0];
+//       if (firstChapter && firstChapter.id) {
+//         navigate(`/stories/${storyId}/chapters/${firstChapter.id}`);
+//         return;
+//       }
+//     }
+//
+//     // Fallback: navigate to chapter 1 if no volumes/chapters found
+//     navigate(`/stories/${storyId}/chapters/1`);
+//   };
+//
+//   const handleReadLatest = () => {
+//     // Find the latest chapter from all volumes
+//     let latestChapter = null;
+//     let latestDate = null;
+//
+//     volumes.forEach((volume) => {
+//       if (volume.chapters) {
+//         volume.chapters.forEach((chapter) => {
+//           const chapterDate = new Date(chapter.lastUpdateAt || chapter.createdAt || 0);
+//           if (!latestDate || chapterDate > latestDate) {
+//             latestDate = chapterDate;
+//             latestChapter = chapter;
+//           }
+//         });
+//       }
+//     });
+//
+//     if (latestChapter && latestChapter.id) {
+//       navigate(`/stories/${storyId}/chapters/${latestChapter.id}`);
+//     } else {
+//       // Fallback to chapter 1
+//       navigate(`/stories/${storyId}/chapters/1`);
+//     }
+//   };
+//
+//   const handleSubmitReply = async (parentCommentId) => {
+// >>>>>>> acd5e52 (sửa được chương)
     if (!currentUser) {
       notify('Bạn cần đăng nhập để trả lời bình luận', 'info');
       navigate('/login');
@@ -1094,6 +1141,7 @@ const StoryMetadata = () => {
                   </button>
                 )}
 
+{/* <<<<<<< HEAD */}
                 <div className='story-metadata__actions-row'>
                   <div className='story-metadata__actions'>
                     <button
@@ -1125,6 +1173,34 @@ const StoryMetadata = () => {
                       </span>
                     </button>
                   </div>
+{/* ======= */}
+{/*                 <div className='story-metadata__actions'> */}
+{/*                   <button  */}
+{/*                     type='button'  */}
+{/*                     className='story-metadata__action-btn' */}
+{/*                     onClick={handleReadFromStart} */}
+{/*                   > */}
+{/*                     Đọc từ đầu */}
+{/*                   </button> */}
+{/*                   <button  */}
+{/*                     type='button'  */}
+{/*                     className='story-metadata__action-btn ghost' */}
+{/*                     onClick={handleReadLatest} */}
+{/*                   > */}
+{/*                     Đọc mới nhất */}
+{/*                   </button> */}
+{/*                   <button */}
+{/*                     type='button' */}
+{/*                     className={`story-metadata__notify-btn ${notifyEnabled ? 'is-enabled' : ''} ${notifyLoading ? 'is-loading' : ''}`} */}
+{/*                     onClick={handleToggleNotify} */}
+{/*                     disabled={notifyLoading} */}
+{/*                   > */}
+{/*                     <svg viewBox='0 0 24 24' aria-hidden='true'> */}
+{/*                       <path d='M12 2a6 6 0 0 0-6 6v3.8l-1.6 2.7A1 1 0 0 0 5.3 16h13.4a1 1 0 0 0 .9-1.5L18 11.8V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 1-2.8-2h5.6A3 3 0 0 1 12 22z' /> */}
+{/*                     </svg> */}
+{/*                     <span>Nhận thông báo</span> */}
+{/*                   </button> */}
+{/* >>>>>>> acd5e52 (sửa được chương) */}
                 </div>
               </article>
             </div>

@@ -175,7 +175,7 @@ export default function UserProfile({ userData }) {
     { icon: Edit3, label: 'Khu vực tác giả', active: false, path: '/authordashboard' },
     { icon: MessageSquare, label: 'Tin nhắn', active: false, path: '/messages' },
     { icon: Library, label: 'Tủ truyện', active: false, path: '/library' },
-    { icon: CreditCard, label: 'Nạp tiền', active: false, path: '/recharge' },
+    { icon: CreditCard, label: 'Nạp tiền', active: false, path: '/wallet/topup' },
   ];
 
   const handleMenuClick = (path) => { navigate(path); };

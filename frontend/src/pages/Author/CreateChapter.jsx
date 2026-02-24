@@ -1,3 +1,4 @@
+
 ﻿import React, {
   useCallback,
   useEffect,
@@ -436,6 +437,7 @@ const CreateChapter = () => {
     }
   }, []);
 
+  // Load content immediately when editChapterId is available
   useEffect(() => {
     draftCheckedRef.current = false;
     initialLoadDoneRef.current = false;
@@ -467,14 +469,25 @@ const CreateChapter = () => {
           setStatus(data.status.toLowerCase());
         }
         setSavedHtml(data.fullHtml || '');
-        const quill = quillRef.current?.getEditor();
-        if (data.contentDelta && quill) {
-          try {
-            quill.setContents(JSON.parse(data.contentDelta));
-            setContent(quill.root.innerHTML);
-          } catch (err) {
-            quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
-            setContent(data.fullHtml || '');
+        
+        // Set content in editor when it's ready
+        const setEditorContent = () => {
+          const quill = quillRef.current?.getEditor();
+          if (quill) {
+            if (data.contentDelta) {
+              try {
+                quill.setContents(JSON.parse(data.contentDelta));
+                setContent(quill.root.innerHTML);
+              } catch (err) {
+                quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
+                setContent(data.fullHtml || '');
+              }
+            } else {
+              quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
+              setContent(data.fullHtml || '');
+            }
+          } else {
+            setTimeout(setEditorContent, 500);
           }
         } else if (quill) {
           quill.clipboard.dangerouslyPasteHTML(data.fullHtml || '');
@@ -490,7 +503,7 @@ const CreateChapter = () => {
       }
     };
     loadContent();
-  }, [editChapterId, editorReady, notify, storyId]);
+  }, [editChapterId, notify, storyId]);
 
   useEffect(() => {
     if (!editorReady) return;
@@ -798,16 +811,7 @@ const CreateChapter = () => {
         </div>
       )}
 
-      {savedHtml && (
-        <div className='card'>
-          <h3>Nội dung đã lưu</h3>
-          <div
-            className='segment-preview'
-            dangerouslySetInnerHTML={{ __html: savedHtml }}
-          />
-        </div>
-      )}
-    </div>
+      </div>
   );
 };
 

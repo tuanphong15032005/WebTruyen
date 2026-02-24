@@ -294,6 +294,37 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     public Map<String, Object> getChapterContent(Long chapterId) {
-        return Map.of();
+        ChapterEntity chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+        
+        // Get all segments for this chapter
+        List<ChapterSegmentEntity> segments = chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapterId);
+        
+        // Build full HTML from segments
+        StringBuilder fullHtml = new StringBuilder();
+        for (ChapterSegmentEntity segment : segments) {
+            fullHtml.append(segment.getSegmentText());
+        }
+        
+        // Create content delta for Quill editor
+        List<Map<String, Object>> ops = new ArrayList<>();
+        if (fullHtml.length() > 0) {
+            ops.add(Map.of("insert", fullHtml.toString()));
+        } else {
+            ops.add(Map.of("insert", ""));
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", chapter.getId());
+        result.put("title", chapter.getTitle() != null ? chapter.getTitle() : "");
+        result.put("isFree", chapter.isFree());
+        result.put("priceCoin", chapter.getPriceCoin());
+        result.put("status", chapter.getStatus() != null ? chapter.getStatus().toString() : "draft");
+        result.put("contentDelta", Map.of("ops", ops));
+        result.put("fullHtml", fullHtml.toString());
+        result.put("sequenceIndex", chapter.getSequenceIndex());
+        result.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
+        
+        return result;
     }
 }
