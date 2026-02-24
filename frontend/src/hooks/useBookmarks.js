@@ -3,7 +3,10 @@ import {
   getBookmarksByChapter,
   createBookmark,
   deleteBookmark,
-} from '../services/bookmarkService';
+} from '../services/BookmarkService';
+
+const getBookmarkSegmentId = (bookmark) =>
+  Number(bookmark?.segmentId ?? bookmark?.segment?.id ?? bookmark?.chapterSegmentId ?? 0);
 
 /**
  * Hook quản lý bookmark của user theo chương.
@@ -14,17 +17,24 @@ const useBookmarks = (chapterId) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!chapterId) return;
+    if (!chapterId) {
+      setBookmarks([]);
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
 
     getBookmarksByChapter(chapterId)
       .then((data) => {
-        if (!cancelled) setBookmarks(data);
+        if (!cancelled) {
+          setBookmarks(Array.isArray(data) ? data : []);
+        }
       })
       .catch(() => {
-        // Bookmark không critical – không block UI
+        if (!cancelled) {
+          setBookmarks([]);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -36,40 +46,49 @@ const useBookmarks = (chapterId) => {
   }, [chapterId]);
 
   /**
-   * Toggle bookmark cho một segment.
-   * Nếu đã có bookmark → xóa; chưa có → tạo mới.
+   * Toggle bookmark cho mot segment.
    * @param {{ segmentId: number, text: string, positionPercent?: number }} options
    */
   const toggleBookmark = useCallback(
     async ({ segmentId, text, positionPercent }) => {
-      const existing = bookmarks.find((b) => b.segmentId === segmentId);
+      const normalizedSegmentId = Number(segmentId);
+      if (!chapterId || !normalizedSegmentId) {
+        throw new Error('Không xác định được segment để bookmark');
+      }
+
+      const existing = bookmarks.find(
+        (bookmark) => getBookmarkSegmentId(bookmark) === normalizedSegmentId,
+      );
 
       if (existing) {
         await deleteBookmark(existing.id);
-        setBookmarks((prev) => prev.filter((b) => b.id !== existing.id));
-      } else {
-        const newBookmark = await createBookmark({
-          chapterId,
-          segmentId,
-          positionPercent,
-          isFavorite: false,
-        });
-        // Enrich với text để hiển thị trong side panel
-        setBookmarks((prev) => [...prev, { ...newBookmark, text }]);
+        setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== existing.id));
+        return;
       }
+
+      const created = await createBookmark({
+        chapterId,
+        segmentId: normalizedSegmentId,
+        positionPercent,
+        isFavorite: false,
+      });
+
+      const normalizedCreated = {
+        ...created,
+        segmentId: Number(created?.segmentId ?? created?.segment?.id ?? normalizedSegmentId),
+        text,
+      };
+      setBookmarks((prev) => [...prev, normalizedCreated]);
     },
-    [bookmarks, chapterId]
+    [bookmarks, chapterId],
   );
 
-  const removeBookmark = useCallback(
-    async (bookmarkId) => {
-      await deleteBookmark(bookmarkId);
-      setBookmarks((prev) => prev.filter((b) => b.id !== bookmarkId));
-    },
-    []
-  );
+  const removeBookmark = useCallback(async (bookmarkId) => {
+    await deleteBookmark(bookmarkId);
+    setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== bookmarkId));
+  }, []);
 
-  return { bookmarks, loading, toggleBookmark, removeBookmark };
+  return { bookmarks, loading, toggleBookmark, removeBookmark, getBookmarkSegmentId };
 };
 
 export default useBookmarks;

@@ -18,7 +18,7 @@ const storyService = {
 
   getStory: (storyId) => api.get(`/stories/${storyId}`),
   getPublicStory: (storyId) => api.get(`/public/stories/${storyId}`),
-  // Muc dich: Lay du lieu sidebar metadata (thong tin them/truyen tuong tu/cung tac gia). Hieuson + 10h30
+  // Mục đích: Lấy dữ liệu sidebar metadata (thông tin thêm/truyện tương tự/cùng tác giả). Hieuson + 10h30
   getPublicStorySidebar: (storyId) =>
     api.get(`/public/stories/${storyId}/sidebar`),
 
@@ -43,6 +43,9 @@ const storyService = {
 
   getStoryComments: (storyId, params = {}) =>
     api.get(`/public/stories/${storyId}/comments`, { params }),
+  // Hieuson - 24/2 + Lấy 3 phản hồi cộng đồng mới nhất để hiển thị trên HomePage.
+  getLatestCommunityComments: (params = {}) =>
+    api.get(`/public/comments/latest`, { params }),
   createStoryComment: (storyId, payload) =>
     api.post(`/stories/${storyId}/comments`, payload),
   updateStoryComment: (storyId, commentId, payload) =>
@@ -58,6 +61,18 @@ const storyService = {
     }),
   createChapterComment: (storyId, chapterId, payload) =>
     api.post(`/stories/${storyId}/chapters/${chapterId}/comments`, payload),
+  updateChapterComment: (storyId, chapterId, commentId, payload) =>
+    api.put(
+      `/stories/${storyId}/chapters/${chapterId}/comments/${commentId}`,
+      payload,
+    ),
+  deleteChapterComment: (storyId, chapterId, commentId) =>
+    api.delete(`/stories/${storyId}/chapters/${chapterId}/comments/${commentId}`),
+  reportChapterComment: (storyId, chapterId, commentId, payload) =>
+    api.post(
+      `/stories/${storyId}/chapters/${chapterId}/comments/${commentId}/report`,
+      payload,
+    ),
 
   getNotifyStatus: (storyId) => api.get(`/stories/${storyId}/notify-status`),
 

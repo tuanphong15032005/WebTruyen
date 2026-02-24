@@ -18,3 +18,11 @@ export const getChapterDetail = (chapterId) =>
 export const getChaptersByStory = (storyId) =>
   api.get(`/chapters/story/${storyId}`);
 
+/**
+ * Ghi nhận lượt xem chương sau khi reader ở lại đủ thời gian.
+ * @param {number|string} chapterId
+ * @returns {Promise<void>}
+ */
+export const recordChapterView = (chapterId) =>
+  api.post(`/chapters/${chapterId}/view`);
+

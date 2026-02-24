@@ -65,6 +65,16 @@ const formatRatingValue = (value) => {
   return raw.toFixed(2).replace('.', ',');
 };
 
+const toEpoch = (value) => {
+  const time = new Date(value || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+const toSafeNumber = (value, fallback = 0) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 // Muc dich: Hien thi sao rating theo ti le day cua gia tri trung binh. Hieuson + 10h30
 const RatingStars = ({ rating = 0, className = '' }) => {
   const safeRating = Number.isFinite(Number(rating))
@@ -386,6 +396,87 @@ const StoryMetadata = () => {
   );
   const latestReviewIsLong = latestReviewContent.length > REVIEW_PREVIEW_LENGTH;
 
+  const readableChapterCandidates = useMemo(() => {
+    const volumeList = Array.isArray(volumes) ? volumes : [];
+
+    const sortedVolumes = [...volumeList].sort((a, b) => {
+      const volumeSeqDiff =
+        toSafeNumber(a?.sequenceIndex, Number.MAX_SAFE_INTEGER) -
+        toSafeNumber(b?.sequenceIndex, Number.MAX_SAFE_INTEGER);
+      if (volumeSeqDiff !== 0) return volumeSeqDiff;
+
+      const createdDiff =
+        toEpoch(a?.createdAt || a?.lastUpdateAt) -
+        toEpoch(b?.createdAt || b?.lastUpdateAt);
+      if (createdDiff !== 0) return createdDiff;
+
+      return (
+        toSafeNumber(a?.id ?? a?.volumeId, Number.MAX_SAFE_INTEGER) -
+        toSafeNumber(b?.id ?? b?.volumeId, Number.MAX_SAFE_INTEGER)
+      );
+    });
+
+    return sortedVolumes.flatMap((volume, volumeOrder) => {
+      const chapterList = Array.isArray(volume?.chapters) ? volume.chapters : [];
+      const sortedChapters = [...chapterList].sort((a, b) => {
+        const chapterSeqDiff =
+          toSafeNumber(a?.sequenceIndex, Number.MAX_SAFE_INTEGER) -
+          toSafeNumber(b?.sequenceIndex, Number.MAX_SAFE_INTEGER);
+        if (chapterSeqDiff !== 0) return chapterSeqDiff;
+
+        const createdDiff =
+          toEpoch(a?.createdAt || a?.lastUpdateAt) -
+          toEpoch(b?.createdAt || b?.lastUpdateAt);
+        if (createdDiff !== 0) return createdDiff;
+
+        return (
+          toSafeNumber(a?.id ?? a?.chapterId, Number.MAX_SAFE_INTEGER) -
+          toSafeNumber(b?.id ?? b?.chapterId, Number.MAX_SAFE_INTEGER)
+        );
+      });
+
+      return sortedChapters
+        .map((chapter, chapterOrder) => ({
+          chapterId: chapter?.id ?? chapter?.chapterId ?? null,
+          chapterSeq: toSafeNumber(chapter?.sequenceIndex, chapterOrder),
+          volumeSeq: toSafeNumber(volume?.sequenceIndex, volumeOrder),
+          volumeOrder,
+          chapterOrder,
+          updatedAt: toEpoch(
+            chapter?.lastUpdateAt ||
+              chapter?.updatedAt ||
+              chapter?.createdAt ||
+              volume?.lastUpdateAt ||
+              volume?.createdAt,
+          ),
+        }))
+        .filter((item) => item.chapterId != null);
+    });
+  }, [volumes]);
+
+  const firstReadableChapterId = useMemo(() => {
+    if (readableChapterCandidates.length === 0) return null;
+    const firstChapter = [...readableChapterCandidates].sort((a, b) => {
+      if (a.volumeSeq !== b.volumeSeq) return a.volumeSeq - b.volumeSeq;
+      if (a.volumeOrder !== b.volumeOrder) return a.volumeOrder - b.volumeOrder;
+      if (a.chapterSeq !== b.chapterSeq) return a.chapterSeq - b.chapterSeq;
+      return a.chapterOrder - b.chapterOrder;
+    })[0];
+    return firstChapter?.chapterId ?? null;
+  }, [readableChapterCandidates]);
+
+  const latestReadableChapterId = useMemo(() => {
+    if (readableChapterCandidates.length === 0) return null;
+    const latestChapter = [...readableChapterCandidates].sort((a, b) => {
+      if (a.updatedAt !== b.updatedAt) return b.updatedAt - a.updatedAt;
+      if (a.volumeSeq !== b.volumeSeq) return b.volumeSeq - a.volumeSeq;
+      if (a.volumeOrder !== b.volumeOrder) return b.volumeOrder - a.volumeOrder;
+      if (a.chapterSeq !== b.chapterSeq) return b.chapterSeq - a.chapterSeq;
+      return b.chapterOrder - a.chapterOrder;
+    })[0];
+    return latestChapter?.chapterId ?? firstReadableChapterId ?? null;
+  }, [firstReadableChapterId, readableChapterCandidates]);
+
   // Muc dich: Render dung dang rating + sao cho cac card sidebar. Hieuson + 10h30
   const renderSidebarItemRating = (item) => {
     const ratingCount = Number(item?.ratingCount || 0);
@@ -439,6 +530,25 @@ const StoryMetadata = () => {
       setNotifyLoading(false);
     }
   };
+
+  const goToReaderChapter = useCallback(
+    (targetChapterId) => {
+      if (!targetChapterId) {
+        notify('Truyện chưa có chương để đọc', 'info');
+        return;
+      }
+      navigate(`/stories/${storyId}/chapters/${targetChapterId}`);
+    },
+    [navigate, notify, storyId],
+  );
+
+  const handleReadFromStart = useCallback(() => {
+    goToReaderChapter(firstReadableChapterId);
+  }, [firstReadableChapterId, goToReaderChapter]);
+
+  const handleReadLatest = useCallback(() => {
+    goToReaderChapter(latestReadableChapterId);
+  }, [goToReaderChapter, latestReadableChapterId]);
 
   const scrollToComments = useCallback(() => {
     commentsAnchorRef.current?.scrollIntoView({
@@ -538,7 +648,6 @@ const StoryMetadata = () => {
     setReplyContent('');
   };
 
-//<<<<<<< HEAD
   const closeReplyForm = () => {
     setReplyForId(null);
     setReplyTarget(null);
@@ -592,52 +701,6 @@ const StoryMetadata = () => {
   }, []);
 
   const handleSubmitReply = async () => {
-// =======
-//   const handleReadFromStart = () => {
-//     // Find the first chapter from the first volume
-//     if (volumes.length > 0 && volumes[0].chapters && volumes[0].chapters.length > 0) {
-//       const firstVolume = volumes[0];
-//       const sortedChapters = [...firstVolume.chapters].sort(
-//         (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
-//       );
-//       const firstChapter = sortedChapters[0];
-//       if (firstChapter && firstChapter.id) {
-//         navigate(`/stories/${storyId}/chapters/${firstChapter.id}`);
-//         return;
-//       }
-//     }
-//
-//     // Fallback: navigate to chapter 1 if no volumes/chapters found
-//     navigate(`/stories/${storyId}/chapters/1`);
-//   };
-//
-//   const handleReadLatest = () => {
-//     // Find the latest chapter from all volumes
-//     let latestChapter = null;
-//     let latestDate = null;
-//
-//     volumes.forEach((volume) => {
-//       if (volume.chapters) {
-//         volume.chapters.forEach((chapter) => {
-//           const chapterDate = new Date(chapter.lastUpdateAt || chapter.createdAt || 0);
-//           if (!latestDate || chapterDate > latestDate) {
-//             latestDate = chapterDate;
-//             latestChapter = chapter;
-//           }
-//         });
-//       }
-//     });
-//
-//     if (latestChapter && latestChapter.id) {
-//       navigate(`/stories/${storyId}/chapters/${latestChapter.id}`);
-//     } else {
-//       // Fallback to chapter 1
-//       navigate(`/stories/${storyId}/chapters/1`);
-//     }
-//   };
-//
-//   const handleSubmitReply = async (parentCommentId) => {
-// >>>>>>> acd5e52 (sửa được chương)
     if (!currentUser) {
       notify('Bạn cần đăng nhập để trả lời bình luận', 'info');
       navigate('/login');
@@ -1141,18 +1204,21 @@ const StoryMetadata = () => {
                   </button>
                 )}
 
-{/* <<<<<<< HEAD */}
                 <div className='story-metadata__actions-row'>
                   <div className='story-metadata__actions'>
                     <button
                       type='button'
                       className='story-metadata__action-btn'
+                      onClick={handleReadFromStart}
+                      disabled={loadingVolumes || !firstReadableChapterId}
                     >
                       Đọc từ đầu
                     </button>
                     <button
                       type='button'
                       className='story-metadata__action-btn ghost'
+                      onClick={handleReadLatest}
+                      disabled={loadingVolumes || !latestReadableChapterId}
                     >
                       Đọc mới nhất
                     </button>
@@ -1173,34 +1239,6 @@ const StoryMetadata = () => {
                       </span>
                     </button>
                   </div>
-{/* ======= */}
-{/*                 <div className='story-metadata__actions'> */}
-{/*                   <button  */}
-{/*                     type='button'  */}
-{/*                     className='story-metadata__action-btn' */}
-{/*                     onClick={handleReadFromStart} */}
-{/*                   > */}
-{/*                     Đọc từ đầu */}
-{/*                   </button> */}
-{/*                   <button  */}
-{/*                     type='button'  */}
-{/*                     className='story-metadata__action-btn ghost' */}
-{/*                     onClick={handleReadLatest} */}
-{/*                   > */}
-{/*                     Đọc mới nhất */}
-{/*                   </button> */}
-{/*                   <button */}
-{/*                     type='button' */}
-{/*                     className={`story-metadata__notify-btn ${notifyEnabled ? 'is-enabled' : ''} ${notifyLoading ? 'is-loading' : ''}`} */}
-{/*                     onClick={handleToggleNotify} */}
-{/*                     disabled={notifyLoading} */}
-{/*                   > */}
-{/*                     <svg viewBox='0 0 24 24' aria-hidden='true'> */}
-{/*                       <path d='M12 2a6 6 0 0 0-6 6v3.8l-1.6 2.7A1 1 0 0 0 5.3 16h13.4a1 1 0 0 0 .9-1.5L18 11.8V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 1-2.8-2h5.6A3 3 0 0 1 12 22z' /> */}
-{/*                     </svg> */}
-{/*                     <span>Nhận thông báo</span> */}
-{/*                   </button> */}
-{/* >>>>>>> acd5e52 (sửa được chương) */}
                 </div>
               </article>
             </div>

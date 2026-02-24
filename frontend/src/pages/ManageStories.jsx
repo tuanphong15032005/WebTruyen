@@ -136,7 +136,7 @@ const ManageStories = () => {
             return (
               <article key={story.id} className='story-card story-hub__card'>
                 <Link
-                  to={`/stories/${story.id}/metadata`}
+                  to={`/author/stories/${story.id}`}
                   className='story-card__link'
                 >
                   <div className='story-card__cover'>

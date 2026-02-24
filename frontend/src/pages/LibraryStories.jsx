@@ -9,13 +9,11 @@ const FILTERS = [
   { value: 'all', label: 'Tất cả' },
   { value: 'ongoing', label: 'Đang tiến hành' },
   { value: 'completed', label: 'Hoàn thành' },
-  { value: 'archived', label: 'Lưu trữ' },
 ];
 
 const COMPLETION_LABELS = {
   ongoing: 'Đang tiến hành',
   completed: 'Hoàn thành',
-  cancelled: 'Tạm ngưng',
 };
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
@@ -48,7 +46,6 @@ const getCategoryTag = (story) => {
 
 const getCompletionLabel = (story) => {
   const status = String(story?.status || '').toLowerCase();
-  if (status === 'archived') return 'Lưu trữ';
   const completion = String(story?.completionStatus || '').toLowerCase();
   return COMPLETION_LABELS[completion] || 'Đang tiến hành';
 };
@@ -133,7 +130,10 @@ const LibraryStories = () => {
 
             return (
               <article key={story.id} className='story-card story-hub__card'>
-                <Link to={`/stories/${story.id}/metadata`} className='story-card__link'>
+                <Link
+                  to={`/stories/${story.id}/metadata`}
+                  className='story-card__link'
+                >
                   <div className='story-card__cover'>
                     {story.coverUrl ? (
                       <img src={story.coverUrl} alt={story.title} />
@@ -152,7 +152,9 @@ const LibraryStories = () => {
                         {story.authorPenName || 'Chưa có bút danh'}
                       </span>
                       {categoryTag && (
-                        <span className='story-card__category'>{categoryTag.name}</span>
+                        <span className='story-card__category'>
+                          {categoryTag.name}
+                        </span>
                       )}
                     </div>
 
@@ -172,7 +174,11 @@ const LibraryStories = () => {
                         <svg viewBox='0 0 24 24' aria-hidden='true'>
                           <path d='m12 17.3-6.16 3.24 1.18-6.88L2 8.76l6.92-1L12 1.5l3.08 6.26 6.92 1-5.02 4.9 1.18 6.88z' />
                         </svg>
-                        <span>{story.ratingAvg ? `${Number(story.ratingAvg).toFixed(1)}` : '0.0'}</span>
+                        <span>
+                          {story.ratingAvg
+                            ? `${Number(story.ratingAvg).toFixed(1)}`
+                            : '0.0'}
+                        </span>
                       </div>
 
                       <div className='story-card__stat'>
@@ -184,7 +190,9 @@ const LibraryStories = () => {
                     </div>
 
                     <div className='story-card__footer'>
-                      <span className={`story-card__status ${storyStatusClass}`}>
+                      <span
+                        className={`story-card__status ${storyStatusClass}`}
+                      >
                         {completionLabel}
                       </span>
                       <span className='story-card__word-count'>
@@ -195,7 +203,10 @@ const LibraryStories = () => {
                 </Link>
 
                 <div className='story-hub__actions'>
-                  <Link className='story-hub__action-btn' to={`/stories/${story.id}/metadata`}>
+                  <Link
+                    className='story-hub__action-btn'
+                    to={`/stories/${story.id}/metadata`}
+                  >
                     Mở chi tiết
                   </Link>
                 </div>

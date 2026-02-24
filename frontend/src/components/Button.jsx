@@ -17,7 +17,7 @@ const Button = ({
       onClick={onClick}
       disabled={isDisabled}
     >
-      {loading ? 'Dang xu li...' : children}
+      {loading ? 'Đang xử lý...' : children}
     </button>
   );
 };

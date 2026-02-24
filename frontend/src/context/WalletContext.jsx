@@ -11,10 +11,13 @@ export const WalletContext = createContext({
 
 function hasToken() {
   try {
+    const directAccessToken = localStorage.getItem('accessToken')
+    if (directAccessToken) return true
+
     const raw = localStorage.getItem('user')
     if (!raw) return false
     const user = JSON.parse(raw)
-    return Boolean(user?.token)
+    return Boolean(user?.token || user?.accessToken)
   } catch {
     return false
   }

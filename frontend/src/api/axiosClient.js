@@ -9,16 +9,20 @@ export const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use((config) => {
   try {
+    let token = localStorage.getItem('accessToken')
+    let tokenType = 'Bearer'
+
     const raw = localStorage.getItem('user')
     if (raw) {
       const user = JSON.parse(raw)
-      const token = user?.token
-      const tokenType = user?.tokenType || user?.type || 'Bearer'
+      token = token || user?.token || user?.accessToken
+      tokenType = user?.tokenType || user?.type || tokenType
 
-      if (token) {
-        config.headers = config.headers || {}
-        config.headers.Authorization = `${tokenType} ${token}`
-      }
+    }
+
+    if (token) {
+      config.headers = config.headers || {}
+      config.headers.Authorization = `${tokenType} ${token}`
     }
   } catch {
     // ignore

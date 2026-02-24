@@ -4,36 +4,43 @@ import './PurchaseSuccessModal.css';
 const PurchaseSuccessModal = ({ isOpen, onClose, response }) => {
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
+  const chapterLabel = response?.chapterId || 'N/A';
+  const amountPaid = Number(response?.amountPaid ?? response?.totalPrice ?? 0);
+  const remainingBalance = Number(
+    response?.remainingBalance ??
+      (Number(response?.newBalanceA ?? 0) + Number(response?.newBalanceB ?? 0)),
+  );
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
       onClose();
     }
   };
 
   return (
-    <div className="success-modal-overlay" onClick={handleBackdropClick}>
-      <div className="success-modal">
-        <h2>✅ Mua chương thành công!</h2>
-        <div className="success-details">
+    <div className='success-modal-overlay' onClick={handleBackdropClick}>
+      <div className='success-modal'>
+        <h2>Purchase successful!</h2>
+        <div className='success-details'>
           {response && (
             <>
-              <div className="detail-row">
-                <span>Chương đã mua:</span>
-                <span>Chương {response.chapterId || 'N/A'}</span>
+              <div className='detail-row'>
+                <span>Chapter:</span>
+                <span>{chapterLabel}</span>
               </div>
-              <div className="detail-row">
-                <span>Số tiền đã thanh toán:</span>
-                <span>{response.amountPaid || 0} Coin</span>
+              <div className='detail-row'>
+                <span>Paid:</span>
+                <span>{amountPaid} Coin</span>
               </div>
-              <div className="detail-row">
-                <span>Số dư còn lại:</span>
-                <span>{response.remainingBalance || 0} Coin</span>
+              <div className='detail-row'>
+                <span>Remaining:</span>
+                <span>{remainingBalance} Coin</span>
               </div>
             </>
           )}
         </div>
-        <div className="modal-actions">
-          <button className="ok-btn" onClick={onClose}>
+        <div className='modal-actions'>
+          <button className='ok-btn' onClick={onClose}>
             OK
           </button>
         </div>

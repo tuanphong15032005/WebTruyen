@@ -506,7 +506,7 @@ const CreateChapter = () => {
       }
     };
     loadContent();
-  }, [editChapterId, notify, storyId]);
+  }, [editChapterId, editorReady, notify, storyId]);
 
   useEffect(() => {
     if (!editorReady) return;

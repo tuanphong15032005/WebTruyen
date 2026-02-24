@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getChapterDetail, getChaptersByStory } from '../services/chapterService';
+import { getChapterDetail, getChaptersByStory } from '../services/ChapterService';
 
 /**
  * Hook quản lý dữ liệu chương và danh sách chương của truyện.
- * @param {number|string} initialChapterId - ID chương ban đầu
+ * @param {number|string} initialChapterId
  */
 const useChapter = (initialChapterId) => {
   const [chapterId, setChapterId] = useState(initialChapterId);
@@ -12,7 +12,11 @@ const useChapter = (initialChapterId) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Lấy chi tiết chương khi chapterId thay đổi
+  useEffect(() => {
+    if (!initialChapterId) return;
+    setChapterId(initialChapterId);
+  }, [initialChapterId]);
+
   useEffect(() => {
     if (!chapterId) return;
 
@@ -21,23 +25,31 @@ const useChapter = (initialChapterId) => {
     setError(null);
 
     getChapterDetail(chapterId)
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return;
-        setChapter(data);
 
-        // Khi lần đầu load, lấy danh sách chương của truyện
-        if (data.storyId && allChapters.length === 0) {
-          getChaptersByStory(data.storyId)
-            .then((chapters) => {
-              if (!cancelled) setAllChapters(chapters);
-            })
-            .catch(() => {
-              // Không block UI nếu không lấy được danh sách chương
-            });
+        setChapter(data || null);
+
+        if (data?.storyId) {
+          try {
+            const chapters = await getChaptersByStory(data.storyId);
+            if (!cancelled) {
+              setAllChapters(Array.isArray(chapters) ? chapters : []);
+            }
+          } catch {
+            if (!cancelled) {
+              setAllChapters([]);
+            }
+          }
+        } else if (!cancelled) {
+          setAllChapters([]);
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err?.message || 'Không thể tải chương');
+          setChapter(null);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -46,12 +58,20 @@ const useChapter = (initialChapterId) => {
     return () => {
       cancelled = true;
     };
-  }, [chapterId, allChapters.length]);
+  }, [chapterId]);
 
   const navigateToChapter = useCallback((id) => {
-    setChapterId(id);
+    if (!id) return;
+    const numericId = Number(id);
+    setChapterId(Number.isNaN(numericId) ? id : numericId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  const refreshChapter = useCallback(() => {
+    const currentId = chapterId;
+    setChapterId(null);
+    setTimeout(() => setChapterId(currentId), 100);
+  }, [chapterId]);
 
   return {
     chapterId,
@@ -60,11 +80,7 @@ const useChapter = (initialChapterId) => {
     loading,
     error,
     navigateToChapter,
-    refreshChapter: () => {
-      const currentId = chapterId;
-      setChapterId(null);
-      setTimeout(() => setChapterId(currentId), 100);
-    },
+    refreshChapter,
   };
 };
 

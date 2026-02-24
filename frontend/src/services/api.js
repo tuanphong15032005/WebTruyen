@@ -18,10 +18,8 @@ api.interceptors.request.use(
   (config) => {
     let token = null;
 
-    // 1️⃣ Ưu tiên accessToken nếu có
     token = localStorage.getItem('accessToken');
 
-    // 2️⃣ Nếu không có thì fallback user.token
     if (!token) {
       const raw = localStorage.getItem('user');
       if (raw) {
@@ -41,24 +39,43 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ==========================
 // RESPONSE INTERCEPTOR
 // ==========================
-
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message =
-      error.response?.data?.message ||
-      error.response?.data ||
-      error.message ||
-      'Đã xảy ra lỗi, vui lòng thử lại';
+    const responseData = error?.response?.data;
+    let message = '';
+
+    if (typeof responseData === 'string' && responseData.trim()) {
+      message = responseData.trim();
+    } else if (responseData && typeof responseData === 'object') {
+      const nestedMessage =
+        responseData.message ||
+        responseData.error ||
+        responseData.detail;
+
+      if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
+        message = nestedMessage.trim();
+      } else {
+        try {
+          message = JSON.stringify(responseData);
+        } catch {
+          message = '';
+        }
+      }
+    }
+
+    if (!message) {
+      message = error?.message || 'Đã xảy ra lỗi, vui lòng thử lại';
+    }
 
     return Promise.reject(new Error(message));
-  }
+  },
 );
 
 export default api;
