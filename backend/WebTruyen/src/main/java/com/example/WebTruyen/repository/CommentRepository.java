@@ -32,6 +32,24 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
     
     List<CommentEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+    @Query("""
+            select c from CommentEntity c
+            left join c.story s
+            left join c.chapter ch
+            left join ch.volume v
+            left join v.story cs
+            where c.isHidden = false
+              and (
+                  (s is not null and s.status = com.example.WebTruyen.entity.enums.StoryStatus.published)
+                  or
+                  (ch is not null
+                   and ch.status = com.example.WebTruyen.entity.enums.ChapterStatus.published
+                   and cs.status = com.example.WebTruyen.entity.enums.StoryStatus.published)
+              )
+            order by c.createdAt desc
+            """)
+    Page<CommentEntity> findLatestPublicRootComments(Pageable pageable);
+
 //=======
 //>>>>>>> author-create-content
 }
