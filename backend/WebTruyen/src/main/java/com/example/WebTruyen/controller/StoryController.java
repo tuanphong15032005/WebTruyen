@@ -9,6 +9,7 @@ import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
 import com.example.WebTruyen.dto.response.CommentResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
 import com.example.WebTruyen.dto.response.CreateVolumeResponse;
+import com.example.WebTruyen.dto.response.HomeCommunityCommentResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
@@ -30,6 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 
 @RestController
@@ -86,6 +88,14 @@ public class StoryController {
             @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort
     ) {
         return storyService.getPublishedStories(page, size, sort);
+    }
+
+    // Hieuson - 24/2 + Tra ve danh sach phan hoi cong dong moi nhat cho HomePage.
+    @GetMapping("/public/comments/latest")
+    public List<HomeCommunityCommentResponse> getLatestPublicComments(
+            @RequestParam(defaultValue = "3") Integer size
+    ) {
+        return commentService.listLatestPublicComments(size);
     }
 
     @GetMapping("/stories/my")
@@ -260,6 +270,44 @@ public class StoryController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return commentService.createChapterComment(currentUser, storyId, chapterId, req);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse updateChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @PathVariable Long commentId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.updateChapterComment(currentUser, storyId, chapterId, commentId, req);
+    }
+
+    @DeleteMapping("/stories/{storyId}/chapters/{chapterId}/comments/{commentId}")
+    public Map<String, Boolean> deleteChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteChapterComment(currentUser, storyId, chapterId, commentId);
+        return Map.of("deleted", true);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments/{commentId}/report", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Boolean> reportChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @PathVariable Long commentId,
+            @RequestBody(required = false) Map<String, String> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String reason = payload != null ? payload.getOrDefault("reason", "") : "";
+        commentService.reportChapterComment(currentUser, storyId, chapterId, commentId, reason);
+        return Map.of("reported", true);
     }
 
     @PostMapping(value = "/stories/{storyId}/volumes", consumes = MediaType.APPLICATION_JSON_VALUE)

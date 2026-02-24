@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         //tạo permit cho api - nhớ xóa khi deploy
                         .requestMatchers("/api/stories/**").permitAll()
+                        .requestMatchers("/api/chapters/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/uploads/image").permitAll()
                         .requestMatchers("/api/tags").permitAll()

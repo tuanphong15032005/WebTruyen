@@ -3,6 +3,7 @@ package com.example.WebTruyen.repository;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -70,4 +71,12 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             StoryStatus status,
             Long excludedStoryId
     );
+
+    @Modifying
+    @Query("""
+            update StoryEntity s
+            set s.viewCount = s.viewCount + 1
+            where s.id = :storyId
+            """)
+    int incrementViewCount(@Param("storyId") Long storyId);
 }

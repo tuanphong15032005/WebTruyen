@@ -21,7 +21,6 @@ import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
 import com.example.WebTruyen.repository.LibraryEntryRepository;
-import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
 import com.example.WebTruyen.repository.TagRepository;
@@ -53,7 +52,6 @@ public class StoryService {
     private final StoryTagRepository storyTagRepository;
     private final StorageService storageService;
     private final UserRepository userRepository;
-    private final ReadingHistoryRepository readingHistoryRepository;
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final FollowStoryRepository followStoryRepository;
@@ -365,7 +363,7 @@ public class StoryService {
     }
 
     private StoryResponse toResponse(StoryEntity story, List<TagDto> tags, boolean publishedOnly) {
-        long readerCount = readingHistoryRepository.countByStory_Id(story.getId());
+        long readerCount = story.getViewCount();
         long wordCount = countStoryWords(story.getId(), publishedOnly);
         LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
         BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
