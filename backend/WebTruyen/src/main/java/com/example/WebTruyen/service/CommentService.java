@@ -3,6 +3,7 @@ package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
 import com.example.WebTruyen.dto.response.CommentResponse;
+import com.example.WebTruyen.dto.response.HomeCommunityCommentResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
@@ -18,6 +19,7 @@ import com.example.WebTruyen.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -62,6 +64,17 @@ public class CommentService {
                 );
 
         return buildPagedResponse(dataPage, safePage, safeSize);
+    }
+
+    // Hieuson - 24/2 + Lay 3 phan hoi cong dong moi nhat tren cac truyen cong khai.
+    @Transactional(readOnly = true)
+    public List<HomeCommunityCommentResponse> listLatestPublicComments(Integer size) {
+        int safeSize = size == null || size <= 0 ? 3 : Math.min(size, 10);
+        Pageable pageable = PageRequest.of(0, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<CommentEntity> page = commentRepository.findLatestPublicRootComments(pageable);
+        return page.getContent().stream()
+                .map(this::toHomeCommunityCommentResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -118,6 +131,83 @@ public class CommentService {
                 .build();
 
         return toResponse(commentRepository.save(comment), List.of());
+    }
+
+    @Transactional
+    public CommentResponse updateChapterComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long chapterId,
+            Long commentId,
+            CreateCommentRequest req
+    ) {
+        ChapterEntity chapter = requirePublishedChapter(storyId, chapterId);
+        CommentEntity comment = commentRepository
+                .findByIdAndChapter_IdAndIsHiddenFalse(commentId, chapter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        Long ownerId = comment.getUser() != null ? comment.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot edit this comment");
+        }
+
+        comment.setContent(normalizeContent(req));
+        return toResponse(commentRepository.save(comment), List.of());
+    }
+
+    @Transactional
+    public void deleteChapterComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long chapterId,
+            Long commentId
+    ) {
+        ChapterEntity chapter = requirePublishedChapter(storyId, chapterId);
+        CommentEntity comment = commentRepository
+                .findByIdAndChapter_IdAndIsHiddenFalse(commentId, chapter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        Long ownerId = comment.getUser() != null ? comment.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot delete this comment");
+        }
+
+        hideCommentSubtree(comment);
+    }
+
+    @Transactional
+    public void reportChapterComment(
+            UserEntity currentUser,
+            Integer storyId,
+            Long chapterId,
+            Long commentId,
+            String reason
+    ) {
+        ChapterEntity chapter = requirePublishedChapter(storyId, chapterId);
+        CommentEntity comment = commentRepository
+                .findByIdAndChapter_IdAndIsHiddenFalse(commentId, chapter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        String normalizedReason = reason == null || reason.isBlank()
+                ? "Binh luan khong phu hop"
+                : reason.trim();
+
+        ReportEntity report = ReportEntity.builder()
+                .reporter(currentUser)
+                .targetKind(ReportEntity.ReportTargetKind.comment)
+                .story(null)
+                .chapter(chapter)
+                .comment(comment)
+                .reason(normalizedReason)
+                .details(null)
+                .status(ReportEntity.ReportStatus.open)
+                .actionTakenBy(null)
+                .action(null)
+                .createdAt(LocalDateTime.now())
+                .resolvedAt(null)
+                .build();
+
+        reportRepository.save(report);
     }
 
     @Transactional
@@ -420,6 +510,32 @@ public class CommentService {
             return 8;
         }
         return Math.min(size, 50);
+    }
+
+    private HomeCommunityCommentResponse toHomeCommunityCommentResponse(CommentEntity comment) {
+        Long storyId = null;
+        String storyTitle = "Unknown";
+        if (comment.getStory() != null) {
+            storyId = comment.getStory().getId();
+            storyTitle = comment.getStory().getTitle();
+        } else if (comment.getChapter() != null
+                && comment.getChapter().getVolume() != null
+                && comment.getChapter().getVolume().getStory() != null) {
+            storyId = comment.getChapter().getVolume().getStory().getId();
+            storyTitle = comment.getChapter().getVolume().getStory().getTitle();
+        }
+
+        UserEntity user = comment.getUser();
+        return new HomeCommunityCommentResponse(
+                comment.getId(),
+                user != null ? user.getId() : null,
+                user != null ? user.getUsername() : "Unknown",
+                user != null ? user.getAvatarUrl() : null,
+                storyId,
+                storyTitle,
+                comment.getContent(),
+                comment.getCreatedAt()
+        );
     }
 }
 
