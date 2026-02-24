@@ -105,7 +105,8 @@
 
 .admin-moderation__grid {
   margin-top: 16px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fff;
@@ -114,7 +115,7 @@
 .admin-moderation__grid table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1280px;
+  table-layout: auto;
 }
 
 .admin-moderation__grid th,
@@ -123,12 +124,19 @@
   padding: 12px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: top;
+  word-break: break-word;
 }
 
 .admin-moderation__grid thead th {
   background: #f9fafb;
   color: #374151;
   font-size: 14px;
+}
+
+.admin-moderation__grid th:last-child,
+.admin-moderation__grid td:last-child {
+  width: 190px;
+  min-width: 190px;
 }
 
 .admin-moderation__empty {
@@ -138,17 +146,28 @@
 }
 
 .admin-moderation__actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 40px;
   gap: 8px;
 }
 
 .admin-moderation__actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 6px;
-  padding: 7px 10px;
-  font-size: 12px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   color: #fff;
+  width: 100%;
+  height: 100%;
+  white-space: normal;
+  text-align: center;
 }
 
 .admin-moderation__actions .approve {

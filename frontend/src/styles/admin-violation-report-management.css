@@ -97,7 +97,8 @@
 
 .admin-reports__grid {
   margin-top: 16px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fff;
@@ -106,7 +107,7 @@
 .admin-reports__grid table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px;
+  table-layout: auto;
 }
 
 .admin-reports__grid th,
@@ -115,12 +116,19 @@
   padding: 12px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: top;
+  word-break: break-word;
 }
 
 .admin-reports__grid thead th {
   background: #f9fafb;
   color: #374151;
   font-size: 14px;
+}
+
+.admin-reports__grid th:last-child,
+.admin-reports__grid td:last-child {
+  width: 190px;
+  min-width: 190px;
 }
 
 .admin-reports__empty {
@@ -130,24 +138,28 @@
 }
 
 .admin-reports__actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .admin-reports__actions button {
   border: none;
   border-radius: 6px;
   padding: 7px 10px;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   color: #fff;
+  width: 100%;
+  white-space: normal;
 }
 
-.admin-reports__actions button.dismiss { background: #6b7280; }
-.admin-reports__actions button.hide { background: #d97706; }
+.admin-reports__actions button.dismiss { background: #2563eb; }
+.admin-reports__actions button.hide { background: #16a34a; }
 .admin-reports__actions button.remove { background: #dc2626; }
-.admin-reports__actions button.warn-ban { background: #2563eb; }
+.admin-reports__actions button.warn-ban { background: #d97706; }
 
 .admin-reports__actions button:disabled {
   opacity: 0.55;
