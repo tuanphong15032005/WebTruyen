@@ -3,16 +3,11 @@ import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { WalletContext } from '../context/WalletContext.jsx';
 import { Search, ChevronDown } from 'lucide-react';
+import { getStoredUser, hasAnyRole } from '../utils/helpers';
 
 function Header() {
     const [user, setUser] = useState(() => {
-        const storedUser = localStorage.getItem('user');
-        if (!storedUser) return null;
-        try {
-            return JSON.parse(storedUser);
-        } catch {
-            return null;
-        }
+        return getStoredUser();
     });
 
     const [showDropdown, setShowDropdown] = useState(false);
@@ -170,10 +165,18 @@ function Header() {
                             }}>
                                 <Link to="/profile" style={dropdownItemStyle}>Hồ sơ cá nhân</Link>
                                 <Link to="/donation-history" style={dropdownItemStyle}>Lịch sử giao dịch</Link>
-                                <Link to="/author/comments" style={dropdownItemStyle}>Quản lý bình luận</Link>
-                                <Link to="/author/performance-analytics" style={dropdownItemStyle}>Báo cáo hiệu suất truyện</Link>
-                                <Link to="/admin/content-moderation" style={dropdownItemStyle}>Quản lý kiểm duyệt nội dung</Link>
-                                <Link to="/admin/violation-reports" style={dropdownItemStyle}>Quản lý báo cáo vi phạm</Link>
+                                {hasAnyRole(['AUTHOR'], user) && (
+                                  <>
+                                    <Link to="/author/comments" style={dropdownItemStyle}>Quản lý bình luận</Link>
+                                    <Link to="/author/performance-analytics" style={dropdownItemStyle}>Báo cáo hiệu suất truyện</Link>
+                                  </>
+                                )}
+                                {hasAnyRole(['ADMIN', 'MOD'], user) && (
+                                  <>
+                                    <Link to="/admin/content-moderation" style={dropdownItemStyle}>Quản lý kiểm duyệt nội dung</Link>
+                                    <Link to="/admin/violation-reports" style={dropdownItemStyle}>Quản lý báo cáo vi phạm</Link>
+                                  </>
+                                )}
                                 <div style={{ borderTop: '1px solid #eee' }}></div>
                                 <button onClick={handleLogout} style={{ ...dropdownItemStyle, width: '100%', textAlign: 'left', background: 'none', border: 'none' }}>
                                     Đăng xuất

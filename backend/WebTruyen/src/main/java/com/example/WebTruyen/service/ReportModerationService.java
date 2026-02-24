@@ -171,8 +171,7 @@ public class ReportModerationService {
         }
         Long userId = currentUser.getId();
         boolean allowed = userRoleRepository.existsByUser_IdAndRole_Code(userId, "ADMIN")
-                || userRoleRepository.existsByUser_IdAndRole_Code(userId, "MOD")
-                || userRoleRepository.existsByUser_IdAndRole_Code(userId, "REVIEWER");
+                || userRoleRepository.existsByUser_IdAndRole_Code(userId, "MOD");
         if (!allowed) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }

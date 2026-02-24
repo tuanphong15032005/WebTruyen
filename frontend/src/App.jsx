@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import Login from './pages/Login';
@@ -21,7 +21,22 @@ import CommentManagement from './pages/Author/CommentManagement';
 import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import { getStoredUser, hasAnyRole } from './utils/helpers';
 import './App.css';
+
+function RoleProtectedRoute({ allowedRoles, children }) {
+  const user = getStoredUser();
+  if (!user?.token) {
+    return <Navigate to='/login' replace />;
+  }
+
+  if (!hasAnyRole(allowedRoles, user)) {
+    return <Navigate to='/' replace />;
+  }
+
+  return children;
+}
+
 function App() {
   return (
     <MainLayout>
@@ -40,10 +55,38 @@ function App() {
             <Route path='/author/create-story' element={<CreateStory />} />
             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
             <Route path='/author/stories/:storyId' element={<StoryDetail />} />
-            <Route path='/author/comments' element={<CommentManagement />} />
-            <Route path='/author/performance-analytics' element={<PerformanceAnalytics />} />
-            <Route path='/admin/content-moderation' element={<ContentModeration />} />
-            <Route path='/admin/violation-reports' element={<ViolationReportManagement />} />
+            <Route
+              path='/author/comments'
+              element={
+                <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+                  <CommentManagement />
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path='/author/performance-analytics'
+              element={
+                <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+                  <PerformanceAnalytics />
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path='/admin/content-moderation'
+              element={
+                <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+                  <ContentModeration />
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path='/admin/violation-reports'
+              element={
+                <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+                  <ViolationReportManagement />
+                </RoleProtectedRoute>
+              }
+            />
             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
             <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
             <Route path='/stories/:storyId/chapters/:chapterId' element={<ChapterPage />} />
