@@ -8,6 +8,10 @@ function ContentModeration() {
   const [error, setError] = useState('');
   const [busyKey, setBusyKey] = useState('');
   const [activeStatus, setActiveStatus] = useState('pending');
+  const [demoItem, setDemoItem] = useState(null);
+  const [demoStory, setDemoStory] = useState(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState('');
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.moderationStatus === 'pending').length,
@@ -52,6 +56,19 @@ function ContentModeration() {
   useEffect(() => {
     loadModerationContent();
   }, []);
+
+  useEffect(() => {
+    if (!demoItem) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setDemoItem(null);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [demoItem]);
 
   const buildActionKey = (contentType, contentId, action) =>
     `${contentType}-${contentId}-${action}`;
@@ -108,6 +125,30 @@ function ContentModeration() {
     if (status === 'request_edit') return 'Request Edit';
     if (status === 'pending') return 'Pending';
     return status || 'Processed';
+  };
+
+  const closeDemoModal = () => {
+    setDemoItem(null);
+    setDemoStory(null);
+    setDemoLoading(false);
+    setDemoError('');
+  };
+
+  const handleViewDemo = async (item) => {
+    setDemoItem(item);
+    setDemoStory(null);
+    setDemoLoading(true);
+    setDemoError('');
+
+    const storyId = item.storyId || item.contentId;
+    try {
+      const story = await storyService.getStory(storyId);
+      setDemoStory(story || null);
+    } catch (err) {
+      setDemoError(err.message || 'Failed to load story demo');
+    } finally {
+      setDemoLoading(false);
+    }
   };
 
   return (
@@ -244,6 +285,14 @@ function ContentModeration() {
                       <td className='admin-moderation__actions'>
                         <button
                           type='button'
+                          className='demo'
+                          disabled={isBusy || item.contentType !== 'story'}
+                          onClick={() => handleViewDemo(item)}
+                        >
+                          Xem demo
+                        </button>
+                        <button
+                          type='button'
                           className='approve'
                           disabled={isBusy || !canModerate}
                           onClick={() => handleAction(item, 'approve')}
@@ -275,6 +324,50 @@ function ContentModeration() {
           </tbody>
         </table>
       </div>
+      {demoItem && (
+        <div className='admin-moderation__modal-backdrop' onClick={closeDemoModal}>
+          <div className='admin-moderation__modal' onClick={(event) => event.stopPropagation()}>
+            <div className='admin-moderation__modal-head'>
+              <h2>Demo truyện chờ duyệt</h2>
+              <button type='button' onClick={closeDemoModal} aria-label='Đóng popup demo'>
+                x
+              </button>
+            </div>
+
+            {demoLoading && (
+              <p className='admin-moderation__modal-state'>Đang tải nội dung demo...</p>
+            )}
+
+            {!demoLoading && demoError && (
+              <p className='admin-moderation__modal-state admin-moderation__modal-state--error'>
+                {demoError}
+              </p>
+            )}
+
+            {!demoLoading && !demoError && (
+              <div className='admin-moderation__modal-content'>
+                <h3>{demoStory?.title || demoItem.storyTitle}</h3>
+                <p className='admin-moderation__modal-meta'>
+                  Tác giả: {demoStory?.authorPenName || demoItem.authorName || 'N/A'}
+                </p>
+                <p className='admin-moderation__modal-meta'>
+                  Thể loại: {demoStory?.kind || demoItem.genre || 'N/A'}
+                </p>
+                <p className='admin-moderation__modal-meta'>
+                  Phân loại độ tuổi: {demoItem.ratingAgeClassification || 'N/A'}
+                </p>
+                <div className='admin-moderation__modal-summary'>
+                  {demoStory?.summaryHtml ? (
+                    <div dangerouslySetInnerHTML={{ __html: demoStory.summaryHtml }} />
+                  ) : (
+                    <p>Truyện chưa có mô tả để xem demo.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -163,6 +163,10 @@
   background: #d97706;
 }
 
+.admin-moderation__actions .demo {
+  background: #2563eb;
+}
+
 .admin-moderation__actions button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -205,4 +209,82 @@
   background: #f3f4f6;
   color: #374151;
   border-color: #d1d5db;
+}
+
+.admin-moderation__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.admin-moderation__modal {
+  width: min(760px, 100%);
+  max-height: min(88vh, 860px);
+  overflow: auto;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+}
+
+.admin-moderation__modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-moderation__modal-head h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #111827;
+}
+
+.admin-moderation__modal-head button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.admin-moderation__modal-content {
+  padding: 20px;
+}
+
+.admin-moderation__modal-content h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.admin-moderation__modal-meta {
+  margin: 8px 0 0;
+  color: #4b5563;
+}
+
+.admin-moderation__modal-summary {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  color: #1f2937;
+  line-height: 1.6;
+}
+
+.admin-moderation__modal-state {
+  margin: 0;
+  padding: 20px;
+  color: #374151;
+}
+
+.admin-moderation__modal-state--error {
+  color: #b91c1c;
 }
