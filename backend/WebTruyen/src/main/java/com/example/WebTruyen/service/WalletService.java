@@ -181,7 +181,9 @@ public class WalletService {
         
         String idempotencyKey = String.format("SPEND_CHAPTER_%d_%d_%s", userId, refId, coinType);
         
-        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey)) {
+        // Check both constraints to prevent duplicate entries
+        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey) &&
+            !ledgerEntryRepository.existsByRefTypeAndRefIdAndReason(refType, refId, reason)) {
             LedgerEntryEntity entry = LedgerEntryEntity.builder()
                     .user(user)
                     .coin(coinType)

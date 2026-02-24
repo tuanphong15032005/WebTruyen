@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        // 2. SỬA ĐƯỜNG DẪN: Thêm /api vào trước để khớp với frontend
+                        // 2. Thêm /api vào trước để khớp với frontend
                         .requestMatchers("/", "/api/auth/**").permitAll()
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/api/users/profile/**").permitAll()
