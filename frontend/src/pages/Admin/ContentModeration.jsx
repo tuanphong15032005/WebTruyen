@@ -12,6 +12,12 @@ function ContentModeration() {
   const [demoStory, setDemoStory] = useState(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState('');
+  const [noteModal, setNoteModal] = useState({
+    open: false,
+    item: null,
+    action: '',
+    note: '',
+  });
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.moderationStatus === 'pending').length,
@@ -58,28 +64,26 @@ function ContentModeration() {
   }, []);
 
   useEffect(() => {
-    if (!demoItem) return undefined;
+    if (!demoItem && !noteModal.open) return undefined;
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
-        setDemoItem(null);
+        if (noteModal.open) {
+          setNoteModal({ open: false, item: null, action: '', note: '' });
+        } else {
+          setDemoItem(null);
+        }
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [demoItem]);
+  }, [demoItem, noteModal.open]);
 
   const buildActionKey = (contentType, contentId, action) =>
     `${contentType}-${contentId}-${action}`;
 
-  const askForNote = (actionLabel) => {
-    const input = window.prompt(`Optional note for "${actionLabel}" action:`, '');
-    if (input === null) return null;
-    return input.trim();
-  };
-
-  const handleAction = async (item, action) => {
+  const executeAction = async (item, action, note = '') => {
     const key = buildActionKey(item.contentType, item.contentId, action);
     setBusyKey(key);
     setError('');
@@ -89,24 +93,16 @@ function ContentModeration() {
         if (action === 'approve') {
           await storyService.approveModerationStory(item.contentId);
         } else if (action === 'reject') {
-          const note = askForNote('Reject');
-          if (note === null) return;
           await storyService.rejectModerationStory(item.contentId, note);
         } else {
-          const note = askForNote('Request Edit');
-          if (note === null) return;
           await storyService.requestEditModerationStory(item.contentId, note);
         }
       } else {
         if (action === 'approve') {
           await storyService.approveModerationChapter(item.contentId);
         } else if (action === 'reject') {
-          const note = askForNote('Reject');
-          if (note === null) return;
           await storyService.rejectModerationChapter(item.contentId, note);
         } else {
-          const note = askForNote('Request Edit');
-          if (note === null) return;
           await storyService.requestEditModerationChapter(item.contentId, note);
         }
       }
@@ -117,6 +113,33 @@ function ContentModeration() {
     } finally {
       setBusyKey('');
     }
+  };
+
+  const openNoteModal = (item, action) => {
+    setNoteModal({
+      open: true,
+      item,
+      action,
+      note: '',
+    });
+  };
+
+  const closeNoteModal = () => {
+    setNoteModal({ open: false, item: null, action: '', note: '' });
+  };
+
+  const handleAction = async (item, action) => {
+    if (action === 'approve') {
+      await executeAction(item, action);
+      return;
+    }
+    openNoteModal(item, action);
+  };
+
+  const handleSubmitNote = async () => {
+    if (!noteModal.item || !noteModal.action) return;
+    await executeAction(noteModal.item, noteModal.action, noteModal.note.trim());
+    closeNoteModal();
   };
 
   const statusLabel = (status) => {
@@ -133,6 +156,8 @@ function ContentModeration() {
     setDemoLoading(false);
     setDemoError('');
   };
+
+  const noteActionLabel = noteModal.action === 'request-edit' ? 'Request Edit' : 'Reject';
 
   const handleViewDemo = async (item) => {
     setDemoItem(item);
@@ -365,6 +390,35 @@ function ContentModeration() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {noteModal.open && (
+        <div className='admin-moderation__note-backdrop' onClick={closeNoteModal}>
+          <div
+            className='admin-moderation__note-modal'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3>{noteActionLabel} - Moderation Note</h3>
+            <p className='admin-moderation__note-help'>
+              Optional note for this action.
+            </p>
+            <textarea
+              value={noteModal.note}
+              onChange={(event) =>
+                setNoteModal((prev) => ({ ...prev, note: event.target.value }))
+              }
+              rows={4}
+              placeholder='Enter moderation note...'
+            />
+            <div className='admin-moderation__note-actions'>
+              <button type='button' className='cancel' onClick={closeNoteModal}>
+                Cancel
+              </button>
+              <button type='button' className='confirm' onClick={handleSubmitNote}>
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

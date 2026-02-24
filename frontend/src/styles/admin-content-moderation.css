@@ -307,3 +307,67 @@
 .admin-moderation__modal-state--error {
   color: #b91c1c;
 }
+
+.admin-moderation__note-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.admin-moderation__note-modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  padding: 20px;
+}
+
+.admin-moderation__note-modal h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.admin-moderation__note-help {
+  margin: 8px 0 12px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.admin-moderation__note-modal textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+  resize: vertical;
+  font: inherit;
+}
+
+.admin-moderation__note-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-moderation__note-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-moderation__note-actions .cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.admin-moderation__note-actions .confirm {
+  background: #2563eb;
+  color: #fff;
+}

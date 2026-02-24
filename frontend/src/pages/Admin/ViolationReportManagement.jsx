@@ -10,6 +10,12 @@ function ViolationReportManagement() {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('REVIEWABLE');
+  const [warnBanModal, setWarnBanModal] = useState({
+    open: false,
+    reportId: null,
+    mode: 'warn',
+    banHours: '72',
+  });
 
   const loadReports = async () => {
     setLoading(true);
@@ -27,6 +33,24 @@ function ViolationReportManagement() {
   useEffect(() => {
     loadReports();
   }, []);
+
+  useEffect(() => {
+    if (!warnBanModal.open) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setWarnBanModal({
+          open: false,
+          reportId: null,
+          mode: 'warn',
+          banHours: '72',
+        });
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [warnBanModal.open]);
 
   const filteredItems = useMemo(() => {
     if (statusFilter === 'REVIEWABLE') {
@@ -68,25 +92,43 @@ function ViolationReportManagement() {
     }
   };
 
-  const handleWarnBan = async (item) => {
-    const answer = window.prompt('Type "warn" to warn user or "ban" to ban user:', 'warn');
-    if (answer === null) return;
-    const mode = answer.trim().toLowerCase();
-    if (mode === 'warn') {
-      await runAction(item.reportId, 'warn');
+  const handleWarnBan = (item) => {
+    setWarnBanModal({
+      open: true,
+      reportId: item.reportId,
+      mode: 'warn',
+      banHours: '72',
+    });
+  };
+
+  const closeWarnBanModal = () => {
+    setWarnBanModal({
+      open: false,
+      reportId: null,
+      mode: 'warn',
+      banHours: '72',
+    });
+  };
+
+  const submitWarnBan = async () => {
+    if (!warnBanModal.reportId) return;
+
+    if (warnBanModal.mode === 'warn') {
+      await runAction(warnBanModal.reportId, 'warn');
+      closeWarnBanModal();
       return;
     }
-    if (mode === 'ban') {
-      const hoursInput = window.prompt('Ban duration (hours):', '72');
-      if (hoursInput === null) return;
-      const banHours = Number(hoursInput);
-      await runAction(item.reportId, 'ban', {
-        banUser: true,
-        banHours: Number.isFinite(banHours) && banHours > 0 ? Math.floor(banHours) : 72,
-      });
-      return;
-    }
-    setError('Invalid option. Use warn or ban.');
+
+    const parsedHours = Number(warnBanModal.banHours);
+    const safeHours = Number.isFinite(parsedHours) && parsedHours > 0
+      ? Math.floor(parsedHours)
+      : 72;
+
+    await runAction(warnBanModal.reportId, 'ban', {
+      banUser: true,
+      banHours: safeHours,
+    });
+    closeWarnBanModal();
   };
 
   return (
@@ -193,6 +235,64 @@ function ViolationReportManagement() {
           </tbody>
         </table>
       </div>
+      {warnBanModal.open && (
+        <div className='admin-reports__warn-ban-backdrop' onClick={closeWarnBanModal}>
+          <div
+            className='admin-reports__warn-ban-modal'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3>Warn / Ban User</h3>
+            <p className='admin-reports__warn-ban-help'>
+              Choose action for reported user.
+            </p>
+
+            <div className='admin-reports__warn-ban-mode'>
+              <label>
+                <input
+                  type='radio'
+                  name='warn-ban-mode'
+                  checked={warnBanModal.mode === 'warn'}
+                  onChange={() => setWarnBanModal((prev) => ({ ...prev, mode: 'warn' }))}
+                />
+                Warn user
+              </label>
+              <label>
+                <input
+                  type='radio'
+                  name='warn-ban-mode'
+                  checked={warnBanModal.mode === 'ban'}
+                  onChange={() => setWarnBanModal((prev) => ({ ...prev, mode: 'ban' }))}
+                />
+                Ban user
+              </label>
+            </div>
+
+            {warnBanModal.mode === 'ban' && (
+              <div className='admin-reports__warn-ban-hours'>
+                <label htmlFor='ban-hours'>Ban duration (hours)</label>
+                <input
+                  id='ban-hours'
+                  type='number'
+                  min='1'
+                  value={warnBanModal.banHours}
+                  onChange={(event) =>
+                    setWarnBanModal((prev) => ({ ...prev, banHours: event.target.value }))
+                  }
+                />
+              </div>
+            )}
+
+            <div className='admin-reports__warn-ban-actions'>
+              <button type='button' className='cancel' onClick={closeWarnBanModal}>
+                Cancel
+              </button>
+              <button type='button' className='confirm' onClick={submitWarnBan}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
