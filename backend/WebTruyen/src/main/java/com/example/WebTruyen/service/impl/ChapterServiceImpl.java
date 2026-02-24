@@ -260,10 +260,30 @@ public class ChapterServiceImpl implements ChapterService {
         chapterSegmentRepository.saveAll(segs);
     }
 
+    private ChapterResponse mapToChapterResponse(ChapterEntity chapter) {
+        return ChapterResponse.builder()
+                .id(chapter.getId())
+                .storyId(chapter.getVolume().getStory().getId())
+                .volumeId(chapter.getVolume().getId())
+                .title(chapter.getTitle())
+                .content(null) // Content not included in list view
+                .free(chapter.isFree())
+                .priceCoin(chapter.getPriceCoin())
+                .status(chapter.getStatus())
+                .sequenceIndex(chapter.getSequenceIndex())
+                .createdAt(chapter.getCreatedAt())
+                .lastUpdateAt(chapter.getLastUpdateAt())
+                .scheduledPublishAt(null) // Not implemented yet
+                .build();
+    }
+
     // Unimplemented methods from interface (temporary)
     @Override
     public List<ChapterResponse> getChaptersByStory(Long storyId, Long authorId) {
-        return List.of();
+        List<ChapterEntity> chapters = chapterRepository.findByStoryId(storyId);
+        return chapters.stream()
+                .map(this::mapToChapterResponse)
+                .toList();
     }
 
     @Override
