@@ -32,6 +32,17 @@ public class ChapterController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/view")
+    public ResponseEntity<Void> recordChapterView(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+        chapterService.recordChapterView(id, userId);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{id}/next")
     public ResponseEntity<Long> getNextChapter(@PathVariable Long id) {
         log.info("Getting next chapter for chapter ID: {}", id);

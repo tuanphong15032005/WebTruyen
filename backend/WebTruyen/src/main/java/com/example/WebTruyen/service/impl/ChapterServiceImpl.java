@@ -5,14 +5,18 @@ import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.keys.ReadingHistoryId;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
+import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
+import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.VolumeRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
 import com.example.WebTruyen.service.ChapterService;
@@ -24,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
 import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
@@ -34,7 +39,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +52,11 @@ public class ChapterServiceImpl implements ChapterService {
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final StorageService storageService;
     private final ChapterUnlockRepository chapterUnlockRepository;
+    private final ReadingHistoryRepository readingHistoryRepository;
+    private final UserRepository userRepository;
+    private static final Set<String> SEGMENT_BLOCK_TAGS = Set.of(
+            "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "li", "div"
+    );
 
     // ============================================================
     // AUTHOR - CREATE CHAPTER
@@ -236,60 +245,198 @@ public class ChapterServiceImpl implements ChapterService {
 
     private void processAndSaveContent(ChapterEntity chapter, String html) {
 
-        if (html == null || html.isEmpty()) return;
+        if (html == null || html.isBlank()) {
+            return;
+        }
 
-        Document doc = Jsoup.parseBodyFragment(html);
-        Elements imgs = doc.select("img");
-
-        for (Element img : imgs) {
+        Document rawDoc = Jsoup.parseBodyFragment(html);
+        for (Element img : rawDoc.select("img")) {
             String src = img.attr("src");
-            if (src.startsWith("data:")) {
-                String url = storageService.saveBase64Image(src);
-                img.attr("src", url);
+            if (src != null && src.startsWith("data:")) {
+                String uploadedUrl = storageService.saveBase64Image(src);
+                if (uploadedUrl != null && !uploadedUrl.isBlank()) {
+                    img.attr("src", uploadedUrl);
+                }
             }
         }
 
-        String sanitized = Jsoup.clean(
-                doc.body().html(),
-                Safelist.relaxed()
-        );
+        String sanitizedHtml = Jsoup.clean(rawDoc.body().html(), Safelist.relaxed());
+        Document cleanDoc = Jsoup.parseBodyFragment(sanitizedHtml);
+        Element cleanBody = cleanDoc.body();
 
-        String[] blocks = sanitized.split("(?i)(<br\\s*/?>\\s*){2,}");
+        List<String> segmentHtmlList = new ArrayList<>();
+        for (Element block : cleanBody.children()) {
+            String tagName = block.tagName().toLowerCase(Locale.ROOT);
+            if ("img".equals(tagName)) {
+                appendSegmentIfMeaningful(block.outerHtml(), segmentHtmlList);
+                continue;
+            }
 
-        List<ChapterSegmentEntity> segs = new ArrayList<>();
+            if (SEGMENT_BLOCK_TAGS.contains(tagName)) {
+                extractSegmentsFromBlock(block, segmentHtmlList);
+                continue;
+            }
+
+            appendSegmentIfMeaningful(block.outerHtml(), segmentHtmlList);
+        }
+
+        if (segmentHtmlList.isEmpty()) {
+            for (String rawLine : sanitizedHtml.split("(?i)<br\\s*/?>")) {
+                appendSegmentIfMeaningful(rawLine, segmentHtmlList);
+            }
+        }
+
+        if (segmentHtmlList.isEmpty()) {
+            return;
+        }
+
+        List<ChapterSegmentEntity> entities = new ArrayList<>();
         int seq = 1;
-        for (String block : blocks) {
-            if (block.trim().isEmpty()) continue;
-
-            segs.add(ChapterSegmentEntity.builder()
+        for (String segmentHtml : segmentHtmlList) {
+            entities.add(ChapterSegmentEntity.builder()
                     .chapter(chapter)
                     .seq(seq++)
-                    .segmentText(block)
+                    .segmentText(segmentHtml)
                     .createdAt(LocalDateTime.now())
                     .build());
         }
+        chapterSegmentRepository.saveAll(entities);
+    }
 
-        chapterSegmentRepository.saveAll(segs);
+    private void extractSegmentsFromBlock(Element block, List<String> segmentHtmlList) {
+        String blockTag = block.tagName().toLowerCase(Locale.ROOT);
+        String innerHtml = block.html();
+
+        if (!innerHtml.toLowerCase(Locale.ROOT).contains("<br") && block.select("img").isEmpty()) {
+            appendSegmentIfMeaningful(block.outerHtml(), segmentHtmlList);
+            return;
+        }
+
+        if (block.select("img").isEmpty()) {
+            String[] lines = innerHtml.split("(?i)<br\\s*/?>");
+            for (String line : lines) {
+                String wrapped = "<" + blockTag + ">" + line + "</" + blockTag + ">";
+                appendSegmentIfMeaningful(wrapped, segmentHtmlList);
+            }
+            return;
+        }
+
+        StringBuilder buffer = new StringBuilder();
+        for (Node node : block.childNodes()) {
+            if (node instanceof Element elementNode) {
+                String tag = elementNode.tagName().toLowerCase(Locale.ROOT);
+                if ("br".equals(tag)) {
+                    flushTextBufferAsSegment(blockTag, buffer, segmentHtmlList);
+                    continue;
+                }
+                if ("img".equals(tag)) {
+                    flushTextBufferAsSegment(blockTag, buffer, segmentHtmlList);
+                    appendSegmentIfMeaningful(elementNode.outerHtml(), segmentHtmlList);
+                    continue;
+                }
+            }
+
+            buffer.append(node.outerHtml());
+        }
+        flushTextBufferAsSegment(blockTag, buffer, segmentHtmlList);
+    }
+
+    private void flushTextBufferAsSegment(
+            String tagName,
+            StringBuilder buffer,
+            List<String> segmentHtmlList
+    ) {
+        String html = buffer.toString().trim();
+        buffer.setLength(0);
+        if (html.isEmpty()) {
+            return;
+        }
+        appendSegmentIfMeaningful("<" + tagName + ">" + html + "</" + tagName + ">", segmentHtmlList);
+    }
+
+    private void appendSegmentIfMeaningful(String html, List<String> segmentHtmlList) {
+        if (html == null || html.isBlank()) {
+            return;
+        }
+
+        String sanitized = Jsoup.clean(html, Safelist.relaxed()).trim();
+        if (sanitized.isEmpty()) {
+            return;
+        }
+
+        Document doc = Jsoup.parseBodyFragment(sanitized);
+        boolean hasImage = !doc.select("img").isEmpty();
+        String text = doc.text().replace('\u00A0', ' ').trim();
+        if (!hasImage && text.isEmpty()) {
+            return;
+        }
+
+        segmentHtmlList.add(sanitized);
     }
 
     // Unimplemented methods from interface (temporary)
     @Override
+    @Transactional(readOnly = true)
     public List<ChapterResponse> getChaptersByStory(Long storyId, Long authorId) {
-        return List.of();
+        return chapterRepository.findByStoryId(storyId)
+                .stream()
+                .filter(chapter -> chapter.getStatus() == ChapterStatus.published)
+                .sorted(Comparator
+                        .comparing(
+                                (ChapterEntity chapter) -> chapter.getVolume() != null
+                                        && chapter.getVolume().getSequenceIndex() != null
+                                        ? chapter.getVolume().getSequenceIndex()
+                                        : Integer.MAX_VALUE
+                        )
+                        .thenComparing(chapter -> chapter.getSequenceIndex() != null
+                                ? chapter.getSequenceIndex()
+                                : Integer.MAX_VALUE))
+                .map(this::toChapterResponse)
+                .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ChapterResponse getChapter(Long chapterId, Long authorId) {
-        return null;
+        ChapterEntity chapter = getChapterById(chapterId);
+        if (authorId != null) {
+            Long ownerId = chapter.getVolume().getStory().getAuthor().getId();
+            if (!Objects.equals(ownerId, authorId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner");
+            }
+        }
+        return toChapterResponse(chapter);
     }
 
     @Override
+    @Transactional
     public void deleteChapter(Long chapterId, Long authorId) {
+        ChapterEntity chapter = getChapterById(chapterId);
+        if (authorId != null) {
+            Long ownerId = chapter.getVolume().getStory().getAuthor().getId();
+            if (!Objects.equals(ownerId, authorId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner");
+            }
+        }
+        chapterSegmentRepository.deleteByChapter_Id(chapterId);
+        chapterRepository.delete(chapter);
     }
 
     @Override
+    @Transactional
     public ChapterResponse publishChapterNow(Long chapterId, Long authorId) {
-        return null;
+        ChapterEntity chapter = getChapterById(chapterId);
+        if (authorId != null) {
+            Long ownerId = chapter.getVolume().getStory().getAuthor().getId();
+            if (!Objects.equals(ownerId, authorId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner");
+            }
+        }
+
+        chapter.setStatus(ChapterStatus.published);
+        chapter.setLastUpdateAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+        return toChapterResponse(chapter);
     }
 
     @Override
@@ -303,28 +450,75 @@ public class ChapterServiceImpl implements ChapterService {
         // Build full HTML from segments
         StringBuilder fullHtml = new StringBuilder();
         for (ChapterSegmentEntity segment : segments) {
-            fullHtml.append(segment.getSegmentText());
+            fullHtml.append(segment.getSegmentText()).append("\n");
         }
-        
-        // Create content delta for Quill editor
-        List<Map<String, Object>> ops = new ArrayList<>();
-        if (fullHtml.length() > 0) {
-            ops.add(Map.of("insert", fullHtml.toString()));
-        } else {
-            ops.add(Map.of("insert", ""));
-        }
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("id", chapter.getId());
         result.put("title", chapter.getTitle() != null ? chapter.getTitle() : "");
         result.put("isFree", chapter.isFree());
         result.put("priceCoin", chapter.getPriceCoin());
         result.put("status", chapter.getStatus() != null ? chapter.getStatus().toString() : "draft");
-        result.put("contentDelta", Map.of("ops", ops));
+        result.put("contentDelta", "");
         result.put("fullHtml", fullHtml.toString());
         result.put("sequenceIndex", chapter.getSequenceIndex());
         result.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
         
         return result;
+    }
+
+    private ChapterResponse toChapterResponse(ChapterEntity chapter) {
+        if (chapter == null) {
+            return null;
+        }
+
+        return ChapterResponse.builder()
+                .id(chapter.getId())
+                .storyId(chapter.getVolume() != null && chapter.getVolume().getStory() != null
+                        ? chapter.getVolume().getStory().getId()
+                        : null)
+                .volumeId(chapter.getVolume() != null ? chapter.getVolume().getId() : null)
+                .title(chapter.getTitle())
+                .content(null)
+                .free(chapter.isFree())
+                .priceCoin(chapter.getPriceCoin())
+                .status(chapter.getStatus())
+                .sequenceIndex(chapter.getSequenceIndex())
+                .createdAt(chapter.getCreatedAt())
+                .lastUpdateAt(chapter.getLastUpdateAt())
+                .scheduledPublishAt(null)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void recordChapterView(Long chapterId, Long userId) {
+        ChapterEntity chapter = getChapterById(chapterId);
+        StoryEntity story = chapter.getVolume().getStory();
+        Long storyId = story != null ? story.getId() : null;
+        if (storyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Story not found for chapter");
+        }
+
+        storyRepository.incrementViewCount(storyId);
+
+        if (userId == null) {
+            return;
+        }
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return;
+        }
+
+        ReadingHistoryEntity history = readingHistoryRepository
+                .findById_UserIdAndId_StoryId(userId, storyId)
+                .orElseGet(() -> ReadingHistoryEntity.builder()
+                        .id(new ReadingHistoryId(userId, storyId))
+                        .user(user)
+                        .story(story)
+                        .build());
+        history.setLastChapter(chapter);
+        readingHistoryRepository.save(history);
     }
 }
