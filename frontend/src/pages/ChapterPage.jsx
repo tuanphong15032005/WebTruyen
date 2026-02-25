@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowLeft,
   Bookmark,
   BookmarkCheck,
   Check,
@@ -8,7 +9,6 @@ import {
   Flag,
   Heart,
   Home,
-  Info,
   Lock,
   Send,
   Type,
@@ -232,11 +232,7 @@ const SettingsPopup = ({ isOpen, onClose, settings, onSettingsChange }) => {
 const SidePanel = ({
   isOpen,
   onClose,
-  mode,
-  chapters,
-  currentChapterId,
   bookmarks,
-  onChapterSelect,
   onBookmarkDelete,
 }) => {
   if (!isOpen) return null;
@@ -246,60 +242,35 @@ const SidePanel = ({
       <div className='sidepanel-overlay' onClick={onClose} />
       <aside className={`sidepanel ${isOpen ? 'open' : ''}`}>
         <div className='sidepanel-header'>
-          <h3>{mode === 'chapters' ? 'Danh sách chương' : 'Bookmark của tôi'}</h3>
+          <h3>Bookmark của tôi</h3>
           <button className='close-btn' onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
         <div className='sidepanel-content'>
-          {mode === 'chapters' ? (
-            <div className='chapters-list'>
-              {chapters.map((chapter) => {
-                const locked = !chapter.free;
-                return (
+          <div className='bookmarks-list'>
+            {bookmarks.length === 0 ? (
+              <div className='empty-state'>
+                <Bookmark size={42} strokeWidth={1} />
+                <p>Chưa có bookmark nào</p>
+                <small>Hãy lưu segment để quay lại đọc nhanh.</small>
+              </div>
+            ) : (
+              bookmarks.map((bookmark) => (
+                <div key={bookmark.id} className='bookmark-item'>
+                  <p className='bookmark-text'>{bookmark.displayText}</p>
                   <button
-                    key={chapter.id}
                     type='button'
-                    className={`chapter-item ${Number(chapter.id) === Number(currentChapterId) ? 'active' : ''} ${locked ? 'locked' : ''}`}
-                    onClick={() => {
-                      onChapterSelect(chapter.id);
-                      onClose();
-                    }}
+                    className='delete-bookmark'
+                    onClick={() => onBookmarkDelete(bookmark.id)}
                   >
-                    <div className='chapter-info'>
-                      <span className='chapter-number'>Chương {chapter.sequenceIndex}</span>
-                      <span className='chapter-title'>{chapter.title}</span>
-                    </div>
-                    {locked && <span className='lock-icon'>🔒</span>}
+                    <X size={14} />
                   </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className='bookmarks-list'>
-              {bookmarks.length === 0 ? (
-                <div className='empty-state'>
-                  <Bookmark size={42} strokeWidth={1} />
-                  <p>Chưa có bookmark nào</p>
-                  <small>Hãy lưu segment để quay lại đọc nhanh.</small>
                 </div>
-              ) : (
-                bookmarks.map((bookmark) => (
-                  <div key={bookmark.id} className='bookmark-item'>
-                    <p className='bookmark-text'>{bookmark.displayText}</p>
-                    <button
-                      type='button'
-                      className='delete-bookmark'
-                      onClick={() => onBookmarkDelete(bookmark.id)}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </aside>
     </>
@@ -310,8 +281,8 @@ const VerticalToolbar = ({
   onPrevChapter,
   onNextChapter,
   onHome,
+  onBackToMetadata,
   onSettings,
-  onInfo,
   onBookmarks,
   hasPrev,
   hasNext,
@@ -326,8 +297,13 @@ const VerticalToolbar = ({
     <button type='button' className='toolbar-btn' onClick={onSettings} title='Tùy chỉnh'>
       <Type size={18} />
     </button>
-    <button type='button' className='toolbar-btn' onClick={onInfo} title='Danh sách chương'>
-      <Info size={18} />
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onBackToMetadata}
+      title='Về trang truyện'
+    >
+      <ArrowLeft size={18} />
     </button>
     <button type='button' className='toolbar-btn' onClick={onBookmarks} title='Bookmarks'>
       <Bookmark size={18} />
@@ -654,7 +630,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                     className='story-metadata__inline-action'
                     onClick={() => handleStartEdit(comment)}
                   >
-                    Chinh sua
+                    Chỉnh sửa
                   </button>
                   <button
                     type='button'
@@ -774,8 +750,10 @@ const ChapterPage = () => {
   const { notify } = useNotify();
 
   const initialId = Number(chapterIdParam) || INITIAL_CHAPTER_ID;
-  const { chapterId, chapter, allChapters, loading, error, refreshChapter } = useChapter(initialId);
-  const { bookmarks, toggleBookmark, removeBookmark, getBookmarkSegmentId } = useBookmarks(chapterId);
+  const { chapterId, chapter, allChapters, loading, error, refreshChapter } =
+    useChapter(initialId);
+  const { bookmarks, toggleBookmark, removeBookmark, getBookmarkSegmentId } =
+    useBookmarks(chapterId);
   const { wallet, refreshWallet } = useContext(WalletContext);
 
   const [settings, setSettings] = useState({
@@ -789,7 +767,6 @@ const ChapterPage = () => {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
-  const [panelMode, setPanelMode] = useState('chapters');
   const [selectedSegmentId, setSelectedSegmentId] = useState(null);
   const [liked, setLiked] = useState(false);
 
@@ -806,23 +783,35 @@ const ChapterPage = () => {
   const viewedChapterKeysRef = useRef(new Set());
 
   const orderedChapters = useMemo(
-    () => [...(Array.isArray(allChapters) ? allChapters : [])].sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0)),
+    () =>
+      [...(Array.isArray(allChapters) ? allChapters : [])].sort(
+        (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
+      ),
     [allChapters],
   );
 
   const nextChapterId = useMemo(() => {
     if (chapter?.nextChapterId) return chapter.nextChapterId;
-    const idx = orderedChapters.findIndex((c) => Number(c.id) === Number(chapter?.id));
-    return idx >= 0 && idx < orderedChapters.length - 1 ? orderedChapters[idx + 1].id : null;
+    const idx = orderedChapters.findIndex(
+      (c) => Number(c.id) === Number(chapter?.id),
+    );
+    return idx >= 0 && idx < orderedChapters.length - 1
+      ? orderedChapters[idx + 1].id
+      : null;
   }, [chapter?.id, chapter?.nextChapterId, orderedChapters]);
 
   const previousChapterId = useMemo(() => {
     if (chapter?.previousChapterId) return chapter.previousChapterId;
-    const idx = orderedChapters.findIndex((c) => Number(c.id) === Number(chapter?.id));
+    const idx = orderedChapters.findIndex(
+      (c) => Number(c.id) === Number(chapter?.id),
+    );
     return idx > 0 ? orderedChapters[idx - 1].id : null;
   }, [chapter?.id, chapter?.previousChapterId, orderedChapters]);
 
-  const segments = useMemo(() => (Array.isArray(chapter?.segments) ? chapter.segments : []), [chapter?.segments]);
+  const segments = useMemo(
+    () => (Array.isArray(chapter?.segments) ? chapter.segments : []),
+    [chapter?.segments],
+  );
   const visibleSegments = useMemo(() => segments, [segments]);
   const isChapterFree = toBoolean(chapter?.free ?? chapter?.isFree);
   const isChapterUnlocked = toBoolean(chapter?.unlocked ?? chapter?.isUnlocked);
@@ -830,7 +819,9 @@ const ChapterPage = () => {
 
   const segmentPreviewMap = useMemo(() => {
     const map = new Map();
-    segments.forEach((segment) => map.set(Number(segment.id), previewSegment(segment.segmentText)));
+    segments.forEach((segment) =>
+      map.set(Number(segment.id), previewSegment(segment.segmentText)),
+    );
     return map;
   }, [segments]);
 
@@ -840,7 +831,10 @@ const ChapterPage = () => {
         const segmentId = Number(getBookmarkSegmentId(bookmark));
         return {
           ...bookmark,
-          displayText: bookmark.text || segmentPreviewMap.get(segmentId) || '[Segment đã lưu]',
+          displayText:
+            bookmark.text ||
+            segmentPreviewMap.get(segmentId) ||
+            '[Segment đã lưu]',
         };
       }),
     [bookmarks, getBookmarkSegmentId, segmentPreviewMap],
@@ -933,18 +927,15 @@ const ChapterPage = () => {
     };
   }, [settings.bgColor, settings.textColor]);
 
-  const openPanel = (mode) => {
-    setPanelMode(mode);
-    setShowPanel(true);
-  };
-
   const gotoChapter = (targetId) => {
     if (!storyId || !targetId) return;
     navigate(`/stories/${storyId}/chapters/${targetId}`);
   };
 
   const progressPercent = () => {
-    const max = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const max =
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight;
     if (max <= 0) return 0;
     return Number(((window.scrollY / max) * 100).toFixed(2));
   };
@@ -1001,7 +992,9 @@ const ChapterPage = () => {
     }
 
     try {
-      const existed = bookmarks.some((b) => Number(getBookmarkSegmentId(b)) === Number(segment.id));
+      const existed = bookmarks.some(
+        (b) => Number(getBookmarkSegmentId(b)) === Number(segment.id),
+      );
       await toggleBookmark({
         segmentId: segment.id,
         text: previewSegment(segment.segmentText),
@@ -1036,7 +1029,9 @@ const ChapterPage = () => {
     }
     const totalCoins = Number(wallet.coinA || 0) + Number(wallet.coinB || 0);
     if (totalCoins < chapter.priceCoin) {
-      setPurchaseError(`Không đủ coin để mua chương. Cần ${chapter.priceCoin}, hiện có ${totalCoins}.`);
+      setPurchaseError(
+        `Không đủ coin để mua chương. Cần ${chapter.priceCoin}, hiện có ${totalCoins}.`,
+      );
       setShowErrorModal(true);
       return;
     }
@@ -1066,7 +1061,10 @@ const ChapterPage = () => {
 
   if (loading) {
     return (
-      <div className='chapter-state' style={{ backgroundColor: settings.bgColor, color: settings.textColor }}>
+      <div
+        className='chapter-state'
+        style={{ backgroundColor: settings.bgColor, color: settings.textColor }}
+      >
         Đang tải chương...
       </div>
     );
@@ -1074,7 +1072,10 @@ const ChapterPage = () => {
 
   if (error) {
     return (
-      <div className='chapter-state' style={{ backgroundColor: settings.bgColor, color: '#e53935' }}>
+      <div
+        className='chapter-state'
+        style={{ backgroundColor: settings.bgColor, color: '#e53935' }}
+      >
         <p>{error}</p>
         <button onClick={() => window.location.reload()}>Thử lại</button>
       </div>
@@ -1086,15 +1087,23 @@ const ChapterPage = () => {
   return (
     <div
       className={`chapter-reader ${dark ? 'theme-dark' : 'theme-light'}`}
-      style={{ backgroundColor: settings.bgColor, color: settings.textColor, fontFamily: settings.fontFamily }}
+      style={{
+        backgroundColor: settings.bgColor,
+        color: settings.textColor,
+        fontFamily: settings.fontFamily,
+      }}
     >
       <VerticalToolbar
-        onPrevChapter={() => previousChapterId && gotoChapter(previousChapterId)}
+        onPrevChapter={() =>
+          previousChapterId && gotoChapter(previousChapterId)
+        }
         onNextChapter={() => nextChapterId && gotoChapter(nextChapterId)}
         onHome={() => navigate('/')}
+        onBackToMetadata={() =>
+          storyId && navigate(`/stories/${storyId}/metadata`)
+        }
         onSettings={() => setShowSettings(true)}
-        onInfo={() => openPanel('chapters')}
-        onBookmarks={() => openPanel('bookmarks')}
+        onBookmarks={() => setShowPanel(true)}
         hasPrev={Boolean(previousChapterId)}
         hasNext={Boolean(nextChapterId)}
       />
@@ -1112,23 +1121,38 @@ const ChapterPage = () => {
             <section
               ref={chapterContentRef}
               className='chapter-content chapter-content--protected'
-              style={{ fontSize: `${settings.fontSize}px`, textAlign: settings.textAlign }}
+              style={{
+                fontSize: `${settings.fontSize}px`,
+                textAlign: settings.textAlign,
+              }}
               onCopy={blockCopyAction}
               onCut={blockCopyAction}
               onContextMenu={blockCopyAction}
               onDragStart={blockCopyAction}
             >
               {visibleSegments.map((segment) => {
-                const selected = Number(selectedSegmentId) === Number(segment.id);
-                const bookmarked = bookmarks.some((b) => Number(getBookmarkSegmentId(b)) === Number(segment.id));
+                const selected =
+                  Number(selectedSegmentId) === Number(segment.id);
+                const bookmarked = bookmarks.some(
+                  (b) => Number(getBookmarkSegmentId(b)) === Number(segment.id),
+                );
 
                 return (
                   <article
                     key={segment.id}
                     className={`chapter-segment ${selected ? 'selected' : ''} ${bookmarked ? 'bookmarked' : ''}`}
-                    onClick={() => setSelectedSegmentId((prev) => (Number(prev) === Number(segment.id) ? null : segment.id))}
+                    onClick={() =>
+                      setSelectedSegmentId((prev) =>
+                        Number(prev) === Number(segment.id) ? null : segment.id,
+                      )
+                    }
                   >
-                    <div className='chapter-segment-content' dangerouslySetInnerHTML={{ __html: segment.segmentText || '' }} />
+                    <div
+                      className='chapter-segment-content'
+                      dangerouslySetInnerHTML={{
+                        __html: segment.segmentText || '',
+                      }}
+                    />
                     <button
                       type='button'
                       className={`bookmark-inline-btn ${bookmarked ? 'active' : ''}`}
@@ -1137,7 +1161,11 @@ const ChapterPage = () => {
                         bookmarkSegment(segment);
                       }}
                     >
-                      {bookmarked ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                      {bookmarked ? (
+                        <BookmarkCheck size={15} />
+                      ) : (
+                        <Bookmark size={15} />
+                      )}
                     </button>
                   </article>
                 );
@@ -1145,18 +1173,31 @@ const ChapterPage = () => {
             </section>
 
             <div className='chapter-navigation'>
-              <button className='nav-btn' onClick={() => previousChapterId && gotoChapter(previousChapterId)} disabled={!previousChapterId}>
+              <button
+                className='nav-btn'
+                onClick={() =>
+                  previousChapterId && gotoChapter(previousChapterId)
+                }
+                disabled={!previousChapterId}
+              >
                 <ChevronLeft size={18} />
                 Chương trước
               </button>
-              <button className='nav-btn' onClick={() => nextChapterId && gotoChapter(nextChapterId)} disabled={!nextChapterId}>
+              <button
+                className='nav-btn'
+                onClick={() => nextChapterId && gotoChapter(nextChapterId)}
+                disabled={!nextChapterId}
+              >
                 Chương sau
                 <ChevronRight size={18} />
               </button>
             </div>
 
             <div className='interaction-bar'>
-              <button className={`interaction-btn ${liked ? 'liked' : ''}`} onClick={() => setLiked((prev) => !prev)}>
+              <button
+                className={`interaction-btn ${liked ? 'liked' : ''}`}
+                onClick={() => setLiked((prev) => !prev)}
+              >
                 <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
                 {liked ? 'Đã thích' : 'Thả tim'}
               </button>
@@ -1166,7 +1207,11 @@ const ChapterPage = () => {
               </button>
             </div>
 
-            <CommentsSection storyId={storyId} chapterId={chapterId} dark={dark} />
+            <CommentsSection
+              storyId={storyId}
+              chapterId={chapterId}
+              dark={dark}
+            />
           </>
         )}
       </main>
@@ -1175,11 +1220,7 @@ const ChapterPage = () => {
         <SidePanel
           isOpen={showPanel}
           onClose={() => setShowPanel(false)}
-          mode={panelMode}
-          chapters={orderedChapters}
-          currentChapterId={chapterId}
           bookmarks={bookmarkItems}
-          onChapterSelect={gotoChapter}
           onBookmarkDelete={handleBookmarkDelete}
         />
       )}
@@ -1216,5 +1257,3 @@ const ChapterPage = () => {
 };
 
 export default ChapterPage;
-
-
