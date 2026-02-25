@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Link,
   useNavigate,
@@ -324,7 +324,9 @@ const StoryDetail = () => {
                 <Button
                   type='button'
                   className='story-detail__view'
-                  onClick={() => navigate(`/author/comments?storyId=${storyId}`)}
+                  onClick={() =>
+                    navigate(`/author/comments?storyId=${storyId}`)
+                  }
                 >
                   <svg viewBox='0 0 24 24' aria-hidden='true'>
                     <path d='M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7l-5 5V6a2 2 0 0 1 2-2zm4 5h8v2H8zm0 4h5v2H8z' />
