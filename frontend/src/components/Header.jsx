@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, ChevronDown, Gem, Search } from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
@@ -155,8 +155,7 @@ function Header() {
 
     {hasAnyRole(['ADMIN', 'MOD'], user) && (
       <>
-        <Link to='/admin/content-moderation'>Quản lý kiểm duyệt nội dung</Link>
-        <Link to='/admin/violation-reports'>Quản lý báo cáo vi phạm</Link>
+        <Link to='/admin/dashboard'>Dashboard quản trị</Link>
       </>
     )}
 

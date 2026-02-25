@@ -179,10 +179,9 @@ function ContentModeration() {
   return (
     <section className='admin-moderation'>
       <header className='admin-moderation__header'>
-        <h1>Content Moderation</h1>
+        <h1>Kiểm duyệt nội dung</h1>
         <p>
-          Review stories and chapters before publication to ensure copyright,
-          age suitability, and community standards.
+          Xem xét câu chuyện và các chương trước khi xuất bản để đảm bảo bản quyền, phù hợp với độ tuổi và tiêu chuẩn cộng đồng.
         </p>
       </header>
 

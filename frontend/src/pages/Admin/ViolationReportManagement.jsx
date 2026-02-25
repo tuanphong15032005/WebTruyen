@@ -134,8 +134,8 @@ function ViolationReportManagement() {
   return (
     <section className='admin-reports'>
       <header className='admin-reports__header'>
-        <h1>Violation Report Management</h1>
-        <p>Handle spam, copyright, and inappropriate content reports submitted by users.</p>
+        <h1>Quản lý Báo cáo Vi phạm</h1>
+        <p>Xử lý các báo cáo về thư rác, vi phạm bản quyền và nội dung không phù hợp do người dùng gửi.</p>
       </header>
 
       <div className='admin-reports__toolbar'>

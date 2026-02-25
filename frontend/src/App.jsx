@@ -23,6 +23,7 @@ import CreateChapter from './pages/Author/CreateChapter';
 // =======
 import CommentManagement from './pages/Author/CommentManagement';
 import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
+import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
@@ -93,6 +94,14 @@ function App() {
                                   element={
                                     <RoleProtectedRoute allowedRoles={['AUTHOR']}>
                                       <PerformanceAnalytics />
+                                    </RoleProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path='/admin/dashboard'
+                                  element={
+                                    <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+                                      <AdminDashboard />
                                     </RoleProtectedRoute>
                                   }
                                 />

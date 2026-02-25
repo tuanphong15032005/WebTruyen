@@ -1,0 +1,69 @@
+.admin-dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-dashboard__header h1 {
+  margin: 0;
+  color: #111827;
+}
+
+.admin-dashboard__header p {
+  margin: 8px 0 0;
+  color: #4b5563;
+}
+
+.admin-dashboard__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.admin-dashboard__tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-dashboard__tabs button {
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #1f2937;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-dashboard__tabs button.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.admin-dashboard__links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-dashboard__links a {
+  text-decoration: none;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.admin-dashboard__links a:hover {
+  text-decoration: underline;
+}
+
+.admin-dashboard__panel {
+  min-width: 0;
+}
