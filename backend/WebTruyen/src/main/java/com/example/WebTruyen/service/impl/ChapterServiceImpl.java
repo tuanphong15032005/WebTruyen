@@ -32,6 +32,7 @@ import org.jsoup.nodes.Node;
 import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -204,20 +205,60 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     public Long getNextChapterId(Long chapterId) {
+        // Hieu Son – ngày 25/02/2026
+        // [Sua logic next chapter: di theo thu tu toan story (volume -> chapter -> id), khong gioi han trong 1 volume - V2 - branch: minhfinal2]
         ChapterEntity chapter = getChapterById(chapterId);
-        return chapterRepository.findNextChapters(
-                chapter.getVolume().getId(),
-                chapter.getSequenceIndex()
-        ).stream().findFirst().map(ChapterEntity::getId).orElse(null);
+        Long storyId = chapter.getVolume() != null && chapter.getVolume().getStory() != null
+                ? chapter.getVolume().getStory().getId()
+                : null;
+        if (storyId == null) return null;
+
+        Integer currentVolumeSequence = chapter.getVolume().getSequenceIndex() != null
+                ? chapter.getVolume().getSequenceIndex()
+                : Integer.MAX_VALUE;
+        Integer currentChapterSequence = chapter.getSequenceIndex() != null
+                ? chapter.getSequenceIndex()
+                : Integer.MAX_VALUE;
+
+        return chapterRepository.findNextChaptersInStory(
+                        storyId,
+                        currentVolumeSequence,
+                        currentChapterSequence,
+                        chapter.getId(),
+                        PageRequest.of(0, 1)
+                ).stream()
+                .findFirst()
+                .map(ChapterEntity::getId)
+                .orElse(null);
     }
 
     @Override
     public Long getPreviousChapterId(Long chapterId) {
+        // Hieu Son – ngày 25/02/2026
+        // [Sua logic previous chapter: di theo thu tu toan story (volume -> chapter -> id), khong gioi han trong 1 volume - V2 - branch: minhfinal2]
         ChapterEntity chapter = getChapterById(chapterId);
-        return chapterRepository.findPreviousChapters(
-                chapter.getVolume().getId(),
-                chapter.getSequenceIndex()
-        ).stream().findFirst().map(ChapterEntity::getId).orElse(null);
+        Long storyId = chapter.getVolume() != null && chapter.getVolume().getStory() != null
+                ? chapter.getVolume().getStory().getId()
+                : null;
+        if (storyId == null) return null;
+
+        Integer currentVolumeSequence = chapter.getVolume().getSequenceIndex() != null
+                ? chapter.getVolume().getSequenceIndex()
+                : Integer.MAX_VALUE;
+        Integer currentChapterSequence = chapter.getSequenceIndex() != null
+                ? chapter.getSequenceIndex()
+                : Integer.MAX_VALUE;
+
+        return chapterRepository.findPreviousChaptersInStory(
+                        storyId,
+                        currentVolumeSequence,
+                        currentChapterSequence,
+                        chapter.getId(),
+                        PageRequest.of(0, 1)
+                ).stream()
+                .findFirst()
+                .map(ChapterEntity::getId)
+                .orElse(null);
     }
 
     // ============================================================
@@ -374,6 +415,8 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     @Transactional(readOnly = true)
     public List<ChapterResponse> getChaptersByStory(Long storyId, Long authorId) {
+        // Hieu Son – ngày 25/02/2026
+        // [Chot thu tu chapter fallback o service theo volume -> chapter -> id de on dinh khi trung sequenceIndex - V2 - branch: minhfinal2]
         return chapterRepository.findByStoryId(storyId)
                 .stream()
                 .filter(chapter -> chapter.getStatus() == ChapterStatus.published)
@@ -386,7 +429,10 @@ public class ChapterServiceImpl implements ChapterService {
                         )
                         .thenComparing(chapter -> chapter.getSequenceIndex() != null
                                 ? chapter.getSequenceIndex()
-                                : Integer.MAX_VALUE))
+                                : Integer.MAX_VALUE)
+                        .thenComparing(chapter -> chapter.getId() != null
+                                ? chapter.getId()
+                                : Long.MAX_VALUE))
                 .map(this::toChapterResponse)
                 .toList();
     }
@@ -507,7 +553,7 @@ public class ChapterServiceImpl implements ChapterService {
         if (user == null) {
             return;
         }
-
+        //record + lưu lịch sử đọc mới nhất cho user
         ReadingHistoryEntity history = readingHistoryRepository
                 .findById_UserIdAndId_StoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()

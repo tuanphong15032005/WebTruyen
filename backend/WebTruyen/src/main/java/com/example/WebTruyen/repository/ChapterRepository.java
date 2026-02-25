@@ -1,6 +1,7 @@
 package com.example.WebTruyen.repository;
 
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -47,7 +48,14 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     // Muc dich: Dem tong so chuong cong khai cua mot truyen (hien thi "Cung tac gia"). Hieuson + 10h30
     long countByVolume_Story_IdAndStatus(Long storyId, ChapterStatus status);
 
-    @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.id = :storyId ORDER BY c.sequenceIndex")
+    // Hieu Son – ngày 25/02/2026
+    // [Fix thu tu chapter theo volume/chapter/id - V2 - branch: minhfinal2]
+    @Query("""
+            SELECT c
+            FROM ChapterEntity c
+            WHERE c.volume.story.id = :storyId
+            ORDER BY c.volume.sequenceIndex ASC, c.sequenceIndex ASC, c.id ASC
+            """)
     List<ChapterEntity> findByStoryId(@Param("storyId") Long storyId);
 
     @Query("SELECT c FROM ChapterEntity c WHERE c.status = :status AND c.createdAt <= :now")
@@ -68,6 +76,48 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
 
     @Query("SELECT c FROM ChapterEntity c WHERE c.volume.id = :volumeId AND c.sequenceIndex < :currentSequenceIndex ORDER BY c.sequenceIndex DESC")
     List<ChapterEntity> findPreviousChapters(@Param("volumeId") Long volumeId, @Param("currentSequenceIndex") Integer currentSequenceIndex);
+
+    // Hieu Son – ngày 25/02/2026
+    // [Them query next chapter xuyen volume theo thu tu doc toan story - V2 - branch: minhfinal2]
+    @Query("""
+            SELECT c
+            FROM ChapterEntity c
+            WHERE c.volume.story.id = :storyId
+              AND (
+                    c.volume.sequenceIndex > :currentVolumeSequence
+                 OR (c.volume.sequenceIndex = :currentVolumeSequence AND c.sequenceIndex > :currentChapterSequence)
+                 OR (c.volume.sequenceIndex = :currentVolumeSequence AND c.sequenceIndex = :currentChapterSequence AND c.id > :currentChapterId)
+              )
+            ORDER BY c.volume.sequenceIndex ASC, c.sequenceIndex ASC, c.id ASC
+            """)
+    List<ChapterEntity> findNextChaptersInStory(
+            @Param("storyId") Long storyId,
+            @Param("currentVolumeSequence") Integer currentVolumeSequence,
+            @Param("currentChapterSequence") Integer currentChapterSequence,
+            @Param("currentChapterId") Long currentChapterId,
+            Pageable pageable
+    );
+
+    // Hieu Son – ngày 25/02/2026
+    // [Them query previous chapter xuyen volume theo thu tu doc toan story - V2 - branch: minhfinal2]
+    @Query("""
+            SELECT c
+            FROM ChapterEntity c
+            WHERE c.volume.story.id = :storyId
+              AND (
+                    c.volume.sequenceIndex < :currentVolumeSequence
+                 OR (c.volume.sequenceIndex = :currentVolumeSequence AND c.sequenceIndex < :currentChapterSequence)
+                 OR (c.volume.sequenceIndex = :currentVolumeSequence AND c.sequenceIndex = :currentChapterSequence AND c.id < :currentChapterId)
+              )
+            ORDER BY c.volume.sequenceIndex DESC, c.sequenceIndex DESC, c.id DESC
+            """)
+    List<ChapterEntity> findPreviousChaptersInStory(
+            @Param("storyId") Long storyId,
+            @Param("currentVolumeSequence") Integer currentVolumeSequence,
+            @Param("currentChapterSequence") Integer currentChapterSequence,
+            @Param("currentChapterId") Long currentChapterId,
+            Pageable pageable
+    );
 }
 
 
