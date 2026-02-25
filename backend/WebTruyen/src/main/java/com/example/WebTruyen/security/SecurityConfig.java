@@ -50,6 +50,11 @@ public class SecurityConfig {
                         .requestMatchers("/", "/api/auth/**").permitAll()
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/api/users/profile/**").permitAll()
+                        //e thảo cho thêm của portfolio
+                        .requestMatchers("/api/users/*/portfolio").permitAll()
+                        .requestMatchers("/api/users/*/follow").permitAll()
+                        .requestMatchers("/api/users/*/follow-status").permitAll()
+                        .requestMatchers("/api/users/*/stories").permitAll()
                         .requestMatchers("/error").permitAll()
                         //tạo permit cho api - nhớ xóa khi deploy
                         .requestMatchers("/api/stories/**").permitAll()

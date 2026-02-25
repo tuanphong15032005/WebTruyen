@@ -79,4 +79,8 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             where s.id = :storyId
             """)
     int incrementViewCount(@Param("storyId") Long storyId);
+    
+    long countByAuthor_Id(Long authorId);
+    
+    List<StoryEntity> findByAuthorIdOrderByCreatedAtDesc(Long authorId);
 }

@@ -10,6 +10,7 @@ import WalletTopupPage from './pages/WalletTopupPage';
 import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
 import CoinTransactionHistoryPage from './pages/DonationHistoryPage';
 import UserProfile from './pages/UserProfile';
+import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
 import CreateStory from './pages/Author/CreateStory';
@@ -40,6 +41,7 @@ function App() {
           element={<CoinTransactionHistoryPage />}
         />
         <Route path='/profile' element={<UserProfile />} />
+        <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />

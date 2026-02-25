@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -934,7 +934,13 @@ const StoryMetadata = () => {
         </div>
         <div className='story-metadata__comment-body'>
           <div className='story-metadata__comment-head'>
-            <strong>{comment.username}</strong>
+{/*               //link đến portfolio */}
+            <strong 
+              className='cursor-pointer hover:text-blue-600 transition-colors'
+              onClick={() => navigate(`/user/${comment.userId}`)}
+            >
+              {comment.username}
+            </strong>
             <small>{formatRelativeTime(comment.createdAt)}</small>
           </div>
 
@@ -1265,7 +1271,12 @@ const StoryMetadata = () => {
           {latestReview && (
             <article className='story-metadata__latest-review-card'>
               <div className='story-metadata__latest-review-head'>
-                <strong>{latestReview.username || 'Ẩn danh'}</strong>
+                <strong 
+                  className='cursor-pointer hover:text-blue-600 transition-colors'
+                  onClick={() => navigate(`/user/${latestReview.userId}`)}
+                >
+                  {latestReview.username || 'Ẩn danh'}
+                </strong>
                 <div className='story-metadata__latest-review-stars'>
                   {STAR_VALUES.map((star) => (
                     <span

@@ -50,6 +50,13 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
             """)
     Page<CommentEntity> findLatestPublicRootComments(Pageable pageable);
 
+    @Query("SELECT COUNT(c) FROM CommentEntity c " +
+           "JOIN c.chapter ch " +
+           "JOIN ch.volume v " +
+           "JOIN v.story s " +
+           "WHERE s.author.id = :userId AND c.isHidden = false")
+    long countCommentsInUserStories(@Param("userId") Long userId);
+
 //=======
 //>>>>>>> author-create-content
 }

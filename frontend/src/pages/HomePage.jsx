@@ -523,7 +523,13 @@ function HomePage() {
                   </div>
                   <div className='home-community-item__body'>
                     <div className='home-community-item__head'>
-                      <strong>{comment.username || 'Unknown'}</strong>
+{/*                     chuyen huong sang portfolio */}
+                      <strong
+                        className='cursor-pointer hover:text-blue-600'
+                        onClick={() => window.location.href = `/user/${comment.userId}`}
+                      >
+                        {comment.username || 'Unknown'}
+                      </strong>
                       <small>{formatRelativeTime(comment.createdAt)}</small>
                     </div>
                     <p className='home-community-item__story'>
