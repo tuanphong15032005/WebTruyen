@@ -25,60 +25,90 @@ import { WalletContext } from '../context/WalletContext';
 export default function UserProfile({ userData }) {
   const navigate = useNavigate();
   const { refreshWallet } = useContext(WalletContext);
-  const [displayName, setDisplayName] = useState(userData?.displayName || 'Thảo Trịnh');
-  const [favoriteQuote, setFavoriteQuote] = useState(userData?.bio || '');
-  const [tempName, setTempName] = useState(displayName);
+
+  // ✅ Không hardcode, khởi tạo rỗng
+  const [displayName, setDisplayName] = useState('');
+  const [favoriteQuote, setFavoriteQuote] = useState('');
+  const [tempName, setTempName] = useState('');
   const [bioMessage, setBioMessage] = useState('');
   const [nameMessage, setNameMessage] = useState('');
-  const [profileData, setProfileData] = useState(userData || {});
+  const [profileData, setProfileData] = useState({});
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [lastCheckInAmount, setLastCheckInAmount] = useState(0);
   const [coinAnimation, setCoinAnimation] = useState(false);
   const [walletData, setWalletData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch profile data from API if not provided
-  React.useEffect(() => {
-    if (!userData || !userData.email) {
-      const fetchProfile = async () => {
-        try {
-          const userId = profileData?.id || 1;
-          const response = await fetch(`http://localhost:8081/api/users/profile/${userId}`);
-          if (response.ok) {
-            const data = await response.json();
-            setProfileData(data);
-            setDisplayName(data.displayName || 'Thảo Trịnh');
-            setFavoriteQuote(data.bio || '');
-            setTempName(data.displayName || 'Thảo Trịnh');
-          }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
+  // ✅ Fix: Fetch profile từ API dùng token, không hardcode
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        // Nếu userData đã có đầy đủ thông tin thì dùng luôn
+        if (userData && userData.email) {
+          setProfileData(userData);
+          setDisplayName(userData.displayName || userData.username || '');
+          setFavoriteQuote(userData.bio || '');
+          setTempName(userData.displayName || userData.username || '');
+          setLoading(false);
+          return;
         }
-      };
-      fetchProfile();
-    }
+
+        // Không có userData → fetch từ API bằng token
+        const token = localStorage.getItem('accessToken');
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:8081/api/users/profile/${userId}`, {
+          headers: {
+...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProfileData(data);
+          setDisplayName(data.displayName || data.username || '');
+          setFavoriteQuote(data.bio || '');
+          setTempName(data.displayName || data.username || '');
+        } else {
+          // Fallback: thử lấy theo id nếu có
+          const userId = userData?.id || 1;
+          const fallbackRes = await fetch(`http://localhost:8081/api/users/profile/${userId}`, {
+            credentials: 'include'
+          });
+          if (fallbackRes.ok) {
+            const data = await fallbackRes.json();
+            setProfileData(data);
+            setDisplayName(data.displayName || data.username || '');
+            setFavoriteQuote(data.bio || '');
+            setTempName(data.displayName || data.username || '');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
   }, [userData]);
 
-  // Fetch wallet data
+  // ✅ Fix: Fetch wallet và log cấu trúc để debug
   useEffect(() => {
     const fetchWallet = async () => {
       try {
         const data = await getWallet();
+        console.log('✅ walletData structure:', JSON.stringify(data, null, 2));
         setWalletData(data);
       } catch (error) {
         console.error('Error fetching wallet:', error);
       }
     };
     fetchWallet();
-  }, [userData]);
+  }, []);
 
-  // Set profileData when userData is available
-  useEffect(() => {
-    if (userData && userData.email) {
-      setProfileData(userData);
-    }
-  }, [userData]);
-
-  
   const handleUpdateQuote = async () => {
     try {
       const userId = profileData?.id || 1;
@@ -127,18 +157,13 @@ export default function UserProfile({ userData }) {
   };
 
   const handleCheckIn = async () => {
-    const userId = profileData?.id || userData?.id || 1;
-    
     setCheckInLoading(true);
     try {
-      // Call the backend API to add 5000 coin A to database
       const response = await dailyCheckIn();
-      
-      // Calculate new balance (current + 5000)
+
       const currentCoins = profileData?.wallet?.balance_coin_a ?? 0;
       const newCoinBalance = currentCoins + (response.addedAmount || 5000);
-      
-      // Update profile data with new coin balance
+
       const updatedProfileData = {
         ...profileData,
         wallet: {
@@ -148,16 +173,13 @@ export default function UserProfile({ userData }) {
       };
       setProfileData(updatedProfileData);
       setLastCheckInAmount(response.addedAmount || 5000);
-      
-      // Trigger coin animation
+
       setCoinAnimation(true);
       setTimeout(() => setCoinAnimation(false), 1000);
-      
-      // Refresh wallet data to get updated balance
+
       try {
         const updatedWallet = await getWallet();
         setWalletData(updatedWallet);
-        // Refresh wallet context to update Header display
         await refreshWallet();
       } catch (error) {
         console.error('Error refreshing wallet:', error);
@@ -180,10 +202,31 @@ export default function UserProfile({ userData }) {
 
   const handleMenuClick = (path) => { navigate(path); };
 
-  // Coin values from DB wallet (coinA, coinB from backend API)
-  const coinA = walletData?.coinA ?? profileData?.wallet?.balance_coin_a ?? profileData?.coinA ?? profileData?.balance_coin_a ?? 0;
-  const coinB = walletData?.coinB ?? profileData?.wallet?.balance_coin_b ?? profileData?.coinB ?? profileData?.balance_coin_b ?? 0;
-  const username = profileData?.username || 'username';
+  // ✅ Fix coin mapping - thử nhiều field name có thể có từ backend
+  const coinA = walletData?.coinA
+    ?? walletData?.balance_coin_a
+    ?? walletData?.coin_a
+    ?? walletData?.balanceCoinA
+    ?? profileData?.wallet?.balance_coin_a
+    ?? 0;
+
+  const coinB = walletData?.coinB
+    ?? walletData?.balance_coin_b
+    ?? walletData?.coin_b
+    ?? walletData?.balanceCoinB
+    ?? profileData?.wallet?.balance_coin_b
+    ?? 0;
+
+  const username = profileData?.username || '';
+
+  // ✅ Hiển thị loading khi đang fetch
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f4f4' }}>
+        <p style={{ fontSize: '18px', color: '#666' }}>Đang tải...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -202,26 +245,27 @@ export default function UserProfile({ userData }) {
           <div style={{ background: 'linear-gradient(135deg, #17a2b8, #138496)', borderRadius: '16px', padding: '24px', color: 'white', marginBottom: '24px', boxShadow: '0 8px 24px rgba(23, 162, 184, 0.2)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ width: '96px', height: '96px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: 'bold', marginBottom: '16px', border: '4px solid rgba(255,255,255,0.3)', boxSizing: 'border-box' }}>
-                {displayName.charAt(0).toUpperCase()}
+                {/* ✅ Fallback avatar */}
+                {(displayName || username || '?').charAt(0).toUpperCase()}
               </div>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>{displayName}</h2>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+                {displayName || username || 'Người dùng'}
+              </h2>
 
-              {/* ✅ CHANGED: Hiển thị username thay vì email */}
               <p style={{ margin: '0 0 16px 0', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', fontSize: '14px' }}>
                 <User size={16} />
-                {username}
+                {username || 'username'}
               </p>
 
-              {/* ✅ CHANGED: Hiển thị 2 loại coin: A (xu) và B (kim cương) */}
               <div style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.3)', boxSizing: 'border-box' }}>
                 {/* Coin A */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '8px', 
-                  fontSize: '16px', 
-                  fontWeight: 'bold', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
                   marginBottom: '8px',
                   transition: 'all 0.3s ease',
                   transform: coinAnimation ? 'scale(1.1)' : 'scale(1)',
@@ -229,15 +273,7 @@ export default function UserProfile({ userData }) {
                   borderRadius: '8px',
                   padding: '4px 8px'
                 }}>
-                  <Coins size={22} style={{ 
-                    color: '#ffd700',
-                    animation: coinAnimation ? 'spin 0.5s ease-in-out' : 'none',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '50%': { transform: 'rotate(180deg)' },
-                      '100%': { transform: 'rotate(360deg)' }
-                    }
-                  }} />
+                  <Coins size={22} style={{ color: '#ffd700' }} />
                   <span>{coinA} Coin</span>
                 </div>
                 {/* Divider */}
@@ -279,7 +315,8 @@ export default function UserProfile({ userData }) {
               {/* Avatar */}
               <div style={{ flexShrink: 0 }}>
                 <div style={{ width: '128px', height: '128px', background: 'linear-gradient(135deg, #17a2b8, #138496)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', fontWeight: 'bold', color: 'white', boxShadow: '0 8px 24px rgba(23, 162, 184, 0.3)' }}>
-                  {displayName.charAt(0).toUpperCase()}
+                  {/* ✅ Fallback avatar */}
+                  {(displayName || username || '?').charAt(0).toUpperCase()}
                 </div>
               </div>
 
@@ -290,7 +327,10 @@ export default function UserProfile({ userData }) {
                     <UserCircle size={20} />
                     <span style={{ fontWeight: '500' }}>Tên hiển thị</span>
                   </div>
-                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>{displayName}</p>
+                  {/* ✅ Không hardcode */}
+                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+                    {displayName || username || 'Chưa có tên'}
+                  </p>
                 </div>
 
                 <div style={{ backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '16px', border: '1px solid #e9ecef', boxSizing: 'border-box' }}>
@@ -298,7 +338,10 @@ export default function UserProfile({ userData }) {
                     <Mail size={20} />
                     <span style={{ fontWeight: '500' }}>Email</span>
                   </div>
-                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>{profileData?.email || 'thao.trinh@email.com'}</p>
+                  {/* ✅ Không hardcode */}
+                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+                    {profileData?.email || 'Chưa có email'}
+                  </p>
                 </div>
 
                 <div style={{ backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '16px', border: '1px solid #e9ecef', boxSizing: 'border-box' }}>
@@ -318,10 +361,9 @@ export default function UserProfile({ userData }) {
                   </div>
                   <button onClick={handleCheckIn} disabled={checkInLoading} style={{ color: '#28a745', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '6px', padding: '4px 8px', cursor: checkInLoading ? 'not-allowed' : 'pointer' }}>
                     {checkInLoading ? 'Đang xử lý...' : '🎁 Nhận 5000 coin'}
-                                      </button>
+                  </button>
                 </div>
 
-                {/* ✅ CHANGED: 2 ô coin riêng biệt thay vì 1 ô */}
                 <div style={{ backgroundColor: '#fffbeb', borderRadius: '12px', padding: '16px', border: '2px solid #fcd34d', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#b45309', marginBottom: '8px', fontSize: '14px' }}>
                     <Coins size={20} />
@@ -421,12 +463,12 @@ export default function UserProfile({ userData }) {
                   minWidth: '200px'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 16px rgba(40, 167, 69, 0.4)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(40, 167, 69, 0.4)';
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)';
                 }}
               >
                 <BookOpen size={24} />
@@ -452,12 +494,12 @@ export default function UserProfile({ userData }) {
                   minWidth: '200px'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 16px rgba(0, 123, 255, 0.4)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 123, 255, 0.4)';
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
                 }}
               >
                 <Edit3 size={24} />
