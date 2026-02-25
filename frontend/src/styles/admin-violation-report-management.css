@@ -1,0 +1,324 @@
+.admin-reports {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.admin-reports__header h1 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.admin-reports__header p {
+  margin-top: 8px;
+  color: #4b5563;
+}
+
+.admin-reports__toolbar {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-reports__stats {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-reports__badge {
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.admin-reports__badge--awaiting {
+  background: #ecfeff;
+  color: #155e75;
+  border-color: #a5f3fc;
+}
+
+.admin-reports__badge--resolved {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.admin-reports__badge--dismissed {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.admin-reports__filters {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-reports__filters button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.admin-reports__filters button.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+.admin-reports__refresh {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: #0ea5e9;
+  color: #fff;
+  cursor: pointer;
+}
+
+.admin-reports__refresh:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-reports__error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.admin-reports__grid {
+  margin-top: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-reports__grid table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.admin-reports__grid th,
+.admin-reports__grid td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.admin-reports__grid thead th {
+  background: #f9fafb;
+  color: #374151;
+  font-size: 14px;
+}
+
+.admin-reports__grid th:last-child,
+.admin-reports__grid td:last-child {
+  width: 190px;
+  min-width: 190px;
+}
+
+.admin-reports__empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px;
+}
+
+.admin-reports__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-reports__actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  color: #fff;
+  width: 100%;
+  white-space: normal;
+}
+
+.admin-reports__actions button.dismiss { background: #2563eb; }
+.admin-reports__actions button.hide { background: #16a34a; }
+.admin-reports__actions button.remove { background: #dc2626; }
+.admin-reports__actions button.warn-ban { background: #d97706; }
+
+.admin-reports__actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-reports__status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.admin-reports__status--open,
+.admin-reports__status--in_review {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.admin-reports__status--resolved {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.admin-reports__status--rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.admin-reports__action-result {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.admin-reports__action-result--unprocessed {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.admin-reports__action-result--dismissed {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.admin-reports__action-result--banned_user {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.admin-reports__action-result--hidden_content {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.admin-reports__action-result--removed_content {
+  background: #fee2e2;
+  color: #7f1d1d;
+  border-color: #fca5a5;
+}
+
+.admin-reports__action-result--warned_user {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.admin-reports__warn-ban-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.admin-reports__warn-ban-modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  padding: 20px;
+}
+
+.admin-reports__warn-ban-modal h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.admin-reports__warn-ban-help {
+  margin: 8px 0 12px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.admin-reports__warn-ban-mode {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-reports__warn-ban-mode label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.admin-reports__warn-ban-hours label {
+  display: block;
+  margin-bottom: 6px;
+  color: #374151;
+  font-size: 14px;
+}
+
+.admin-reports__warn-ban-hours input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+}
+
+.admin-reports__warn-ban-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-reports__warn-ban-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-reports__warn-ban-actions .cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.admin-reports__warn-ban-actions .confirm {
+  background: #2563eb;
+  color: #fff;
+}

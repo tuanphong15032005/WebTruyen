@@ -34,6 +34,7 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     List<StoryEntity> findByStatusOrderByTitleDesc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleAsc(StoryStatus status);
 
+//<<<<<<< HEAD
     // Muc dich: Dem so luot luu vao thu vien theo story de hien thi sidebar metadata. Hieuson + 10h30
     @Query(value = "select count(*) from library_entries le where le.story_id = :storyId", nativeQuery = true)
     long countLibraryEntriesByStoryId(@Param("storyId") Long storyId);
@@ -79,4 +80,7 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             where s.id = :storyId
             """)
     int incrementViewCount(@Param("storyId") Long storyId);
+//=======
+//    List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
+//>>>>>>> origin/minhfinal1
 }

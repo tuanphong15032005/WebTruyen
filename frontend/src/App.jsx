@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import Login from './pages/Login';
@@ -19,10 +19,33 @@ import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
+// <<<<<<< HEAD
+// =======
+import CommentManagement from './pages/Author/CommentManagement';
+import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
+import ContentModeration from './pages/Admin/ContentModeration';
+import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import { getStoredUser, hasAnyRole } from './utils/helpers';
+import './App.css';
+
+function RoleProtectedRoute({ allowedRoles, children }) {
+  const user = getStoredUser();
+  if (!user?.token) {
+    return <Navigate to='/login' replace />;
+  }
+
+  if (!hasAnyRole(allowedRoles, user)) {
+    return <Navigate to='/' replace />;
+  }
+
+  return children;
+}
+// >>>>>>> origin/minhfinal1
 
 function App() {
   return (
     <MainLayout>
+{/* <<<<<<< HEAD */}
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/login' element={<Login />} />
@@ -57,7 +80,96 @@ function App() {
           path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}
         />
+                    <Route
+                      path='/author/comments'
+                      element={
+                        <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+                          <CommentManagement />
+                        </RoleProtectedRoute>
+                      }
+                    />
+                                <Route
+                                  path='/author/performance-analytics'
+                                  element={
+                                    <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+                                      <PerformanceAnalytics />
+                                    </RoleProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path='/admin/content-moderation'
+                                  element={
+                                    <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+                                      <ContentModeration />
+                                    </RoleProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path='/admin/violation-reports'
+                                  element={
+                                    <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+                                      <ViolationReportManagement />
+                                    </RoleProtectedRoute>
+                                  }
+                                />
       </Routes>
+{/* ======= */}
+{/*         <Routes> */}
+{/*             <Route path="/" element={<HomePage />} /> */}
+{/*             <Route path="/login" element={<Login />} /> */}
+{/*             <Route path="/register" element={<Register />} /> */}
+{/*             <Route path="/verify" element={<VerifyCode />} /> */}
+{/*             <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+{/*             <Route path="/reset-password" element={<ResetPassword />} /> */}
+{/*             <Route path="/wallet/topup" element={<WalletTopupPage />} /> */}
+{/*             <Route path="/wallet/confirmation/:id" element={<PaymentConfirmationPage />} /> */}
+{/*             <Route path="/donation-history" element={<CoinTransactionHistoryPage />} /> */}
+{/*             <Route path="/profile" element={<UserProfile />} /> */}
+
+{/*             <Route path='/author/create-story' element={<CreateStory />} /> */}
+{/*             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} /> */}
+{/*             <Route path='/author/stories/:storyId' element={<StoryDetail />} /> */}
+{/*             <Route */}
+{/*               path='/author/comments' */}
+{/*               element={ */}
+{/*                 <RoleProtectedRoute allowedRoles={['AUTHOR']}> */}
+{/*                   <CommentManagement /> */}
+{/*                 </RoleProtectedRoute> */}
+{/*               } */}
+{/*             /> */}
+{/*             <Route */}
+{/*               path='/author/performance-analytics' */}
+{/*               element={ */}
+{/*                 <RoleProtectedRoute allowedRoles={['AUTHOR']}> */}
+{/*                   <PerformanceAnalytics /> */}
+{/*                 </RoleProtectedRoute> */}
+{/*               } */}
+{/*             /> */}
+{/*             <Route */}
+{/*               path='/admin/content-moderation' */}
+{/*               element={ */}
+{/*                 <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}> */}
+{/*                   <ContentModeration /> */}
+{/*                 </RoleProtectedRoute> */}
+{/*               } */}
+{/*             /> */}
+{/*             <Route */}
+{/*               path='/admin/violation-reports' */}
+{/*               element={ */}
+{/*                 <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}> */}
+{/*                   <ViolationReportManagement /> */}
+{/*                 </RoleProtectedRoute> */}
+{/*               } */}
+{/*             /> */}
+{/*             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} /> */}
+{/*             <Route path='/stories/:storyId/reviews' element={<StoryReviews />} /> */}
+{/*             <Route path='/stories/:storyId/chapters/:chapterId' element={<ChapterPage />} /> */}
+{/*             <Route */}
+{/*               path='/author/stories/:storyId/volumes/:volumeId/create-chapter' */}
+{/*               element={<CreateChapter />} */}
+{/*             /> */}
+{/*         </Routes> */}
+{/* >>>>>>> origin/minhfinal1 */}
     </MainLayout>
   );
 }

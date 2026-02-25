@@ -17,12 +17,15 @@ import java.util.Optional;
 public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
 
     List<CommentEntity> findByChapter_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Long chapterId);
+    List<CommentEntity> findByChapter_IdAndParentCommentIsNullOrderByCreatedAtDesc(Long chapterId);
 
     Page<CommentEntity> findByChapter_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Long chapterId, Pageable pageable);
 
     Page<CommentEntity> findByStory_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Integer storyId, Pageable pageable);
+    List<CommentEntity> findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(Integer storyId);
 
     List<CommentEntity> findByRootComment_IdInAndParentCommentIsNotNullAndIsHiddenFalseOrderByCreatedAtAsc(List<Long> rootCommentIds);
+    List<CommentEntity> findByRootComment_IdInAndParentCommentIsNotNullOrderByCreatedAtAsc(List<Long> rootCommentIds);
 
     Optional<CommentEntity> findByIdAndChapter_IdAndIsHiddenFalse(Long id, Long chapterId);
 
@@ -49,7 +52,25 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
             order by c.createdAt desc
             """)
     Page<CommentEntity> findLatestPublicRootComments(Pageable pageable);
-
 //=======
-//>>>>>>> author-create-content
+@Query("""
+            SELECT c FROM CommentEntity c
+            LEFT JOIN c.chapter chapter
+            LEFT JOIN chapter.volume volume
+            LEFT JOIN volume.story chapterStory
+            LEFT JOIN c.story story
+            WHERE c.id = :commentId
+              AND (
+                    (chapterStory IS NOT NULL AND chapterStory.author.id = :authorId)
+                 OR (story IS NOT NULL AND story.author.id = :authorId)
+              )
+            """)
+    Optional<CommentEntity> findAuthorOwnedCommentById(
+            @Param("commentId") Long commentId,
+            @Param("authorId") Long authorId
+    );
+
+    /** Direct replies (children) of a comment, for cascade delete. */
+    List<CommentEntity> findByParentComment_Id(Long parentCommentId);
+//>>>>>>> origin/minhfinal1
 }

@@ -48,6 +48,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
+//<<<<<<< HEAD:frontend/src/services/api.js
     const responseData = error?.response?.data;
     let message = '';
 
@@ -73,9 +74,24 @@ api.interceptors.response.use(
     if (!message) {
       message = error?.message || 'Đã xảy ra lỗi, vui lòng thử lại';
     }
+    //Phong them phan cua a Minh 2 dong duoi day
+    const err = new Error(message);
+    err.response = error.response;
 
     return Promise.reject(new Error(message));
   },
+//=======
+//    const message =
+//      error.response?.data?.message ||
+//      (typeof error.response?.data === 'string' ? error.response.data : null) ||
+//      error.message ||
+//      'Đã xảy ra lỗi, vui lòng thử lại';
+//
+//    const err = new Error(message);
+//    err.response = error.response;
+//    return Promise.reject(err);
+//  }
+//>>>>>>> origin/minhfinal1:frontend/src/services/Api.js
 );
 
 export default api;

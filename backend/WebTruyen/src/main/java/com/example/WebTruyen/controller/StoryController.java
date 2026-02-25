@@ -15,6 +15,9 @@ import com.example.WebTruyen.dto.response.StoryReviewResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
+import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
+import com.example.WebTruyen.dto.response.AuthorCommentResponse;
+import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
@@ -271,7 +274,8 @@ public class StoryController {
         UserEntity currentUser = requireUser(userPrincipal);
         return commentService.createChapterComment(currentUser, storyId, chapterId, req);
     }
-
+    //phong sua conflict merge muatruyen voi admin1
+//<<<<<<< HEAD
     @PutMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public CommentResponse updateChapterComment(
             @PathVariable Integer storyId,
@@ -292,9 +296,61 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        commentService.deleteChapterComment(currentUser, storyId, chapterId, commentId);
+                commentService.deleteChapterComment(currentUser, storyId, chapterId, commentId);
         return Map.of("deleted", true);
     }
+
+//=======
+    @GetMapping("/author/comments/stories")
+    public List<AuthorStoryOptionResponse> getAuthorCommentStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorStories(currentUser.getId());
+    }
+
+    @GetMapping("/author/comments/stories/{storyId}/chapters")
+    public List<AuthorChapterOptionResponse> getAuthorCommentChapters(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorChapters(currentUser.getId(), storyId);
+    }
+
+    @GetMapping("/author/comments")
+    public List<AuthorCommentResponse> getAuthorComments(
+            @RequestParam Integer storyId,
+            @RequestParam(required = false) Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId);
+    }
+
+    @PostMapping(value = "/author/comments/{parentCommentId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public AuthorCommentResponse replyAuthorComment(
+            @PathVariable Long parentCommentId,
+            @RequestBody AuthorReplyRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.replyAsAuthor(currentUser, parentCommentId, req.content());
+    }
+
+//    @PostMapping("/author/comments/{commentId}/hide")
+//    public Map<String, String> hideAuthorComment(
+////>>>>>>> origin/minhfinal1
+//            //phong sua conflict merge muatruyen voi admin1
+//            @PathVariable Long commentId,
+//            @AuthenticationPrincipal UserPrincipal userPrincipal
+//    ) {
+//        UserEntity currentUser = requireUser(userPrincipal);
+//        //phong sua conflict merge muatruyen voi admin1
+////<<<<<<< HEAD
+//        commentService.deleteChapterComment(currentUser, storyId, chapterId, commentId);
+//        return Map.of("deleted", true);
+//    }
 
     @PostMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments/{commentId}/report", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Boolean> reportChapterComment(
@@ -308,6 +364,40 @@ public class StoryController {
         String reason = payload != null ? payload.getOrDefault("reason", "") : "";
         commentService.reportChapterComment(currentUser, storyId, chapterId, commentId, reason);
         return Map.of("reported", true);
+//=======
+//        commentService.hideAuthorComment(currentUser.getId(), commentId);
+//        return Map.of("message", "Comment hidden");
+    }
+    @PostMapping("/author/comments/{commentId}/hide")
+    public Map<String, String> hideAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.hideAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment hidden");
+    }
+
+    @PostMapping("/author/comments/{commentId}/unhide")
+    public Map<String, String> unhideAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.unhideAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment unhidden");
+    }
+
+    @DeleteMapping("/author/comments/{commentId}")
+    public Map<String, String> deleteAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment deleted");
+//>>>>>>> origin/minhfinal1
+        //phong sua conflict merge muatruyen voi admin1
     }
 
     @PostMapping(value = "/stories/{storyId}/volumes", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -357,4 +447,5 @@ public class StoryController {
         return chapterService.getChapterContent(chapterId);
     }
 
+    public record AuthorReplyRequest(String content) {}
 }

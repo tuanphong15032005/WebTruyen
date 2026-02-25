@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Link,
   useNavigate,
@@ -320,6 +320,16 @@ const StoryDetail = () => {
                     <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
                   </svg>
                   Xem truyện
+                </Button>
+                <Button
+                  type='button'
+                  className='story-detail__view'
+                  onClick={() => navigate(`/author/comments?storyId=${storyId}`)}
+                >
+                  <svg viewBox='0 0 24 24' aria-hidden='true'>
+                    <path d='M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7l-5 5V6a2 2 0 0 1 2-2zm4 5h8v2H8zm0 4h5v2H8z' />
+                  </svg>
+                  Quản lý bình luận
                 </Button>
               </div>
 

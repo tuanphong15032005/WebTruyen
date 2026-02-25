@@ -74,6 +74,16 @@ const storyService = {
       payload,
     ),
 
+  getAuthorCommentStories: () => api.get('/author/comments/stories'),
+  getAuthorCommentChapters: (storyId) =>
+    api.get(`/author/comments/stories/${storyId}/chapters`),
+  getAuthorComments: (params) => api.get('/author/comments', { params }),
+  replyAuthorComment: (commentId, payload) =>
+    api.post(`/author/comments/${commentId}/reply`, payload),
+  hideAuthorComment: (commentId) => api.post(`/author/comments/${commentId}/hide`),
+  unhideAuthorComment: (commentId) => api.post(`/author/comments/${commentId}/unhide`),
+  deleteAuthorComment: (commentId) => api.delete(`/author/comments/${commentId}`),
+
   getNotifyStatus: (storyId) => api.get(`/stories/${storyId}/notify-status`),
 
   toggleNotifyStatus: (storyId) =>
@@ -120,8 +130,29 @@ const storyService = {
   getPublicStories: (params = {}) =>
       api.get(`/public/stories`, { params }),
 
+//<<<<<<< HEAD
     getMyStories: () => api.get(`/stories/my`),
     getLibraryStories: () => api.get(`/stories/library`),
+//=======
+//  getPublicStories: (params = {}) =>
+//    api.get('/public/stories', { params }),
+
+  getPendingModerationContent: () =>
+    api.get('/admin/moderation/pending-content'),
+  approveModerationStory: (storyId) =>
+    api.post(`/admin/moderation/stories/${storyId}/approve`),
+  rejectModerationStory: (storyId, note) =>
+    api.post(`/admin/moderation/stories/${storyId}/reject`, { note }),
+  requestEditModerationStory: (storyId, note) =>
+    api.post(`/admin/moderation/stories/${storyId}/request-edit`, { note }),
+
+  approveModerationChapter: (chapterId) =>
+    api.post(`/admin/moderation/chapters/${chapterId}/approve`),
+  rejectModerationChapter: (chapterId, note) =>
+    api.post(`/admin/moderation/chapters/${chapterId}/reject`, { note }),
+  requestEditModerationChapter: (chapterId, note) =>
+    api.post(`/admin/moderation/chapters/${chapterId}/request-edit`, { note }),
+//>>>>>>> origin/minhfinal1
 };
 
 export default storyService;

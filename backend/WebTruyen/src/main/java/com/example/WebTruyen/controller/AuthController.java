@@ -7,7 +7,7 @@ import com.example.WebTruyen.dto.request.SendOtpRequest;
 import com.example.WebTruyen.dto.request.VerifyOtpRequest;
 import com.example.WebTruyen.dto.response.LoginResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
-import com.example.WebTruyen.repository.UserRepository;
+import com.example.WebTruyen.repository.UserRoleRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
 import com.example.WebTruyen.service.AuthService;
 import com.example.WebTruyen.service.AccountLockedException;
@@ -30,7 +30,7 @@ public class AuthController {
     private JwtTokenProvider tokenProvider;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserRoleRepository userRoleRepository;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -47,7 +47,13 @@ public class AuthController {
                 token,
                 "Bearer",
                 user.getId(),
-                user.getUsername()
+                user.getUsername(),
+                userRoleRepository.findByUser_Id(user.getId()).stream()
+                        .map(userRole -> userRole.getRole())
+                        .filter(role -> role != null && role.getCode() != null && !role.getCode().isBlank())
+                        .map(role -> role.getCode().trim().toUpperCase())
+                        .distinct()
+                        .toList()
             );
 
             return ResponseEntity.ok(response);
@@ -64,7 +70,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody com.example.WebTruyen.dto.request.RegisterRequest request) {
         try {
-            UserEntity newUser = authService.registerUser(
+            authService.registerUser(
                 request.getUsername(),
                 request.getEmail(),
 //<<<<<<< HEAD

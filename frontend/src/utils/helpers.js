@@ -38,3 +38,39 @@ export const buildSegmentMap = (segments = []) => {
     };
   });
 };
+
+export const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+export const normalizeRoleCodes = (roles) => {
+  if (!Array.isArray(roles)) return [];
+  return Array.from(
+    new Set(
+      roles
+        .filter((role) => typeof role === "string" && role.trim() !== "")
+        .map((role) => role.trim().toUpperCase())
+    )
+  );
+};
+
+export const getUserRoleCodes = (user = null) => {
+  const resolvedUser = user ?? getStoredUser();
+  if (!resolvedUser) return [];
+  return normalizeRoleCodes(
+    resolvedUser.roleCodes || resolvedUser.roles || resolvedUser.authorities
+  );
+};
+
+export const hasAnyRole = (allowedRoles = [], user = null) => {
+  const roleCodes = getUserRoleCodes(user);
+  const normalizedAllowed = normalizeRoleCodes(allowedRoles);
+  if (normalizedAllowed.length === 0) return false;
+  return normalizedAllowed.some((role) => roleCodes.includes(role));
+};

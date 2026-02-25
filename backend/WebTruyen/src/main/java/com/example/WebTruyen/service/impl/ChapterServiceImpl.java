@@ -68,10 +68,8 @@ public class ChapterServiceImpl implements ChapterService {
                                                        Long storyId,
                                                        Long volumeId,
                                                        CreateChapterRequest req) {
-
         VolumeEntity volume = volumeRepository.findById(volumeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Volume not found"));
-
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Volume not found."));
         if (!volume.getStory().getId().equals(storyId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Volume does not belong to story");
         }
@@ -128,12 +126,10 @@ public class ChapterServiceImpl implements ChapterService {
                                                        Long volumeId,
                                                        Long chapterId,
                                                        CreateChapterRequest req) {
-
         ChapterEntity chapter = chapterRepository.findByIdAndVolume_Id(chapterId, volumeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
-
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found."));
         if (!chapter.getVolume().getStory().getAuthor().getId().equals(currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner.");
         }
 
         chapter.setTitle(req.getTitle());
@@ -231,7 +227,7 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     public ChapterEntity getChapterById(Long chapterId) {
         return chapterRepository.findById(chapterId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found."));
     }
 
     private ChapterStatus parseStatus(String raw, ChapterStatus fallback) {
@@ -466,6 +462,7 @@ public class ChapterServiceImpl implements ChapterService {
         
         return result;
     }
+//<<<<<<< HEAD
 
     private ChapterResponse toChapterResponse(ChapterEntity chapter) {
         if (chapter == null) {
@@ -521,4 +518,6 @@ public class ChapterServiceImpl implements ChapterService {
         history.setLastChapter(chapter);
         readingHistoryRepository.save(history);
     }
+//=======
+//>>>>>>> origin/minhfinal1
 }

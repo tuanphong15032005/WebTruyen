@@ -2,24 +2,31 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, ChevronDown, Gem, Search } from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
+import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import '../styles/site-shell.css';
 
 function Header() {
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) return null;
-    try {
-      return JSON.parse(storedUser);
-    } catch {
-      return null;
-    }
-  });
+    // phần này thay thế bằng phần anh note 1234
+//   const [user, setUser] = useState(() => {
+//     const storedUser = localStorage.getItem('user');
+//     if (!storedUser) return null;
+//     try {
+//       return JSON.parse(storedUser);
+//     } catch {
+//       return null;
+//     }
+//   });
+
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { wallet, refreshWallet, isLoggedIn } = useContext(WalletContext);
-
+//mo 1234
+  const [user, setUser] = useState(() => {
+          return getStoredUser();
+      });
+//dong 1234
   useEffect(() => {
     // Hieuson - 24/2 + Dong bo lai user tren header khi localStorage thay doi.
     const syncUserFromStorage = () => {
@@ -124,15 +131,41 @@ function Header() {
                     .toUpperCase()}
                 </span>
               </button>
-              {showDropdown && (
-                <div className='site-user__dropdown'>
-                  <Link to='/profile'>Hồ sơ cá nhân</Link>
-                  <Link to='/donation-history'>Lịch sử giao dịch</Link>
-                  <button type='button' onClick={handleLogout}>
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
+{/*               {showDropdown && ( */}
+{/*                 <div className='site-user__dropdown'> */}
+{/*                   <Link to='/profile'>Hồ sơ cá nhân</Link> */}
+{/*                   <Link to='/donation-history'>Lịch sử giao dịch</Link> */}
+{/*                   <button type='button' onClick={handleLogout}> */}
+{/*                     Đăng xuất */}
+{/*                   </button> */}
+{/*                 </div> */}
+{/*               )} */}
+{/* thay doi showDropdown tam thoi, sau nay se toi gian lai khi anh Minh gop lam cho cai menu dropdown nay gon lai */}
+{showDropdown && (
+  <div className='site-user__dropdown'>
+    <Link to='/profile'>Hồ sơ cá nhân</Link>
+    <Link to='/donation-history'>Lịch sử giao dịch</Link>
+
+    {hasAnyRole(['AUTHOR'], user) && (
+      <>
+        <Link to='/author/comments'>Quản lý bình luận</Link>
+        <Link to='/author/performance-analytics'>Báo cáo hiệu suất truyện</Link>
+      </>
+    )}
+
+    {hasAnyRole(['ADMIN', 'MOD'], user) && (
+      <>
+        <Link to='/admin/content-moderation'>Quản lý kiểm duyệt nội dung</Link>
+        <Link to='/admin/violation-reports'>Quản lý báo cáo vi phạm</Link>
+      </>
+    )}
+
+    <button type='button' onClick={handleLogout}>
+      Đăng xuất
+    </button>
+  </div>
+)}
+
             </div>
           ) : (
             <div className='site-auth'>
@@ -143,11 +176,118 @@ function Header() {
                 Đăng ký
               </Link>
             </div>
+// <<<<<<< HEAD
           )}
         </div>
       </div>
     </header>
   );
+// =======
+//
+//             {/* Right side */}
+//             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+//
+//                 {/* Wallet */}
+//                 {isLoggedIn && (
+//                     <>
+//                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+//                             <div style={{ padding: '0px 0px 0px 5px', border: '1px solid #ddd', borderRadius: '8px', color: '#000', display: 'flex', alignItems: 'center' }}>
+//                                 💎 {wallet.coinB}
+//                                 <button
+//                                     onClick={() => navigate('/wallet/topup')}
+//                                     style={{ marginLeft: '5px', border: 'none', background: 'none', cursor: 'pointer' }}
+//                                 >
+//                                     +
+//                                 </button>
+//                             </div>
+//
+//                             <div style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', color: '#000', display: 'flex', alignItems: 'center' }}>
+//                                 🪙 {wallet.coinA}
+//                             </div>
+//
+//
+//                         </div>
+//                     </>
+//                 )}
+//
+//                 {/* User */}
+//                 {user ? (
+//                     <div style={{ position: 'relative' }}>
+//                         <div
+//                             onClick={() => setShowDropdown(!showDropdown)}
+//                             style={{
+//                                 display: 'flex',
+//                                 alignItems: 'center',
+//                                 gap: '10px',
+//                                 cursor: 'pointer'
+//                             }}
+//                         >
+//                             <span style = {{color: 'black'}} >Xin chào, <strong>{user.username}</strong></span>
+//                             <div style={{
+//                                 width: '36px',
+//                                 height: '36px',
+//                                 borderRadius: '50%',
+//                                 background: 'linear-gradient(135deg, #17a2b8, #138496)',
+//                                 color: 'white',
+//                                 display: 'flex',
+//                                 alignItems: 'center',
+//                                 justifyContent: 'center',
+//                                 fontWeight: 'bold'
+//                             }}>
+//                                 {user.username.charAt(0).toUpperCase()}
+//                             </div>
+//                         </div>
+//
+//                         {showDropdown && (
+//                             <div style={{
+//                                 position: 'absolute',
+//                                 right: 0,
+//                                 top: '120%',
+//                                 background: 'white',
+//                                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+//                                 borderRadius: '10px',
+//                                 overflow: 'hidden',
+//                                 minWidth: '180px'
+//                             }}>
+//                                 <Link to="/profile" style={dropdownItemStyle}>Hồ sơ cá nhân</Link>
+//                                 <Link to="/donation-history" style={dropdownItemStyle}>Lịch sử giao dịch</Link>
+//                                 {hasAnyRole(['AUTHOR'], user) && (
+//                                   <>
+//                                     <Link to="/author/comments" style={dropdownItemStyle}>Quản lý bình luận</Link>
+//                                     <Link to="/author/performance-analytics" style={dropdownItemStyle}>Báo cáo hiệu suất truyện</Link>
+//                                   </>
+//                                 )}
+//                                 {hasAnyRole(['ADMIN', 'MOD'], user) && (
+//                                   <>
+//                                     <Link to="/admin/content-moderation" style={dropdownItemStyle}>Quản lý kiểm duyệt nội dung</Link>
+//                                     <Link to="/admin/violation-reports" style={dropdownItemStyle}>Quản lý báo cáo vi phạm</Link>
+//                                   </>
+//                                 )}
+//                                 <div style={{ borderTop: '1px solid #eee' }}></div>
+//                                 <button onClick={handleLogout} style={{ ...dropdownItemStyle, width: '100%', textAlign: 'left', background: 'none', border: 'none' }}>
+//                                     Đăng xuất
+//                                 </button>
+//                             </div>
+//                         )}
+//                     </div>
+//                 ) : (
+//                     <div style={{ display: 'flex', gap: '12px' }}>
+//                         <Link to="/login">Đăng nhập</Link>
+//                         <Link to="/register" style={{
+//                             padding: '6px 12px',
+//                             background: '#17a2b8',
+//                             color: 'white',
+//                             borderRadius: '8px',
+//                             textDecoration: 'none'
+//                         }}>
+//                             Đăng ký
+//                         </Link>
+//                     </div>
+//                 )}
+//             </div>
+//         </header>
+//     );
+// >>>>>>> origin/minhfinal1
 }
 
 export default Header;

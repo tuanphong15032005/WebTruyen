@@ -1,0 +1,307 @@
+/* ============================================
+   Author Comment Management
+   Screen: manage and respond to reader comments
+   (Story selector, Chapter selector, Thread list,
+    Avatar, Display name, Content, Time, Status,
+    Reply, Hide / Delete actions)
+   ============================================ */
+
+.author-comments {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+  color: #1f2937;
+}
+
+.author-comments__header {
+  margin-bottom: 24px;
+}
+
+.author-comments__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.author-comments__desc {
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Field 1 & 2: Story selector, Chapter selector */
+.author-comments__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.author-comments__filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.author-comments__label {
+  display: block;
+}
+
+.author-comments__select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #1f2937;
+}
+
+.author-comments__select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.author-comments__select:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* Field 3: Comment list (thread view) */
+.author-comments__list-section {
+  margin-top: 8px;
+}
+
+.author-comments__list-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.author-comments__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.author-comments__empty {
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9375rem;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+}
+
+/* Comment item: Fields 4–10 */
+.author-comments__item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: box-shadow 0.15s ease;
+}
+
+.author-comments__item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Field 4: Reader avatar */
+.author-comments__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e0e7ff;
+  color: #4338ca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.author-comments__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Field 5: Display name | Field 7: Posted time | Field 8: Status */
+.author-comments__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.author-comments__name {
+  font-size: 0.9375rem;
+  color: #111827;
+}
+
+.author-comments__time {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.author-comments__status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+
+.author-comments__status--normal {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+}
+
+.author-comments__status--reported {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+}
+
+.author-comments__status--hidden {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+/* Field 6: Comment content */
+.author-comments__content {
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #374151;
+}
+
+/* Field 9 & 10: Reply, Hide / Delete actions */
+.author-comments__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.author-comments__btn {
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.author-comments__btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.author-comments__btn--reply {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.author-comments__btn--reply:hover:not(:disabled) {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.author-comments__btn--hide,
+.author-comments__btn--unhide {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.author-comments__btn--hide:hover:not(:disabled),
+.author-comments__btn--unhide:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.author-comments__btn--delete {
+  background: #fff;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.author-comments__btn--delete:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.author-comments__btn--submit {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.author-comments__btn--submit:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+/* Reply box (Field 9) */
+.author-comments__reply-box {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.author-comments__reply-box textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.author-comments__reply-box textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.author-comments__reply-footer {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+/* Thread: replies nested (comment – reply) */
+.author-comments__replies {
+  margin-top: 14px;
+  padding-left: 16px;
+  border-left: 3px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.author-comments__replies .author-comments__item {
+  background: #f9fafb;
+}

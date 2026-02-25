@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer; // Cần import cái này
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -58,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/uploads/image").permitAll()
                         .requestMatchers("/api/tags").permitAll()
                         .requestMatchers("/api/v1/tags").permitAll()
+                        // Tác giả quản lý bình luận (trả lời, ẩn, xóa) — yêu cầu đăng nhập
+                        .requestMatchers("/api/author/**").authenticated()
                         //
                         .anyRequest().authenticated()
                 )
@@ -73,7 +74,7 @@ public class SecurityConfig {
         // Cho phép Frontend chạy ở cổng 5173 và 5174 truy cập
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
         // Cho phép các method
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // Cho phép mọi header
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
