@@ -3,7 +3,8 @@
   color: #1f2937;
   padding: 1.5rem;
   border-radius: 1.25rem;
-  width: 100%;
+  width: min(100%, 92rem);
+  margin-inline: auto;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
   font-size: 1rem;
 }

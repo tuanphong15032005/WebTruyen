@@ -1,6 +1,8 @@
 .story-metadata {
   display: block;
   font-size: 1rem;
+  width: min(100%, 92rem);
+  margin-inline: auto;
 }
 
 .story-metadata__layout {
