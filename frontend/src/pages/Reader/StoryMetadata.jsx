@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -1099,7 +1099,17 @@ const StoryMetadata = () => {
                       }
                       iconClass='story-metadata__icon--author'
                       label='Tác giả:'
-                      value={story.authorPenName || 'Chưa có bút danh'}
+                      // Minhdq - 26/02/2026
+                      // [Add link-to-author-public-profile-from-story-metadata - V1 - branch: clone-minhfinal2]
+                      value={
+                        story.authorId ? (
+                          <Link to={`/authors/${story.authorId}`}>
+                            {story.authorPenName || 'Chưa có bút danh'}
+                          </Link>
+                        ) : (
+                          story.authorPenName || 'Chưa có bút danh'
+                        )
+                      }
                     />
                   )}
 

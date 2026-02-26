@@ -16,6 +16,9 @@ import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
+// Minhdq - 26/02/2026
+// [Add reader-author-public-profile-route-import - V1 - branch: clone-minhfinal2]
+import AuthorPublicProfile from './pages/Reader/AuthorPublicProfile';
 import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
@@ -74,6 +77,9 @@ function App() {
         <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
         <Route path='/author/stories/:storyId' element={<StoryDetail />} />
         <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
+        {/* Minhdq - 26/02/2026 */}
+        {/* [Add reader-author-public-profile-route - V1 - branch: clone-minhfinal2] */}
+        <Route path='/authors/:authorId' element={<AuthorPublicProfile />} />
         <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
         <Route
           path='/stories/:storyId/chapters/:chapterId'
