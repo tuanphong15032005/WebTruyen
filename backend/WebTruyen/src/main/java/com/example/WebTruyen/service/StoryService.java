@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Comparator;
 import java.util.stream.Stream;
 
 @Service
@@ -184,7 +185,17 @@ public class StoryService {
     }
 
     @Transactional
-    public List<StoryResponse> getPublishedStories(Integer page, Integer size, String sort) {
+    // Hieu Son - ngay 26/02/2026 | v1.0.0-search | branch: minhfinal2
+    // Sua ham: bo sung tim kiem nang cao cho story cong khai (q, tac gia, tinh trang, tag AND), van giu phan trang/sap xep.
+    public List<StoryResponse> getPublishedStories(
+            Integer page,
+            Integer size,
+            String sort,
+            String q,
+            String author,
+            String completionStatus,
+            List<Long> tagIds
+    ) {
         // Parse sort parameter, default to createdAt desc (newest first)
         String sortField = "createdAt";
         String sortDirection = "desc";
@@ -199,25 +210,26 @@ public class StoryService {
             }
         }
         
-        // Get published stories with sorting
-        List<StoryEntity> stories;
-        switch (sortField.toLowerCase()) {
-            case "createdat":
-            case "lastupdatedat": // fallback for frontend
-            default:
-                if ("asc".equalsIgnoreCase(sortDirection)) {
-                    stories = storyRepository.findByStatusOrderByCreatedAtAsc(StoryStatus.published);
-                } else {
-                    stories = storyRepository.findByStatusOrderByCreatedAtDesc(StoryStatus.published);
-                }
-                break;
-            case "title":
-                if ("asc".equalsIgnoreCase(sortDirection)) {
-                    stories = storyRepository.findByStatusOrderByTitleAsc(StoryStatus.published);
-                } else {
-                    stories = storyRepository.findByStatusOrderByTitleDesc(StoryStatus.published);
-                }
-                break;
+        String normalizedQuery = trimToNull(q);
+        String normalizedAuthor = trimToNull(author);
+        StoryCompletionStatus completionStatusFilter = parseCompletionStatusForSearch(completionStatus);
+        List<Long> normalizedTagIds = normalizeIds(tagIds);
+        List<Long> queryTagIds = normalizedTagIds.isEmpty() ? List.of(-1L) : normalizedTagIds;
+        long tagCount = normalizedTagIds.size();
+
+        List<StoryEntity> stories = storyRepository.findPublishedStoriesWithAdvancedFilters(
+                StoryStatus.published,
+                normalizedQuery,
+                normalizedAuthor,
+                completionStatusFilter,
+                queryTagIds,
+                tagCount
+        );
+
+        Comparator<StoryEntity> comparator = buildPublishedStorySortComparator(sortField);
+        if (comparator != null) {
+            stories = new ArrayList<>(stories);
+            stories.sort("asc".equalsIgnoreCase(sortDirection) ? comparator : comparator.reversed());
         }
         
         // Apply pagination
@@ -388,8 +400,11 @@ public class StoryService {
         }
     }
 
+    // Hieu Son - ngay 27/02/2026 | v1.0.1-search | branch: minhfinal2
+    // Sua ham: bo sung savedCount (luot luu vao thu vien) vao StoryResponse de FE hien thi dung.
     private StoryResponse toResponse(StoryEntity story, List<TagDto> tags, boolean publishedOnly) {
         long readerCount = story.getViewCount();
+        long savedCount = storyRepository.countLibraryEntriesByStoryId(story.getId());
         long wordCount = countStoryWords(story.getId(), publishedOnly);
         LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
         BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
@@ -416,6 +431,7 @@ public class StoryService {
                 story.getRatingCount(),
                 ratingAvg,
                 readerCount,
+                savedCount,
                 wordCount,
                 lastUpdatedAt,
                 tags,
@@ -567,6 +583,54 @@ public class StoryService {
         } catch (IllegalArgumentException ex) {
             return fallback;
         }
+    }
+
+    // Hieu Son - ngay 26/02/2026
+    // Ham ho tro parser completionStatus trong tim kiem nang cao: gia tri khong hop le thi bo qua filter.
+    private StoryCompletionStatus parseCompletionStatusForSearch(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return StoryCompletionStatus.valueOf(raw.trim().toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    // Hieu Son - ngay 26/02/2026
+    // Ham ho tro sap xep ket qua truyen cong khai theo truong sort nhan tu query.
+    private Comparator<StoryEntity> buildPublishedStorySortComparator(String sortField) {
+        if (sortField == null || sortField.isBlank()) {
+            return Comparator.comparing(StoryEntity::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()));
+        }
+
+        String normalized = sortField.trim().toLowerCase();
+        return switch (normalized) {
+            case "title" -> Comparator.comparing(
+                    story -> String.valueOf(story.getTitle()).toLowerCase(),
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            );
+            case "viewcount", "readercount" -> Comparator.comparingLong(StoryEntity::getViewCount);
+            case "createdat", "lastupdatedat" -> Comparator.comparing(
+                    StoryEntity::getCreatedAt,
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            );
+            default -> Comparator.comparing(
+                    StoryEntity::getCreatedAt,
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            );
+        };
+    }
+
+    // Hieu Son - ngay 26/02/2026
+    // Ham ho tro chuan hoa chuoi tim kiem.
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String normalizeOriginalAuthorName(StoryKind kind, String name) {

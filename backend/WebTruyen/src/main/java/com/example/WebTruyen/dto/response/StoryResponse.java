@@ -25,6 +25,7 @@ public record StoryResponse(
         Integer ratingCount,
         BigDecimal ratingAvg,
         Long readerCount,
+        Long savedCount,
         Long wordCount,
         LocalDateTime lastUpdatedAt,
         List<TagDto> tags,

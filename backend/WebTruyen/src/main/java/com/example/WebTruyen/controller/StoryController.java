@@ -85,12 +85,26 @@ public class StoryController {
     }
 
     @GetMapping("/public/stories")
+    // Hieu Son - ngay 26/02/2026 | v1.0.0-search | branch: minhfinal2
+    // Sua ham: mo rong API danh sach truyen cong khai, ho tro tim kiem nang cao theo ten, tac gia, tinh trang va tag (AND).
     public java.util.List<StoryResponse> getPublicStories(
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size,
-            @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort
+            @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String completionStatus,
+            @RequestParam(required = false) String tagIds
     ) {
-        return storyService.getPublishedStories(page, size, sort);
+        return storyService.getPublishedStories(
+                page,
+                size,
+                sort,
+                q,
+                author,
+                completionStatus,
+                parseTagIdsCsv(tagIds)
+        );
     }
 
     // Hieuson - 24/2 + Tra ve danh sach phan hoi cong dong moi nhat cho HomePage.
@@ -448,4 +462,26 @@ public class StoryController {
     }
 
     public record AuthorReplyRequest(String content) {}
+
+    // Hieu Son - ngay 26/02/2026
+    // Ham ho tro parse chuoi tagIds CSV thanh danh sach Long de dung cho tim kiem nang cao.
+    private List<Long> parseTagIdsCsv(String tagIdsCsv) {
+        if (tagIdsCsv == null || tagIdsCsv.isBlank()) {
+            return List.of();
+        }
+
+        return java.util.Arrays.stream(tagIdsCsv.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(value -> {
+                    try {
+                        return Long.parseLong(value);
+                    } catch (NumberFormatException ex) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+    }
 }

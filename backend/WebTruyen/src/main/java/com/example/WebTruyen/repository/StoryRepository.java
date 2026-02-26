@@ -1,6 +1,7 @@
 package com.example.WebTruyen.repository;
 
 import com.example.WebTruyen.entity.enums.StoryStatus;
+import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -83,4 +84,30 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
 //=======
 //    List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
 //>>>>>>> origin/minhfinal1
+
+    // Hieu Son - ngay 26/02/2026
+    // Query tim kiem nang cao truyen cong khai: title, tac gia, tinh trang va danh sach tag theo dieu kien AND.
+    @Query("""
+            select s
+            from StoryEntity s
+            left join s.storyTags st
+            where s.status = :status
+              and (:query is null or lower(s.title) like lower(concat('%', :query, '%')))
+              and (
+                    :authorName is null
+                    or lower(coalesce(s.author.authorPenName, s.author.username, '')) like lower(concat('%', :authorName, '%'))
+              )
+              and (:completionStatus is null or s.completionStatus = :completionStatus)
+              and (:tagCount = 0 or st.tag.id in :tagIds)
+            group by s
+            having (:tagCount = 0 or count(distinct st.tag.id) = :tagCount)
+            """)
+    List<StoryEntity> findPublishedStoriesWithAdvancedFilters(
+            @Param("status") StoryStatus status,
+            @Param("query") String query,
+            @Param("authorName") String authorName,
+            @Param("completionStatus") StoryCompletionStatus completionStatus,
+            @Param("tagIds") List<Long> tagIds,
+            @Param("tagCount") long tagCount
+    );
 }
