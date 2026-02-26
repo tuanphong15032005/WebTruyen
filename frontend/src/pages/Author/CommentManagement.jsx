@@ -24,6 +24,25 @@ const statusClassName = (status) => {
   return 'normal';
 };
 
+const DEFAULT_VISIBLE_REPLIES = 3;
+
+// Minhdq - 25/02/2026
+// [Fix comment/thread/id - V2 - branch: minhfinal2]
+const flattenReplies = (replies) => {
+  const queue = Array.isArray(replies) ? [...replies] : [];
+  const result = [];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) continue;
+    result.push(current);
+    const nested = Array.isArray(current.replies) ? current.replies : [];
+    if (nested.length > 0) {
+      queue.unshift(...nested);
+    }
+  }
+  return result;
+};
+
 const CommentManagement = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -44,6 +63,7 @@ const CommentManagement = () => {
   const [replyForId, setReplyForId] = useState(null);
   const [replyContent, setReplyContent] = useState('');
   const [actingCommentId, setActingCommentId] = useState(null);
+  const [visibleRepliesByParent, setVisibleRepliesByParent] = useState({});
 
   const selectedStoryId = useMemo(() => {
     const value = Number(storyId);
@@ -118,6 +138,7 @@ const CommentManagement = () => {
       setComments(Array.isArray(response) ? response : []);
       setReplyForId(null);
       setReplyContent('');
+      setVisibleRepliesByParent({});
     } catch (error) {
       console.error('getAuthorComments error', error);
       if (isUnauthorized(error)) {
@@ -228,15 +249,41 @@ const CommentManagement = () => {
     }
   };
 
-  // Renders one comment (or reply) with Fields 4–10: avatar, display name, content, time, status, Reply, Hide/Delete.
-  const renderNode = (comment) => {
-    const replies = Array.isArray(comment.replies) ? comment.replies : [];
+  // Minhdq - 25/02/2026
+  // [Fix comment/thread/id - V2 - branch: minhfinal2]
+  const handleShowMoreReplies = (commentId) => {
+    setVisibleRepliesByParent((prev) => ({
+      ...prev,
+      [commentId]: (prev[commentId] || DEFAULT_VISIBLE_REPLIES) + DEFAULT_VISIBLE_REPLIES,
+    }));
+  };
+
+  // Minhdq - 25/02/2026
+  // [Fix comment/thread/id - V2 - branch: minhfinal2]
+  const handleCollapseReplies = (commentId) => {
+    setVisibleRepliesByParent((prev) => ({
+      ...prev,
+      [commentId]: DEFAULT_VISIBLE_REPLIES,
+    }));
+  };
+
+  // Minhdq - 25/02/2026
+  // [Fix comment/thread/id - V2 - branch: minhfinal2]
+  // Renders one comment (or reply) in single-level thread style.
+  const renderNode = (comment, options = {}) => {
+    const { isReply = false, showChildren = true } = options;
+    const flattenedReplies = flattenReplies(comment.replies);
+    const visibleReplyCount = visibleRepliesByParent[comment.id] || DEFAULT_VISIBLE_REPLIES;
+    const visibleReplies = flattenedReplies.slice(0, visibleReplyCount);
+    const hasMoreReplies = flattenedReplies.length > visibleReplies.length;
+    const canCollapseReplies = flattenedReplies.length > DEFAULT_VISIBLE_REPLIES && visibleReplyCount > DEFAULT_VISIBLE_REPLIES;
+    const hiddenRepliesCount = flattenedReplies.length - visibleReplies.length;
     const isReplying = replyForId === comment.id;
     const isActing = actingCommentId === comment.id;
     const statusLabel = comment.status === 'Normal' ? 'Normal' : comment.status === 'Reported' ? 'Reported' : comment.status === 'Hidden' ? 'Hidden' : (comment.status || 'Normal');
 
     return (
-      <article key={comment.id} className='author-comments__item' role='listitem'>
+      <article key={comment.id} className={`author-comments__item ${isReply ? 'author-comments__item--reply' : ''}`} role='listitem'>
         {/* Field 4: Reader avatar (display field) */}
         <div className='author-comments__avatar' aria-hidden='true'>
           {comment.avatarUrl ? (
@@ -326,9 +373,32 @@ const CommentManagement = () => {
             </div>
           )}
 
-          {replies.length > 0 && (
+          {showChildren && flattenedReplies.length > 0 && (
             <div className='author-comments__replies' role='list'>
-              {replies.map((reply) => renderNode(reply))}
+              {visibleReplies.map((reply) => renderNode(reply, { isReply: true, showChildren: false }))}
+
+              {(hasMoreReplies || canCollapseReplies) && (
+                <div className='author-comments__replies-controls'>
+                  {hasMoreReplies && (
+                    <button
+                      type='button'
+                      className='author-comments__replies-toggle'
+                      onClick={() => handleShowMoreReplies(comment.id)}
+                    >
+                      Hiển thị thêm {hiddenRepliesCount} phản hồi
+                    </button>
+                  )}
+                  {canCollapseReplies && (
+                    <button
+                      type='button'
+                      className='author-comments__replies-toggle author-comments__replies-toggle--collapse'
+                      onClick={() => handleCollapseReplies(comment.id)}
+                    >
+                      Thu gọn phản hồi
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -155,6 +155,8 @@ function Header() {
 
     {hasAnyRole(['ADMIN', 'MOD'], user) && (
       <>
+        {/* Minhdq - 25/02/2026 */}
+        {/* [Fix admin-dashboard/menu/id - V2 - branch: minhfinal2] */}
         <Link to='/admin/dashboard'>Dashboard quản trị</Link>
       </>
     )}

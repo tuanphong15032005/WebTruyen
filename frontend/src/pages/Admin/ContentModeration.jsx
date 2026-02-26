@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import storyService from '../../services/storyService';
+import { getChapterDetail } from '../../services/ChapterService';
 import '../../styles/admin-content-moderation.css';
+
+// Minhdq - 25/02/2026
+// [Fix pagination/content-moderation/id - V2 - branch: minhfinal2]
+const PAGE_SIZE = 10;
 
 function ContentModeration() {
   const [items, setItems] = useState([]);
@@ -9,9 +14,12 @@ function ContentModeration() {
   const [busyKey, setBusyKey] = useState('');
   const [activeStatus, setActiveStatus] = useState('pending');
   const [demoItem, setDemoItem] = useState(null);
-  const [demoStory, setDemoStory] = useState(null);
+  const [demoChapter, setDemoChapter] = useState(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState('');
+  // Minhdq - 25/02/2026
+  // [Fix pagination/content-moderation/id - V2 - branch: minhfinal2]
+  const [currentPage, setCurrentPage] = useState(1);
   const [noteModal, setNoteModal] = useState({
     open: false,
     item: null,
@@ -43,17 +51,39 @@ function ContentModeration() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => item.moderationStatus === activeStatus);
   }, [items, activeStatus]);
+  // Minhdq - 25/02/2026
+  // [Fix pagination/content-moderation/id - V2 - branch: minhfinal2]
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredItems.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [currentPage, filteredItems]);
 
   const showActions = activeStatus === 'pending';
+  // Minhdq - 25/02/2026
+  // [Fix chapter-only-moderation/id - V2 - branch: minhfinal2]
+  const chapterLabel = (item) =>
+    item.chapterTitle || item.contentTitle || item.title || `Chapter #${item.contentId}`;
+  // Minhdq - 25/02/2026
+  // [Fix chapter-only-moderation/id - V2 - branch: minhfinal2]
+  const chapterSegments = useMemo(
+    () => (Array.isArray(demoChapter?.segments) ? demoChapter.segments : []),
+    [demoChapter?.segments]
+  );
 
   const loadModerationContent = async () => {
     setLoading(true);
     setError('');
     try {
       const data = await storyService.getPendingModerationContent();
-      setItems(Array.isArray(data) ? data : []);
+      // Minhdq - 25/02/2026
+      // [Fix chapter-only-moderation/id - V2 - branch: minhfinal2]
+      const chapterItems = (Array.isArray(data) ? data : []).filter(
+        (item) => String(item?.contentType || '').toLowerCase() === 'chapter'
+      );
+      setItems(chapterItems);
     } catch (err) {
-      setError(err.message || 'Failed to load pending content');
+      setError(err.message || 'Không thể tải danh sách nội dung chờ duyệt');
     } finally {
       setLoading(false);
     }
@@ -80,31 +110,39 @@ function ContentModeration() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [demoItem, noteModal.open]);
 
-  const buildActionKey = (contentType, contentId, action) =>
-    `${contentType}-${contentId}-${action}`;
+  useEffect(() => {
+    // Minhdq - 25/02/2026
+    // [Fix pagination/content-moderation/id - V2 - branch: minhfinal2]
+    setCurrentPage(1);
+  }, [activeStatus]);
+
+  useEffect(() => {
+    // Minhdq - 25/02/2026
+    // [Fix pagination/content-moderation/id - V2 - branch: minhfinal2]
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  // Minhdq - 25/02/2026
+  // [Fix chapter-only-moderation/id - V2 - branch: minhfinal2]
+  const buildActionKey = (contentId, action) =>
+    `chapter-${contentId}-${action}`;
 
   const executeAction = async (item, action, note = '') => {
-    const key = buildActionKey(item.contentType, item.contentId, action);
+    const key = buildActionKey(item.contentId, action);
     setBusyKey(key);
     setError('');
 
     try {
-      if (item.contentType === 'story') {
-        if (action === 'approve') {
-          await storyService.approveModerationStory(item.contentId);
-        } else if (action === 'reject') {
-          await storyService.rejectModerationStory(item.contentId, note);
-        } else {
-          await storyService.requestEditModerationStory(item.contentId, note);
-        }
+      // Minhdq - 25/02/2026
+      // [Fix chapter-only-moderation/id - V2 - branch: minhfinal2]
+      if (action === 'approve') {
+        await storyService.approveModerationChapter(item.contentId);
+      } else if (action === 'reject') {
+        await storyService.rejectModerationChapter(item.contentId, note);
       } else {
-        if (action === 'approve') {
-          await storyService.approveModerationChapter(item.contentId);
-        } else if (action === 'reject') {
-          await storyService.rejectModerationChapter(item.contentId, note);
-        } else {
-          await storyService.requestEditModerationChapter(item.contentId, note);
-        }
+        await storyService.requestEditModerationChapter(item.contentId, note);
       }
 
       await loadModerationContent();
@@ -143,34 +181,35 @@ function ContentModeration() {
   };
 
   const statusLabel = (status) => {
-    if (status === 'approved') return 'Approved';
-    if (status === 'rejected') return 'Rejected';
-    if (status === 'request_edit') return 'Request Edit';
-    if (status === 'pending') return 'Pending';
-    return status || 'Processed';
+    if (status === 'approved') return 'Đã duyệt';
+    if (status === 'rejected') return 'Từ chối';
+    if (status === 'request_edit') return 'Yêu cầu chỉnh sửa';
+    if (status === 'pending') return 'Chờ duyệt';
+    return status || 'Đã xử lý';
   };
 
   const closeDemoModal = () => {
     setDemoItem(null);
-    setDemoStory(null);
+    setDemoChapter(null);
     setDemoLoading(false);
     setDemoError('');
   };
 
-  const noteActionLabel = noteModal.action === 'request-edit' ? 'Request Edit' : 'Reject';
+  const noteActionLabel = noteModal.action === 'request-edit' ? 'Yêu cầu chỉnh sửa' : 'Từ chối';
 
   const handleViewDemo = async (item) => {
     setDemoItem(item);
-    setDemoStory(null);
+    setDemoChapter(null);
     setDemoLoading(true);
     setDemoError('');
 
-    const storyId = item.storyId || item.contentId;
     try {
-      const story = await storyService.getStory(storyId);
-      setDemoStory(story || null);
+      // Minhdq - 25/02/2026
+      // [Fix chapter-only-moderation/id - V2 - branch: minhfinal2]
+      const chapter = await getChapterDetail(item.contentId);
+      setDemoChapter(chapter || null);
     } catch (err) {
-      setDemoError(err.message || 'Failed to load story demo');
+      setDemoError(err.message || 'Không thể tải nội dung demo chapter');
     } finally {
       setDemoLoading(false);
     }
@@ -181,26 +220,26 @@ function ContentModeration() {
       <header className='admin-moderation__header'>
         <h1>Kiểm duyệt nội dung</h1>
         <p>
-          Xem xét câu chuyện và các chương trước khi xuất bản để đảm bảo bản quyền, phù hợp với độ tuổi và tiêu chuẩn cộng đồng.
+          Xem xét chapter mới gửi duyệt trước khi xuất bản để đảm bảo phù hợp với tiêu chuẩn cộng đồng.
         </p>
       </header>
 
       <div className='admin-moderation__toolbar'>
         <div className='admin-moderation__stats'>
           <span className='admin-moderation__badge'>
-            Pending: {pendingCount}
+            Chờ duyệt: {pendingCount}
           </span>
           <span className='admin-moderation__badge admin-moderation__badge--approved'>
-            Approved: {approvedCount}
+            Đã duyệt: {approvedCount}
           </span>
           <span className='admin-moderation__badge admin-moderation__badge--rejected'>
-            Rejected: {rejectedCount}
+            Từ chối: {rejectedCount}
           </span>
           <span className='admin-moderation__badge admin-moderation__badge--request-edit'>
-            Request Edit: {requestEditCount}
+            Yêu cầu chỉnh sửa: {requestEditCount}
           </span>
           <span className='admin-moderation__badge admin-moderation__badge--processed'>
-            Processed: {processedCount}
+            Đã xử lý: {processedCount}
           </span>
         </div>
         <button
@@ -209,7 +248,7 @@ function ContentModeration() {
           onClick={loadModerationContent}
           disabled={loading}
         >
-          Refresh
+          Làm mới
         </button>
       </div>
 
@@ -219,28 +258,28 @@ function ContentModeration() {
           className={activeStatus === 'pending' ? 'active' : ''}
           onClick={() => setActiveStatus('pending')}
         >
-          Pending
+          Chờ duyệt
         </button>
         <button
           type='button'
           className={activeStatus === 'approved' ? 'active' : ''}
           onClick={() => setActiveStatus('approved')}
         >
-          Approved
+          Đã duyệt
         </button>
         <button
           type='button'
           className={activeStatus === 'rejected' ? 'active' : ''}
           onClick={() => setActiveStatus('rejected')}
         >
-          Rejected
+          Từ chối
         </button>
         <button
           type='button'
           className={activeStatus === 'request_edit' ? 'active' : ''}
           onClick={() => setActiveStatus('request_edit')}
         >
-          Request Edit
+          Yêu cầu chỉnh sửa
         </button>
       </div>
 
@@ -250,41 +289,41 @@ function ContentModeration() {
         <table>
           <thead>
             <tr>
-              <th>Type</th>
-              <th>Story Title</th>
-              <th>Author Name</th>
+              <th>Chapter</th>
+              <th>Tên truyện</th>
+              <th>Tác giả</th>
               <th>Genre</th>
-              <th>Rating / Age Classification</th>
-              <th>Submission Date</th>
-              <th>Status</th>
-              <th>Processed At</th>
-              <th>Moderation Note</th>
-              {showActions && <th>Actions</th>}
+              <th>Phân loại độ tuổi</th>
+              <th>Ngày gửi</th>
+              <th>Trạng thái</th>
+              <th>Xử lý lúc</th>
+              <th>Ghi chú kiểm duyệt</th>
+              {showActions && <th>Thao tác</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={showActions ? 10 : 9} className='admin-moderation__empty'>
-                  Loading moderation queue...
+                  Đang tải danh sách chờ duyệt...
                 </td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
                 <td colSpan={showActions ? 10 : 9} className='admin-moderation__empty'>
-                  No records in this status
+                  Không có bản ghi ở trạng thái này
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => {
-                const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
-                const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');
-                const editKey = buildActionKey(item.contentType, item.contentId, 'request-edit');
+              paginatedItems.map((item) => {
+                const approveKey = buildActionKey(item.contentId, 'approve');
+                const rejectKey = buildActionKey(item.contentId, 'reject');
+                const editKey = buildActionKey(item.contentId, 'request-edit');
                 const isBusy = busyKey === approveKey || busyKey === rejectKey || busyKey === editKey;
                 const canModerate = item.moderationStatus === 'pending';
                 return (
-                  <tr key={`${item.contentType}-${item.contentId}`}>
-                    <td>{item.contentType}</td>
+                  <tr key={`chapter-${item.contentId}`}>
+                    <td>{chapterLabel(item)}</td>
                     <td>{item.storyTitle}</td>
                     <td>{item.authorName}</td>
                     <td>{item.genre}</td>
@@ -310,7 +349,7 @@ function ContentModeration() {
                         <button
                           type='button'
                           className='demo'
-                          disabled={isBusy || item.contentType !== 'story'}
+                          disabled={isBusy}
                           onClick={() => handleViewDemo(item)}
                         >
                           Xem demo
@@ -321,7 +360,7 @@ function ContentModeration() {
                           disabled={isBusy || !canModerate}
                           onClick={() => handleAction(item, 'approve')}
                         >
-                          Approve
+                          Duyệt
                         </button>
                         <button
                           type='button'
@@ -329,7 +368,7 @@ function ContentModeration() {
                           disabled={isBusy || !canModerate}
                           onClick={() => handleAction(item, 'reject')}
                         >
-                          Reject
+                          Từ chối
                         </button>
                         <button
                           type='button'
@@ -337,7 +376,7 @@ function ContentModeration() {
                           disabled={isBusy || !canModerate}
                           onClick={() => handleAction(item, 'request-edit')}
                         >
-                          Request Edit
+                          Yêu cầu sửa
                         </button>
                       </td>
                     )}
@@ -348,11 +387,38 @@ function ContentModeration() {
           </tbody>
         </table>
       </div>
+      {/* Minhdq - 25/02/2026 */}
+      {/* [Fix pagination/content-moderation/id - V2 - branch: minhfinal2] */}
+      {!loading && filteredItems.length > 0 && (
+        <div className='admin-moderation__pagination'>
+          <span className='admin-moderation__pagination-summary'>
+            Hiển thị {(currentPage - 1) * PAGE_SIZE + 1}-
+            {Math.min(currentPage * PAGE_SIZE, filteredItems.length)} / {filteredItems.length}
+          </span>
+          <div className='admin-moderation__pagination-controls'>
+            <button
+              type='button'
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Trước
+            </button>
+            <span>Trang {currentPage}/{totalPages}</span>
+            <button
+              type='button'
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
       {demoItem && (
         <div className='admin-moderation__modal-backdrop' onClick={closeDemoModal}>
           <div className='admin-moderation__modal' onClick={(event) => event.stopPropagation()}>
             <div className='admin-moderation__modal-head'>
-              <h2>Demo truyện chờ duyệt</h2>
+              <h2>Xem demo chapter chờ duyệt</h2>
               <button type='button' onClick={closeDemoModal} aria-label='Đóng popup demo'>
                 x
               </button>
@@ -370,21 +436,26 @@ function ContentModeration() {
 
             {!demoLoading && !demoError && (
               <div className='admin-moderation__modal-content'>
-                <h3>{demoStory?.title || demoItem.storyTitle}</h3>
+                <h3>{demoChapter?.title || chapterLabel(demoItem)}</h3>
                 <p className='admin-moderation__modal-meta'>
-                  Tác giả: {demoStory?.authorPenName || demoItem.authorName || 'N/A'}
+                  Truyện: {demoItem.storyTitle || 'N/A'}
                 </p>
                 <p className='admin-moderation__modal-meta'>
-                  Thể loại: {demoStory?.kind || demoItem.genre || 'N/A'}
+                  Tác giả: {demoItem.authorName || 'N/A'}
                 </p>
                 <p className='admin-moderation__modal-meta'>
-                  Phân loại độ tuổi: {demoItem.ratingAgeClassification || 'N/A'}
+                  Chương: {demoChapter?.sequenceIndex ? `Chương ${demoChapter.sequenceIndex}` : chapterLabel(demoItem)}
                 </p>
                 <div className='admin-moderation__modal-summary'>
-                  {demoStory?.summaryHtml ? (
-                    <div dangerouslySetInnerHTML={{ __html: demoStory.summaryHtml }} />
+                  {chapterSegments.length > 0 ? (
+                    chapterSegments.map((segment) => (
+                      <div
+                        key={segment.id}
+                        dangerouslySetInnerHTML={{ __html: segment.segmentText || '' }}
+                      />
+                    ))
                   ) : (
-                    <p>Truyện chưa có mô tả để xem demo.</p>
+                    <p>Chapter chưa có nội dung để xem demo.</p>
                   )}
                 </div>
               </div>
@@ -398,9 +469,9 @@ function ContentModeration() {
             className='admin-moderation__note-modal'
             onClick={(event) => event.stopPropagation()}
           >
-            <h3>{noteActionLabel} - Moderation Note</h3>
+            <h3>{noteActionLabel} - Ghi chú kiểm duyệt</h3>
             <p className='admin-moderation__note-help'>
-              Optional note for this action.
+              Ghi chú tùy chọn cho thao tác này.
             </p>
             <textarea
               value={noteModal.note}
@@ -408,14 +479,14 @@ function ContentModeration() {
                 setNoteModal((prev) => ({ ...prev, note: event.target.value }))
               }
               rows={4}
-              placeholder='Enter moderation note...'
+              placeholder='Nhập ghi chú kiểm duyệt...'
             />
             <div className='admin-moderation__note-actions'>
               <button type='button' className='cancel' onClick={closeNoteModal}>
-                Cancel
+                Hủy
               </button>
               <button type='button' className='confirm' onClick={handleSubmitNote}>
-                Confirm
+                Xác nhận
               </button>
             </div>
           </div>

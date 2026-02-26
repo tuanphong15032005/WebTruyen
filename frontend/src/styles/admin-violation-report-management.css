@@ -104,6 +104,42 @@
   background: #fff;
 }
 
+/* Minhdq - 25/02/2026 */
+/* [Fix pagination/violation-report/id - V2 - branch: minhfinal2] */
+.admin-reports__pagination {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-reports__pagination-summary {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.admin-reports__pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-reports__pagination-controls button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.admin-reports__pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .admin-reports__grid table {
   width: 100%;
   border-collapse: collapse;

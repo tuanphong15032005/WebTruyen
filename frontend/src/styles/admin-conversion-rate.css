@@ -1,0 +1,143 @@
+.admin-rate {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.admin-rate__header h1 {
+  margin: 0;
+  color: #111827;
+}
+
+.admin-rate__header p {
+  margin: 8px 0 0;
+  color: #4b5563;
+}
+
+.admin-rate__current {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-rate__current strong {
+  color: #1d4ed8;
+}
+
+.admin-rate__form-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-rate__form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.admin-rate__form-grid input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.admin-rate__preview {
+  margin-top: 12px;
+  color: #1f2937;
+}
+
+.admin-rate__actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-rate__actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #2563eb;
+  color: #fff;
+}
+
+.admin-rate__actions .update {
+  background: #16a34a;
+}
+
+.admin-rate__actions .cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.admin-rate__actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-rate__history {
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.admin-rate__history h2 {
+  margin: 0;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 16px;
+  color: #111827;
+}
+
+.admin-rate__history table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-rate__history th,
+.admin-rate__history td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.admin-rate__history th {
+  background: #f9fafb;
+  color: #374151;
+}
+
+.admin-rate__history tr.active {
+  background: #eff6ff;
+}
+
+.admin-rate__history td button {
+  border: 1px solid #bfdbfe;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 7px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.admin-rate__empty {
+  margin: 0;
+  padding: 18px 14px;
+  color: #6b7280;
+}

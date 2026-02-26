@@ -292,16 +292,53 @@
   color: #6b7280;
 }
 
-/* Thread: replies nested (comment – reply) */
+/* Minhdq - 25/02/2026 */
+/* [Fix comment/thread/id - V2 - branch: minhfinal2] */
+/* Thread: replies in one single line level (no staircase nesting) */
 .author-comments__replies {
   margin-top: 14px;
-  padding-left: 16px;
-  border-left: 3px solid #e5e7eb;
+  padding-left: 14px;
+  border-left: 2px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.author-comments__replies .author-comments__item {
+.author-comments__item--reply {
+  margin-left: 0;
   background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.author-comments__replies-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-left: 2px;
+}
+
+.author-comments__replies-toggle {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.author-comments__replies-toggle:hover {
+  background: #f3f4f6;
+}
+
+.author-comments__replies-toggle--collapse {
+  color: #9a3412;
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.author-comments__replies-toggle--collapse:hover {
+  background: #ffedd5;
 }
