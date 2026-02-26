@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useCallback,
   useEffect,
   useMemo,
@@ -11,6 +11,7 @@ import {
   Bot,
   BookOpen,
   CheckCircle2,
+  Eye,
   Languages,
   MessageSquare,
   PenTool,
@@ -22,14 +23,14 @@ import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
 import '../styles/home-dashboard.css';
 
-const HERO_COUNT = 5;
-const LATEST_COUNT = 10;
-const VIEW_RANKING_COUNT = 10;
-const SAVED_RANKING_COUNT = 12;
-const COMMUNITY_COUNT = 6;
-const RECOMMEND_COUNT = 5;
-const SECTION_STORY_COUNT = 10;
-const HERO_TRANSITION_MS = 420;
+const HERO_COUNT = 6; //banner 
+const LATEST_COUNT = 8; //mới cập nhật
+const VIEW_RANKING_COUNT = 10; //xếp hạng theo lượt xem
+const SAVED_RANKING_COUNT = 12; //xếp hạng theo lượt lưu
+const COMMUNITY_COUNT = 6; //bình luận mới cộng đồng
+const RECOMMEND_COUNT = 4; //đề xuất 
+const SECTION_STORY_COUNT = 8; //Mỗi phần
+const HERO_TRANSITION_MS = 420; 
 const HERO_SWIPE_THRESHOLD = 56;
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
@@ -66,6 +67,23 @@ const getStoryCategory = (story) => {
   return tags[0] || null;
 };
 
+const formatRating = (value) => {
+  const numericValue = Number(value || 0);
+  if (!Number.isFinite(numericValue)) return '0.0';
+  return numericValue.toFixed(1);
+};
+
+const getStoryStatusInfo = (story) => {
+  const completion = String(story?.completionStatus || '').toLowerCase();
+  if (completion === 'completed') {
+    return { label: 'Đã hoàn thành', className: 'completed' };
+  }
+  if (completion === 'cancelled') {
+    return { label: 'Tạm ngưng', className: 'cancelled' };
+  }
+  return { label: 'Đang tiến hành', className: 'ongoing' };
+};
+
 const hasAuthSession = () => {
   try {
     if (localStorage.getItem('accessToken')) return true;
@@ -84,7 +102,7 @@ const toEpoch = (value) => {
   return Number.isFinite(epoch) ? epoch : 0;
 };
 
-// Hieuson - 24/2 + Chọn ngẫu nhiên một tập con stories để làm hero slider.
+// Hieuson - 24/2 + Chá»n ngáº«u nhiÃªn má»™t táº­p con stories Ä‘á»ƒ lÃ m hero slider.
 const pickRandomStories = (stories, size) => {
   const list = Array.isArray(stories) ? [...stories] : [];
   for (let idx = list.length - 1; idx > 0; idx -= 1) {
@@ -107,11 +125,11 @@ const formatVolumeLabel = (chapter) => {
   const title = String(chapter?.volumeTitle || '').trim();
   const sequence = Number(chapter?.volumeSequenceIndex || 0);
   if (title) return title;
-  if (sequence > 0) return `Tập ${sequence}`;
+  if (sequence > 0) return `Táº­p ${sequence}`;
   return 'Chưa có tập';
 };
 
-// Hieuson - 24/2 + Sắp xếp danh sách chapter theo thứ tự volume/chapter để lấy chương đầu và chương mới.
+// Hieuson - 24/2 + Sáº¯p xáº¿p danh sÃ¡ch chapter theo thá»© tá»± volume/chapter Ä‘á»ƒ láº¥y chÆ°Æ¡ng Ä‘áº§u vÃ  chÆ°Æ¡ng má»›i.
 const flattenAndSortChapters = (volumes) => {
   const safeVolumes = Array.isArray(volumes) ? volumes : [];
   const sortedVolumes = [...safeVolumes].sort(
@@ -138,7 +156,7 @@ const flattenAndSortChapters = (volumes) => {
   return chapters;
 };
 
-// Hieuson - 24/2 + Lấy chapter đầu tiên và tên chapter mới nhất theo story để phục vụ banner + mới cập nhật.
+// Hieuson - 24/2 + Láº¥y chapter Ä‘áº§u tiÃªn vÃ  tÃªn chapter má»›i nháº¥t theo story Ä‘á»ƒ phá»¥c vá»¥ banner + má»›i cáº­p nháº­t.
 const getStoryChapterMeta = async (storyId) => {
   try {
     const volumes = await storyService.getPublicVolumes(storyId);
@@ -150,6 +168,7 @@ const getStoryChapterMeta = async (storyId) => {
       latestChapterTitle: latestChapter?.title || 'Chưa có chương',
       latestChapterLabel: formatChapterLabel(latestChapter),
       latestVolumeLabel: formatVolumeLabel(latestChapter),
+      chapterCount: chapters.length,
     };
   } catch {
     return {
@@ -157,11 +176,12 @@ const getStoryChapterMeta = async (storyId) => {
       latestChapterTitle: 'Chưa có chương',
       latestChapterLabel: 'Chưa có chương',
       latestVolumeLabel: 'Chưa có tập',
+      chapterCount: 0,
     };
   }
 };
 
-// Hieuson - 24/2 + Sắp xếp truyện theo rating cao nhất để dùng cho gợi ý và fallback.
+// Hieuson - 24/2 + Sáº¯p xáº¿p truyá»‡n theo rating cao nháº¥t Ä‘á»ƒ dÃ¹ng cho gá»£i Ã½ vÃ  fallback.
 const getTopRatedStories = (stories, size) =>
   [...(Array.isArray(stories) ? stories : [])]
     .sort((a, b) => {
@@ -172,7 +192,7 @@ const getTopRatedStories = (stories, size) =>
     })
     .slice(0, size);
 
-// Hieuson - 24/2 + Tìm danh mục xuất hiện nhiều nhất trong thư viện cá nhân của user.
+// Hieuson - 24/2 + TÃ¬m danh má»¥c xuáº¥t hiá»‡n nhiá»u nháº¥t trong thÆ° viá»‡n cÃ¡ nhÃ¢n cá»§a user.
 const getDominantTagFromLibrary = (libraryStories) => {
   const counter = new Map();
   (Array.isArray(libraryStories) ? libraryStories : []).forEach((story) => {
@@ -221,6 +241,7 @@ function HomePage() {
   const [chapterMetaByStoryId, setChapterMetaByStoryId] = useState({});
   const [heroPrevStory, setHeroPrevStory] = useState(null);
   const [heroPrevVisible, setHeroPrevVisible] = useState(false);
+  const [heroSlideDirection, setHeroSlideDirection] = useState(1);
   const [heroDragOffset, setHeroDragOffset] = useState(0);
   const [heroDragging, setHeroDragging] = useState(false);
 
@@ -255,7 +276,7 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    // Hieuson - 24/2 + Nạp dữ liệu trang chủ gồm banner, cập nhật, ranking, gợi ý và phản hồi cộng đồng.
+    // Hieuson - 24/2 + Náº¡p dá»¯ liá»‡u trang chá»§ gá»“m banner, cáº­p nháº­t, ranking, gá»£i Ã½ vÃ  pháº£n há»“i cá»™ng Ä‘á»“ng.
     const fetchHomeData = async () => {
       try {
         setLoading(true);
@@ -306,7 +327,9 @@ function HomePage() {
         setViewRankingStories(allTimeViewRanking);
 
         const allTimeSavedRanking = [...publicStories]
-          .sort((a, b) => Number(b?.savedCount || 0) - Number(a?.savedCount || 0))
+          .sort(
+            (a, b) => Number(b?.savedCount || 0) - Number(a?.savedCount || 0),
+          )
           .slice(0, SAVED_RANKING_COUNT);
         setSavedRankingStories(allTimeSavedRanking);
 
@@ -390,13 +413,19 @@ function HomePage() {
   }, [notify]);
 
   const animateToHeroIndex = useCallback(
-    (targetIndex) => {
+    (targetIndex, directionHint = 0) => {
       const count = heroStories.length;
       if (count <= 1) return;
 
       const currentIndex = activeHeroIndexRef.current;
       const normalizedIndex = (targetIndex + count) % count;
       if (normalizedIndex === currentIndex) return;
+      const forwardSteps = (normalizedIndex - currentIndex + count) % count;
+      const autoDirection = forwardSteps <= count / 2 ? 1 : -1;
+      const direction =
+        directionHint === 1 || directionHint === -1
+          ? directionHint
+          : autoDirection;
 
       const previousStory = heroStories[currentIndex] || null;
       if (heroTransitionTimerRef.current) {
@@ -409,19 +438,21 @@ function HomePage() {
         window.cancelAnimationFrame(heroRafRef.current.second);
       }
 
+      setHeroSlideDirection(direction);
       setHeroPrevStory(previousStory);
-      setHeroPrevVisible(true);
+      setHeroPrevVisible(false);
       setActiveHeroIndex(normalizedIndex);
       activeHeroIndexRef.current = normalizedIndex;
 
       heroRafRef.current.first = window.requestAnimationFrame(() => {
         heroRafRef.current.second = window.requestAnimationFrame(() => {
-          setHeroPrevVisible(false);
+          setHeroPrevVisible(true);
         });
       });
 
       heroTransitionTimerRef.current = window.setTimeout(() => {
         setHeroPrevStory(null);
+        setHeroPrevVisible(false);
       }, HERO_TRANSITION_MS + 40);
     },
     [heroStories],
@@ -429,9 +460,9 @@ function HomePage() {
 
   useEffect(() => {
     if (heroStories.length <= 1 || heroDragging) return undefined;
-    // Hieuson - 24/2 + Tự động trượt hero slider sau mỗi 5 giây.
+    // Hieuson - 24/2 + Tá»± Ä‘á»™ng trÆ°á»£t hero slider sau má»—i 5 giÃ¢y.
     const timer = window.setInterval(() => {
-      animateToHeroIndex(activeHeroIndexRef.current + 1);
+      animateToHeroIndex(activeHeroIndexRef.current + 1, 1);
     }, 5000);
     return () => window.clearInterval(timer);
   }, [animateToHeroIndex, heroDragging, heroStories.length]);
@@ -442,11 +473,11 @@ function HomePage() {
   );
 
   const goPrevHero = useCallback(() => {
-    animateToHeroIndex(activeHeroIndexRef.current - 1);
+    animateToHeroIndex(activeHeroIndexRef.current - 1, -1);
   }, [animateToHeroIndex]);
 
   const goNextHero = useCallback(() => {
-    animateToHeroIndex(activeHeroIndexRef.current + 1);
+    animateToHeroIndex(activeHeroIndexRef.current + 1, 1);
   }, [animateToHeroIndex]);
 
   const handleHeroPointerDown = (event) => {
@@ -474,7 +505,11 @@ function HomePage() {
         !heroPointerRef.current.swiped &&
         Math.abs(deltaX) >= HERO_SWIPE_THRESHOLD
       ) {
-        animateToHeroIndex(activeHeroIndexRef.current + (deltaX < 0 ? 1 : -1));
+        const swipeDirection = deltaX < 0 ? 1 : -1;
+        animateToHeroIndex(
+          activeHeroIndexRef.current + swipeDirection,
+          swipeDirection,
+        );
       }
 
       if (
@@ -510,7 +545,11 @@ function HomePage() {
       heroPointerRef.current.startX = event.clientX;
       heroPointerRef.current.lastX = event.clientX;
       setHeroDragOffset(0);
-      animateToHeroIndex(activeHeroIndexRef.current + (deltaX < 0 ? 1 : -1));
+      const swipeDirection = deltaX < 0 ? 1 : -1;
+      animateToHeroIndex(
+        activeHeroIndexRef.current + swipeDirection,
+        swipeDirection,
+      );
     }
   };
 
@@ -550,35 +589,86 @@ function HomePage() {
 
       return stories.map((story) => {
         const meta = chapterMetaByStoryId[story.id];
+        const categoryTag = getStoryCategory(story);
+        const statusInfo = getStoryStatusInfo(story);
+        const authorName =
+          story.authorPenName || story.authorName || 'Chưa có bút danh';
+
         return (
-          <article key={story.id} className='home-story-tile'>
+          <article key={story.id} className='home-story-card'>
             <Link
               to={`/stories/${story.id}/metadata`}
-              className='home-story-tile__cover-link'
+              className='home-story-card__link'
             >
-              {story.coverUrl ? (
-                <img src={story.coverUrl} alt={story.title} />
-              ) : (
-                <div className='home-story-tile__cover-empty'>No cover</div>
-              )}
-              <div className='home-story-tile__overlay'>
-                <p className='home-story-tile__chapter'>
-                  {meta?.latestChapterLabel || 'Chưa có chương'}
+              <div className='home-story-card__cover'>
+                {story.coverUrl ? (
+                  <img src={story.coverUrl} alt={story.title} />
+                ) : (
+                  <div className='home-story-card__cover-empty'>No cover</div>
+                )}
+                <div className='home-story-card__overlay'>
+                  <p className='home-story-card__chapter'>
+                    {meta?.latestChapterLabel || 'Chưa có chương'}
+                  </p>
+                  <p className='home-story-card__volume'>
+                    {meta?.latestVolumeLabel || 'Chưa có tập'}
+                  </p>
+                </div>
+              </div>
+
+              <div className='home-story-card__content'>
+                <h3 className='home-story-card__title'>{story.title}</h3>
+
+                <div className='home-story-card__meta'>
+                  <span className='home-story-card__author'>{authorName}</span>
+                  {categoryTag && (
+                    <span className='home-story-card__category'>
+                      {categoryTag.name}
+                    </span>
+                  )}
+                </div>
+
+                <p className='home-story-card__summary'>
+                  {getSummary(story, 90)}
                 </p>
-                <p className='home-story-tile__volume'>
-                  {meta?.latestVolumeLabel || 'Chưa có tập'}
-                </p>
+
+                <div className='home-story-card__stats'>
+                  <span className='home-story-card__stat home-story-card__stat--rating'>
+                    <Star size={14} fill='currentColor' />
+                    {formatRating(story.ratingAvg)}
+                  </span>
+                  <span className='home-story-card__stat'>
+                    <Eye size={14} />
+                    {formatNumber(story.readerCount || 0)}
+                  </span>
+                  <span className='home-story-card__stat'>
+                    <Bookmark size={14} />
+                    {formatNumber(story.savedCount || 0)}
+                  </span>
+                  <span className='home-story-card__stat'>
+                    <BookOpen size={14} />
+                    {formatNumber(meta?.chapterCount || 0)}
+                  </span>
+                </div>
+
+                <div className='home-story-card__footer'>
+                  <span
+                    className={`home-story-card__status ${statusInfo.className}`}
+                  >
+                    <span className='home-story-card__status-dot' />
+                    {statusInfo.label}
+                  </span>
+                </div>
               </div>
             </Link>
-            <h3 className='home-story-tile__title'>
-              <Link to={`/stories/${story.id}/metadata`}>{story.title}</Link>
-            </h3>
           </article>
         );
       });
     },
     [chapterMetaByStoryId],
   );
+
+  const heroSlideClass = heroSlideDirection > 0 ? 'to-next' : 'to-prev';
 
   return (
     <div className='home-dashboard'>
@@ -594,6 +684,7 @@ function HomePage() {
             className={`home-hero ${heroDragging ? 'is-dragging' : ''}`}
             style={{
               '--hero-drag-x': `${heroDragOffset}px`,
+              '--hero-slide-duration': `${HERO_TRANSITION_MS}ms`,
             }}
             onPointerDown={handleHeroPointerDown}
             onPointerMove={handleHeroPointerMove}
@@ -601,14 +692,14 @@ function HomePage() {
             onPointerCancel={handleHeroPointerCancel}
           >
             <div
-              className='home-hero__bg home-hero__bg--current'
+              className={`home-hero__bg home-hero__bg--current ${heroPrevStory ? `is-incoming ${heroSlideClass} ${heroPrevVisible ? 'is-active' : ''}` : ''}`}
               style={{
                 backgroundImage: buildHeroBackground(activeHeroStory),
               }}
             />
             {heroPrevStory && (
               <div
-                className={`home-hero__bg home-hero__bg--prev ${heroPrevVisible ? 'is-visible' : ''}`}
+                className={`home-hero__bg home-hero__bg--prev is-outgoing ${heroSlideClass} ${heroPrevVisible ? 'is-active' : ''}`}
                 style={{
                   backgroundImage: buildHeroBackground(heroPrevStory),
                 }}
@@ -784,12 +875,14 @@ function HomePage() {
                       size={24}
                       className='home-section__icon home-section__icon--ranking'
                     />
-                    Top 10 lượt xem
+                    Top lượt đọc
                   </h2>
                 </div>
                 <ol className='home-ranking__list'>
                   {viewRankingStories.length === 0 ? (
-                    <p className='home-ranking__empty'>Chưa có dữ liệu lượt xem.</p>
+                    <p className='home-ranking__empty'>
+                      Chưa có dữ liệu lượt xem.
+                    </p>
                   ) : (
                     viewRankingStories.map((story, idx) => (
                       <li key={story.id}>
@@ -817,12 +910,14 @@ function HomePage() {
                       size={24}
                       className='home-section__icon home-section__icon--ranking'
                     />
-                    Top 12 lượt lưu
+                    Top lượt theo dõi
                   </h2>
                 </div>
                 <ol className='home-ranking__list'>
                   {savedRankingStories.length === 0 ? (
-                    <p className='home-ranking__empty'>Chưa có dữ liệu lượt lưu.</p>
+                    <p className='home-ranking__empty'>
+                      Chưa có dữ liệu lượt lưu.
+                    </p>
                   ) : (
                     savedRankingStories.map((story, idx) => (
                       <li key={story.id}>
@@ -850,12 +945,14 @@ function HomePage() {
                       size={24}
                       className='home-section__icon home-section__icon--ranking'
                     />
-                    Bình luận mới nhất
+                    Bình luận mới
                   </h2>
                 </div>
                 <ol className='home-ranking__list'>
                   {communityComments.length === 0 ? (
-                    <p className='home-ranking__empty'>Chưa có bình luận gần đây.</p>
+                    <p className='home-ranking__empty'>
+                      Chưa có bình luận gần đây.
+                    </p>
                   ) : (
                     communityComments.map((comment, idx) => (
                       <li key={comment.id}>
@@ -870,7 +967,9 @@ function HomePage() {
                                 {comment.storyTitle || 'Không rõ truyện'}
                               </Link>
                             ) : (
-                              <span>{comment.storyTitle || 'Không rõ truyện'}</span>
+                              <span>
+                                {comment.storyTitle || 'Không rõ truyện'}
+                              </span>
                             )}
                           </p>
                           <p className='home-ranking__comment-content'>

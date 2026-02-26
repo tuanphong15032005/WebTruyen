@@ -550,13 +550,6 @@ const StoryMetadata = () => {
     goToReaderChapter(latestReadableChapterId);
   }, [goToReaderChapter, latestReadableChapterId]);
 
-  const scrollToComments = useCallback(() => {
-    commentsAnchorRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, []);
-
   const normalizeCommentNode = useCallback(
     (comment) => ({
       ...comment,
@@ -585,7 +578,6 @@ const StoryMetadata = () => {
       setCommentContent('');
       notify('Đã đăng bình luận', 'success');
       await fetchCommentsPage(0, false);
-      scrollToComments();
     } catch (error) {
       console.error('createStoryComment error', error);
       notify('Không thể đăng bình luận', 'error');
@@ -749,7 +741,6 @@ const StoryMetadata = () => {
 
       closeReplyForm();
       notify('Đã đăng trả lời', 'success');
-      scrollToComments();
     } catch (error) {
       console.error('create reply error', error);
       notify('Không thể đăng trả lời', 'error');
@@ -787,7 +778,6 @@ const StoryMetadata = () => {
       );
       notify('Đã cập nhật bình luận', 'success');
       handleCancelEdit();
-      scrollToComments();
     } catch (error) {
       console.error('update comment error', error);
       notify('Không thể cập nhật bình luận', 'error');
@@ -820,7 +810,6 @@ const StoryMetadata = () => {
         return next;
       });
       notify('Đã xóa bình luận', 'success');
-      scrollToComments();
     } catch (error) {
       console.error('delete comment error', error);
       notify('Không thể xóa bình luận', 'error');

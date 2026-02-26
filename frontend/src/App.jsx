@@ -1,6 +1,8 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
+import SearchPage from './pages/SearchPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyCode from './pages/VerifyCode';
@@ -43,12 +45,44 @@ function RoleProtectedRoute({ allowedRoles, children }) {
 }
 // >>>>>>> origin/minhfinal1
 
+function RouteScrollManager() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    return () => {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'auto';
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (location.hash) return;
+
+    const mainContent = document.querySelector('main.main-content');
+    if (mainContent) {
+      mainContent.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
+
 function App() {
   return (
     <MainLayout>
+      <RouteScrollManager />
 {/* <<<<<<< HEAD */}
       <Routes>
         <Route path='/' element={<HomePage />} />
+        <Route path='/search' element={<SearchPage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/verify' element={<VerifyCode />} />

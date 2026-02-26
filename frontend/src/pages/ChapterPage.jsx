@@ -96,7 +96,8 @@ const getErrorMessage = (error, fallbackMessage) => {
     return responseData.trim();
   }
   if (responseData && typeof responseData === 'object') {
-    const nestedMessage = responseData.message || responseData.error || responseData.detail;
+    const nestedMessage =
+      responseData.message || responseData.error || responseData.detail;
     if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
       return nestedMessage.trim();
     }
@@ -134,7 +135,10 @@ const SettingsPopup = ({ isOpen, onClose, settings, onSettingsChange }) => {
 
   return (
     <div className='settings-overlay' onClick={onClose}>
-      <div className='settings-popup' onClick={(event) => event.stopPropagation()}>
+      <div
+        className='settings-popup'
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className='settings-header'>
           <h3>Tùy chỉnh giao dien</h3>
           <button className='close-btn' onClick={onClose}>
@@ -170,10 +174,16 @@ const SettingsPopup = ({ isOpen, onClose, settings, onSettingsChange }) => {
           <select
             className='font-select'
             value={settings.fontFamily}
-            onChange={(event) => onSettingsChange({ ...settings, fontFamily: event.target.value })}
+            onChange={(event) =>
+              onSettingsChange({ ...settings, fontFamily: event.target.value })
+            }
           >
             {fonts.map((font) => (
-              <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+              <option
+                key={font.value}
+                value={font.value}
+                style={{ fontFamily: font.value }}
+              >
                 {font.name}
               </option>
             ))}
@@ -216,7 +226,9 @@ const SettingsPopup = ({ isOpen, onClose, settings, onSettingsChange }) => {
               <button
                 key={align.value}
                 className={`align-btn ${settings.textAlign === align.value ? 'active' : ''}`}
-                onClick={() => onSettingsChange({ ...settings, textAlign: align.value })}
+                onClick={() =>
+                  onSettingsChange({ ...settings, textAlign: align.value })
+                }
                 title={align.label}
               >
                 {align.icon}
@@ -229,12 +241,7 @@ const SettingsPopup = ({ isOpen, onClose, settings, onSettingsChange }) => {
   );
 };
 
-const SidePanel = ({
-  isOpen,
-  onClose,
-  bookmarks,
-  onBookmarkDelete,
-}) => {
+const SidePanel = ({ isOpen, onClose, bookmarks, onBookmarkDelete }) => {
   if (!isOpen) return null;
 
   return (
@@ -288,13 +295,29 @@ const VerticalToolbar = ({
   hasNext,
 }) => (
   <div className='vertical-toolbar'>
-    <button type='button' className='toolbar-btn' onClick={onPrevChapter} disabled={!hasPrev} title='Chương trước'>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onPrevChapter}
+      disabled={!hasPrev}
+      title='Chương trước'
+    >
       <ChevronLeft size={18} />
     </button>
-    <button type='button' className='toolbar-btn' onClick={onHome} title='Trang chủ'>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onHome}
+      title='Trang chủ'
+    >
       <Home size={18} />
     </button>
-    <button type='button' className='toolbar-btn' onClick={onSettings} title='Tùy chỉnh'>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onSettings}
+      title='Tùy chỉnh'
+    >
       <Type size={18} />
     </button>
     <button
@@ -305,10 +328,21 @@ const VerticalToolbar = ({
     >
       <ArrowLeft size={18} />
     </button>
-    <button type='button' className='toolbar-btn' onClick={onBookmarks} title='Bookmarks'>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onBookmarks}
+      title='Bookmarks'
+    >
       <Bookmark size={18} />
     </button>
-    <button type='button' className='toolbar-btn' onClick={onNextChapter} disabled={!hasNext} title='Chương sau'>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onNextChapter}
+      disabled={!hasNext}
+      title='Chương sau'
+    >
       <ChevronRight size={18} />
     </button>
   </div>
@@ -547,7 +581,11 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
             <button type='button' className='ghost' onClick={closeReplyForm}>
               Huy
             </button>
-            <button type='button' disabled={submittingReply} onClick={submitReply}>
+            <button
+              type='button'
+              disabled={submittingReply}
+              onClick={submitReply}
+            >
               {submittingReply ? 'Đang gửi...' : 'Gửi trả lời'}
             </button>
           </div>
@@ -570,7 +608,11 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     return (
       <article
         key={comment.id}
-        className={isReply ? 'story-metadata__reply-item' : 'story-metadata__comment-item'}
+        className={
+          isReply
+            ? 'story-metadata__reply-item'
+            : 'story-metadata__comment-item'
+        }
       >
         <div className='story-metadata__comment-avatar-wrap'>
           {comment.avatarUrl ? (
@@ -602,14 +644,20 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                 >
                   {savingComment ? 'Đang lưu...' : 'Luu'}
                 </button>
-                <button type='button' className='ghost' onClick={handleCancelEdit}>
+                <button
+                  type='button'
+                  className='ghost'
+                  onClick={handleCancelEdit}
+                >
                   Huy
                 </button>
               </div>
             </div>
           ) : (
             <p>
-              {mention && <span className='story-metadata__mention'>{mention}</span>}
+              {mention && (
+                <span className='story-metadata__mention'>{mention}</span>
+              )}
               {comment.content}
             </p>
           )}
@@ -648,7 +696,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                   onClick={() => handleReportComment(comment.id)}
                   disabled={submittingReportForId === comment.id}
                 >
-                  {submittingReportForId === comment.id ? 'Đang gửi...' : 'Báo cáo'}
+                  {submittingReportForId === comment.id
+                    ? 'Đang gửi...'
+                    : 'Báo cáo'}
                 </button>
               )}
             </div>
@@ -661,7 +711,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   };
 
   return (
-    <section className={`chapter-comments ${dark ? 'chapter-comments--dark' : ''}`}>
+    <section
+      className={`chapter-comments ${dark ? 'chapter-comments--dark' : ''}`}
+    >
       <h3>Bình luận ({total})</h3>
       <form className='story-metadata__comment-form' onSubmit={submitRoot}>
         <textarea
@@ -679,14 +731,17 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
         </div>
       </form>
 
-      {loadingComments && <p className='chapter-comments__muted'>Đang tải bình luận...</p>}
+      {loadingComments && (
+        <p className='chapter-comments__muted'>Đang tải bình luận...</p>
+      )}
       {error && <p className='chapter-comments__muted'>{error}</p>}
 
       <div className='story-metadata__comment-list'>
         {comments.map((comment) => {
           const rootId = String(comment.id);
           const replies = Array.isArray(comment.replies) ? comment.replies : [];
-          const visibleReplyCount = visibleRepliesByRoot[rootId] ?? Math.min(2, replies.length);
+          const visibleReplyCount =
+            visibleRepliesByRoot[rootId] ?? Math.min(2, replies.length);
           const displayedReplies = replies.slice(0, visibleReplyCount);
           const hasMoreReplies = replies.length > visibleReplyCount;
 
@@ -695,7 +750,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
               {renderCommentItem(comment, false, rootId)}
               {displayedReplies.length > 0 && (
                 <div className='story-metadata__reply-list'>
-                  {displayedReplies.map((reply) => renderCommentItem(reply, true, rootId))}
+                  {displayedReplies.map((reply) =>
+                    renderCommentItem(reply, true, rootId),
+                  )}
                 </div>
               )}
 
@@ -705,9 +762,12 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                     <button
                       type='button'
                       className='story-metadata__reply-load-btn'
-                      onClick={() => handleLoadMoreReplies(rootId, replies.length)}
+                      onClick={() =>
+                        handleLoadMoreReplies(rootId, replies.length)
+                      }
                     >
-                      Xem {Math.min(2, replies.length - visibleReplyCount)} trả lời
+                      Xem {Math.min(2, replies.length - visibleReplyCount)} trả
+                      lời
                     </button>
                   )}
                   {visibleReplyCount > 2 && (
@@ -738,7 +798,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
       )}
 
       {!loadingComments && comments.length === 0 && (
-        <div className='story-metadata__empty-review'>Chưa có bình luận nào.</div>
+        <div className='story-metadata__empty-review'>
+          Chưa có bình luận nào.
+        </div>
       )}
     </section>
   );
@@ -951,39 +1013,6 @@ const ChapterPage = () => {
     event.preventDefault();
     notifyCopyBlocked();
   };
-
-  useEffect(() => {
-    const handleKeydown = (event) => {
-      const key = String(event.key || '').toLowerCase();
-      const usingModifier = event.ctrlKey || event.metaKey;
-      if (!usingModifier || !['c', 'x', 'a'].includes(key)) return;
-
-      const target = event.target;
-      const isEditable =
-        target instanceof HTMLElement &&
-        Boolean(target.closest('input, textarea, [contenteditable="true"]'));
-      if (isEditable) return;
-
-      const container = chapterContentRef.current;
-      if (!container) return;
-      const selection = window.getSelection();
-      const anchorNode = selection?.anchorNode || null;
-      const focusNode = selection?.focusNode || null;
-      const insideContent =
-        (anchorNode && container.contains(anchorNode)) ||
-        (focusNode && container.contains(focusNode));
-
-      if (insideContent || key === 'a') {
-        event.preventDefault();
-        notifyCopyBlocked();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => {
-      document.removeEventListener('keydown', handleKeydown);
-    };
-  }, [notify]);
 
   const bookmarkSegment = async (segment) => {
     if (!hasAuthSession()) {
