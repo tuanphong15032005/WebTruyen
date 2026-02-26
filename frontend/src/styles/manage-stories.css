@@ -69,6 +69,30 @@
   margin-top: auto;
 }
 
+.story-hub__table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.story-hub__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.story-hub__table th,
+.story-hub__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.story-hub__table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+}
+
 .story-hub__action-btn {
   display: inline-flex;
   align-items: center;

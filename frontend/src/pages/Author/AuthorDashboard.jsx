@@ -21,6 +21,13 @@ const AuthorDashboard = () => {
           Quản lý truyện đã đăng
         </Button>
         <Button
+          onClick={() => navigate('/author/drafts')}
+        >
+          {/* Minhdq - 26/02/2026 */}
+          {/* [Add quick-access-button-to-author-draft-management - V1 - branch: clone-minhfinal2] */}
+          Bản nháp truyện & chương
+        </Button>
+        <Button
           onClick={() => navigate('/author/followers')}
         >
           {/* Minhdq - 26/02/2026 */}

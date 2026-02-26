@@ -29,6 +29,9 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 // Minhdq - 26/02/2026
 // [Add author-follower-analytics-route-import - V1 - branch: clone-minhfinal2]
 import FollowerAnalytics from './pages/Author/FollowerAnalytics';
+// Minhdq - 26/02/2026
+// [Add author-draft-management-route-import - V1 - branch: clone-minhfinal2]
+import DraftManagement from './pages/Author/DraftManagement';
 // Minhdq - 25/02/2026
 // [Fix admin-dashboard/route/id - V2 - branch: minhfinal2]
 import AdminDashboard from './pages/Admin/AdminDashboard';
@@ -115,6 +118,16 @@ function App() {
                                   element={
                                     <RoleProtectedRoute allowedRoles={['AUTHOR']}>
                                       <FollowerAnalytics />
+                                    </RoleProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path='/author/drafts'
+                                  // Minhdq - 26/02/2026
+                                  // [Add author-draft-management-route - V1 - branch: clone-minhfinal2]
+                                  element={
+                                    <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+                                      <DraftManagement />
                                     </RoleProtectedRoute>
                                   }
                                 />

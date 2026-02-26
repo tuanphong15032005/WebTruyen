@@ -133,6 +133,11 @@ const storyService = {
 //<<<<<<< HEAD
     getMyStories: () => api.get(`/stories/my`),
     getLibraryStories: () => api.get(`/stories/library`),
+    // Minhdq - 26/02/2026
+    // [Add author-draft-management-api-service - V1 - branch: clone-minhfinal2]
+    getAuthorDrafts: () => api.get('/author/drafts'),
+    deleteDraftStory: (storyId) => api.delete(`/author/drafts/stories/${storyId}`),
+    deleteDraftChapter: (chapterId) => api.delete(`/author/drafts/chapters/${chapterId}`),
 //=======
 //  getPublicStories: (params = {}) =>
 //    api.get('/public/stories', { params }),

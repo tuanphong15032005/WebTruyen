@@ -19,6 +19,8 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     
     List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
 
+    List<StoryEntity> findByAuthor_IdAndStatusOrderByCreatedAtDesc(Long authorId, StoryStatus status);
+
     @Query("""
             select s
             from LibraryEntryEntity le
