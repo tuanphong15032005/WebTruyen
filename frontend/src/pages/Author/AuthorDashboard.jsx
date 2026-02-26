@@ -20,6 +20,11 @@ const AuthorDashboard = () => {
         >
           Quản lý truyện đã đăng
         </Button>
+        <Button
+          onClick={() => navigate('/author/followers')}
+        >
+          Thống kê người theo dõi
+        </Button>
       </div>
     </div>
   );

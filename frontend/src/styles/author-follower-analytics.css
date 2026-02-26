@@ -1,0 +1,139 @@
+.author-follower {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+  color: #0f172a;
+}
+
+.author-follower__header h1 {
+  margin: 0 0 8px;
+}
+
+.author-follower__header p {
+  margin: 0 0 20px;
+  color: #475569;
+}
+
+.author-follower__error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.author-follower__placeholder {
+  color: #64748b;
+}
+
+.author-follower__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.author-follower__summary-grid article {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.author-follower__summary-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.author-follower__summary-grid strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+}
+
+.author-follower__card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.author-follower__card h3 {
+  margin: 0 0 12px;
+}
+
+.author-follower__chart {
+  min-height: 280px;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.author-follower__bar-item {
+  min-width: 56px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  align-content: end;
+}
+
+.author-follower__bar {
+  width: 34px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #4f46e5, #1d4ed8);
+}
+
+.author-follower__bar-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.author-follower__bar-label {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  max-width: 56px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.author-follower__chart-empty {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.author-follower__table-wrap {
+  overflow-x: auto;
+}
+
+.author-follower table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.author-follower th,
+.author-follower td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.author-follower th {
+  font-size: 13px;
+  color: #475569;
+  background: #f8fafc;
+}
+
+.author-follower__empty {
+  text-align: center;
+  color: #64748b;
+}

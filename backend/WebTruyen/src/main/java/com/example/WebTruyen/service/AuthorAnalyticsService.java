@@ -1,13 +1,17 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.response.AuthorChapterPerformanceResponse;
+import com.example.WebTruyen.dto.response.AuthorFollowerItemResponse;
+import com.example.WebTruyen.dto.response.AuthorFollowerStatsResponse;
 import com.example.WebTruyen.dto.response.AuthorPerformancePointResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryPerformanceResponse;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.FollowUserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.repository.FollowUserRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,6 +31,7 @@ public class AuthorAnalyticsService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final FollowStoryRepository followStoryRepository;
+    private final FollowUserRepository followUserRepository;
     private final ChapterUnlockRepository chapterUnlockRepository;
 
     @Transactional(readOnly = true)
@@ -102,6 +107,43 @@ public class AuthorAnalyticsService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<AuthorFollowerItemResponse> listAuthorFollowers(Long authorId) {
+        return followUserRepository.findByTargetUser_IdOrderByCreatedAtDesc(authorId)
+                .stream()
+                .map(this::toFollowerItem)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AuthorFollowerStatsResponse getAuthorFollowerStats(Long authorId) {
+        long totalFollowers = followUserRepository.countByTargetUser_Id(authorId);
+        long newFollowersLast7Days = followUserRepository.countNewFollowersSince(
+                authorId,
+                LocalDate.now().minusDays(6)
+        );
+        long newFollowersLast30Days = followUserRepository.countNewFollowersSince(
+                authorId,
+                LocalDate.now().minusDays(29)
+        );
+
+        List<AuthorPerformancePointResponse> growthPoints = followUserRepository
+                .aggregateDailyFollowersByAuthorId(authorId)
+                .stream()
+                .map(row -> new AuthorPerformancePointResponse(
+                        formatDate(row[0]),
+                        coalesceLong(row[1])
+                ))
+                .toList();
+
+        return new AuthorFollowerStatsResponse(
+                totalFollowers,
+                newFollowersLast7Days,
+                newFollowersLast30Days,
+                growthPoints
+        );
+    }
+
     private StoryEntity requireOwnedStory(Long authorId, Long storyId) {
         if (storyId == null || storyId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid story id");
@@ -124,6 +166,29 @@ public class AuthorAnalyticsService {
             points.add(new AuthorPerformancePointResponse(formatDate(row[0]), running));
         }
         return points;
+    }
+
+    private AuthorFollowerItemResponse toFollowerItem(FollowUserEntity follow) {
+        return new AuthorFollowerItemResponse(
+                follow.getUser() != null ? follow.getUser().getId() : null,
+                resolveFollowerName(follow),
+                follow.getCreatedAt()
+        );
+    }
+
+    private String resolveFollowerName(FollowUserEntity follow) {
+        if (follow.getUser() == null) {
+            return "Unknown";
+        }
+        String displayName = follow.getUser().getDisplayName();
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
+        }
+        String username = follow.getUser().getUsername();
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return "Unknown";
     }
 
     private String formatDate(Object raw) {

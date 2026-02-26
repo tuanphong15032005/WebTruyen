@@ -26,6 +26,7 @@ import CreateChapter from './pages/Author/CreateChapter';
 // =======
 import CommentManagement from './pages/Author/CommentManagement';
 import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
+import FollowerAnalytics from './pages/Author/FollowerAnalytics';
 // Minhdq - 25/02/2026
 // [Fix admin-dashboard/route/id - V2 - branch: minhfinal2]
 import AdminDashboard from './pages/Admin/AdminDashboard';
@@ -102,6 +103,14 @@ function App() {
                                   element={
                                     <RoleProtectedRoute allowedRoles={['AUTHOR']}>
                                       <PerformanceAnalytics />
+                                    </RoleProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path='/author/followers'
+                                  element={
+                                    <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+                                      <FollowerAnalytics />
                                     </RoleProtectedRoute>
                                   }
                                 />
