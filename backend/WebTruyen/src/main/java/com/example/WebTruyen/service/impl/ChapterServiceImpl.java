@@ -208,18 +208,21 @@ public class ChapterServiceImpl implements ChapterService {
         // Hieu Son – ngày 25/02/2026
         // [Sua logic next chapter: di theo thu tu toan story (volume -> chapter -> id), khong gioi han trong 1 volume - V2 - branch: minhfinal2]
         ChapterEntity chapter = getChapterById(chapterId);
+        //get strId của chapter
         Long storyId = chapter.getVolume() != null && chapter.getVolume().getStory() != null
                 ? chapter.getVolume().getStory().getId()
                 : null;
         if (storyId == null) return null;
 
+        //Lấy thứ tự của volume trong strid vừa lấy
         Integer currentVolumeSequence = chapter.getVolume().getSequenceIndex() != null
                 ? chapter.getVolume().getSequenceIndex()
-                : Integer.MAX_VALUE;
+                : Integer.MAX_VALUE; //nếu không có - đưa về cuối dể so sánh.
+        //Lấy thứ tự của chapter trong vlum
         Integer currentChapterSequence = chapter.getSequenceIndex() != null
                 ? chapter.getSequenceIndex()
-                : Integer.MAX_VALUE;
-
+                : Integer.MAX_VALUE; //tương tự
+        //query
         return chapterRepository.findNextChaptersInStory(
                         storyId,
                         currentVolumeSequence,
