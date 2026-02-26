@@ -43,6 +43,8 @@ public class AuthorAnalyticsController {
     }
 
     @GetMapping("/followers")
+    // Minhdq - 26/02/2026
+    // [Add analytics-endpoint-for-author-follower-list - V1 - branch: clone-minhfinal2]
     public List<AuthorFollowerItemResponse> listFollowers(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
@@ -51,6 +53,8 @@ public class AuthorAnalyticsController {
     }
 
     @GetMapping("/followers/stats")
+    // Minhdq - 26/02/2026
+    // [Add analytics-endpoint-for-author-follower-growth-stats - V1 - branch: clone-minhfinal2]
     public AuthorFollowerStatsResponse getFollowerStats(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {

@@ -23,6 +23,8 @@ const AuthorDashboard = () => {
         <Button
           onClick={() => navigate('/author/followers')}
         >
+          {/* Minhdq - 26/02/2026 */}
+          {/* [Add quick-access-button-to-author-follower-analytics - V1 - branch: clone-minhfinal2] */}
           Thống kê người theo dõi
         </Button>
       </div>

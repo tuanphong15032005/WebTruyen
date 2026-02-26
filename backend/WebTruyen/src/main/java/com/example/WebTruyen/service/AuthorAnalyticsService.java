@@ -108,6 +108,8 @@ public class AuthorAnalyticsService {
     }
 
     @Transactional(readOnly = true)
+    // Minhdq - 26/02/2026
+    // [Add author-follower-list-service-logic - V1 - branch: clone-minhfinal2]
     public List<AuthorFollowerItemResponse> listAuthorFollowers(Long authorId) {
         return followUserRepository.findByTargetUser_IdOrderByCreatedAtDesc(authorId)
                 .stream()
@@ -116,6 +118,8 @@ public class AuthorAnalyticsService {
     }
 
     @Transactional(readOnly = true)
+    // Minhdq - 26/02/2026
+    // [Add author-follower-growth-summary-service-logic - V1 - branch: clone-minhfinal2]
     public AuthorFollowerStatsResponse getAuthorFollowerStats(Long authorId) {
         long totalFollowers = followUserRepository.countByTargetUser_Id(authorId);
         long newFollowersLast7Days = followUserRepository.countNewFollowersSince(

@@ -19,6 +19,8 @@ import java.util.List;
 @RequestMapping("/api/author")
 @RequiredArgsConstructor
 public class AuthorFollowerController {
+    // Minhdq - 26/02/2026
+    // [Add author-follower-list-and-stats-controller - V1 - branch: clone-minhfinal2]
     private final AuthorAnalyticsService authorAnalyticsService;
 
     @GetMapping("/followers")

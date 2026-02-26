@@ -24,6 +24,8 @@ public interface FollowUserRepository extends JpaRepository<FollowUserEntity, Lo
             where fu.targetUser.id = :authorId
             order by fu.createdAt desc
             """)
+    // Minhdq - 26/02/2026
+    // [Add query-for-author-follower-list-sorted-by-time - V1 - branch: clone-minhfinal2]
     List<FollowUserEntity> findByTargetUser_IdOrderByCreatedAtDesc(@Param("authorId") Long authorId);
 
     @Query("""
@@ -33,6 +35,8 @@ public interface FollowUserRepository extends JpaRepository<FollowUserEntity, Lo
             group by function('date', fu.createdAt)
             order by function('date', fu.createdAt) asc
             """)
+    // Minhdq - 26/02/2026
+    // [Add query-for-author-follower-growth-by-day - V1 - branch: clone-minhfinal2]
     List<Object[]> aggregateDailyFollowersByAuthorId(@Param("authorId") Long authorId);
 
     @Query("""
@@ -41,5 +45,7 @@ public interface FollowUserRepository extends JpaRepository<FollowUserEntity, Lo
             where fu.targetUser.id = :authorId
               and function('date', fu.createdAt) >= :fromDate
             """)
+    // Minhdq - 26/02/2026
+    // [Add query-for-new-followers-since-date - V1 - branch: clone-minhfinal2]
     long countNewFollowersSince(@Param("authorId") Long authorId, @Param("fromDate") LocalDate fromDate);
 }

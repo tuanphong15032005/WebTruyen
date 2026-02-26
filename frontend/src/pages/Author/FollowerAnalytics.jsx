@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import authorAnalyticsService from '../../services/authorAnalyticsService';
 import '../../styles/author-follower-analytics.css';
 
+// Minhdq - 26/02/2026
+// [Add author-follower-list-and-growth-ui - V1 - branch: clone-minhfinal2]
 const formatDateTime = (value) => {
   if (!value) return 'N/A';
   return new Date(value).toLocaleString('vi-VN');
@@ -68,8 +70,8 @@ function FollowerAnalytics() {
   return (
     <section className='author-follower'>
       <header className='author-follower__header'>
-        <h1>Follower Analytics</h1>
-        <p>Track who follows you and follower growth over time.</p>
+        <h1>Phân tích người theo dõi</h1>
+        <p>Theo dõi ai đang theo dõi bạn và sự tăng trưởng số lượng người theo dõi theo thời gian.</p>
       </header>
 
       {error && <div className='author-follower__error'>{error}</div>}
