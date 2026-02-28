@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -352,6 +352,7 @@ function Header() {
               {showDropdown && (
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
+                  <Link to='/daily-tasks'>Nhiệm vụ hằng ngày</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
 
                   {hasAnyRole(['AUTHOR'], user) && (

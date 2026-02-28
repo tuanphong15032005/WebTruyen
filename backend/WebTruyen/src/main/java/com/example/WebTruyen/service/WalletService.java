@@ -16,6 +16,7 @@ import com.example.WebTruyen.repository.DonationRepository;
 import com.example.WebTruyen.repository.LedgerEntryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class WalletService {
 
@@ -92,6 +94,10 @@ public class WalletService {
         wallet.setBalanceCoinA(newBalance);
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
+        
+        // Create ledger entry for transaction history
+        createLedgerEntry(userId, CoinType.A, addedAmount, LedgerReason.EARN, 
+            "DAILY_CHECKIN", System.currentTimeMillis(), "Nhận coin thưởng hàng ngày");
         
         // Return response
         Map<String, Object> response = new HashMap<>();
@@ -296,6 +302,63 @@ public class WalletService {
                     .build();
             
             ledgerEntryRepository.save(entry);
+        }
+    }
+
+    public void addCoinA(UserEntity user, Long amount, LedgerReason reason) {
+        WalletEntity wallet = getOrCreateWalletEntity(user.getId());
+        Long newBalance = wallet.getBalanceCoinA() + amount;
+        wallet.setBalanceCoinA(newBalance);
+        wallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+        
+        // Create ledger entry
+        createDailyTaskLedgerEntry(user.getId(), CoinType.A, amount, reason, 
+            "DAILY_TASK", "Daily task reward");
+    }
+
+    public void addCoinB(UserEntity user, Long amount, LedgerReason reason) {
+        WalletEntity wallet = getOrCreateWalletEntity(user.getId());
+        Long newBalance = wallet.getBalanceCoinB() + amount;
+        wallet.setBalanceCoinB(newBalance);
+        wallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+        
+        // Create ledger entry
+        createDailyTaskLedgerEntry(user.getId(), CoinType.B, amount, reason, 
+            "DAILY_TASK", "Daily task reward");
+    }
+
+    private void createDailyTaskLedgerEntry(Long userId, CoinType coinType, Long delta, 
+                                          LedgerReason reason, String refType, String description) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
+        String idempotencyKey = String.format("DAILY_TASK_%d_%s_%d", userId, coinType, System.currentTimeMillis());
+        
+        // Create ledger entry for daily task rewards
+        // Use timestamp as refId since daily tasks don't have a specific reference ID
+        Long refId = System.currentTimeMillis();
+        
+        LedgerEntryEntity entry = LedgerEntryEntity.builder()
+                .user(user)
+                .coin(coinType)
+                .delta(delta)
+                .reason(reason)
+                .refType(refType)
+                .refId(refId)
+                .idempotencyKey(idempotencyKey)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        try {
+            ledgerEntryRepository.save(entry);
+            log.info("Successfully created ledger entry for daily task reward: user {}, amount {} {}", 
+                    userId, delta, coinType);
+        } catch (Exception e) {
+            // Log error but don't fail the transaction
+            log.error("Failed to create ledger entry for daily task reward: user {}, amount {} {}", 
+                    userId, delta, coinType, e);
         }
     }
 }

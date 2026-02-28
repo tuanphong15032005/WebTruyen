@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import simpleDailyTaskService from '../../services/simpleDailyTaskService';
 import '../../styles/LoginStyles.css';
 
 function Login() {
@@ -114,6 +115,13 @@ function Login() {
 
                 if (user.username) {
                     localStorage.setItem("username", user.username);
+                }
+
+                // Track daily login task
+                try {
+                    await simpleDailyTaskService.trackLogin();
+                } catch (error) {
+                    console.warn('Failed to track daily login:', error);
                 }
 
                 // Trigger password manager by submitting hidden form
