@@ -8,9 +8,11 @@ import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
 import com.example.WebTruyen.entity.model.Payment.ChapterUnlockEntity;
+import com.example.WebTruyen.entity.model.Payment.DonationEntity;
 import com.example.WebTruyen.entity.model.Payment.LedgerEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
+import com.example.WebTruyen.repository.DonationRepository;
 import com.example.WebTruyen.repository.LedgerEntryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
@@ -41,6 +43,9 @@ public class WalletService {
 
     @Autowired
     private LedgerEntryRepository ledgerEntryRepository;
+
+    @Autowired
+    private DonationRepository donationRepository;
 
     public WalletResponse getWallet(Long userId) {
         WalletEntity wallet = walletRepository.findById(userId)
@@ -172,6 +177,101 @@ public class WalletService {
         response.put("message", "Mua chương thành công!");
         
         return response;
+    }
+
+    public Map<String, Object> donateToAuthor(Long fromUserId, Long toUserId, Long coinBAmount, String message) {
+        // Validate users
+        UserEntity fromUser = userRepository.findById(fromUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found"));
+        
+        UserEntity toUser = userRepository.findById(toUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
+
+        // Check if donor has enough Coin B
+        WalletEntity donorWallet = getOrCreateWalletEntity(fromUserId);
+        if (donorWallet.getBalanceCoinB() < coinBAmount) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Insufficient Coin B balance. Need " + coinBAmount + " 💎, only have " + donorWallet.getBalanceCoinB() + " 💎");
+        }
+
+        // Deduct coins from donor
+        Long newDonorBalance = donorWallet.getBalanceCoinB() - coinBAmount;
+        donorWallet.setBalanceCoinB(newDonorBalance);
+        donorWallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(donorWallet);
+
+        // Add coins to author
+        WalletEntity authorWallet = getOrCreateWalletEntity(toUserId);
+        Long newAuthorBalance = authorWallet.getBalanceCoinB() + coinBAmount;
+        authorWallet.setBalanceCoinB(newAuthorBalance);
+        authorWallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(authorWallet);
+
+        // Create donation record
+        DonationEntity donation = DonationEntity.builder()
+                .fromUser(fromUser)
+                .toUser(toUser)
+                .paidCoin(CoinType.B)
+                .amountCoin(coinBAmount)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        donationRepository.save(donation);
+
+        // Create ledger entries with message in description
+        String donateOutDescription = "Donate to " + toUser.getUsername();
+        if (message != null && !message.trim().isEmpty()) {
+            donateOutDescription += ": " + message;
+        }
+        
+        String donateInDescription = "Receive donation from " + fromUser.getUsername();
+        if (message != null && !message.trim().isEmpty()) {
+            donateInDescription += ": " + message;
+        }
+        
+        // Use unique refType to avoid constraint violations
+        String uniqueRefType = "DONATE_" + System.currentTimeMillis();
+        
+        createDonationLedgerEntry(fromUserId, CoinType.B, -coinBAmount, 
+            uniqueRefType + "_OUT", toUserId, donateOutDescription);
+        
+        createDonationLedgerEntry(toUserId, CoinType.B, coinBAmount, 
+            uniqueRefType + "_IN", fromUserId, donateInDescription);
+
+        // Return response
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("donationAmount", coinBAmount);
+        response.put("newDonorBalance", newDonorBalance);
+        response.put("newAuthorBalance", newAuthorBalance);
+        response.put("authorName", toUser.getUsername());
+        response.put("message", "Donation successful!");
+        
+        return response;
+    }
+
+    private void createDonationLedgerEntry(Long userId, CoinType coinType, Long delta, 
+                                         String refType, Long refId, String description) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
+        String idempotencyKey = String.format("DONATE_%d_%d_%s_%d", userId, refId, coinType, System.currentTimeMillis());
+        
+        // Check if similar entry already exists to prevent duplicate constraint violation
+        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey)) {
+            LedgerEntryEntity entry = LedgerEntryEntity.builder()
+                    .user(user)
+                    .coin(coinType)
+                    .delta(delta)
+                    .reason(LedgerReason.DONATE)
+                    .refType(refType)
+                    .refId(refId)
+                    .idempotencyKey(idempotencyKey)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            
+            ledgerEntryRepository.save(entry);
+        }
     }
 
     private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 

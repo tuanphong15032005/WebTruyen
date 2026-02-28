@@ -1,5 +1,5 @@
 import React from 'react';
-import './PurchaseErrorModal.css';
+import '../styles/PurchaseErrorModal.css';
 
 const PurchaseErrorModal = ({ isOpen, onClose, errorMessage }) => {
   if (!isOpen) return null;

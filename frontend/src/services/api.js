@@ -52,6 +52,20 @@ api.interceptors.response.use(
     const responseData = error?.response?.data;
     let message = '';
 
+    // Handle token expiration (401 Unauthorized)
+    if (error?.response?.status === 401) {
+      // Clear all auth data
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      
+      // Redirect to login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      
+      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'));
+    }
+
     if (typeof responseData === 'string' && responseData.trim()) {
       message = responseData.trim();
     } else if (responseData && typeof responseData === 'object') {

@@ -985,6 +985,61 @@ function HomePage() {
             </aside>
           </div>
         )}
+{/* <<<<<<< HEAD */}
+{/* ======= */}
+
+{/*         {!loading && ( */}
+{/*           <section className='home-section home-section--community'> */}
+{/*             <div className='home-section__head'> */}
+{/*               <h2> */}
+{/*                 <MessageSquare size={18} /> */}
+{/*                 Phản hồi từ cộng đồng */}
+{/*               </h2> */}
+{/*             </div> */}
+{/*             <div className='home-community-list'> */}
+{/*               {communityComments.map((comment) => ( */}
+{/*                 <article key={comment.id} className='home-community-item'> */}
+{/*                   <div className='home-community-item__avatar'> */}
+{/*                     {comment.avatarUrl ? ( */}
+{/*                       <img */}
+{/*                         src={comment.avatarUrl} */}
+{/*                         alt={comment.username || 'user'} */}
+{/*                       /> */}
+{/*                     ) : ( */}
+{/*                       <span>{getInitial(comment.username)}</span> */}
+{/*                     )} */}
+{/*                   </div> */}
+{/*                   <div className='home-community-item__body'> */}
+{/*                     <div className='home-community-item__head'> */}
+{/*                     chuyen huong sang portfolio */}
+{/*                       <strong */}
+{/*                         className='cursor-pointer hover:text-blue-600' */}
+{/*                         onClick={() => window.location.href = `/user/${comment.userId}`} */}
+{/*                       > */}
+{/*                         {comment.username || 'Unknown'} */}
+{/*                       </strong> */}
+{/*                       <small>{formatRelativeTime(comment.createdAt)}</small> */}
+{/*                     </div> */}
+{/*                     <p className='home-community-item__story'> */}
+{/*                       Bình luận tại:{' '} */}
+{/*                       {comment.storyId ? ( */}
+{/*                         <Link to={`/stories/${comment.storyId}/metadata`}> */}
+{/*                           {comment.storyTitle || 'Story'} */}
+{/*                         </Link> */}
+{/*                       ) : ( */}
+{/*                         <span>{comment.storyTitle || 'Story'}</span> */}
+{/*                       )} */}
+{/*                     </p> */}
+{/*                     <p className='home-community-item__content'> */}
+{/*                       {comment.content} */}
+{/*                     </p> */}
+{/*                   </div> */}
+{/*                 </article> */}
+{/*               ))} */}
+{/*             </div> */}
+{/*           </section> */}
+{/*         )} */}
+{/* >>>>>>> origin/portfolio */}
       </div>
     </div>
   );

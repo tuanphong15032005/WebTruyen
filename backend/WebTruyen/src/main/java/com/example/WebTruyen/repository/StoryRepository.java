@@ -81,6 +81,7 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             where s.id = :storyId
             """)
     int incrementViewCount(@Param("storyId") Long storyId);
+//<<<<<<< HEAD
 //=======
 //    List<StoryEntity> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
 //>>>>>>> origin/minhfinal1
@@ -110,4 +111,10 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             @Param("tagIds") List<Long> tagIds,
             @Param("tagCount") long tagCount
     );
+//=======
+    
+    long countByAuthor_Id(Long authorId);
+    
+//    List<StoryEntity> findByAuthorIdOrderByCreatedAtDesc(Long authorId);
+//>>>>>>> origin/portfolio
 }

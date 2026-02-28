@@ -1,5 +1,5 @@
 import React from 'react';
-import './PurchaseSuccessModal.css';
+import '../styles/PurchaseSuccessModal.css';
 
 const PurchaseSuccessModal = ({ isOpen, onClose, response }) => {
   if (!isOpen) return null;
@@ -20,20 +20,20 @@ const PurchaseSuccessModal = ({ isOpen, onClose, response }) => {
   return (
     <div className='success-modal-overlay' onClick={handleBackdropClick}>
       <div className='success-modal'>
-        <h2>Purchase successful!</h2>
+        <h2>Mua thành công!</h2>
         <div className='success-details'>
           {response && (
             <>
               <div className='detail-row'>
-                <span>Chapter:</span>
+                <span>Chương:</span>
                 <span>{chapterLabel}</span>
               </div>
               <div className='detail-row'>
-                <span>Paid:</span>
+                <span>Đã trả:</span>
                 <span>{amountPaid} Coin</span>
               </div>
               <div className='detail-row'>
-                <span>Remaining:</span>
+                <span>Còn lại:</span>
                 <span>{remainingBalance} Coin</span>
               </div>
             </>

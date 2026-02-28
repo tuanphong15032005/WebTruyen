@@ -2,16 +2,20 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
+
 import SearchPage from './pages/SearchPage';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import VerifyCode from './pages/VerifyCode';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+
+import Login from './pages/Authentication/Login';
+import Register from './pages/Authentication/Register';
+import VerifyCode from './pages/Authentication/VerifyCode';
+import ForgotPassword from './pages/Authentication/ForgotPassword';
+import ResetPassword from './pages/Authentication/ResetPassword';
+
 import WalletTopupPage from './pages/WalletTopupPage';
 import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
-import CoinTransactionHistoryPage from './pages/DonationHistoryPage';
+import CoinTransactionHistoryPage from './pages/TransactionHistoryPage';
 import UserProfile from './pages/UserProfile';
+import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
 import CreateStory from './pages/Author/CreateStory';
@@ -21,14 +25,15 @@ import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
-// <<<<<<< HEAD
-// =======
+
+
 import CommentManagement from './pages/Author/CommentManagement';
 import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
+import DonatePage from './pages/DonatePage';
 import './App.css';
 
 function RoleProtectedRoute({ allowedRoles, children }) {
@@ -74,12 +79,10 @@ function RouteScrollManager() {
 
   return null;
 }
-
 function App() {
   return (
     <MainLayout>
       <RouteScrollManager />
-{/* <<<<<<< HEAD */}
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
@@ -98,6 +101,8 @@ function App() {
           element={<CoinTransactionHistoryPage />}
         />
         <Route path='/profile' element={<UserProfile />} />
+        <Route path='/user/:userId' element={<UserPortfolioPage />} />
+        <Route path='/donate/:userId' element={<DonatePage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
@@ -156,63 +161,6 @@ function App() {
                                   }
                                 />
       </Routes>
-{/* ======= */}
-{/*         <Routes> */}
-{/*             <Route path="/" element={<HomePage />} /> */}
-{/*             <Route path="/login" element={<Login />} /> */}
-{/*             <Route path="/register" element={<Register />} /> */}
-{/*             <Route path="/verify" element={<VerifyCode />} /> */}
-{/*             <Route path="/forgot-password" element={<ForgotPassword />} /> */}
-{/*             <Route path="/reset-password" element={<ResetPassword />} /> */}
-{/*             <Route path="/wallet/topup" element={<WalletTopupPage />} /> */}
-{/*             <Route path="/wallet/confirmation/:id" element={<PaymentConfirmationPage />} /> */}
-{/*             <Route path="/donation-history" element={<CoinTransactionHistoryPage />} /> */}
-{/*             <Route path="/profile" element={<UserProfile />} /> */}
-
-{/*             <Route path='/author/create-story' element={<CreateStory />} /> */}
-{/*             <Route path='/author/stories/:storyId/edit' element={<CreateStory />} /> */}
-{/*             <Route path='/author/stories/:storyId' element={<StoryDetail />} /> */}
-{/*             <Route */}
-{/*               path='/author/comments' */}
-{/*               element={ */}
-{/*                 <RoleProtectedRoute allowedRoles={['AUTHOR']}> */}
-{/*                   <CommentManagement /> */}
-{/*                 </RoleProtectedRoute> */}
-{/*               } */}
-{/*             /> */}
-{/*             <Route */}
-{/*               path='/author/performance-analytics' */}
-{/*               element={ */}
-{/*                 <RoleProtectedRoute allowedRoles={['AUTHOR']}> */}
-{/*                   <PerformanceAnalytics /> */}
-{/*                 </RoleProtectedRoute> */}
-{/*               } */}
-{/*             /> */}
-{/*             <Route */}
-{/*               path='/admin/content-moderation' */}
-{/*               element={ */}
-{/*                 <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}> */}
-{/*                   <ContentModeration /> */}
-{/*                 </RoleProtectedRoute> */}
-{/*               } */}
-{/*             /> */}
-{/*             <Route */}
-{/*               path='/admin/violation-reports' */}
-{/*               element={ */}
-{/*                 <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}> */}
-{/*                   <ViolationReportManagement /> */}
-{/*                 </RoleProtectedRoute> */}
-{/*               } */}
-{/*             /> */}
-{/*             <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} /> */}
-{/*             <Route path='/stories/:storyId/reviews' element={<StoryReviews />} /> */}
-{/*             <Route path='/stories/:storyId/chapters/:chapterId' element={<ChapterPage />} /> */}
-{/*             <Route */}
-{/*               path='/author/stories/:storyId/volumes/:volumeId/create-chapter' */}
-{/*               element={<CreateChapter />} */}
-{/*             /> */}
-{/*         </Routes> */}
-{/* >>>>>>> origin/minhfinal1 */}
     </MainLayout>
   );
 }

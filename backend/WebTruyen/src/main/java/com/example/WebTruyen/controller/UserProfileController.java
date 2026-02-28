@@ -2,8 +2,10 @@ package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.request.UpdateProfileRequest;
 import com.example.WebTruyen.dto.response.UserProfileResponse;
+import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

@@ -64,4 +64,31 @@ public class WalletController {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }
     }
+
+    @PostMapping("/donate")
+    public ResponseEntity<?> donate(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody Map<String, Object> request) {
+        if (userPrincipal == null || userPrincipal.getUser() == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Long authorId = ((Number) request.get("authorId")).longValue();
+        Long coinBAmount = ((Number) request.get("coinBAmount")).longValue();
+        String message = (String) request.get("message");
+        
+        if (authorId == null || authorId <= 0) {
+            return ResponseEntity.badRequest().body("Invalid author ID");
+        }
+        if (coinBAmount == null || coinBAmount <= 0) {
+            return ResponseEntity.badRequest().body("Invalid donation amount");
+        }
+
+        try {
+            Map<String, Object> response = walletService.donateToAuthor(userPrincipal.getUser().getId(), authorId, coinBAmount, message);
+            return ResponseEntity.ok(response);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
 }
