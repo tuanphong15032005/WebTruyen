@@ -3,7 +3,7 @@ import React from 'react';
 const UserPortfolioStats = ({ data }) => {
     return (
         <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Statistics</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Thống kê</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Stories Card */}
@@ -16,7 +16,7 @@ const UserPortfolioStats = ({ data }) => {
                         </div>
                         <div className="ml-4">
                             <div className="text-2xl font-bold text-blue-900">{data.storiesCount}</div>
-                            <div className="text-sm text-blue-700">Stories Published</div>
+                            <div className="text-sm text-blue-700">Truyện đã đăng</div>
                         </div>
                     </div>
                 </div>
@@ -31,7 +31,7 @@ const UserPortfolioStats = ({ data }) => {
                         </div>
                         <div className="ml-4">
                             <div className="text-2xl font-bold text-green-900">{data.followersCount}</div>
-                            <div className="text-sm text-green-700">Followers</div>
+                            <div className="text-sm text-green-700">Người theo dõi</div>
                         </div>
                     </div>
                 </div>
@@ -46,7 +46,7 @@ const UserPortfolioStats = ({ data }) => {
                         </div>
                         <div className="ml-4">
                             <div className="text-2xl font-bold text-purple-900">{data.commentsCount}</div>
-                            <div className="text-sm text-purple-700">Comments Received</div>
+                            <div className="text-sm text-purple-700">Bình luận nhận được</div>
                         </div>
                     </div>
                 </div>
@@ -56,9 +56,9 @@ const UserPortfolioStats = ({ data }) => {
             <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
                     {data.isAuthor ? (
-                        <p>This author has published {data.storiesCount} stories and received {data.commentsCount} comments from readers.</p>
+                        <p>Tác giả này đã đăng {data.storiesCount} truyện và nhận được {data.commentsCount} bình luận từ độc giả.</p>
                     ) : (
-                        <p>This user is an active reader and community member.</p>
+                        <p>Người dùng này là người đọc tích cực và thành viên cộng đồng.</p>
                     )}
                 </div>
             </div>

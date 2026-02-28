@@ -8,7 +8,7 @@ import ForgotPassword from './pages/Authentication/ForgotPassword';
 import ResetPassword from './pages/Authentication/ResetPassword';
 import WalletTopupPage from './pages/WalletTopupPage';
 import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
-import CoinTransactionHistoryPage from './pages/DonationHistoryPage';
+import CoinTransactionHistoryPage from './pages/TransactionHistoryPage';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import ManageStories from './pages/ManageStories';
@@ -20,6 +20,7 @@ import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
+import DonatePage from './pages/DonatePage';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
         />
         <Route path='/profile' element={<UserProfile />} />
         <Route path='/user/:userId' element={<UserPortfolioPage />} />
+        <Route path='/donate/:userId' element={<DonatePage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />

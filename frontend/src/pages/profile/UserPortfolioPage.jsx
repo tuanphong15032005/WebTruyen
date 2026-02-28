@@ -29,7 +29,7 @@ const UserPortfolioPage = () => {
                 setPortfolioData(portfolioData);
             } catch (err) {
                 console.error('❌ Portfolio fetch error:', err); // Debug log
-                setError(err.response?.data?.message || 'Failed to load portfolio data');
+                setError(err.response?.data?.message || 'Không thể tải dữ liệu trang cá nhân');
             } finally {
                 setLoading(false);
             }
@@ -49,7 +49,7 @@ const UserPortfolioPage = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading portfolio...</p>
+                    <p className="mt-4 text-gray-600">Đang tải trang cá nhân...</p>
                 </div>
             </div>
         );
@@ -69,7 +69,7 @@ const UserPortfolioPage = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <p className="text-gray-600">Portfolio data not available</p>
+                    <p className="text-gray-600">Dữ liệu trang cá nhân không khả dụng</p>
                 </div>
             </div>
         );

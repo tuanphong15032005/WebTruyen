@@ -26,7 +26,7 @@ const AuthorStories = ({ userId }) => {
     }, [userId]);
 
     const handleStoryClick = (storyId) => {
-        navigate(`/story/${storyId}`);
+        navigate(`/stories/${storyId}/metadata`);
     };
 
     if (loading) {
