@@ -76,6 +76,9 @@ const StoryDetail = () => {
   const [loadingVolumes, setLoadingVolumes] = useState(false);
   const [showCreateVolume, setShowCreateVolume] = useState(false);
   const [expandedVolumes, setExpandedVolumes] = useState(() => new Set());
+  const [editingVolumeId, setEditingVolumeId] = useState(null);
+  const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
+  const [savingVolumeId, setSavingVolumeId] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'volumes' ? 'volumes' : 'info',
@@ -216,6 +219,50 @@ const StoryDetail = () => {
       }
       return next;
     });
+  };
+
+  const startEditVolume = (volume) => {
+    const id = String(volume.id || volume.volumeId);
+    setEditingVolumeId(id);
+    setEditingVolumeTitle(volume.title || '');
+  };
+
+  const cancelEditVolume = () => {
+    setEditingVolumeId(null);
+    setEditingVolumeTitle('');
+  };
+
+  const saveEditVolume = async (volumeId) => {
+    const nextTitle = editingVolumeTitle.trim();
+    if (!nextTitle) {
+      notify('Tên tập không được để trống', 'error');
+      return;
+    }
+
+    try {
+      setSavingVolumeId(String(volumeId));
+      const response = await storyService.updateVolume(storyId, volumeId, {
+        title: nextTitle,
+      });
+
+      const normalizedId = String(volumeId);
+      const returnedTitle = response?.title || nextTitle;
+      setVolumes((prev) =>
+        prev.map((item) => {
+          const itemId = String(item.id || item.volumeId);
+          if (itemId !== normalizedId) return item;
+          return { ...item, title: returnedTitle };
+        }),
+      );
+      cancelEditVolume();
+      notify('Đã cập nhật tên tập', 'success');
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || 'Không thể cập nhật tên tập';
+      notify(message, 'error');
+    } finally {
+      setSavingVolumeId(null);
+    }
   };
 
   const handleViewMetadata = () => {
@@ -539,18 +586,69 @@ const StoryDetail = () => {
             return (
               <div key={id} className='story-detail__volume'>
                 <div className='story-detail__volume-header'>
-                  <button
-                    type='button'
-                    className='story-detail__volume-toggle'
-                    onClick={() => toggleVolume(id)}
-                  >
-                    <span>
-                      {volume.title || `Tập ${volume.sequenceIndex || ''}`}
-                    </span>
-                    <span className='story-detail__muted'>
-                      {volume.chapterCount ?? chapters.length} chương
-                    </span>
-                  </button>
+                  <div className='story-detail__volume-meta'>
+                    {editingVolumeId === id ? (
+                      <div className='story-detail__volume-edit-row'>
+                        <input
+                          type='text'
+                          className='story-detail__volume-input'
+                          value={editingVolumeTitle}
+                          onChange={(event) =>
+                            setEditingVolumeTitle(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              saveEditVolume(id);
+                            }
+                            if (event.key === 'Escape') {
+                              cancelEditVolume();
+                            }
+                          }}
+                          placeholder='Nhập tên tập'
+                          maxLength={300}
+                        />
+                        <button
+                          type='button'
+                          className='story-detail__volume-edit-action story-detail__volume-edit-action--save'
+                          disabled={savingVolumeId === id}
+                          onClick={() => saveEditVolume(id)}
+                        >
+                          {savingVolumeId === id ? 'Đang lưu...' : 'Lưu'}
+                        </button>
+                        <button
+                          type='button'
+                          className='story-detail__volume-edit-action story-detail__volume-edit-action--cancel'
+                          disabled={savingVolumeId === id}
+                          onClick={cancelEditVolume}
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type='button'
+                          className='story-detail__volume-toggle'
+                          onClick={() => toggleVolume(id)}
+                        >
+                          <span>
+                            {volume.title || `Tập ${volume.sequenceIndex || ''}`}
+                          </span>
+                          <span className='story-detail__muted'>
+                            {volume.chapterCount ?? chapters.length} chương
+                          </span>
+                        </button>
+                        <button
+                          type='button'
+                          className='story-detail__volume-edit-btn'
+                          onClick={() => startEditVolume(volume)}
+                        >
+                          Sửa tên tập
+                        </button>
+                      </>
+                    )}
+                  </div>
                   <Link
                     className='story-detail__chapter-link'
                     to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}`}

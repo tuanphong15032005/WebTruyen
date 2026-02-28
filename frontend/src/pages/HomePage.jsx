@@ -23,14 +23,14 @@ import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
 import '../styles/home-dashboard.css';
 
-const HERO_COUNT = 6; //banner 
+const HERO_COUNT = 6; //banner
 const LATEST_COUNT = 8; //mới cập nhật
 const VIEW_RANKING_COUNT = 10; //xếp hạng theo lượt xem
-const SAVED_RANKING_COUNT = 12; //xếp hạng theo lượt lưu
+const SAVED_RANKING_COUNT = 10; //xếp hạng theo lượt lưu
 const COMMUNITY_COUNT = 6; //bình luận mới cộng đồng
-const RECOMMEND_COUNT = 4; //đề xuất 
+const RECOMMEND_COUNT = 4; //đề xuất
 const SECTION_STORY_COUNT = 8; //Mỗi phần
-const HERO_TRANSITION_MS = 420; 
+const HERO_TRANSITION_MS = 320;
 const HERO_SWIPE_THRESHOLD = 56;
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');

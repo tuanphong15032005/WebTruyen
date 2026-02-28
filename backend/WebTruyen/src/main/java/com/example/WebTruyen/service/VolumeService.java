@@ -74,6 +74,41 @@ public class VolumeService {
         return resp;
     }
 
+    /*
+    * */
+    @Transactional
+    public CreateVolumeResponse updateVolumeTitle(
+            UserEntity currentUser,
+            Long storyId,
+            Long volumeId,
+            CreateVolumeRequest req
+    ) {
+      //
+        VolumeEntity volume = volumeRepository.findByIdAndStory_Id(volumeId, storyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Volume not found"));
+        StoryEntity story = volume.getStory();
+
+        Long authorId = story != null && story.getAuthor() != null ? story.getAuthor().getId() : null;
+        if (authorId == null || !authorId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not the owner of this story");
+        }
+
+        String nextTitle = req != null && req.getTitle() != null ? req.getTitle().trim() : "";
+        if (nextTitle.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Volume title is required");
+        }
+
+        volume.setTitle(nextTitle);
+        VolumeEntity saved = volumeRepository.save(volume);
+
+        CreateVolumeResponse resp = new CreateVolumeResponse();
+        resp.setId(saved.getId());
+        resp.setStoryId(saved.getStory().getId());
+        resp.setTitle(saved.getTitle());
+        resp.setSequenceIndex(saved.getSequenceIndex());
+        return resp;
+    }
+
     // Lấy danh sách volume và chapter theo story
     @Transactional(readOnly = true)
     public List<VolumeSummaryResponse> listVolumesWithChapters(Long storyId) {

@@ -32,6 +32,8 @@ const storyService = {
 
   createVolume: (storyId, payload) =>
     api.post(`/stories/${storyId}/volumes`, payload),
+  updateVolume: (storyId, volumeId, payload) =>
+    api.put(`/stories/${storyId}/volumes/${volumeId}`, payload),
 
   getVolumes: (storyId) => api.get(`/stories/${storyId}/volumes`),
   getPublicVolumes: (storyId) => api.get(`/public/stories/${storyId}/volumes`),

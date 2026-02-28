@@ -424,6 +424,17 @@ public class StoryController {
         return volumeService.createVolume(currentUser, storyId, req);
     }
 
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CreateVolumeResponse updateVolume(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @RequestBody CreateVolumeRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return volumeService.updateVolumeTitle(currentUser, storyId, volumeId, req);
+    }
+
     /**
      * Endpoint: Tạo chapter mới trong volume
      * POST /api/stories/{storyId}/volumes/{volumeId}/chapters
@@ -485,3 +496,4 @@ public class StoryController {
                 .toList();
     }
 }
+
