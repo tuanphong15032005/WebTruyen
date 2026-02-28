@@ -1,5 +1,5 @@
 import React from 'react';
-import './PurchaseConfirmationModal.css';
+import '../styles/PurchaseConfirmationModal.css';
 
 const PurchaseConfirmationModal = ({ isOpen, onClose, chapter, wallet, onConfirm, loading }) => {
   if (!isOpen) return null;

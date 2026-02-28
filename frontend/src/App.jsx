@@ -1,11 +1,11 @@
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import VerifyCode from './pages/VerifyCode';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import Login from './pages/Authentication/Login';
+import Register from './pages/Authentication/Register';
+import VerifyCode from './pages/Authentication/VerifyCode';
+import ForgotPassword from './pages/Authentication/ForgotPassword';
+import ResetPassword from './pages/Authentication/ResetPassword';
 import WalletTopupPage from './pages/WalletTopupPage';
 import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
 import CoinTransactionHistoryPage from './pages/DonationHistoryPage';

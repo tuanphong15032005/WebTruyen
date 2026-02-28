@@ -67,13 +67,8 @@ public class AuthController {
             UserEntity newUser = authService.registerUser(
                 request.getUsername(),
                 request.getEmail(),
-//<<<<<<< HEAD
                 request.getPassword(),
-                request.getDisplayName(),
-                request.getUpgradeToAuthor()
-//=======
-//                request.getPassword()
-//>>>>>>> author-create-content
+                request.getDisplayName()
             );
 
             authService.sendOtp(request.getEmail());

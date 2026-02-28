@@ -2,9 +2,14 @@ package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.ForgotPasswordRequest;
 import com.example.WebTruyen.dto.request.ResetPasswordRequest;
+import com.example.WebTruyen.entity.model.CoreIdentity.RoleEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.entity.model.CoreIdentity.UserRoleEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
+import com.example.WebTruyen.entity.keys.UserRoleId;
 import com.example.WebTruyen.repository.UserRepository;
+import com.example.WebTruyen.repository.RoleRepository;
+import com.example.WebTruyen.repository.UserRoleRepository;
 import com.example.WebTruyen.repository.WalletRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +45,12 @@ public class AuthService {
 
     @Autowired
     private WalletRepository walletRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private UserRoleRepository userRoleRepository;
 
     public UserEntity authenticate(String username, String password) {
         UserEntity user = userRepository.findByUsername(username)
@@ -88,8 +99,8 @@ public class AuthService {
         return user;
     }
 
-    public UserEntity registerUser(String username, String email, String password) {
-        return registerUser(username, email, password, null, null);
+    public UserEntity registerUser(String username, String email, String password, String displayName) {
+        return registerUser(username, email, password, displayName, false);
     }
 
     public UserEntity registerUser(String username, String email, String password, String displayName, Boolean upgradeToAuthor) {
@@ -116,10 +127,19 @@ public class AuthService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // upgradeToAuthor is accepted from client (UC01) but role assignment is not implemented here
-        // because the project currently has no Role/UserRole repositories wired.
-
         UserEntity savedUser = userRepository.save(newUser);
+
+        // Assign default READER role to all new users
+        RoleEntity readerRole = roleRepository.findByCode("READER")
+                                              .orElseThrow(() -> new RuntimeException("READER role not found"));
+
+        UserRoleEntity userRole = UserRoleEntity.builder()
+                                                .id(new UserRoleId(savedUser.getId(), readerRole.getId()))
+                                                .user(savedUser)
+                                                .role(readerRole)
+                                                .assignedAt(LocalDateTime.now())
+                                                .build();
+        userRoleRepository.save(userRole);
 
         if (!walletRepository.existsById(savedUser.getId())) {
             WalletEntity wallet = WalletEntity.builder()

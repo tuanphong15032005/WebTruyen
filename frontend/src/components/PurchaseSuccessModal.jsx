@@ -1,5 +1,5 @@
 import React from 'react';
-import './PurchaseSuccessModal.css';
+import '../styles/PurchaseSuccessModal.css';
 
 const PurchaseSuccessModal = ({ isOpen, onClose, response }) => {
   if (!isOpen) return null;
