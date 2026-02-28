@@ -11,11 +11,13 @@ import VerifyCode from './pages/Authentication/VerifyCode';
 import ForgotPassword from './pages/Authentication/ForgotPassword';
 import ResetPassword from './pages/Authentication/ResetPassword';
 
-import WalletTopupPage from './pages/WalletTopupPage';
-import PaymentConfirmationPage from './pages/PaymentConfirmationPage';
-import CoinTransactionHistoryPage from './pages/TransactionHistoryPage';
+import WalletTopupPage from './pages/Payment/WalletTopupPage';
+import PaymentConfirmationPage from './pages/Payment/PaymentConfirmationPage';
+import CoinTransactionHistoryPage from './pages/Payment/TransactionHistoryPage';
+import DonatePage from './pages/Payment/DonatePage';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
+import DailyTasksPage from './pages/DailyTasksPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
 import CreateStory from './pages/Author/CreateStory';
@@ -33,7 +35,7 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
-import DonatePage from './pages/DonatePage';
+
 import './App.css';
 
 function RoleProtectedRoute({ allowedRoles, children }) {
@@ -101,6 +103,7 @@ function App() {
           element={<CoinTransactionHistoryPage />}
         />
         <Route path='/profile' element={<UserProfile />} />
+        <Route path='/daily-tasks' element={<DailyTasksPage />} />
         <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />

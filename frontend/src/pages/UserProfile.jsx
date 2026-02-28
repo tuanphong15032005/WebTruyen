@@ -436,80 +436,80 @@ export default function UserProfile({ userData }) {
             </div>
           </div>
 
-          {/* Author Area */}
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', marginTop: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '6px', height: '32px', background: 'linear-gradient(180deg, #17a2b8, #138496)', borderRadius: '3px' }}></div>
-              Khu vực tác giả
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => navigate('/author/create-story')}
-                style={{
-                  background: 'linear-gradient(135deg, #28a745, #20c997)',
-                  color: 'white',
-                  padding: '16px 32px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  flex: '1',
-                  minWidth: '200px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(40, 167, 69, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)';
-                }}
-              >
-                <BookOpen size={24} />
-                Thêm truyện mới
-              </button>
-              <button
-                onClick={() => navigate('/manage-stories')}
-                style={{
-                  background: 'linear-gradient(135deg, #007bff, #6610f2)',
-                  color: 'white',
-                  padding: '16px 32px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  boxShadow: '0 4px 12px rgba(0, 123, 255, 0.3)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  flex: '1',
-                  minWidth: '200px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 123, 255, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
-                }}
-              >
-                <Edit3 size={24} />
-                Quản lý truyện
-              </button>
-            </div>
-            <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}>
-              Quản lý các tác phẩm của bạn: tạo truyện mới, chỉnh sửa thông tin truyện và thêm/sửa chương.
-            </p>
-          </div>
+{/*           Author Area */}
+{/*           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', marginTop: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}> */}
+{/*             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}> */}
+{/*               <div style={{ width: '6px', height: '32px', background: 'linear-gradient(180deg, #17a2b8, #138496)', borderRadius: '3px' }}></div> */}
+{/*               Khu vực tác giả */}
+{/*             </h2> */}
+{/*             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', flexWrap: 'wrap' }}> */}
+{/*               <button */}
+{/*                 onClick={() => navigate('/author/create-story')} */}
+{/*                 style={{ */}
+{/*                   background: 'linear-gradient(135deg, #28a745, #20c997)', */}
+{/*                   color: 'white', */}
+{/*                   padding: '16px 32px', */}
+{/*                   borderRadius: '12px', */}
+{/*                   fontSize: '16px', */}
+{/*                   fontWeight: '600', */}
+{/*                   border: 'none', */}
+{/*                   cursor: 'pointer', */}
+{/*                   display: 'flex', */}
+{/*                   alignItems: 'center', */}
+{/*                   gap: '12px', */}
+{/*                   boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)', */}
+{/*                   transition: 'transform 0.2s, box-shadow 0.2s', */}
+{/*                   flex: '1', */}
+{/*                   minWidth: '200px' */}
+{/*                 }} */}
+{/*                 onMouseOver={(e) => { */}
+{/*                   e.currentTarget.style.transform = 'translateY(-2px)'; */}
+{/*                   e.currentTarget.style.boxShadow = '0 6px 16px rgba(40, 167, 69, 0.4)'; */}
+{/*                 }} */}
+{/*                 onMouseOut={(e) => { */}
+{/*                   e.currentTarget.style.transform = 'translateY(0)'; */}
+{/*                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)'; */}
+{/*                 }} */}
+{/*               > */}
+{/*                 <BookOpen size={24} /> */}
+{/*                 Thêm truyện mới */}
+{/*               </button> */}
+{/*               <button */}
+{/*                 onClick={() => navigate('/manage-stories')} */}
+{/*                 style={{ */}
+{/*                   background: 'linear-gradient(135deg, #007bff, #6610f2)', */}
+{/*                   color: 'white', */}
+{/*                   padding: '16px 32px', */}
+{/*                   borderRadius: '12px', */}
+{/*                   fontSize: '16px', */}
+{/*                   fontWeight: '600', */}
+{/*                   border: 'none', */}
+{/*                   cursor: 'pointer', */}
+{/*                   display: 'flex', */}
+{/*                   alignItems: 'center', */}
+{/*                   gap: '12px', */}
+{/*                   boxShadow: '0 4px 12px rgba(0, 123, 255, 0.3)', */}
+{/*                   transition: 'transform 0.2s, box-shadow 0.2s', */}
+{/*                   flex: '1', */}
+{/*                   minWidth: '200px' */}
+{/*                 }} */}
+{/*                 onMouseOver={(e) => { */}
+{/*                   e.currentTarget.style.transform = 'translateY(-2px)'; */}
+{/*                   e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 123, 255, 0.4)'; */}
+{/*                 }} */}
+{/*                 onMouseOut={(e) => { */}
+{/*                   e.currentTarget.style.transform = 'translateY(0)'; */}
+{/*                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)'; */}
+{/*                 }} */}
+{/*               > */}
+{/*                 <Edit3 size={24} /> */}
+{/*                 Quản lý truyện */}
+{/*               </button> */}
+{/*             </div> */}
+{/*             <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}> */}
+{/*               Quản lý các tác phẩm của bạn: tạo truyện mới, chỉnh sửa thông tin truyện và thêm/sửa chương. */}
+{/*             </p> */}
+{/*           </div> */}
         </main>
       </div>
     </div>

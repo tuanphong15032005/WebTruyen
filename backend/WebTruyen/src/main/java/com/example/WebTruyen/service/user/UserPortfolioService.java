@@ -151,7 +151,7 @@ public class UserPortfolioService {
 
     // ISSUE 4: Get author stories
     public List<Map<String, Object>> getAuthorStories(Long userId) {
-        List<StoryEntity> stories = storyRepository.findByAuthorIdOrderByCreatedAtDesc(userId);
+        List<StoryEntity> stories = storyRepository.findByAuthor_IdOrderByCreatedAtDesc(userId);
         
         return stories.stream()
                 .map(story -> {

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createPaymentOrder, confirmPayment } from '../api/paymentApi'
-import { WalletContext } from '../context/WalletContext'
+import { createPaymentOrder, confirmPayment } from '../../api/paymentApi'
+import { WalletContext } from '../../context/WalletContext'
 
 const PACKAGES = [
   { vnd: 10000, coin: 10000 },

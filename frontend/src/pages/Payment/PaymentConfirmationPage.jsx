@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getPaymentDetail } from '../api/paymentApi'
-import { WalletContext } from '../context/WalletContext'
+import { getPaymentDetail } from '../../api/paymentApi'
+import { WalletContext } from '../../context/WalletContext'
 
 export default function PaymentConfirmationPage() {
   const { id } = useParams()

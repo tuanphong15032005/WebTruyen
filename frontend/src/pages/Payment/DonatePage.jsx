@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { WalletContext } from '../context/WalletContext'
-import api from '../services/api'
-import { donateToAuthor } from '../api/walletApi'
+import { WalletContext } from '../../context/WalletContext'
+import api from '../../services/api'
+import { donateToAuthor } from '../../api/walletApi'
 
 const DONATION_PACKAGES = [
   { coinB: 100 },
@@ -20,6 +20,9 @@ export default function DonatePage() {
   const [loading, setLoading] = useState(true)
   const [donating, setDonating] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
+  const [customAmount, setCustomAmount] = useState('')
+  const [customMessage, setCustomMessage] = useState('')
+  const [showCustomModal, setShowCustomModal] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showConfirmPopup, setShowConfirmPopup] = useState(false)
@@ -68,6 +71,53 @@ export default function DonatePage() {
     setSelectedPackage(packageIndex)
     setShowConfirmPopup(true)
     setDonationMessage('')
+  }
+
+  const handleCustomDonate = () => {
+    const amount = parseInt(customAmount)
+    if (!amount || amount <= 0) {
+      setError('Vui lòng nhập số tiền hợp lệ')
+      return
+    }
+    if (wallet.coinB < amount) {
+      setError('Insufficient Coin B balance. Please top up your wallet.')
+      return
+    }
+    setShowCustomModal(true)
+  }
+
+  const confirmCustomDonate = async () => {
+    const amount = parseInt(customAmount)
+    if (!amount || amount <= 0) return
+
+    setDonating(true)
+    setError('')
+    setSuccess('')
+    setShowCustomModal(false)
+
+    try {
+      const response = await donateToAuthor(parseInt(userId), amount, customMessage)
+
+      setSuccess(`Đã ủng hộ thành công ${amount.toLocaleString()} 💎 cho ${authorData.displayName || authorData.username}!`)
+      
+      // Refresh wallet to show updated balance
+      await refreshWallet()
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('')
+      }, 3000)
+      
+      // Reset custom form
+      setCustomAmount('')
+      setCustomMessage('')
+      
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ủng hộ thất bại. Vui lòng thử lại.')
+      console.error('Donation error:', err)
+    } finally {
+      setDonating(false)
+    }
   }
 
   const confirmDonate = async () => {
@@ -205,7 +255,7 @@ export default function DonatePage() {
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600 font-medium">Coin B</p>
+                <p className="text-sm text-blue-600 font-medium">Kim Cương</p>
                 <p className="text-2xl font-bold text-blue-900">{wallet.coinB?.toLocaleString() || 0}</p>
               </div>
               <div className="text-3xl">💎</div>
@@ -238,7 +288,7 @@ export default function DonatePage() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Chọn số tiền ủng hộ</h3>
           <p className="text-sm text-gray-600 mb-6">
-            Ủng hộ Coin B (💎) để hỗ trợ tác giả yêu thích của bạn
+            Ủng hộ Kim Cương (💎) để hỗ trợ tác giả yêu thích của bạn
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -285,8 +335,124 @@ export default function DonatePage() {
                 </div>
               </div>
             ))}
+            
+            {/* Custom Donation Option */}
+            <div
+              className={`border rounded-lg p-4 cursor-pointer transition-all border-gray-200 hover:border-gray-300 ${
+                showCustomModal ? 'border-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => setShowCustomModal(true)}
+            >
+              <div className="text-center">
+                <div className="text-lg font-semibold text-gray-900 mb-3">
+                  Tùy chỉnh
+                </div>
+                
+                <div className="flex items-center justify-center space-x-2">
+                  <span className="text-2xl">💎</span>
+                  <span className="font-medium">Nhập số tiền</span>
+                </div>
+                
+                <button
+                  className="mt-4 w-full py-2 rounded-lg font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  disabled={donating}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowCustomModal(true)
+                  }}
+                >
+                  {donating ? 'Đang xử lý...' : 'Ủng hộ tùy chỉnh'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Custom Donation Modal */}
+        {showCustomModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Ủng hộ tùy chỉnh</h3>
+              
+              {/* Author Info */}
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
+                  <span className="text-lg font-bold text-white">
+                    {(authorData.displayName || authorData.username)?.charAt(0)?.toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    {authorData.displayName || authorData.username}
+                  </p>
+                  <p className="text-sm text-gray-600">@{authorData.username}</p>
+                </div>
+              </div>
+
+              {/* Amount Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Số tiền ủng hộ (💎)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">💎</span>
+                  <input
+                    type="number"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="Nhập số tiền muốn ủng hộ"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                    max={wallet.coinB}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Số dư khả dụng: {wallet.coinB?.toLocaleString() || 0} 💎
+                </p>
+              </div>
+
+              {/* Message Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lời nhắn (tùy chọn)
+                </label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  placeholder="Gửi lời nhắn động viên đến tác giả..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows="3"
+                  maxLength="200"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {customMessage.length}/200 ký tự
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowCustomModal(false)
+                    setCustomAmount('')
+                    setCustomMessage('')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  disabled={donating}
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmCustomDonate}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={donating || !customAmount || parseInt(customAmount) <= 0 || parseInt(customAmount) > wallet.coinB}
+                >
+                  {donating ? 'Đang xử lý...' : 'Xác nhận ủng hộ'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Confirmation Popup */}
         {showConfirmPopup && selectedPackage !== null && (
