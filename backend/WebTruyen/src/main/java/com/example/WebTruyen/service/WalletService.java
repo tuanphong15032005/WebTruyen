@@ -145,7 +145,7 @@ public class WalletService {
         
         // Create ledger entry for monthly bonus
         createLedgerEntry(userId, CoinType.A, addedAmount, LedgerReason.EARN, 
-            "MONTHLY_BONUS", System.currentTimeMillis(), "Thưởng tháng");
+            "MONTHLY_BONUS", "Thưởng tháng");
         
         // Return response
         Map<String, Object> response = new HashMap<>();
@@ -211,11 +211,11 @@ public class WalletService {
         // Create ledger entries for the transaction
         if (deductFromA > 0) {
             createLedgerEntry(userId, CoinType.A, -deductFromA, LedgerReason.SPEND_CHAPTER, 
-                "CHAPTER", chapterId, "Mua chương " + chapter.getTitle());
+                "CHAPTER", "Mua chương " + chapter.getTitle());
         }
         if (deductFromB > 0) {
             createLedgerEntry(userId, CoinType.B, -deductFromB, LedgerReason.SPEND_CHAPTER, 
-                "CHAPTER", chapterId, "Mua chương " + chapter.getTitle());
+                "CHAPTER", "Mua chương " + chapter.getTitle());
         }
         
         // Return response
@@ -274,7 +274,7 @@ public class WalletService {
         walletRepository.save(authorWallet);
         
         // Create ledger entry for author receiving donation
-        createDailyTaskLedgerEntry(toUserId, CoinType.B, coinBAmount, LedgerReason.DONATE, 
+        createLedgerEntry(toUserId, CoinType.B, coinBAmount, LedgerReason.DONATE, 
             "DONATION_RECEIVE", "Received donation");
 
         // Create donation record
@@ -345,31 +345,39 @@ public class WalletService {
     }
 
     private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
-                                  LedgerReason reason, String refType, Long refId, String description) {
+                                  LedgerReason reason, String refType, String description) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
-        String idempotencyKey = String.format("SPEND_CHAPTER_%d_%d_%s", userId, refId, coinType);
+        String idempotencyKey = String.format("%s_%d_%s_%d", refType, userId, coinType, System.currentTimeMillis());
         
-        // Check both constraints to prevent duplicate entries
-        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey) &&
-            !ledgerEntryRepository.existsByRefTypeAndRefIdAndReason(refType, refId, reason)) {
-            LedgerEntryEntity entry = LedgerEntryEntity.builder()
-                    .user(user)
-                    .coin(coinType)
-                    .delta(delta)
-                    .reason(reason)
-                    .refType(refType)
-                    .refId(refId)
-                    .idempotencyKey(idempotencyKey)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            
+        // Create ledger entry for all transaction types
+        // Use timestamp as refId since transactions don't have a specific reference ID
+        Long refId = System.currentTimeMillis();
+        
+        LedgerEntryEntity entry = LedgerEntryEntity.builder()
+                .user(user)
+                .coin(coinType)
+                .delta(delta)
+                .reason(reason)
+                .refType(refType)
+                .refId(refId)
+                .idempotencyKey(idempotencyKey)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        try {
             ledgerEntryRepository.save(entry);
+            log.info("Successfully created ledger entry: user {}, amount {} {}, reason {}", 
+                    userId, delta, coinType, reason);
+        } catch (Exception e) {
+            // Log error but don't fail the transaction
+            log.error("Failed to create ledger entry: user {}, amount {} {}, reason {}", 
+                    userId, delta, coinType, reason, e);
         }
     }
 
-    public void addCoinA(UserEntity user, Long amount, LedgerReason reason) {
+    public void addCoinA(UserEntity user, Long amount, LedgerReason reason, String refType, String description) {
         WalletEntity wallet = getOrCreateWalletEntity(user.getId());
         Long newBalance = wallet.getBalanceCoinA() + amount;
         wallet.setBalanceCoinA(newBalance);
@@ -377,8 +385,8 @@ public class WalletService {
         walletRepository.save(wallet);
         
         // Create ledger entry
-        createDailyTaskLedgerEntry(user.getId(), CoinType.A, amount, reason, 
-            "DAILY_TASK", "Daily task reward");
+        createLedgerEntry(user.getId(), CoinType.A, amount, reason, 
+            refType, description);
     }
 
     public void addCoinB(UserEntity user, Long amount, LedgerReason reason) {
@@ -415,44 +423,11 @@ public class WalletService {
         };
         
         createLedgerEntry(user.getId(), CoinType.B, amount, reason, 
-            refType, System.currentTimeMillis(), description);
+            refType, description);
         
         // Auto-track daily task for topup only (donation is tracked separately)
         if (reason == LedgerReason.TOPUP) {
             trackTopupDailyTask(user.getId(), amount);
-        }
-    }
-
-    private void createDailyTaskLedgerEntry(Long userId, CoinType coinType, Long delta, 
-                                          LedgerReason reason, String refType, String description) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        
-        String idempotencyKey = String.format("DAILY_TASK_%d_%s_%d", userId, coinType, System.currentTimeMillis());
-        
-        // Create ledger entry for daily task rewards
-        // Use timestamp as refId since daily tasks don't have a specific reference ID
-        Long refId = System.currentTimeMillis();
-        
-        LedgerEntryEntity entry = LedgerEntryEntity.builder()
-                .user(user)
-                .coin(coinType)
-                .delta(delta)
-                .reason(reason)
-                .refType(refType)
-                .refId(refId)
-                .idempotencyKey(idempotencyKey)
-                .createdAt(LocalDateTime.now())
-                .build();
-        
-        try {
-            ledgerEntryRepository.save(entry);
-            log.info("Successfully created ledger entry for daily task reward: user {}, amount {} {}", 
-                    userId, delta, coinType);
-        } catch (Exception e) {
-            // Log error but don't fail the transaction
-            log.error("Failed to create ledger entry for daily task reward: user {}, amount {} {}", 
-                    userId, delta, coinType, e);
         }
     }
 

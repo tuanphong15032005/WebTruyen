@@ -251,7 +251,7 @@ public class SimpleDailyTaskService {
             
             if (mission.getRewardCoinType() == DailyMissionEntity.CoinType.A) {
                 log.info("Adding {} Coin A to user {}", mission.getRewardCoin(), userId);
-                walletService.addCoinA(user, mission.getRewardCoin(), LedgerReason.EARN);
+                walletService.addCoinA(user, mission.getRewardCoin(), LedgerReason.EARN, "DAILY_TASK", "Daily task reward");
             } else {
                 log.info("Adding {} Coin B to user {}", mission.getRewardCoin(), userId);
                 walletService.addCoinB(user, mission.getRewardCoin(), LedgerReason.EARN);
@@ -320,7 +320,7 @@ public class SimpleDailyTaskService {
                 // Add coins
                 if (mission.getRewardCoinType() == DailyMissionEntity.CoinType.A) {
                     log.info("Adding {} Coin A to user {}", mission.getRewardCoin(), userId);
-                    walletService.addCoinA(user, mission.getRewardCoin(), LedgerReason.EARN);
+                    walletService.addCoinA(user, mission.getRewardCoin(), LedgerReason.EARN, "DAILY_TASK", "Daily task reward");
                 } else {
                     log.info("Adding {} Coin B to user {}", mission.getRewardCoin(), userId);
                     walletService.addCoinB(user, mission.getRewardCoin(), LedgerReason.EARN);
