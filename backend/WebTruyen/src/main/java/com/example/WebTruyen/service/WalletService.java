@@ -402,7 +402,6 @@ public class WalletService {
         // 4. Ghi ledger entry (lịch sử giao dịch) với refType phù hợp
         String refType = switch (reason) {
             case TOPUP -> "TOPUP";
-            case EARN -> "DAILY_TASK";
             case DONATE -> "DONATION";
             case WITHDRAW -> "WITHDRAW";
             case SPEND_CHAPTER -> "CHAPTER";
@@ -413,7 +412,6 @@ public class WalletService {
         
         String description = switch (reason) {
             case TOPUP -> "Nạp tiền";
-            case EARN -> "Daily task reward";
             case DONATE -> "Nhận donation";
             case WITHDRAW -> "Rút tiền";
             case SPEND_CHAPTER -> "Mua chương";
