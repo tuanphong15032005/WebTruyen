@@ -1,8 +1,7 @@
 /* LoginStyles.css */
 .login-container {
     display: flex;
-    min-height: 0;
-    height: auto;
+    height: 91vh;
     overflow: hidden;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     flex-direction: row;
