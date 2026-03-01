@@ -22,10 +22,12 @@ import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.CommentService;
+import com.example.WebTruyen.service.SimpleDailyTaskService;
 import com.example.WebTruyen.service.StoryReviewService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +43,7 @@ import org.springframework.http.HttpStatus;
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
+@Slf4j
 public class StoryController {
 
     private final StoryService storyService;
@@ -48,6 +51,7 @@ public class StoryController {
     private final ChapterService chapterService;
     private final StoryReviewService storyReviewService;
     private final CommentService commentService;
+    private final SimpleDailyTaskService simpleDailyTaskService;
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
@@ -230,7 +234,19 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return commentService.createStoryComment(currentUser, storyId, req);
+        CommentResponse response = commentService.createStoryComment(currentUser, storyId, req);
+        
+        // Track comment for daily task
+        try {
+            log.info("Tracking comment for daily task - user: {}, story: {}", currentUser.getId(), storyId);
+            simpleDailyTaskService.updateTaskProgress(currentUser.getId(), "MAKE_COMMENTS", null);
+            log.info("Successfully tracked comment for daily task");
+        } catch (Exception e) {
+            // Don't fail the comment creation if daily task tracking fails
+            log.warn("Failed to track comment for daily task - user: {}, story: {}", currentUser.getId(), storyId, e);
+        }
+        
+        return response;
     }
 
     @PutMapping(value = "/stories/{storyId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -286,7 +302,19 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return commentService.createChapterComment(currentUser, storyId, chapterId, req);
+        CommentResponse response = commentService.createChapterComment(currentUser, storyId, chapterId, req);
+        
+        // Track comment for daily task
+        try {
+            log.info("Tracking chapter comment for daily task - user: {}, story: {}, chapter: {}", currentUser.getId(), storyId, chapterId);
+            simpleDailyTaskService.updateTaskProgress(currentUser.getId(), "MAKE_COMMENTS", null);
+            log.info("Successfully tracked chapter comment for daily task");
+        } catch (Exception e) {
+            // Don't fail the comment creation if daily task tracking fails
+            log.warn("Failed to track chapter comment for daily task - user: {}, story: {}, chapter: {}", currentUser.getId(), storyId, chapterId, e);
+        }
+        
+        return response;
     }
     //phong sua conflict merge muatruyen voi admin1
 //<<<<<<< HEAD

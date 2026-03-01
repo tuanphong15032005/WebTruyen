@@ -286,6 +286,50 @@
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
+/* Individual Claim Button Styles */
+.claim-btn {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  min-width: 100px;
+}
+
+/* Available to claim - bright green, clickable */
+.claim-btn--available {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.claim-btn--available:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+/* Already claimed - grayed out */
+.claim-btn--claimed {
+  background: #6b7280;
+  color: white;
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Incomplete - very grayed out */
+.claim-btn--incomplete {
+  background: #d1d5db;
+  color: #6b7280;
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .daily-tasks-header {
     flex-direction: column;

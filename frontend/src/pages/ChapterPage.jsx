@@ -929,10 +929,11 @@ const ChapterPage = () => {
       try {
         await recordChapterView(chapter.id);
         viewedChapterKeysRef.current.add(chapterViewKey);
+        console.log('Chapter view recorded for daily task tracking:', chapter.id);
       } catch (err) {
         console.error('recordChapterView error', err);
       }
-    }, 30000);
+    }, 5000); // Reduced from 30 seconds to 5 seconds for better daily task tracking
 
     return () => {
       if (chapterViewTimerRef.current) {

@@ -10,6 +10,7 @@ import com.example.WebTruyen.repository.UserDailyStatusRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class SimpleDailyTaskService {
     private UserRepository userRepository;
 
     @Autowired
+    @Lazy
     private WalletService walletService;
 
     // Task codes
@@ -79,6 +81,9 @@ public class SimpleDailyTaskService {
                 .mapToLong(task -> (Long) task.get("rewardCoin"))
                 .sum();
         
+        log.info("Daily tasks response for user {}: totalTasks={}, completedTasks={}, availableTasks={}, allTasksCompleted={}", 
+                userId, missions.size(), completedTasks, missions.size() - (int) completedTasks, completedTasks == missions.size());
+        
         return Map.of(
                 "tasks", taskResponses,
                 "totalTasks", missions.size(),
@@ -91,18 +96,69 @@ public class SimpleDailyTaskService {
     }
 
     /**
-     * Update progress for a specific task
+     * Force update task completion for existing tasks (for fixing parsing issues)
      */
     @Transactional
-    public Map<String, Object> updateTaskProgress(Long userId, String missionCode, Integer progressValue) {
+    public Map<String, Object> forceUpdateTaskCompletion(Long userId, String missionCode) {
+        log.info("Force updating task completion - userId: {}, missionCode: {}", userId, missionCode);
+        
         LocalDate today = LocalDate.now();
         
         // Find the mission
         DailyMissionEntity mission = dailyMissionRepository.findByDateAndMissionCode(today, missionCode)
-                .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode));
+                .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode + " for date: " + today));
+        
+        // Find user status
+        List<UserDailyStatusEntity> existingStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
+        Optional<UserDailyStatusEntity> existingStatus = existingStatuses.stream()
+                .filter(status -> status.getDailyMission().getId().equals(mission.getId()))
+                .findFirst();
+        
+        if (!existingStatus.isPresent()) {
+            throw new RuntimeException("User task status not found for mission: " + missionCode);
+        }
+        
+        UserDailyStatusEntity userStatus = existingStatus.get();
+        log.info("Found existing user status - current progress: {}", userStatus.getProgress());
+        
+        // Re-parse progress with fixed method
+        Map<String, Object> progressMap = parseProgress(userStatus.getProgress());
+        log.info("Re-parsed progress: {}", progressMap);
+        
+        // Re-check completion
+        boolean wasCompleted = isTaskCompleted(userStatus, mission);
+        log.info("Completion check result: {} - target: {}, completed: {}", mission.getMissionCode(), mission.getTarget(), wasCompleted);
+        
+        if (wasCompleted && userStatus.getCompletedAt() == null) {
+            // Force set completion time
+            userStatus.setCompletedAt(LocalDateTime.now());
+            userDailyStatusRepository.save(userStatus);
+            log.info("Forced completion time set: {}", userStatus.getCompletedAt());
+        }
+        
+        return buildTaskResponse(mission, userStatus);
+    }
+
+    /**
+     * Update progress for a specific task
+     */
+    @Transactional
+    public Map<String, Object> updateTaskProgress(Long userId, String missionCode, Integer progressValue) {
+        log.info("Updating task progress - userId: {}, missionCode: {}, progressValue: {}", userId, missionCode, progressValue);
+        
+        LocalDate today = LocalDate.now();
+        log.info("Using date: {}", today);
+        
+        // Find the mission
+        DailyMissionEntity mission = dailyMissionRepository.findByDateAndMissionCode(today, missionCode)
+                .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode + " for date: " + today));
+        
+        log.info("Found mission: {} - {} for date: {}", mission.getId(), mission.getMissionCode(), mission.getDate());
         
         // Find or create user status - use a different approach to avoid type issues
         List<UserDailyStatusEntity> existingStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
+        log.info("Found {} existing statuses for user {} on date {}", existingStatuses.size(), userId, today);
+        
         Optional<UserDailyStatusEntity> existingStatus = existingStatuses.stream()
                 .filter(status -> status.getDailyMission().getId().equals(mission.getId()))
                 .findFirst();
@@ -110,6 +166,7 @@ public class SimpleDailyTaskService {
         UserDailyStatusEntity userStatus;
         if (existingStatus.isPresent()) {
             userStatus = existingStatus.get();
+            log.info("Found existing user status for mission {}", mission.getId());
         } else {
             // Use native query to insert directly, bypassing @MapsId issues
             UserEntity user = userRepository.findById(userId)
@@ -123,21 +180,32 @@ public class SimpleDailyTaskService {
                 userStatus = userDailyStatusRepository
                     .findByUserIdAndDailyMissionId(userId, mission.getId().longValue())
                     .orElseThrow(() -> new RuntimeException("Failed to create user status"));
+                
+                log.info("Created new user status for mission {}", mission.getId());
             } catch (Exception e) {
                 log.error("Failed to create user daily status", e);
                 throw new RuntimeException("Failed to track task progress", e);
             }
         }
         
+        log.info("Current progress: {}", userStatus.getProgress());
+        
         // Update progress based on task type
         updateProgressForTaskType(userStatus, missionCode, progressValue);
         
+        log.info("Updated progress: {}", userStatus.getProgress());
+        
         // Check if task is completed
-        if (isTaskCompleted(userStatus, mission)) {
+        boolean wasCompleted = isTaskCompleted(userStatus, mission);
+        log.info("Task completed check: {} - target: {}, completed: {}", mission.getMissionCode(), mission.getTarget(), wasCompleted);
+        
+        if (wasCompleted) {
             userStatus.setCompletedAt(LocalDateTime.now());
+            log.info("Marked task as completed at: {}", userStatus.getCompletedAt());
         }
         
         userDailyStatusRepository.save(userStatus);
+        log.info("Saved user status");
         
         return buildTaskResponse(mission, userStatus);
     }
@@ -287,10 +355,15 @@ public class SimpleDailyTaskService {
      * Ensure daily missions exist for the given date
      */
     private void ensureDailyMissionsExist(LocalDate date) {
+        log.info("Checking daily missions for date: {}", date);
         List<DailyMissionEntity> existingMissions = dailyMissionRepository.findByDate(date);
+        log.info("Found {} existing missions for date: {}", existingMissions.size(), date);
         
         if (existingMissions.isEmpty()) {
+            log.info("No missions found for date {}, creating new missions", date);
             createDailyMissionsForDate(date);
+        } else {
+            log.info("Missions already exist for date: {}", date);
         }
     }
 
@@ -364,38 +437,50 @@ public class SimpleDailyTaskService {
     private void updateProgressForTaskType(UserDailyStatusEntity userStatus, String missionCode, Integer progressValue) {
         Map<String, Object> progressMap = parseProgress(userStatus.getProgress());
         
+        log.info("Updating progress for task type: {} - current progress: {}", missionCode, progressMap);
+        
         switch (missionCode) {
             case TASK_LOGIN:
                 progressMap.put("completed", true);
                 progressMap.put("login_time", LocalDateTime.now().toString());
+                log.info("Updated login task - completed: true");
                 break;
                 
             case TASK_READ_CHAPTERS:
                 int currentRead = (int) progressMap.getOrDefault("chapters_read", 0);
                 int newRead = Math.min(currentRead + (progressValue != null ? progressValue : 1), 5);
                 progressMap.put("chapters_read", newRead);
+                log.info("Updated read chapters task - from: {} to: {}", currentRead, newRead);
                 break;
                 
             case TASK_UNLOCK_CHAPTER:
                 progressMap.put("chapters_unlocked", 1);
+                log.info("Updated unlock chapter task - chapters_unlocked: 1");
                 break;
                 
             case TASK_COMMENT:
                 int currentComments = (int) progressMap.getOrDefault("comments_made", 0);
                 int newComments = Math.min(currentComments + (progressValue != null ? progressValue : 1), 3);
                 progressMap.put("comments_made", newComments);
+                log.info("Updated comment task - from: {} to: {}", currentComments, newComments);
                 break;
                 
             case TASK_DONATE:
                 progressMap.put("donations_made", 1);
+                log.info("Updated donation task - donations_made: 1");
                 break;
                 
             case TASK_TOPUP:
                 progressMap.put("topups_made", 1);
+                log.info("Updated topup task - topups_made: 1");
                 break;
+                
+            default:
+                log.warn("Unknown mission code: {}", missionCode);
         }
         
         userStatus.setProgress(serializeProgress(progressMap));
+        log.info("Serialized progress: {}", userStatus.getProgress());
     }
 
     /**
@@ -405,26 +490,47 @@ public class SimpleDailyTaskService {
         Map<String, Object> progressMap = parseProgress(userStatus.getProgress());
         int target = Integer.parseInt(mission.getTarget());
         
+        log.info("Checking task completion for mission {}: progressMap={}, target={}", 
+                mission.getMissionCode(), progressMap, target);
+        
         switch (mission.getMissionCode()) {
             case TASK_LOGIN:
-                return Boolean.TRUE.equals(progressMap.get("completed"));
+                boolean loginCompleted = Boolean.TRUE.equals(progressMap.get("completed"));
+                log.info("LOGIN task completion check: completed={}", loginCompleted);
+                return loginCompleted;
                 
             case TASK_READ_CHAPTERS:
-                return (int) progressMap.getOrDefault("chapters_read", 0) >= target;
+                int chaptersRead = (int) progressMap.getOrDefault("chapters_read", 0);
+                boolean readCompleted = chaptersRead >= target;
+                log.info("READ_CHAPTERS task completion check: chaptersRead={}, target={}, completed={}", chaptersRead, target, readCompleted);
+                return readCompleted;
                 
             case TASK_UNLOCK_CHAPTER:
-                return (int) progressMap.getOrDefault("chapters_unlocked", 0) >= target;
+                int chaptersUnlocked = (int) progressMap.getOrDefault("chapters_unlocked", 0);
+                boolean unlockCompleted = chaptersUnlocked >= target;
+                log.info("UNLOCK_CHAPTER task completion check: chaptersUnlocked={}, target={}, completed={}", chaptersUnlocked, target, unlockCompleted);
+                return unlockCompleted;
                 
             case TASK_COMMENT:
-                return (int) progressMap.getOrDefault("comments_made", 0) >= target;
+                int commentsMade = (int) progressMap.getOrDefault("comments_made", 0);
+                boolean commentCompleted = commentsMade >= target;
+                log.info("COMMENT task completion check: commentsMade={}, target={}, completed={}", commentsMade, target, commentCompleted);
+                return commentCompleted;
                 
             case TASK_DONATE:
-                return (int) progressMap.getOrDefault("donations_made", 0) >= target;
+                int donationsMade = (int) progressMap.getOrDefault("donations_made", 0);
+                boolean donationCompleted = donationsMade >= target;
+                log.info("DONATION task completion check: donationsMade={}, target={}, completed={}", donationsMade, target, donationCompleted);
+                return donationCompleted;
                 
             case TASK_TOPUP:
-                return (int) progressMap.getOrDefault("topups_made", 0) >= target;
+                int topupsMade = (int) progressMap.getOrDefault("topups_made", 0);
+                boolean topupCompleted = topupsMade >= target;
+                log.info("TOPUP task completion check: topupsMade={}, target={}, completed={}", topupsMade, target, topupCompleted);
+                return topupCompleted;
                 
             default:
+                log.warn("Unknown mission code: {}", mission.getMissionCode());
                 return false;
         }
     }
@@ -449,6 +555,9 @@ public class SimpleDailyTaskService {
         response.put("completedAt", userStatus != null ? userStatus.getCompletedAt() : null);
         response.put("canClaim", canClaim);
         
+        log.info("Building task response for mission {}: completed={}, canClaim={}, completedAt={}", 
+                mission.getMissionCode(), completed, canClaim, userStatus != null ? userStatus.getCompletedAt() : null);
+        
         // Add progress tracking for specific tasks
         switch (mission.getMissionCode()) {
             case TASK_READ_CHAPTERS:
@@ -459,12 +568,36 @@ public class SimpleDailyTaskService {
                 response.put("progressText", currentRead + "/" + targetRead);
                 break;
                 
+            case TASK_UNLOCK_CHAPTER:
+                int currentUnlocks = (int) progressMap.getOrDefault("chapters_unlocked", 0);
+                int targetUnlocks = Integer.parseInt(mission.getTarget());
+                response.put("currentProgress", currentUnlocks);
+                response.put("targetProgress", targetUnlocks);
+                response.put("progressText", currentUnlocks + "/" + targetUnlocks);
+                break;
+                
             case TASK_COMMENT:
                 int currentComments = (int) progressMap.getOrDefault("comments_made", 0);
                 int targetComments = Integer.parseInt(mission.getTarget());
                 response.put("currentProgress", currentComments);
                 response.put("targetProgress", targetComments);
                 response.put("progressText", currentComments + "/" + targetComments);
+                break;
+                
+            case TASK_DONATE:
+                int currentDonations = (int) progressMap.getOrDefault("donations_made", 0);
+                int targetDonations = Integer.parseInt(mission.getTarget());
+                response.put("currentProgress", currentDonations);
+                response.put("targetProgress", targetDonations);
+                response.put("progressText", currentDonations + "/" + targetDonations);
+                break;
+                
+            case TASK_TOPUP:
+                int currentTopups = (int) progressMap.getOrDefault("topups_made", 0);
+                int targetTopups = Integer.parseInt(mission.getTarget());
+                response.put("currentProgress", currentTopups);
+                response.put("targetProgress", targetTopups);
+                response.put("progressText", currentTopups + "/" + targetTopups);
                 break;
         }
         
@@ -489,12 +622,26 @@ public class SimpleDailyTaskService {
                 int value = extractIntValue(progressJson, "comments_made");
                 map.put("comments_made", value);
             }
+            if (progressJson.contains("topups_made")) {
+                int value = extractIntValue(progressJson, "topups_made");
+                map.put("topups_made", value);
+            }
+            if (progressJson.contains("donations_made")) {
+                int value = extractIntValue(progressJson, "donations_made");
+                map.put("donations_made", value);
+            }
+            if (progressJson.contains("chapters_unlocked")) {
+                int value = extractIntValue(progressJson, "chapters_unlocked");
+                map.put("chapters_unlocked", value);
+            }
             if (progressJson.contains("completed")) {
                 map.put("completed", progressJson.contains("\"completed\":true"));
             }
             if (progressJson.contains("claimed_at")) {
                 map.put("claimed_at", "claimed");
             }
+            
+            log.info("Parsed progress JSON: {} -> {}", progressJson, map);
             return map;
         } catch (Exception e) {
             log.warn("Failed to parse progress JSON: {}", progressJson, e);

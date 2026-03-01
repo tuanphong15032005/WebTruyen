@@ -18,14 +18,18 @@ import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -48,6 +52,10 @@ public class WalletService {
 
     @Autowired
     private DonationRepository donationRepository;
+
+    @Autowired
+    @Lazy
+    private SimpleDailyTaskService simpleDailyTaskService;
 
     public WalletResponse getWallet(Long userId) {
         WalletEntity wallet = walletRepository.findById(userId)
@@ -85,7 +93,45 @@ public class WalletService {
     public Map<String, Object> dailyCheckIn(Long userId) {
         WalletEntity wallet = getOrCreateWalletEntity(userId);
         
-        // Add 5000 coin A
+        // Check if user has already received monthly bonus this month
+        LocalDate now = LocalDate.now();
+        LocalDate firstDayOfMonth = now.withDayOfMonth(1);
+        
+        log.info("Checking monthly bonus for user {} - current date: {}, first day: {}", userId, now, firstDayOfMonth);
+        
+        List<LedgerEntryEntity> existingMonthlyBonus = ledgerEntryRepository
+                .findByUserIdAndReason(userId, LedgerReason.EARN)
+                .stream()
+                .filter(entry -> "MONTHLY_BONUS".equals(entry.getRefId()))
+                .filter(entry -> {
+                    // Check if the bonus was received this month
+                    LocalDateTime entryTime = entry.getCreatedAt();
+                    if (entryTime == null) return false;
+                    
+                    LocalDate entryDate = entryTime.toLocalDate();
+                    boolean isThisMonth = !entryDate.isBefore(firstDayOfMonth) &&
+                           entryDate.getMonthValue() == now.getMonthValue() &&
+                           entryDate.getYear() == now.getYear();
+                    
+                    log.info("Found monthly bonus entry - date: {}, thisMonth: {}, refId: {}", 
+                            entryDate, isThisMonth, entry.getRefId());
+                    
+                    return isThisMonth;
+                })
+                .collect(Collectors.toList());
+        
+        log.info("Monthly bonus check result - user: {}, found entries: {}, already claimed this month: {}", 
+                userId, existingMonthlyBonus.size(), !existingMonthlyBonus.isEmpty());
+        
+        if (!existingMonthlyBonus.isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Bạn đã nhận thưởng tháng này rồi!");
+            response.put("alreadyClaimed", true);
+            return response;
+        }
+        
+        // Add 5000 coin A as monthly bonus
         Long currentBalance = wallet.getBalanceCoinA();
         Long addedAmount = 5000L;
         Long newBalance = currentBalance + addedAmount;
@@ -95,17 +141,16 @@ public class WalletService {
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
         
-        // Create ledger entry for transaction history
+        // Create ledger entry for monthly bonus
         createLedgerEntry(userId, CoinType.A, addedAmount, LedgerReason.EARN, 
-            "DAILY_CHECKIN", System.currentTimeMillis(), "Nhận coin thưởng hàng ngày");
+            "MONTHLY_BONUS", System.currentTimeMillis(), "Thưởng tháng");
         
         // Return response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("newCoinBalance", newBalance);
         response.put("addedAmount", addedAmount);
-        response.put("previousBalance", currentBalance);
-        response.put("message", "Daily check-in successful");
+        response.put("message", "Nhận thưởng tháng thành công!");
         
         return response;
     }
@@ -200,18 +245,35 @@ public class WalletService {
                 "Insufficient Coin B balance. Need " + coinBAmount + " 💎, only have " + donorWallet.getBalanceCoinB() + " 💎");
         }
 
-        // Deduct coins from donor
+        // Deduct coins from donor and track daily task for making donation
         Long newDonorBalance = donorWallet.getBalanceCoinB() - coinBAmount;
         donorWallet.setBalanceCoinB(newDonorBalance);
         donorWallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(donorWallet);
+        
+        // Track donation daily task for the donor
+        try {
+            log.info("Auto-tracking MAKE_DONATION daily task for donor {} - amount: {}", fromUserId, coinBAmount);
+            simpleDailyTaskService.updateTaskProgress(fromUserId, "MAKE_DONATION", null);
+            log.info("Successfully auto-tracked MAKE_DONATION daily task for donor: {}", fromUserId);
+        } catch (Exception e) {
+            log.warn("Failed to auto-track MAKE_DONATION daily task for donor: {}", fromUserId, e);
+        }
 
-        // Add coins to author
+        // Add coins to author (use addCoinB but DONATION reason doesn't trigger daily task)
+        UserEntity authorUser = userRepository.findById(toUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
+        
+        // Directly update author wallet without triggering daily task (receiving donation shouldn't complete "make donation" task)
         WalletEntity authorWallet = getOrCreateWalletEntity(toUserId);
         Long newAuthorBalance = authorWallet.getBalanceCoinB() + coinBAmount;
         authorWallet.setBalanceCoinB(newAuthorBalance);
         authorWallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(authorWallet);
+        
+        // Create ledger entry for author receiving donation
+        createDailyTaskLedgerEntry(toUserId, CoinType.B, coinBAmount, LedgerReason.DONATE, 
+            "DONATION_RECEIVE", "Received donation");
 
         // Create donation record
         DonationEntity donation = DonationEntity.builder()
@@ -327,6 +389,18 @@ public class WalletService {
         // Create ledger entry
         createDailyTaskLedgerEntry(user.getId(), CoinType.B, amount, reason, 
             "DAILY_TASK", "Daily task reward");
+        
+        // Auto-track daily task for topup only (donation is tracked separately)
+        if (reason == LedgerReason.TOPUP) {
+            try {
+                log.info("Auto-tracking MAKE_TOPUP daily task for user {} - amount: {}", user.getId(), amount);
+                simpleDailyTaskService.updateTaskProgress(user.getId(), "MAKE_TOPUP", null);
+                log.info("Successfully auto-tracked MAKE_TOPUP daily task for user: {}", user.getId());
+            } catch (Exception e) {
+                // Don't fail the coin addition if daily task tracking fails
+                log.warn("Failed to auto-track MAKE_TOPUP daily task for user: {}", user.getId(), e);
+            }
+        }
     }
 
     private void createDailyTaskLedgerEntry(Long userId, CoinType coinType, Long delta, 

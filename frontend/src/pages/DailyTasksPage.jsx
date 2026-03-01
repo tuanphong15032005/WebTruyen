@@ -124,6 +124,10 @@ function DailyTasksPage() {
     );
   }
 
+  // Calculate if there are tasks that can be claimed
+  const hasClaimableTasks = tasksData.tasks.some(task => task.completed && task.canClaim);
+  const allTasksClaimed = tasksData.tasks.every(task => !task.canClaim);
+
   return (
     <div className="daily-tasks-page">
       <div className="daily-tasks-header">
@@ -201,17 +205,32 @@ function DailyTasksPage() {
                   <Coins size={16} />
                   <span>{task.rewardCoin}</span>
                 </div>
+                
+                {/* Completed but not claimed - bright clickable button */}
                 {task.completed && task.canClaim && (
                   <button 
-                    className="claim-btn"
+                    className="claim-btn claim-btn--available"
                     onClick={() => handleClaimReward(task.id)}
                   >
                     Nhận thưởng
                   </button>
                 )}
+                
+                {/* Completed but already claimed - disabled button */}
                 {task.completed && !task.canClaim && (
-                  <span className="reward-status">Đã nhận</span>
+                  <button className="claim-btn claim-btn--claimed" disabled>
+                    Đã nhận
+                  </button>
                 )}
+                
+                {/* Not completed - grayed out button */}
+                {!task.completed && (
+                  <button className="claim-btn claim-btn--incomplete" disabled>
+                    Chưa hoàn thành
+                  </button>
+                )}
+                
+                {/* Special case: DAILY_LOGIN task with manual completion */}
                 {!task.completed && task.missionCode === 'DAILY_LOGIN' && (
                   <button 
                     className="complete-btn"
@@ -229,10 +248,10 @@ function DailyTasksPage() {
           <button 
             className="claim-all-btn"
             onClick={handleClaimAllRewards}
-            disabled={tasksData.allTasksCompleted || tasksData.availableTasks === 0}
+            disabled={!hasClaimableTasks}
           >
             <Gift size={18} />
-            {tasksData.allTasksCompleted || tasksData.availableTasks === 0 ? 'Đã hoàn thành tất cả' : 'Nhận tất cả thưởng'}
+            {allTasksClaimed ? 'Đã hoàn thành tất cả' : 'Nhận tất cả thưởng'}
           </button>
         </div>
       </div>

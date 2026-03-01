@@ -10,5 +10,6 @@ import java.util.List;
 public interface LedgerEntryRepository extends JpaRepository<LedgerEntryEntity, Long> {
     boolean existsByIdempotencyKey(String idempotencyKey);
     List<LedgerEntryEntity> findByUserOrderByCreatedAtDesc(UserEntity user);
+    List<LedgerEntryEntity> findByUserIdAndReason(Long userId, LedgerReason reason);
     boolean existsByRefTypeAndRefIdAndReason(String refType, Long refId, LedgerReason reason);
 }

@@ -4,6 +4,7 @@ import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
+import com.example.WebTruyen.service.SimpleDailyTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.util.List;
 public class ChapterController {
 
     private final ChapterService chapterService;
+    private final SimpleDailyTaskService simpleDailyTaskService;
 
     @GetMapping("/{id}")
     public ResponseEntity<ChapterDetailResponse> getChapterDetail(
@@ -39,7 +41,21 @@ public class ChapterController {
         Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
                 ? userPrincipal.getUser().getId()
                 : null;
+        
         chapterService.recordChapterView(id, userId);
+        
+        // Track chapter reading for daily task
+        if (userId != null) {
+            try {
+                log.info("Tracking chapter reading for daily task - user: {}, chapter: {}", userId, id);
+                simpleDailyTaskService.updateTaskProgress(userId, "READ_CHAPTERS", 1);
+                log.info("Successfully tracked chapter reading for daily task");
+            } catch (Exception e) {
+                // Don't fail the chapter view recording if daily task tracking fails
+                log.warn("Failed to track chapter reading for daily task - user: {}, chapter: {}", userId, id, e);
+            }
+        }
+        
         return ResponseEntity.ok().build();
     }
 

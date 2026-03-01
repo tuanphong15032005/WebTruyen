@@ -12,6 +12,6 @@ export async function getUserProfile() {
 }
 
 export async function getUserProfileById(userId) {
-  const res = await axiosClient.get('/api/users/profile/${userId}')
+  const res = await axiosClient.get(`/api/users/profile/${userId}`)
   return res.data
 }

@@ -38,6 +38,8 @@ export default function UserProfile({ userData }) {
   const [coinAnimation, setCoinAnimation] = useState(false);
   const [walletData, setWalletData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasClaimedMonthlyBonus, setHasClaimedMonthlyBonus] = useState(false);
+  const [userRoles, setUserRoles] = useState([]);
 
   // ✅ Fix: Fetch profile từ API dùng token, không hardcode
   useEffect(() => {
@@ -102,11 +104,75 @@ export default function UserProfile({ userData }) {
         const data = await getWallet();
         console.log('✅ walletData structure:', JSON.stringify(data, null, 2));
         setWalletData(data);
+        
+        // Check localStorage for persisted monthly bonus status
+        const storedMonthlyBonusStatus = localStorage.getItem('monthlyBonusStatus');
+        if (storedMonthlyBonusStatus) {
+          const { claimed, month, year } = JSON.parse(storedMonthlyBonusStatus);
+          const now = new Date();
+          const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
+          const currentYear = now.getFullYear();
+          
+          // Only use stored status if it's for the current month
+          if (claimed && month === currentMonth && year === currentYear) {
+            setHasClaimedMonthlyBonus(true);
+            console.log('📅 Using stored monthly bonus status for current month');
+          } else {
+            // Clear expired status
+            localStorage.removeItem('monthlyBonusStatus');
+            setHasClaimedMonthlyBonus(false);
+          }
+        }
       } catch (error) {
         console.error('Error fetching wallet:', error);
       }
     };
     fetchWallet();
+  }, []);
+
+  // Fetch user roles
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const userId = localStorage.getItem('userId');
+        
+        console.log('🔑 Fetching roles for userId:', userId);
+        
+        const response = await fetch(`http://localhost:8081/api/users/profile/${userId}/roles`, {
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        console.log('🔑 Response status:', response.status);
+        console.log('🔑 Response ok:', response.ok);
+        
+        if (response.ok) {
+          const rolesData = await response.json();
+          console.log('🔑 Raw roles data from API:', rolesData);
+          console.log('🔑 Roles data type:', typeof rolesData);
+          console.log('🔑 Roles data length:', rolesData?.length);
+          
+          if (rolesData && rolesData.length > 0) {
+            console.log('🔑 First role structure (DTO):', rolesData[0]);
+            console.log('🔑 First role.roleName:', rolesData[0]?.roleName);
+            console.log('🔑 First role.roleCode:', rolesData[0]?.roleCode);
+            console.log('🔑 EXPECTED: Reader role should show "Reader"');
+          }
+          
+          setUserRoles(rolesData);
+        } else {
+          console.log('🔑 Failed to fetch roles');
+        }
+      } catch (error) {
+        console.error('🔑 Error fetching user roles:', error);
+      }
+    };
+
+    fetchUserRoles();
   }, []);
 
   const handleUpdateQuote = async () => {
@@ -156,37 +222,103 @@ export default function UserProfile({ userData }) {
     }
   };
 
+  const getUserRoleDisplay = () => {
+    console.log('🎯 getUserRoleDisplay called');
+    console.log('🎯 userRoles state:', userRoles);
+    console.log('🎯 userRoles length:', userRoles?.length);
+    
+    if (!userRoles || userRoles.length === 0) {
+      console.log('🎯 No roles found, returning "Thành viên"');
+      return 'Thành viên';
+    }
+    
+    // Extract role names from userRoles array (DTO structure)
+    const roles = userRoles
+      .map(userRole => {
+        console.log('🎯 Processing userRole:', userRole);
+        console.log('🎯 userRole.roleName:', userRole?.roleName);
+        console.log('🎯 userRole.roleCode:', userRole?.roleCode);
+        return userRole?.roleName || '';
+      })
+      .filter(Boolean);
+    
+    console.log('🎯 Extracted role names:', roles);
+    
+    if (roles.includes('ADMIN')) {
+      return 'Quản trị viên';
+    } else if (roles.includes('MOD')) {
+      return 'Biên tập viên';
+    } else if (roles.includes('AUTHOR')) {
+      return 'Tác giả';
+    } else if (roles.includes('REVIEWER')) {
+      return 'Reviewer';
+    } else if (roles.includes('READER')) {
+      return 'Reader';
+    } else if (roles.includes('Reader')) {
+      return 'Reader';
+    } else {
+      console.log('🎯 No matching role found, returning "Thành viên"');
+      return 'Thành viên';
+    }
+  };
+
   const handleCheckIn = async () => {
     setCheckInLoading(true);
     try {
       const response = await dailyCheckIn();
 
-      const currentCoins = profileData?.wallet?.balance_coin_a ?? 0;
-      const newCoinBalance = currentCoins + (response.addedAmount || 5000);
+      if (response.alreadyClaimed) {
+        setHasClaimedMonthlyBonus(true);
+        // Save to localStorage to prevent exploits
+        const now = new Date();
+        const monthlyBonusStatus = {
+          claimed: true,
+          month: now.getMonth() + 1, // JavaScript months are 0-indexed
+          year: now.getFullYear()
+        };
+        localStorage.setItem('monthlyBonusStatus', JSON.stringify(monthlyBonusStatus));
+        return;
+      }
 
-      const updatedProfileData = {
-        ...profileData,
-        wallet: {
-          ...profileData?.wallet,
-          balance_coin_a: newCoinBalance
+      if (response.success) {
+        const currentCoins = profileData?.wallet?.balance_coin_a ?? 0;
+        const newCoinBalance = currentCoins + (response.addedAmount || 5000);
+
+        const updatedProfileData = {
+          ...profileData,
+          wallet: {
+            ...profileData?.wallet,
+            balance_coin_a: newCoinBalance
+          }
+        };
+        setProfileData(updatedProfileData);
+        setLastCheckInAmount(response.addedAmount || 5000);
+        setHasClaimedMonthlyBonus(true);
+
+        // Save to localStorage to prevent exploits
+        const now = new Date();
+        const monthlyBonusStatus = {
+          claimed: true,
+          month: now.getMonth() + 1, // JavaScript months are 0-indexed
+          year: now.getFullYear()
+        };
+        localStorage.setItem('monthlyBonusStatus', JSON.stringify(monthlyBonusStatus));
+
+        setCoinAnimation(true);
+        setTimeout(() => setCoinAnimation(false), 1000);
+
+        try {
+          const updatedWallet = await getWallet();
+          setWalletData(updatedWallet);
+          await refreshWallet();
+        } catch (error) {
+          console.error('Error refreshing wallet:', error);
         }
-      };
-      setProfileData(updatedProfileData);
-      setLastCheckInAmount(response.addedAmount || 5000);
-
-      setCoinAnimation(true);
-      setTimeout(() => setCoinAnimation(false), 1000);
-
-      try {
-        const updatedWallet = await getWallet();
-        setWalletData(updatedWallet);
-        await refreshWallet();
-      } catch (error) {
-        console.error('Error refreshing wallet:', error);
+      } else {
+        console.error('Monthly bonus claim failed:', response.message);
       }
     } catch (error) {
       console.error('Check-in error:', error);
-      alert('Nhận coin thất bại. Vui lòng thử lại sau.');
     } finally {
       setCheckInLoading(false);
     }
@@ -350,17 +482,34 @@ export default function UserProfile({ userData }) {
                     <span style={{ fontWeight: '500' }}>Chức vụ</span>
                   </div>
                   <span style={{ display: 'inline-block', background: 'linear-gradient(135deg, #17a2b8, #138496)', color: 'white', padding: '4px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 8px rgba(23, 162, 184, 0.3)' }}>
-                    Thành viên
+                    {getUserRoleDisplay()}
                   </span>
                 </div>
 
                 <div style={{ backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '16px', border: '1px solid #e9ecef', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
                     <Calendar size={20} />
-                    <span style={{ fontWeight: '500' }}>Nhận Coin</span>
+                    <span style={{ fontWeight: '500' }}>Nhận 5000 coin</span>
                   </div>
-                  <button onClick={handleCheckIn} disabled={checkInLoading} style={{ color: '#28a745', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '6px', padding: '4px 8px', cursor: checkInLoading ? 'not-allowed' : 'pointer' }}>
-                    {checkInLoading ? 'Đang xử lý...' : '🎁 Nhận 5000 coin'}
+                  <button 
+                    onClick={handleCheckIn} 
+                    disabled={checkInLoading}
+                    style={{ 
+                      color: hasClaimedMonthlyBonus ? '#6c757d' : '#28a745', 
+                      fontWeight: '600', 
+                      textDecoration: 'none', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      backgroundColor: hasClaimedMonthlyBonus ? '#e9ecef' : '#d4edda', 
+                      border: hasClaimedMonthlyBonus ? '1px solid #ced4da' : '1px solid #c3e6cb', 
+                      borderRadius: '6px', 
+                      padding: '4px 8px', 
+                      cursor: checkInLoading ? 'not-allowed' : 'pointer',
+                      opacity: checkInLoading ? 0.6 : 1
+                    }}
+                  >
+                    {checkInLoading ? 'Đang xử lý...' : (hasClaimedMonthlyBonus ? '✅ Đã nhận thưởng' : '🎁 Nhận 5000 coin')}
                   </button>
                 </div>
 

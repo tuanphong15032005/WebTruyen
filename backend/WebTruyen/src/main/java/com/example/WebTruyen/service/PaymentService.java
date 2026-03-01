@@ -100,36 +100,15 @@ public class PaymentService {
         order.setPaidAt(LocalDateTime.now());
         paymentOrderRepository.save(order);
 
-        WalletEntity wallet = walletService.getOrCreateWalletEntity(userId);
+        // Use walletService.addCoinB() to trigger automatic daily task tracking
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found userId=" + userId));
+        
+        walletService.addCoinB(user, order.getCoinBAmount(), LedgerReason.TOPUP);
 
-        long nextBalanceB = wallet.getBalanceCoinB() + order.getCoinBAmount();
-        wallet.setBalanceCoinB(nextBalanceB);
-        wallet.setUpdatedAt(LocalDateTime.now());
-        walletRepository.save(wallet);
-
-        String idempotencyKey = "PAYMENT_TOPUP_" + orderId;
-        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey)) {
-            LedgerEntryEntity entry = LedgerEntryEntity.builder()
-                    .user(order.getUser())
-                    .coin(CoinType.B)
-                    .delta(order.getCoinBAmount())
-                    .balanceAfter(nextBalanceB)
-                    .reason(LedgerReason.TOPUP)
-                    .refType(REF_TYPE_PAYMENT)
-                    .refId(orderId)
-                    .idempotencyKey(idempotencyKey)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-
-            try {
-                ledgerEntryRepository.save(entry);
-            } catch (DataIntegrityViolationException ex) {
-                // Another request likely created the same ledger row concurrently (unique idempotency_key).
-                // Treat as idempotent success.
-            }
-        }
-
-        return new ConfirmPaymentResponse(wallet.getBalanceCoinB());
+        // Get updated wallet balance for response
+        WalletEntity updatedWallet = walletService.getOrCreateWalletEntity(userId);
+        return new ConfirmPaymentResponse(updatedWallet.getBalanceCoinB());
     }
 
     public List<TransactionHistoryResponse> getTransactionHistory(Long userId) {
