@@ -1,8 +1,7 @@
 /* LoginStyles.css */
 .login-container {
     display: flex;
-    height: 91vh;
-    overflow: hidden;
+    min-height: 91vh;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     flex-direction: row;
 }
@@ -88,6 +87,7 @@
     margin-bottom: 25px;
     position: relative;
     z-index: 10;
+    min-height: fit-content;
 }
 
 .form-input {
@@ -122,6 +122,9 @@
     font-size: 0.875rem;
     margin-top: 5px;
     display: block;
+    min-height: 1.2em;
+    white-space: nowrap;
+    overflow: visible;
 }
 
 /* Checkbox styling */
