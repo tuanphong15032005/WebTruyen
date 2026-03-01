@@ -101,15 +101,39 @@ const RatingStars = ({ rating = 0, className = '' }) => {
   );
 };
 
-const MetaLine = ({ icon, label, value, iconClass = '', valueClass = '' }) => (
+const MetaLine = ({
+  icon,
+  label,
+  value,
+  iconClass = '',
+  valueClass = '',
+  onValueClick,
+}) => (
   <p className='story-metadata__meta-line'>
     <span className={`story-metadata__icon ${iconClass}`} aria-hidden='true'>
       {icon}
     </span>
     <span className='story-metadata__meta-label'>{label}</span>
-    <strong className={`story-metadata__meta-value ${valueClass}`.trim()}>
-      {value}
-    </strong>
+    {typeof onValueClick === 'function' ? (
+      <button
+        type='button'
+        className={`story-metadata__meta-value ${valueClass}`.trim()}
+        onClick={onValueClick}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          textAlign: 'left',
+          cursor: 'pointer',
+        }}
+      >
+        {value}
+      </button>
+    ) : (
+      <strong className={`story-metadata__meta-value ${valueClass}`.trim()}>
+        {value}
+      </strong>
+    )}
   </p>
 );
 
@@ -1095,6 +1119,9 @@ const StoryMetadata = () => {
                       iconClass='story-metadata__icon--author'
                       label='Tác giả:'
                       value={story.authorPenName || 'Chưa có bút danh'}
+                      onValueClick={
+                        story?.authorId ? () => navigate(`/user/${story.authorId}`) : undefined
+                      }
                     />
                   )}
 
@@ -1108,6 +1135,9 @@ const StoryMetadata = () => {
                       iconClass='story-metadata__icon--translator'
                       label='Người dịch:'
                       value={translatorName}
+                      onValueClick={
+                        story?.authorId ? () => navigate(`/user/${story.authorId}`) : undefined
+                      }
                     />
                   )}
 

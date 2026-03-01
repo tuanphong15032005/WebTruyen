@@ -18,7 +18,7 @@ const COMPLETION_LABELS = {
 };
 
 const KIND_LABELS = {
-  original: 'Truyện gốc',
+  original: 'Truyện sáng tác',
   translated: 'Truyện dịch',
   ai: 'Truyện AI',
 };
@@ -164,7 +164,7 @@ const StoryDetail = () => {
 
   const kindLabel = useMemo(() => {
     const key = (story?.kind || '').toLowerCase();
-    return KIND_LABELS[key] || 'Truyện gốc';
+    return KIND_LABELS[key] || 'Truyện sáng tác';
   }, [story]);
 
   const isTranslated = useMemo(
@@ -633,7 +633,8 @@ const StoryDetail = () => {
                           onClick={() => toggleVolume(id)}
                         >
                           <span>
-                            {volume.title || `Tập ${volume.sequenceIndex || ''}`}
+                            {volume.title ||
+                              `Tập ${volume.sequenceIndex || ''}`}
                           </span>
                           <span className='story-detail__muted'>
                             {volume.chapterCount ?? chapters.length} chương

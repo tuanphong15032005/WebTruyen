@@ -5,6 +5,9 @@ const AuthorStories = ({ userId }) => {
     const [stories, setStories] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const publishedStories = stories.filter(
+        (story) => String(story?.status || '').trim().toLowerCase() === 'published'
+    );
 
     useEffect(() => {
         const fetchAuthorStories = async () => {
@@ -38,10 +41,10 @@ const AuthorStories = ({ userId }) => {
         );
     }
 
-    if (stories.length === 0) {
+    if (publishedStories.length === 0) {
         return (
             <div className="text-center py-8">
-                <p className="text-gray-600">No stories published yet.</p>
+                <p className="text-gray-600">No published stories yet.</p>
             </div>
         );
     }
@@ -50,7 +53,7 @@ const AuthorStories = ({ userId }) => {
         <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Published Stories</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {stories.map((story) => (
+                {publishedStories.map((story) => (
                     <div
                         key={story.storyId}
                         onClick={() => handleStoryClick(story.storyId)}

@@ -627,15 +627,23 @@
 
 .story-detail__chapter-page {
   gap: 18px;
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .story-detail__chapter-header {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  width: 100%;
 }
 
 .story-detail__chapter-title {
   margin: 0;
   color: #203b61;
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .story-detail__chapter-form {
@@ -645,6 +653,9 @@
   box-shadow: 0 16px 34px rgba(30, 72, 129, 0.12);
   padding: 20px;
   gap: 14px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
 }
 
 .story-detail__chapter-form .field {
