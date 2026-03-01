@@ -83,6 +83,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
             SELECT c
             FROM ChapterEntity c
             WHERE c.volume.story.id = :storyId
+              AND c.status = :status
               AND (
                     c.volume.sequenceIndex > :currentVolumeSequence
                  OR (c.volume.sequenceIndex = :currentVolumeSequence AND c.sequenceIndex > :currentChapterSequence)
@@ -95,6 +96,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
             @Param("currentVolumeSequence") Integer currentVolumeSequence,
             @Param("currentChapterSequence") Integer currentChapterSequence,
             @Param("currentChapterId") Long currentChapterId,
+            @Param("status") ChapterStatus status,
             Pageable pageable
     );
 
@@ -104,6 +106,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
             SELECT c
             FROM ChapterEntity c
             WHERE c.volume.story.id = :storyId
+              AND c.status = :status
               AND (
                     c.volume.sequenceIndex < :currentVolumeSequence
                  OR (c.volume.sequenceIndex = :currentVolumeSequence AND c.sequenceIndex < :currentChapterSequence)
@@ -116,6 +119,7 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
             @Param("currentVolumeSequence") Integer currentVolumeSequence,
             @Param("currentChapterSequence") Integer currentChapterSequence,
             @Param("currentChapterId") Long currentChapterId,
+            @Param("status") ChapterStatus status,
             Pageable pageable
     );
 }

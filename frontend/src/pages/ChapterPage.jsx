@@ -850,10 +850,7 @@ const ChapterPage = () => {
   const viewedChapterKeysRef = useRef(new Set());
 
   const orderedChapters = useMemo(
-    () =>
-      [...(Array.isArray(allChapters) ? allChapters : [])].sort(
-        (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
-      ),
+    () => (Array.isArray(allChapters) ? allChapters : []),
     [allChapters],
   );
 

@@ -226,9 +226,9 @@ public class ChapterServiceImpl implements ChapterService {
                         currentVolumeSequence,
                         currentChapterSequence,
                         chapter.getId(),
+                        ChapterStatus.published,
                         PageRequest.of(0, 1)
                 ).stream()
-                .filter(c -> ChapterStatus.published.equals(c.getStatus()))
                 .findFirst()
                 .map(ChapterEntity::getId)
                 .orElse(null);
@@ -255,9 +255,9 @@ public class ChapterServiceImpl implements ChapterService {
                         currentVolumeSequence,
                         currentChapterSequence,
                         chapter.getId(),
+                        ChapterStatus.published,
                         PageRequest.of(0, 1)
                 ).stream()
-                .filter(c -> ChapterStatus.published.equals(c.getStatus()))
                 .findFirst()
                 .map(ChapterEntity::getId)
                 .orElse(null);
