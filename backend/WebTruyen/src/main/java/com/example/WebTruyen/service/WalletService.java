@@ -396,6 +396,10 @@ public class WalletService {
             case TOPUP -> "TOPUP";
             case EARN -> "DAILY_TASK";
             case DONATE -> "DONATION";
+            case WITHDRAW -> "WITHDRAW";
+            case SPEND_CHAPTER -> "CHAPTER";
+            case ADJUST -> "ADJUST";
+            case REVIEW_REWARD -> "REVIEW_REWARD";
             default -> "OTHER";
         };
         
@@ -403,6 +407,10 @@ public class WalletService {
             case TOPUP -> "Nạp tiền";
             case EARN -> "Daily task reward";
             case DONATE -> "Nhận donation";
+            case WITHDRAW -> "Rút tiền";
+            case SPEND_CHAPTER -> "Mua chương";
+            case ADJUST -> "ADJUST";
+            case REVIEW_REWARD -> "Thưởng review";
             default -> "Giao dịch khác";
         };
         
