@@ -27,6 +27,9 @@ public class WithdrawRuleEntity {
     @Column(name = "fee_value", nullable = false, precision = 10, scale = 2)
     private BigDecimal feeValue;
 
+    @Column(name = "exchange_rate_to_vnd", precision = 30, scale = 8)
+    private BigDecimal exchangeRateToVnd;
+
     @Column(name = "min_withdraw_coin_b", nullable = false)
     private Long minWithdrawCoinB;
 
