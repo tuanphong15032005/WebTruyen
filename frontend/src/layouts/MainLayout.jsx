@@ -7,12 +7,25 @@ import '../App.css';
 function MainLayout({ children }) {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const isAuthPage = [
+    '/login',
+    '/register',
+    '/verify',
+    '/forgot-password',
+    '/reset-password',
+  ].includes(location.pathname);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       <main
-        className={`main-content ${isHomePage ? 'main-content--home' : 'main-content--spaced'}`}
+        className={`main-content ${
+          isHomePage
+            ? 'main-content--home'
+            : isAuthPage
+              ? 'main-content--auth'
+              : 'main-content--spaced'
+        }`}
       >
         {children}
       </main>

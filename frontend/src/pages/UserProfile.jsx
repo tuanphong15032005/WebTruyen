@@ -354,7 +354,7 @@ export default function UserProfile({ userData }) {
   // ✅ Hiển thị loading khi đang fetch
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f4f4' }}>
+      <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f4f4' }}>
         <p style={{ fontSize: '18px', color: '#666' }}>Đang tải...</p>
       </div>
     );
@@ -362,7 +362,7 @@ export default function UserProfile({ userData }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100%',
       backgroundColor: '#f4f4f4',
       fontFamily: 'Arial, sans-serif',
       margin: 0,

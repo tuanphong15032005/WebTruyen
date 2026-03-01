@@ -24,7 +24,7 @@
   margin: 0 auto;
   padding: 24px 20px;
   background: #f8fafc;
-  min-height: calc(100vh - 80px);
+  min-height: 0;
 }
 
 .daily-tasks-header {

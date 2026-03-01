@@ -1,8 +1,9 @@
 .home-dashboard {
   background: #f3f5fa;
-  min-height: calc(100vh - 120px);
+  min-height: 100%;
   /* Can bang padding top mac dinh cua .main-content de hero cham sat mep tren */
   margin-top: -20px;
+  overflow-x: hidden;
 }
 
 .home-dashboard__container {

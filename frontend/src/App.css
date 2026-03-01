@@ -132,6 +132,10 @@
   padding: 0;
 }
 
+.main-content--auth {
+  padding: 0;
+}
+
 .main-content--spaced {
   padding: 20px 0;
 }

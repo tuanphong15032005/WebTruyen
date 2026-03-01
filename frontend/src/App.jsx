@@ -28,7 +28,6 @@ import ChapterPage from './pages/ChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
 
-
 import CommentManagement from './pages/Author/CommentManagement';
 import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
@@ -123,46 +122,46 @@ function App() {
           path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}
         />
-                    <Route
-                      path='/author/comments'
-                      element={
-                        <RoleProtectedRoute allowedRoles={['AUTHOR']}>
-                          <CommentManagement />
-                        </RoleProtectedRoute>
-                      }
-                    />
-                                <Route
-                                  path='/author/performance-analytics'
-                                  element={
-                                    <RoleProtectedRoute allowedRoles={['AUTHOR']}>
-                                      <PerformanceAnalytics />
-                                    </RoleProtectedRoute>
-                                  }
-                                />
-                                <Route
-                                  path='/admin/dashboard'
-                                  element={
-                                    <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
-                                      <AdminDashboard />
-                                    </RoleProtectedRoute>
-                                  }
-                                />
-                                <Route
-                                  path='/admin/content-moderation'
-                                  element={
-                                    <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
-                                      <ContentModeration />
-                                    </RoleProtectedRoute>
-                                  }
-                                />
-                                <Route
-                                  path='/admin/violation-reports'
-                                  element={
-                                    <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
-                                      <ViolationReportManagement />
-                                    </RoleProtectedRoute>
-                                  }
-                                />
+        <Route
+          path='/author/comments'
+          element={
+            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+              <CommentManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/author/performance-analytics'
+          element={
+            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+              <PerformanceAnalytics />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/dashboard'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <AdminDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/content-moderation'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <ContentModeration />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/violation-reports'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <ViolationReportManagement />
+            </RoleProtectedRoute>
+          }
+        />
       </Routes>
     </MainLayout>
   );

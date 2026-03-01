@@ -44,6 +44,21 @@ html[data-theme='light'] {
   --button-bg: #ffffff;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 a {
   font-weight: 500;
   color: var(--primary);

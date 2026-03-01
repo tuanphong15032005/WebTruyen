@@ -45,10 +45,13 @@ api.interceptors.request.use(
 // ==========================
 // RESPONSE INTERCEPTOR
 // ==========================
+//tác dụng của hàm này 
+// - Tự động trích xuất dữ liệu từ phản hồi thành công, giúp các phần khác của ứng dụng dễ dàng sử dụng dữ liệu mà không cần phải truy cập vào thuộc tính `data` của phản hồi.
+// - Xử lý lỗi một cách nhất quán, đặc biệt là khi token hết hạn (401 Unauthorized), bằng cách xóa dữ liệu xác thực và chuyển hướng người dùng đến trang đăng nhập.
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-//<<<<<<< HEAD:frontend/src/services/api.js
+    //<<<<<<< HEAD:frontend/src/services/api.js
     const responseData = error?.response?.data;
     let message = '';
 
@@ -57,22 +60,22 @@ api.interceptors.response.use(
       // Clear all auth data
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
-      
+
       // Redirect to login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
-      
-      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'));
+
+      return Promise.reject(
+        new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'),
+      );
     }
 
     if (typeof responseData === 'string' && responseData.trim()) {
       message = responseData.trim();
     } else if (responseData && typeof responseData === 'object') {
       const nestedMessage =
-        responseData.message ||
-        responseData.error ||
-        responseData.detail;
+        responseData.message || responseData.error || responseData.detail;
 
       if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
         message = nestedMessage.trim();
@@ -94,18 +97,18 @@ api.interceptors.response.use(
 
     return Promise.reject(new Error(message));
   },
-//=======
-//    const message =
-//      error.response?.data?.message ||
-//      (typeof error.response?.data === 'string' ? error.response.data : null) ||
-//      error.message ||
-//      'Đã xảy ra lỗi, vui lòng thử lại';
-//
-//    const err = new Error(message);
-//    err.response = error.response;
-//    return Promise.reject(err);
-//  }
-//>>>>>>> origin/minhfinal1:frontend/src/services/Api.js
+  //=======
+  //    const message =
+  //      error.response?.data?.message ||
+  //      (typeof error.response?.data === 'string' ? error.response.data : null) ||
+  //      error.message ||
+  //      'Đã xảy ra lỗi, vui lòng thử lại';
+  //
+  //    const err = new Error(message);
+  //    err.response = error.response;
+  //    return Promise.reject(err);
+  //  }
+  //>>>>>>> origin/minhfinal1:frontend/src/services/Api.js
 );
 
 export default api;
