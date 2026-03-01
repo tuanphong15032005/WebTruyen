@@ -88,7 +88,7 @@ public class CloudinaryStorageService implements StorageService {
             throw new RuntimeException("Upload base64 image failed", e);
         }
     }
-
+   //resize img using thumbailnator
     private byte[] resizeImage(byte[] input, int width, int height, boolean keepAspect) throws IOException {
         if (input == null || input.length == 0) return input;
         ByteArrayOutputStream output = new ByteArrayOutputStream();

@@ -64,7 +64,6 @@ public class ChapterController {
         log.info("Getting next chapter for chapter ID: {}", id);
         
         Long nextChapterId = chapterService.getNextChapterId(id);
-        
         if (nextChapterId == null) {
             return ResponseEntity.noContent().build();
         }

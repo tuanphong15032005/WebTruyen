@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ChapterServiceImpl implements ChapterService {
-
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
@@ -213,7 +212,6 @@ public class ChapterServiceImpl implements ChapterService {
                 ? chapter.getVolume().getStory().getId()
                 : null;
         if (storyId == null) return null;
-
         //Lấy thứ tự của volume trong strid vừa lấy
         Integer currentVolumeSequence = chapter.getVolume().getSequenceIndex() != null
                 ? chapter.getVolume().getSequenceIndex()
@@ -230,6 +228,7 @@ public class ChapterServiceImpl implements ChapterService {
                         chapter.getId(),
                         PageRequest.of(0, 1)
                 ).stream()
+                .filter(c -> ChapterStatus.published.equals(c.getStatus()))
                 .findFirst()
                 .map(ChapterEntity::getId)
                 .orElse(null);
@@ -244,8 +243,7 @@ public class ChapterServiceImpl implements ChapterService {
                 ? chapter.getVolume().getStory().getId()
                 : null;
         if (storyId == null) return null;
-
-        Integer currentVolumeSequence = chapter.getVolume().getSequenceIndex() != null
+      Integer currentVolumeSequence = chapter.getVolume().getSequenceIndex() != null
                 ? chapter.getVolume().getSequenceIndex()
                 : Integer.MAX_VALUE;
         Integer currentChapterSequence = chapter.getSequenceIndex() != null
@@ -259,6 +257,7 @@ public class ChapterServiceImpl implements ChapterService {
                         chapter.getId(),
                         PageRequest.of(0, 1)
                 ).stream()
+                .filter(c -> ChapterStatus.published.equals(c.getStatus()))
                 .findFirst()
                 .map(ChapterEntity::getId)
                 .orElse(null);
