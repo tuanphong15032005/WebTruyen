@@ -382,15 +382,32 @@ public class WalletService {
     }
 
     public void addCoinB(UserEntity user, Long amount, LedgerReason reason) {
+        // 1. Lấy wallet
         WalletEntity wallet = getOrCreateWalletEntity(user.getId());
+        // 2. Lấy balance cũ
         Long newBalance = wallet.getBalanceCoinB() + amount;
+        // 3. Cộng coin
         wallet.setBalanceCoinB(newBalance);
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
+
+        // 4. Ghi ledger entry (lịch sử giao dịch) với refType phù hợp
+        String refType = switch (reason) {
+            case TOPUP -> "TOPUP";
+            case EARN -> "DAILY_TASK";
+            case DONATE -> "DONATION";
+            default -> "OTHER";
+        };
         
-        // Create ledger entry
-        createDailyTaskLedgerEntry(user.getId(), CoinType.B, amount, reason, 
-            "DAILY_TASK", "Daily task reward");
+        String description = switch (reason) {
+            case TOPUP -> "Nạp tiền";
+            case EARN -> "Daily task reward";
+            case DONATE -> "Nhận donation";
+            default -> "Giao dịch khác";
+        };
+        
+        createLedgerEntry(user.getId(), CoinType.B, amount, reason, 
+            refType, System.currentTimeMillis(), description);
         
         // Auto-track daily task for topup only (donation is tracked separately)
         if (reason == LedgerReason.TOPUP) {
