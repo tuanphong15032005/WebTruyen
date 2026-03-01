@@ -13,8 +13,11 @@ import com.example.WebTruyen.repository.UserRoleRepository;
 import com.example.WebTruyen.repository.WalletRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
@@ -51,6 +54,10 @@ public class AuthService {
 
     @Autowired
     private UserRoleRepository userRoleRepository;
+
+    @Autowired
+    @Lazy
+    private SimpleDailyTaskService simpleDailyTaskService;
 
     public UserEntity authenticate(String username, String password) {
         UserEntity user = userRepository.findByUsername(username)
@@ -95,6 +102,9 @@ public class AuthService {
             user.setLockUntil(null);
             userRepository.save(user);
         }
+
+        // Auto-track daily login mission
+        trackDailyLogin(user.getId());
 
         return user;
     }
@@ -230,5 +240,28 @@ public class AuthService {
         if (passwordEncoder.matches(newPassword, currentPasswordHash)) {
             throw new RuntimeException("New password cannot be the same as the current password");
         }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private void trackDailyLogin(Long userId) {
+        try {
+            // Check if DAILY_LOGIN mission exists for today
+            if (simpleDailyTaskService.isMissionAvailable("DAILY_LOGIN")) {
+                simpleDailyTaskService.updateTaskProgress(userId, "DAILY_LOGIN", null);
+                System.out.println("Successfully tracked DAILY_LOGIN mission for user: " + userId);
+            } else {
+                System.out.println("DAILY_LOGIN mission not available for today, skipping tracking for user: " + userId);
+            }
+        } catch (Exception e) {
+            // Don't fail authentication if daily task tracking fails
+            System.err.println("Failed to track DAILY_LOGIN mission for user: " + userId + ", error: " + e.getMessage());
+        }
+    }
+
+    public boolean isUsernameTaken(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            return false;
+        }
+        return userRepository.existsByUsername(username.trim());
     }
 }

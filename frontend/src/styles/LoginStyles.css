@@ -113,6 +113,10 @@
     border-bottom-color: #dc3545;
 }
 
+.form-input.success {
+    border-bottom-color: #28a745;
+}
+
 .form-input::placeholder {
     color: #999;
 }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../../styles/LoginStyles.css';
 
@@ -21,9 +21,57 @@ function Register() {
     });
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+    const [usernameAvailable, setUsernameAvailable] = useState(null);
     const navigate = useNavigate();
     const passwordRef = useRef(null);
     const confirmPasswordRef = useRef(null);
+    const usernameCheckTimeoutRef = useRef(null);
+
+    // Check username availability
+    const checkUsernameAvailability = async (username) => {
+        if (!username || username.length < 3) {
+            setUsernameAvailable(null);
+            return;
+        }
+
+        setIsCheckingUsername(true);
+        try {
+            const response = await fetch(`http://localhost:8081/api/auth/check-username?username=${encodeURIComponent(username)}`);
+            if (response.ok) {
+                const isAvailable = await response.json();
+                setUsernameAvailable(isAvailable);
+                
+                if (!isAvailable) {
+                    setErrors(prev => ({ ...prev, username: 'Tên đăng nhập đã tồn tại' }));
+                } else {
+                    setErrors(prev => ({ ...prev, username: '' }));
+                }
+            }
+        } catch (error) {
+            console.error('Error checking username:', error);
+            setUsernameAvailable(null);
+        } finally {
+            setIsCheckingUsername(false);
+        }
+    };
+
+    // Debounced username check
+    useEffect(() => {
+        if (usernameCheckTimeoutRef.current) {
+            clearTimeout(usernameCheckTimeoutRef.current);
+        }
+
+        usernameCheckTimeoutRef.current = setTimeout(() => {
+            checkUsernameAvailability(formData.username);
+        }, 500);
+
+        return () => {
+            if (usernameCheckTimeoutRef.current) {
+                clearTimeout(usernameCheckTimeoutRef.current);
+            }
+        };
+    }, [formData.username]);
 
     const validateForm = () => {
         const newErrors = {
@@ -41,6 +89,9 @@ function Register() {
             isValid = false;
         } else if (formData.username.length < 3) {
             newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự';
+            isValid = false;
+        } else if (usernameAvailable === false) {
+            newErrors.username = 'Tên đăng nhập đã tồn tại';
             isValid = false;
         }
 
@@ -163,17 +214,56 @@ function Register() {
 
                     <form onSubmit={handleSubmit} noValidate>
                         <div className="form-group">
-                            <input
-                                type="text"
-                                name="username"
-                                value={formData.username}
-                                onChange={handleChange}
-                                className={`form-input ${errors.username ? 'error' : ''}`}
-                                placeholder="Tên đăng nhập"
-                                disabled={isLoading}
-                                autoComplete="username"
-                                required
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    className={`form-input ${errors.username ? 'error' : ''} ${usernameAvailable === true ? 'success' : ''} ${usernameAvailable === false ? 'error' : ''}`}
+                                    placeholder="Tên đăng nhập"
+                                    disabled={isLoading}
+                                    autoComplete="username"
+                                    required
+                                    style={{ paddingRight: '40px' }}
+                                />
+                                {isCheckingUsername && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        right: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '16px',
+                                        height: '16px',
+                                        border: '2px solid #ccc',
+                                        borderTop: '2px solid #d63384',
+                                        borderRadius: '50%',
+                                        animation: 'spin 1s linear infinite'
+                                    }}></div>
+                                )}
+                                {usernameAvailable === true && !isCheckingUsername && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        right: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: '#28a745',
+                                        fontSize: '18px',
+                                        fontWeight: 'bold'
+                                    }}>✓</div>
+                                )}
+                                {usernameAvailable === false && !isCheckingUsername && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        right: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: '#dc3545',
+                                        fontSize: '18px',
+                                        fontWeight: 'bold'
+                                    }}>✗</div>
+                                )}
+                            </div>
                             {errors.username && <span className="error-text">{errors.username}</span>}
                         </div>
 
@@ -254,7 +344,7 @@ function Register() {
 
                         <button
                             type="submit"
-                            disabled={isLoading}
+                            disabled={isLoading || usernameAvailable === false || isCheckingUsername}
                             className={`submit-button ${isLoading ? 'loading' : ''}`}
                         >
                             {isLoading ? (

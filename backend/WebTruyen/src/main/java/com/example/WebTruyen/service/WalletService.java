@@ -22,6 +22,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -392,14 +394,7 @@ public class WalletService {
         
         // Auto-track daily task for topup only (donation is tracked separately)
         if (reason == LedgerReason.TOPUP) {
-            try {
-                log.info("Auto-tracking MAKE_TOPUP daily task for user {} - amount: {}", user.getId(), amount);
-                simpleDailyTaskService.updateTaskProgress(user.getId(), "MAKE_TOPUP", null);
-                log.info("Successfully auto-tracked MAKE_TOPUP daily task for user: {}", user.getId());
-            } catch (Exception e) {
-                // Don't fail the coin addition if daily task tracking fails
-                log.warn("Failed to auto-track MAKE_TOPUP daily task for user: {}", user.getId(), e);
-            }
+            trackTopupDailyTask(user.getId(), amount);
         }
     }
 
@@ -433,6 +428,24 @@ public class WalletService {
             // Log error but don't fail the transaction
             log.error("Failed to create ledger entry for daily task reward: user {}, amount {} {}", 
                     userId, delta, coinType, e);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private void trackTopupDailyTask(Long userId, Long amount) {
+        try {
+            log.info("Auto-tracking MAKE_TOPUP daily task for user {} - amount: {}", userId, amount);
+            
+            // Check if the mission exists for today before attempting to track
+            if (simpleDailyTaskService.isMissionAvailable("MAKE_TOPUP")) {
+                simpleDailyTaskService.updateTaskProgress(userId, "MAKE_TOPUP", null);
+                log.info("Successfully auto-tracked MAKE_TOPUP daily task for user: {}", userId);
+            } else {
+                log.info("MAKE_TOPUP daily mission not available for today, skipping tracking for user: {}", userId);
+            }
+        } catch (Exception e) {
+            // Don't fail the coin addition if daily task tracking fails
+            log.warn("Failed to auto-track MAKE_TOPUP daily task for user: {}", userId, e);
         }
     }
 }

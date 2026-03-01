@@ -128,4 +128,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<?> checkUsernameAvailability(@RequestParam String username) {
+        try {
+            boolean isAvailable = !authService.isUsernameTaken(username);
+            return ResponseEntity.ok(isAvailable);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error checking username availability");
+        }
+    }
 }

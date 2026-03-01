@@ -694,4 +694,17 @@ public class SimpleDailyTaskService {
             return 0;
         }
     }
+
+    /**
+     * Check if a daily mission is available for today
+     */
+    public boolean isMissionAvailable(String missionCode) {
+        try {
+            LocalDate today = LocalDate.now();
+            return dailyMissionRepository.findByDateAndMissionCode(today, missionCode).isPresent();
+        } catch (Exception e) {
+            log.warn("Error checking mission availability for {}: {}", missionCode, e.getMessage());
+            return false;
+        }
+    }
 }
