@@ -938,7 +938,7 @@ function HomePage() {
                 </ol>
               </section>
 
-              <section className='home-ranking'>
+              <section className='home-ranking home-ranking--comments'>
                 <div className='home-ranking__head'>
                   <h2>
                     <MessageSquare

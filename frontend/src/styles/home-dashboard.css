@@ -28,6 +28,7 @@
 .home-hero {
   position: relative;
   width: 100vw;
+  border-radius: 14px;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   border-radius: 0;
@@ -262,15 +263,19 @@
 .home-main-grid__left {
   display: grid;
   gap: 16px;
+  width: min(100%, 980px);
+  margin: 0 auto;
 }
 
 .home-main-grid__right {
   display: grid;
-  gap: 16px;
+  gap: 30px;
   align-content: start;
-  position: sticky;
-  top: 90px;
-  height: fit-content;
+  position: static;
+  top: auto;
+  height: auto;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .home-section {
@@ -287,6 +292,7 @@
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
+  border-bottom: #7693be 0.5px solid;
 }
 
 .home-section__head h2 {
@@ -295,7 +301,7 @@
   align-items: center;
   gap: 8px;
   font-size: 1.45rem;
-  color: #1b2f56;
+  color: #404f5f;
 }
 
 .home-section__head h2 svg,
@@ -587,9 +593,16 @@
   background: #ffffff;
   box-shadow: 0 10px 22px rgba(16, 31, 67, 0.08);
   padding: 14px;
-  margin-bottom: 25px;
-  position: sticky;
-  top: 90px;
+  margin-bottom: 0;
+  position: static;
+}
+
+.home-ranking--left {
+  width: 100%;
+}
+
+.home-ranking--comments {
+  margin-top: 0;
 }
 
 .home-ranking__head {

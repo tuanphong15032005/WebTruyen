@@ -1,4 +1,4 @@
-
+﻿
 ﻿import React, {
   useCallback,
   useEffect,
@@ -714,9 +714,9 @@ const CreateChapter = () => {
   return (
     <div className='page story-detail__chapter-page'>
       <div className='page-header story-detail__chapter-header'>
-        <h2 className='story-detail__chapter-title'>
-          {isEditing ? 'Chỉnh sửa Chapter' : 'Tạo Chapter'}
-        </h2>
+        <h1 className='story-detail__chapter-title'>
+          {isEditing ? 'Chỉnh sửa chapter' : 'Tạo chapter'}
+        </h1>
       </div>
 
       <div className='card form story-detail__chapter-form'>

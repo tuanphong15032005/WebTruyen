@@ -2,6 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  width: 100%;
   background: #ffffff;
   border-bottom: 1px solid #e1e7f1;
   box-shadow: 0 4px 14px rgba(18, 35, 72, 0.08);
@@ -881,6 +882,7 @@
 }
 
 .site-footer {
+  width: 100%;
   border-top: 1px solid #dfe6f3;
   background: #fbfcff;
   margin-top: auto;
