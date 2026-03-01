@@ -29,6 +29,11 @@ public class VolumeEntity {
     @Column(length = 300)
     private String title;
 
+    // Hieu Son - ngay 01/03/2026 | v1.0.0-volume-cover-url | branch: summary-no-3-merge
+    // Cap nhat entity theo migration: them cot cover_url cho bang volumes.
+    @Column(name = "cover_url", length = 1000)
+    private String coverUrl;
+
     @Column(name = "sequence_index", nullable = false)
     private Integer sequenceIndex;
 

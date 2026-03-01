@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 @Table(name = "donations",
         indexes = {
                 @Index(name = "ix_donations_from_user", columnList = "from_user_id"),
-                @Index(name = "ix_donations_to_user", columnList = "to_user_id")
+                @Index(name = "ix_donations_to_user", columnList = "to_user_id"),
+                @Index(name = "ix_donations_message", columnList = "message")
         }
 )
 @Getter @Setter
@@ -41,6 +42,12 @@ public class DonationEntity {
 
     @Column(name = "amount_coin", nullable = false)
     private Long amountCoin;
+
+    // Hieu Son - ngay 01/03/2026 | v1.0.0-donation-message | branch: summary-no-3-merge
+    // Cap nhat entity theo migration: them cot message cho bang donations.
+    @Lob
+    @Column(name = "message")
+    private String message;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

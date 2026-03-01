@@ -57,6 +57,11 @@ public class UserEntity {
     @Column(name = "avatar_url", length = 1000)
     private String avatarUrl;
 
+    // Hieu Son - ngay 01/03/2026 | v1.0.0-user-cover-url | branch: summary-no-3-merge
+    // Cap nhat entity theo migration: them cot cover_url cho bang users.
+    @Column(name = "cover_url", length = 1000)
+    private String coverUrl;
+
     @Lob
     @Column(name = "settings_json")
     private String settingsJson;
