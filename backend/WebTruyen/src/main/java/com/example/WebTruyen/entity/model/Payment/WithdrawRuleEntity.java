@@ -16,7 +16,6 @@ public class WithdrawRuleEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // schema chỉ cho B, nhưng vẫn map enum CoinType nếu muốn
     @Column(nullable = false, length = 1)
     private String coin; // "B"
 
