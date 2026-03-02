@@ -20,6 +20,33 @@ const STAR_VALUES = [1, 2, 3, 4, 5];
 const COMMENTS_PAGE_SIZE = 8;
 const REVIEW_PREVIEW_LENGTH = 150;
 
+// Hieuson - thêm log ở console side, ngày 3/1/2026.
+const logFlowStart = (flowName, payload) => {
+  console.group(`[${flowName}]`);
+  console.log('Step 1 - log entry');
+  console.log(`${flowName} triggered`);
+  console.log('Step 2 - log payload');
+  console.log('payload', payload);
+};
+
+// Hieuson - thêm log ở console side, ngày 3/1/2026.
+const logFlowSuccess = (response) => {
+  console.log('Step 3 - log API response');
+  console.log('response', response);
+  console.groupEnd();
+};
+
+// Hieuson - thêm log ở console side, ngày 3/1/2026.
+const logFlowError = (error) => {
+  console.log('Step 3 - log API response');
+  console.log('response', {
+    error: error?.message || 'Unknown error',
+    status: error?.response?.status || null,
+    data: error?.response?.data || null,
+  });
+  console.groupEnd();
+};
+
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
 const formatDateTime = (value) => {
@@ -192,9 +219,16 @@ const StoryMetadata = () => {
   const fetchStory = useCallback(async () => {
     try {
       setLoadingStory(true);
+      logFlowStart('METADATA_FETCH_STORY_FLOW', {
+        endpoint: `/public/stories/${storyId}`,
+        method: 'GET',
+        payload: { storyId },
+      });
       const response = await storyService.getPublicStory(storyId);
+      logFlowSuccess(response);
       setStory(response || null);
     } catch (error) {
+      logFlowError(error);
       console.error('getStory metadata error', error);
       setStory(null);
       notify('Truyện chưa công khai hoặc không tồn tại', 'error');
@@ -206,7 +240,13 @@ const StoryMetadata = () => {
   const fetchVolumes = useCallback(async () => {
     try {
       setLoadingVolumes(true);
+      logFlowStart('METADATA_FETCH_VOLUMES_FLOW', {
+        endpoint: `/public/stories/${storyId}/volumes`,
+        method: 'GET',
+        payload: { storyId },
+      });
       const response = await storyService.getPublicVolumes(storyId);
+      logFlowSuccess(response);
       const list = Array.isArray(response) ? response : [];
       setVolumes(list);
 
@@ -217,6 +257,7 @@ const StoryMetadata = () => {
         }
       }
     } catch (error) {
+      logFlowError(error);
       console.error('getVolumes metadata error', error);
       notify('Không tải được danh sách tập', 'error');
     } finally {
@@ -227,13 +268,20 @@ const StoryMetadata = () => {
   const fetchLatestReview = useCallback(async () => {
     try {
       setLoadingReviews(true);
+      logFlowStart('METADATA_FETCH_LATEST_REVIEW_FLOW', {
+        endpoint: `/public/stories/${storyId}/reviews`,
+        method: 'GET',
+        payload: { page: 0, size: 1 },
+      });
       const response = await storyService.getStoryReviews(storyId, {
         page: 0,
         size: 1,
       });
+      logFlowSuccess(response);
       const items = Array.isArray(response?.items) ? response.items : [];
       setLatestReview(items[0] || null);
     } catch (error) {
+      logFlowError(error);
       console.error('getStoryReviews error', error);
       notify('Không tải được đánh giá', 'error');
     } finally {
@@ -245,9 +293,16 @@ const StoryMetadata = () => {
   const fetchSidebar = useCallback(async () => {
     try {
       setLoadingSidebar(true);
+      logFlowStart('METADATA_FETCH_SIDEBAR_FLOW', {
+        endpoint: `/public/stories/${storyId}/sidebar`,
+        method: 'GET',
+        payload: { storyId },
+      });
       const response = await storyService.getPublicStorySidebar(storyId);
+      logFlowSuccess(response);
       setSidebar(response || null);
     } catch (error) {
+      logFlowError(error);
       console.error('getPublicStorySidebar error', error);
       setSidebar(null);
     } finally {
@@ -257,18 +312,32 @@ const StoryMetadata = () => {
 
   const fetchNotifyStatus = useCallback(async () => {
     try {
+      logFlowStart('METADATA_FETCH_NOTIFY_STATUS_FLOW', {
+        endpoint: `/stories/${storyId}/notify-status`,
+        method: 'GET',
+        payload: { storyId },
+      });
       const response = await storyService.getNotifyStatus(storyId);
+      logFlowSuccess(response);
       setNotifyEnabled(Boolean(response?.enabled));
-    } catch {
+    } catch (error) {
+      logFlowError(error);
       setNotifyEnabled(false);
     }
   }, [storyId]);
 
   const fetchLibraryStatus = useCallback(async () => {
     try {
+      logFlowStart('METADATA_FETCH_LIBRARY_STATUS_FLOW', {
+        endpoint: `/stories/${storyId}/library-status`,
+        method: 'GET',
+        payload: { storyId },
+      });
       const response = await storyService.getLibraryStatus(storyId);
+      logFlowSuccess(response);
       setLibrarySaved(Boolean(response?.saved));
-    } catch {
+    } catch (error) {
+      logFlowError(error);
       setLibrarySaved(false);
     }
   }, [storyId]);
@@ -293,10 +362,16 @@ const StoryMetadata = () => {
     async (pageIndex, append) => {
       try {
         setLoadingComments(true);
+        logFlowStart('METADATA_FETCH_COMMENTS_FLOW', {
+          endpoint: `/public/stories/${storyId}/comments`,
+          method: 'GET',
+          payload: { page: pageIndex, size: COMMENTS_PAGE_SIZE, append },
+        });
         const response = await storyService.getStoryComments(storyId, {
           page: pageIndex,
           size: COMMENTS_PAGE_SIZE,
         });
+        logFlowSuccess(response);
         const items = Array.isArray(response?.items) ? response.items : [];
         setComments((prev) => (append ? [...prev, ...items] : items));
         setCommentsPage(Number(response?.page || pageIndex));
@@ -323,6 +398,7 @@ const StoryMetadata = () => {
           setEditingContent('');
         }
       } catch (error) {
+        logFlowError(error);
         console.error('getStoryComments error', error);
         notify('Không tải được bình luận', 'error');
       } finally {
@@ -538,7 +614,13 @@ const StoryMetadata = () => {
     }
     try {
       setNotifyLoading(true);
+      logFlowStart('METADATA_TOGGLE_NOTIFY_FLOW', {
+        endpoint: `/stories/${storyId}/notify-status/toggle`,
+        method: 'POST',
+        payload: { storyId },
+      });
       const response = await storyService.toggleNotifyStatus(storyId);
+      logFlowSuccess(response);
       const enabled = Boolean(response?.enabled);
       setNotifyEnabled(enabled);
       notify(
@@ -548,6 +630,7 @@ const StoryMetadata = () => {
         'success',
       );
     } catch (error) {
+      logFlowError(error);
       console.error('toggle notify error', error);
       notify('Không thể cập nhật thông báo', 'error');
     } finally {
@@ -557,20 +640,58 @@ const StoryMetadata = () => {
 
   const goToReaderChapter = useCallback(
     (targetChapterId) => {
+      // Hieuson - thêm log ở console side, ngày 3/1/2026.
+      console.group('[METADATA_GO_TO_READER_CHAPTER_FLOW]');
+      console.log('Step 1 - log entry');
+      console.log('METADATA_GO_TO_READER_CHAPTER_FLOW triggered');
+      console.log('Step 2 - log payload');
+      console.log('payload', {
+        storyId,
+        targetChapterId,
+        endpoint: `/stories/${storyId}/chapters/${targetChapterId || ''}`,
+        method: 'NAVIGATE',
+      });
       if (!targetChapterId) {
+        console.log('Step 3 - log API response');
+        console.log('response', { success: false, reason: 'No readable chapter' });
+        console.groupEnd();
         notify('Truyện chưa có chương để đọc', 'info');
         return;
       }
+      console.log('Step 3 - log API response');
+      console.log('response', {
+        success: true,
+        navigateTo: `/stories/${storyId}/chapters/${targetChapterId}`,
+      });
+      console.groupEnd();
       navigate(`/stories/${storyId}/chapters/${targetChapterId}`);
     },
     [navigate, notify, storyId],
   );
 
   const handleReadFromStart = useCallback(() => {
+    // Hieuson - thêm log ở console side, ngày 3/1/2026.
+    console.group('[METADATA_READ_FROM_START_FLOW]');
+    console.log('Step 1 - log entry');
+    console.log('METADATA_READ_FROM_START_FLOW triggered');
+    console.log('Step 2 - log payload');
+    console.log('payload', { firstReadableChapterId });
+    console.log('Step 3 - log API response');
+    console.log('response', { targetChapterId: firstReadableChapterId || null });
+    console.groupEnd();
     goToReaderChapter(firstReadableChapterId);
   }, [firstReadableChapterId, goToReaderChapter]);
 
   const handleReadLatest = useCallback(() => {
+    // Hieuson - thêm log ở console side, ngày 3/1/2026.
+    console.group('[METADATA_READ_LATEST_FLOW]');
+    console.log('Step 1 - log entry');
+    console.log('METADATA_READ_LATEST_FLOW triggered');
+    console.log('Step 2 - log payload');
+    console.log('payload', { latestReadableChapterId });
+    console.log('Step 3 - log API response');
+    console.log('response', { targetChapterId: latestReadableChapterId || null });
+    console.groupEnd();
     goToReaderChapter(latestReadableChapterId);
   }, [goToReaderChapter, latestReadableChapterId]);
 
@@ -618,7 +739,13 @@ const StoryMetadata = () => {
     }
     try {
       setLibraryLoading(true);
+      logFlowStart('METADATA_TOGGLE_LIBRARY_FLOW', {
+        endpoint: `/stories/${storyId}/library/toggle`,
+        method: 'POST',
+        payload: { storyId },
+      });
       const response = await storyService.toggleLibraryStatus(storyId);
+      logFlowSuccess(response);
       const saved = Boolean(response?.saved);
       setLibrarySaved(saved);
       setSidebar((prev) => {
@@ -638,6 +765,7 @@ const StoryMetadata = () => {
         'success',
       );
     } catch (error) {
+      logFlowError(error);
       console.error('toggle library error', error);
       notify('Không thể cập nhật thư viện', 'error');
     } finally {
@@ -1334,6 +1462,7 @@ const StoryMetadata = () => {
           {volumes.map((volume) => {
             const id = String(volume.id || volume.volumeId);
             const isOpen = expandedVolumes.has(id);
+            const volumeCoverUrl = String(volume?.coverUrl || '').trim();
             const chapters = Array.isArray(volume.chapters)
               ? [...volume.chapters].sort(
                   (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
@@ -1347,11 +1476,24 @@ const StoryMetadata = () => {
                   className='story-metadata__volume-head'
                   onClick={() => handleToggleVolume(id)}
                 >
-                  <span>
-                    {volume.title || `Tập ${volume.sequenceIndex || ''}`}
+                  <span className='story-metadata__volume-head-main'>
+                    {volumeCoverUrl ? (
+                      <img
+                        className='story-metadata__volume-cover'
+                        src={volumeCoverUrl}
+                        alt={volume.title || `Tap ${volume.sequenceIndex || ''}`}
+                      />
+                    ) : (
+                      <span className='story-metadata__volume-cover-empty'>
+                        No cover
+                      </span>
+                    )}
+                    <span className='story-metadata__volume-head-text'>
+                      {volume.title || `Tập ${volume.sequenceIndex || ''}`}
                     <small>
                       {volume.chapterCount ?? chapters.length} chương
                     </small>
+                    </span>
                   </span>
                   <span>{isOpen ? '▾' : '▸'}</span>
                 </button>
@@ -1593,3 +1735,4 @@ const StoryMetadata = () => {
 };
 
 export default StoryMetadata;
+

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class VolumeService {
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
+    private final StorageService storageService;
 
     /**
      * Tạo volume mới cho story. Chỉ author (owner) của story mới được thực hiện.
@@ -70,6 +72,7 @@ public class VolumeService {
         resp.setId(saved.getId());
         resp.setStoryId(saved.getStory().getId());
         resp.setTitle(saved.getTitle());
+        resp.setCoverUrl(saved.getCoverUrl());
         resp.setSequenceIndex(saved.getSequenceIndex());
         return resp;
     }
@@ -105,6 +108,44 @@ public class VolumeService {
         resp.setId(saved.getId());
         resp.setStoryId(saved.getStory().getId());
         resp.setTitle(saved.getTitle());
+        resp.setCoverUrl(saved.getCoverUrl());
+        resp.setSequenceIndex(saved.getSequenceIndex());
+        return resp;
+    }
+
+    @Transactional
+    public CreateVolumeResponse updateVolumeCover(
+            UserEntity currentUser,
+            Long storyId,
+            Long volumeId,
+            MultipartFile cover
+    ) {
+        if (cover == null || cover.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Volume cover is required");
+        }
+
+        VolumeEntity volume = volumeRepository.findByIdAndStory_Id(volumeId, storyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Volume not found"));
+        StoryEntity story = volume.getStory();
+
+        Long authorId = story != null && story.getAuthor() != null ? story.getAuthor().getId() : null;
+        if (authorId == null || !authorId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not the owner of this story");
+        }
+
+        String coverUrl = storageService.saveCover(cover);
+        if (coverUrl == null || coverUrl.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload volume cover failed");
+        }
+
+        volume.setCoverUrl(coverUrl);
+        VolumeEntity saved = volumeRepository.save(volume);
+
+        CreateVolumeResponse resp = new CreateVolumeResponse();
+        resp.setId(saved.getId());
+        resp.setStoryId(saved.getStory().getId());
+        resp.setTitle(saved.getTitle());
+        resp.setCoverUrl(saved.getCoverUrl());
         resp.setSequenceIndex(saved.getSequenceIndex());
         return resp;
     }
@@ -129,6 +170,7 @@ public class VolumeService {
                     volume.getId(),
                     volume.getStory().getId(),
                     volume.getTitle(),
+                    volume.getCoverUrl(),
                     volume.getSequenceIndex(),
                     chapterDtos.size(),
                     chapterDtos
@@ -164,6 +206,7 @@ public class VolumeService {
                     volume.getId(),
                     volume.getStory().getId(),
                     volume.getTitle(),
+                    volume.getCoverUrl(),
                     volume.getSequenceIndex(),
                     chapterDtos.size(),
                     chapterDtos

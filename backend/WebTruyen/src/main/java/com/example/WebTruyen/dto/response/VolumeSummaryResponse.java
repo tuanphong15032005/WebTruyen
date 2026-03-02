@@ -6,6 +6,7 @@ public record VolumeSummaryResponse(
         Long id,
         Long storyId,
         String title,
+        String coverUrl,
         Integer sequenceIndex,
         Integer chapterCount,
         List<ChapterSummaryResponse> chapters

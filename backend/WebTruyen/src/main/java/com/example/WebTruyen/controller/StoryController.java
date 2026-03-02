@@ -95,7 +95,7 @@ public class StoryController {
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort,
-            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String q, //keyword 
             @RequestParam(required = false) String author,
             @RequestParam(required = false) String completionStatus,
             @RequestParam(required = false) String tagIds
@@ -461,6 +461,17 @@ public class StoryController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return volumeService.updateVolumeTitle(currentUser, storyId, volumeId, req);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CreateVolumeResponse updateVolumeCover(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @RequestPart("cover") MultipartFile cover,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return volumeService.updateVolumeCover(currentUser, storyId, volumeId, cover);
     }
 
     /**

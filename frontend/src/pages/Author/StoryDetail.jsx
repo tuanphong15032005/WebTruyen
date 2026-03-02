@@ -79,6 +79,7 @@ const StoryDetail = () => {
   const [editingVolumeId, setEditingVolumeId] = useState(null);
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
   const [savingVolumeId, setSavingVolumeId] = useState(null);
+  const [uploadingVolumeCoverId, setUploadingVolumeCoverId] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'volumes' ? 'volumes' : 'info',
@@ -86,6 +87,7 @@ const StoryDetail = () => {
   const tabsRef = React.useRef(null);
   const infoTabRef = React.useRef(null);
   const volumesTabRef = React.useRef(null);
+  const volumeCoverInputRefs = React.useRef({});
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
 
   const fetchStory = useCallback(async () => {
@@ -262,6 +264,53 @@ const StoryDetail = () => {
       notify(message, 'error');
     } finally {
       setSavingVolumeId(null);
+    }
+  };
+
+  const openVolumeCoverPicker = (volumeId) => {
+    const input = volumeCoverInputRefs.current[String(volumeId)];
+    input?.click();
+  };
+
+  const handleVolumeCoverFileChange = async (volumeId, event) => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    if (!String(file.type || '').startsWith('image/')) {
+      notify('Vui lòng chọn file ảnh hợp lệ', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingVolumeCoverId(String(volumeId));
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      const response = await storyService.updateVolumeCover(
+        storyId,
+        volumeId,
+        formData,
+      );
+
+      const normalizedId = String(volumeId);
+      const returnedCoverUrl = String(response?.coverUrl || '').trim();
+      setVolumes((prev) =>
+        prev.map((item) => {
+          const itemId = String(item.id || item.volumeId);
+          if (itemId !== normalizedId) return item;
+          return { ...item, coverUrl: returnedCoverUrl || item.coverUrl || '' };
+        }),
+      );
+
+      notify('Đã cập nhật cover tập', 'success');
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || 'Không thể cập nhật cover tập';
+      notify(message, 'error');
+    } finally {
+      setUploadingVolumeCoverId(null);
+      event.target.value = '';
     }
   };
 
@@ -578,6 +627,7 @@ const StoryDetail = () => {
           {volumes.map((volume) => {
             const id = String(volume.id || volume.volumeId);
             const isOpen = expandedVolumes.has(id);
+            const coverUrl = String(volume?.coverUrl || '').trim();
             const chapters = Array.isArray(volume.chapters)
               ? [...volume.chapters].sort(
                   (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
@@ -586,6 +636,21 @@ const StoryDetail = () => {
             return (
               <div key={id} className='story-detail__volume'>
                 <div className='story-detail__volume-header'>
+                  <div className='story-detail__volume-cover-wrap'>
+                    {coverUrl ? (
+                      <img
+                        className='story-detail__volume-cover'
+                        src={coverUrl}
+                        alt={
+                          volume.title || `Tập ${volume.sequenceIndex || ''}`
+                        }
+                      />
+                    ) : (
+                      <div className='story-detail__volume-cover-placeholder'>
+                        No cover
+                      </div>
+                    )}
+                  </div>
                   <div className='story-detail__volume-meta'>
                     {editingVolumeId === id ? (
                       <div className='story-detail__volume-edit-row'>
@@ -640,13 +705,40 @@ const StoryDetail = () => {
                             {volume.chapterCount ?? chapters.length} chương
                           </span>
                         </button>
-                        <button
-                          type='button'
-                          className='story-detail__volume-edit-btn'
-                          onClick={() => startEditVolume(volume)}
-                        >
-                          Sửa tên tập
-                        </button>
+                        <div className='story-detail__volume-actions'>
+                          <input
+                            ref={(node) => {
+                              if (node) {
+                                volumeCoverInputRefs.current[id] = node;
+                              } else {
+                                delete volumeCoverInputRefs.current[id];
+                              }
+                            }}
+                            className='story-detail__volume-cover-input'
+                            type='file'
+                            accept='image/*'
+                            onChange={(event) =>
+                              handleVolumeCoverFileChange(id, event)
+                            }
+                          />
+                          <button
+                            type='button'
+                            className='story-detail__volume-edit-btn'
+                            onClick={() => startEditVolume(volume)}
+                          >
+                            Sửa tên tập
+                          </button>
+                          <button
+                            type='button'
+                            className='story-detail__volume-cover-btn'
+                            onClick={() => openVolumeCoverPicker(id)}
+                            disabled={uploadingVolumeCoverId === id}
+                          >
+                            {uploadingVolumeCoverId === id
+                              ? 'Đang tải cover...'
+                              : 'Tạo cover'}
+                          </button>
+                        </div>
                       </>
                     )}
                   </div>

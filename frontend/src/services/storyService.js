@@ -34,6 +34,12 @@ const storyService = {
     api.post(`/stories/${storyId}/volumes`, payload),
   updateVolume: (storyId, volumeId, payload) =>
     api.put(`/stories/${storyId}/volumes/${volumeId}`, payload),
+  updateVolumeCover: (storyId, volumeId, formData) =>
+    api.put(`/stories/${storyId}/volumes/${volumeId}/cover`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
 
   getVolumes: (storyId) => api.get(`/stories/${storyId}/volumes`),
   getPublicVolumes: (storyId) => api.get(`/public/stories/${storyId}/volumes`),
