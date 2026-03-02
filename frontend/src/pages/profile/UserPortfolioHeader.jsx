@@ -110,26 +110,28 @@ const UserPortfolioHeader = ({ data, onDonateClick }) => {
                                     )}
                                     
                                     {/* Donate Button */}
-                                    <button
-                                        onClick={onDonateClick}
-                                        disabled={!data.author}
-                                        className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                                            data.author
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        {data.author ? (
-                                            'Ủng hộ tác giả'
-                                        ) : (
-                                            <span className="flex items-center">
-                                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                                </svg>
-                                                Ủng hộ tác giả (khóa)
-                                            </span>
-                                        )}
-                                    </button>
+                                    {currentUserId && currentUserId !== data.userId.toString() && (
+                                        <button
+                                            onClick={onDonateClick}
+                                            disabled={!data.author}
+                                            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                                                data.author
+                                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {data.author ? (
+                                                'Ủng hộ tác giả'
+                                            ) : (
+                                                <span className="flex items-center">
+                                                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                    </svg>
+                                                    Ủng hộ tác giả (khóa)
+                                                </span>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

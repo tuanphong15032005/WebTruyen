@@ -54,7 +54,13 @@ export default function DonatePage() {
     if (!token) {
       navigate('/login')
     }
-  }, [navigate])
+    
+    // Check if user is trying to donate to themselves
+    const currentUserId = localStorage.getItem('userId')
+    if (currentUserId && currentUserId === userId) {
+      navigate(`/user/${userId}`)
+    }
+  }, [navigate, userId])
 
   const handleDonate = async (packageIndex) => {
     if (!authorData?.author) {
