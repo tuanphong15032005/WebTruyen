@@ -66,10 +66,10 @@ public class WalletService {
         return new WalletResponse(wallet.getBalanceCoinA(), wallet.getBalanceCoinB());
     }
 
-    public WalletEntity getOrCreateWalletEntity(Long userId) {
-        return walletRepository.findById(userId)
-                .orElseGet(() -> createDefaultWallet(userId));
-    }
+        public WalletEntity getOrCreateWalletEntity(Long userId) {
+            return walletRepository.findById(userId)
+                    .orElseGet(() -> createDefaultWallet(userId));
+        }
 
     private WalletEntity createDefaultWallet(Long userId) {
         UserEntity user = userRepository.findById(userId)
@@ -240,6 +240,11 @@ public class WalletService {
         UserEntity toUser = userRepository.findById(toUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
 
+        // Ngăn user tự donate cho bản thân (defense-in-depth)
+        if (fromUserId.equals(toUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể tự ủng hộ bản thân!");
+        }
+
         // Check if donor has enough Coin B
         WalletEntity donorWallet = getOrCreateWalletEntity(fromUserId);
         if (donorWallet.getBalanceCoinB() < coinBAmount) {
@@ -262,7 +267,7 @@ public class WalletService {
             log.warn("Failed to auto-track MAKE_DONATION daily task for donor: {}", fromUserId, e);
         }
 
-        // Add coins to author (use addCoinB but DONATION reason doesn't trigger daily task)
+        // Add coins to author
         UserEntity authorUser = userRepository.findById(toUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
         
@@ -409,7 +414,7 @@ public class WalletService {
             case REVIEW_REWARD -> "REVIEW_REWARD";
             default -> "OTHER";
         };
-        
+
         String description = switch (reason) {
             case TOPUP -> "Nạp tiền";
             case DONATE -> "Nhận donation";

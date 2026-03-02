@@ -125,6 +125,12 @@ public class WalletController {
 
         try {
             Long userId = userPrincipal.getUser().getId();
+            
+            // Ngăn user tự donate cho bản thân
+            if (userId.equals(authorId)) {
+                return ResponseEntity.badRequest().body("Không thể tự ủng hộ bản thân!");
+            }
+            
             Map<String, Object> response = walletService.donateToAuthor(userId, authorId, coinBAmount, message);
             
             // Track donation for daily task
