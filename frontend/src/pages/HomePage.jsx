@@ -29,7 +29,7 @@ const VIEW_RANKING_COUNT = 10; //xếp hạng theo lượt xem
 const SAVED_RANKING_COUNT = 10; //xếp hạng theo lượt lưu
 const COMMUNITY_COUNT = 6; //bình luận mới cộng đồng
 const RECOMMEND_COUNT = 4; //đề xuất
-const SECTION_STORY_COUNT = 8; //Mỗi phần
+const SECTION_STORY_COUNT = 4; //Mỗi phần
 const HERO_TRANSITION_MS = 320;
 const HERO_SWIPE_THRESHOLD = 56;
 
@@ -471,6 +471,13 @@ function HomePage() {
     () => getStoryCategory(activeHeroStory)?.name || 'Không phân loại',
     [activeHeroStory],
   );
+  const heroTags = useMemo(() => {
+    const tags = Array.isArray(activeHeroStory?.tags) ? activeHeroStory.tags : [];
+    if (tags.length > 0) {
+      return tags.slice(0, 5);
+    }
+    return [{ id: 'hero-fallback-tag', name: heroCategoryName }];
+  }, [activeHeroStory, heroCategoryName]);
 
   const goPrevHero = useCallback(() => {
     animateToHeroIndex(activeHeroIndexRef.current - 1, -1);
@@ -691,21 +698,23 @@ function HomePage() {
             onPointerUp={handleHeroPointerUp}
             onPointerCancel={handleHeroPointerCancel}
           >
-            <div
-              className={`home-hero__bg home-hero__bg--current ${heroPrevStory ? `is-incoming ${heroSlideClass} ${heroPrevVisible ? 'is-active' : ''}` : ''}`}
-              style={{
-                backgroundImage: buildHeroBackground(activeHeroStory),
-              }}
-            />
-            {heroPrevStory && (
+            <div className='home-hero__bg-layer'>
               <div
-                className={`home-hero__bg home-hero__bg--prev is-outgoing ${heroSlideClass} ${heroPrevVisible ? 'is-active' : ''}`}
+                className={`home-hero__bg home-hero__bg--current ${heroPrevStory ? `is-incoming ${heroSlideClass} ${heroPrevVisible ? 'is-active' : ''}` : ''}`}
                 style={{
-                  backgroundImage: buildHeroBackground(heroPrevStory),
+                  backgroundImage: buildHeroBackground(activeHeroStory),
                 }}
               />
-            )}
-            <div className='home-hero__shade' aria-hidden='true' />
+              {heroPrevStory && (
+                <div
+                  className={`home-hero__bg home-hero__bg--prev is-outgoing ${heroSlideClass} ${heroPrevVisible ? 'is-active' : ''}`}
+                  style={{
+                    backgroundImage: buildHeroBackground(heroPrevStory),
+                  }}
+                />
+              )}
+              <div className='home-hero__shade' aria-hidden='true' />
+            </div>
 
             <button
               type='button'
@@ -747,7 +756,16 @@ function HomePage() {
                 )}
               </div>
               <div className='home-hero__text'>
-                <span className='home-hero__category'>{heroCategoryName}</span>
+                <div className='home-hero__tags'>
+                  {heroTags.map((tag, index) => (
+                    <span
+                      key={`${tag?.id || tag?.name || index}`}
+                      className={`home-hero__tag ${index === 0 ? 'is-primary' : ''}`}
+                    >
+                      {tag?.name || heroCategoryName}
+                    </span>
+                  ))}
+                </div>
                 <h1>{activeHeroStory.title}</h1>
                 <p>{getSummary(activeHeroStory)}</p>
                 <div className='home-hero__actions'>
@@ -766,6 +784,11 @@ function HomePage() {
             </div>
           </section>
         )}
+        <div
+          id='home-hero-sentinel'
+          className='home-hero-sentinel'
+          aria-hidden='true'
+        />
 
         {!loading && (
           <div className='home-main-grid'>
@@ -985,61 +1008,61 @@ function HomePage() {
             </aside>
           </div>
         )}
-{/* <<<<<<< HEAD */}
-{/* ======= */}
+        {/* <<<<<<< HEAD */}
+        {/* ======= */}
 
-{/*         {!loading && ( */}
-{/*           <section className='home-section home-section--community'> */}
-{/*             <div className='home-section__head'> */}
-{/*               <h2> */}
-{/*                 <MessageSquare size={18} /> */}
-{/*                 Phản hồi từ cộng đồng */}
-{/*               </h2> */}
-{/*             </div> */}
-{/*             <div className='home-community-list'> */}
-{/*               {communityComments.map((comment) => ( */}
-{/*                 <article key={comment.id} className='home-community-item'> */}
-{/*                   <div className='home-community-item__avatar'> */}
-{/*                     {comment.avatarUrl ? ( */}
-{/*                       <img */}
-{/*                         src={comment.avatarUrl} */}
-{/*                         alt={comment.username || 'user'} */}
-{/*                       /> */}
-{/*                     ) : ( */}
-{/*                       <span>{getInitial(comment.username)}</span> */}
-{/*                     )} */}
-{/*                   </div> */}
-{/*                   <div className='home-community-item__body'> */}
-{/*                     <div className='home-community-item__head'> */}
-{/*                     chuyen huong sang portfolio */}
-{/*                       <strong */}
-{/*                         className='cursor-pointer hover:text-blue-600' */}
-{/*                         onClick={() => window.location.href = `/user/${comment.userId}`} */}
-{/*                       > */}
-{/*                         {comment.username || 'Unknown'} */}
-{/*                       </strong> */}
-{/*                       <small>{formatRelativeTime(comment.createdAt)}</small> */}
-{/*                     </div> */}
-{/*                     <p className='home-community-item__story'> */}
-{/*                       Bình luận tại:{' '} */}
-{/*                       {comment.storyId ? ( */}
-{/*                         <Link to={`/stories/${comment.storyId}/metadata`}> */}
-{/*                           {comment.storyTitle || 'Story'} */}
-{/*                         </Link> */}
-{/*                       ) : ( */}
-{/*                         <span>{comment.storyTitle || 'Story'}</span> */}
-{/*                       )} */}
-{/*                     </p> */}
-{/*                     <p className='home-community-item__content'> */}
-{/*                       {comment.content} */}
-{/*                     </p> */}
-{/*                   </div> */}
-{/*                 </article> */}
-{/*               ))} */}
-{/*             </div> */}
-{/*           </section> */}
-{/*         )} */}
-{/* >>>>>>> origin/portfolio */}
+        {/*         {!loading && ( */}
+        {/*           <section className='home-section home-section--community'> */}
+        {/*             <div className='home-section__head'> */}
+        {/*               <h2> */}
+        {/*                 <MessageSquare size={18} /> */}
+        {/*                 Phản hồi từ cộng đồng */}
+        {/*               </h2> */}
+        {/*             </div> */}
+        {/*             <div className='home-community-list'> */}
+        {/*               {communityComments.map((comment) => ( */}
+        {/*                 <article key={comment.id} className='home-community-item'> */}
+        {/*                   <div className='home-community-item__avatar'> */}
+        {/*                     {comment.avatarUrl ? ( */}
+        {/*                       <img */}
+        {/*                         src={comment.avatarUrl} */}
+        {/*                         alt={comment.username || 'user'} */}
+        {/*                       /> */}
+        {/*                     ) : ( */}
+        {/*                       <span>{getInitial(comment.username)}</span> */}
+        {/*                     )} */}
+        {/*                   </div> */}
+        {/*                   <div className='home-community-item__body'> */}
+        {/*                     <div className='home-community-item__head'> */}
+        {/*                     chuyen huong sang portfolio */}
+        {/*                       <strong */}
+        {/*                         className='cursor-pointer hover:text-blue-600' */}
+        {/*                         onClick={() => window.location.href = `/user/${comment.userId}`} */}
+        {/*                       > */}
+        {/*                         {comment.username || 'Unknown'} */}
+        {/*                       </strong> */}
+        {/*                       <small>{formatRelativeTime(comment.createdAt)}</small> */}
+        {/*                     </div> */}
+        {/*                     <p className='home-community-item__story'> */}
+        {/*                       Bình luận tại:{' '} */}
+        {/*                       {comment.storyId ? ( */}
+        {/*                         <Link to={`/stories/${comment.storyId}/metadata`}> */}
+        {/*                           {comment.storyTitle || 'Story'} */}
+        {/*                         </Link> */}
+        {/*                       ) : ( */}
+        {/*                         <span>{comment.storyTitle || 'Story'}</span> */}
+        {/*                       )} */}
+        {/*                     </p> */}
+        {/*                     <p className='home-community-item__content'> */}
+        {/*                       {comment.content} */}
+        {/*                     </p> */}
+        {/*                   </div> */}
+        {/*                 </article> */}
+        {/*               ))} */}
+        {/*             </div> */}
+        {/*           </section> */}
+        {/*         )} */}
+        {/* >>>>>>> origin/portfolio */}
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Bookmark,
-  ChevronDown,
   Eye,
   Gem,
   Search,
@@ -32,6 +31,7 @@ function Header() {
   const searchRequestRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
+  const isHomePage = location.pathname === '/';
   const { wallet, refreshWallet, isLoggedIn } = useContext(WalletContext);
   const [searchValue, setSearchValue] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState([]);
@@ -39,6 +39,7 @@ function Header() {
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTouched, setSearchTouched] = useState(false);
+  const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
   //mo 1234
   const [user, setUser] = useState(() => {
     return getStoredUser();
@@ -118,6 +119,37 @@ function Header() {
     return () => window.clearTimeout(timer);
   }, [searchValue]);
 
+  useEffect(() => {
+    if (!isHomePage) {
+      setIsHeaderScrolled(false);
+      return undefined;
+    }
+
+    const sentinel = document.getElementById('home-hero-sentinel');
+    if (!sentinel) {
+      setIsHeaderScrolled(false);
+      return undefined;
+    }
+
+    const headerHeightCss = getComputedStyle(
+      document.documentElement,
+    ).getPropertyValue('--site-header-height');
+    const headerHeight = Number.parseFloat(headerHeightCss) || 72;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeaderScrolled(!entry.isIntersecting);
+      },
+      {
+        threshold: 0,
+        rootMargin: `-${headerHeight}px 0px 0px 0px`,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isHomePage]);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
@@ -181,7 +213,8 @@ function Header() {
   };
 
   return (
-    <header className='site-header'>
+    <header
+      className={`site-header ${isHomePage ? 'site-header--overlay' : 'site-header--solid'} ${isHomePage && isHeaderScrolled ? 'scrolled' : ''}`}>
       <div className='site-header__inner'>
         <Link to='/' className='site-brand'>
           <span className='site-brand__logo'>
@@ -189,22 +222,6 @@ function Header() {
           </span>
           <span className='site-brand__text'>Tramdoc</span>
         </Link>
-
-        <nav className='site-nav'>
-          <Link
-            to='/'
-            className={`site-nav__item ${location.pathname === '/' ? 'active' : ''}`}
-          >
-            Trang chủ
-          </Link>
-          <button type='button' className='site-nav__item'>
-            Thể loại
-            <ChevronDown size={14} />
-          </button>
-          <button type='button' className='site-nav__item'>
-            Xếp hạng
-          </button>
-        </nav>
 
         <form
           className={`site-search ${isSearchOpen ? 'is-open' : ''}`}
@@ -329,10 +346,8 @@ function Header() {
                 type='button'
                 className='site-user__trigger'
                 onClick={() => setShowDropdown((prev) => !prev)}
+                aria-label='Mở menu tài khoản'
               >
-                <span>
-                  Xin chao, <strong>{user.username}</strong>
-                </span>
                 <span className='site-user__avatar'>
                   {String(user.username || '?')
                     .charAt(0)

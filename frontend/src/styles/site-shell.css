@@ -1,21 +1,49 @@
+:root {
+  --site-header-height: 56px;
+}
+
 .site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   z-index: 1000;
   width: 100%;
-  background: #ffffff;
   border-bottom: 1px solid #e1e7f1;
   box-shadow: 0 4px 14px rgba(18, 35, 72, 0.08);
+  background: #ffffff;
+  transition:
+    background-color 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.site-header--solid {
+  background: #ffffff;
+  border-bottom-color: #e1e7f1;
+  box-shadow: 0 4px 14px rgba(18, 35, 72, 0.08);
+}
+
+.site-header--overlay {
+  background: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+.site-header--overlay.scrolled {
+  background: #ffffff;
+  border-bottom-color: #e1e7f1;
+  box-shadow: 0 8px 18px rgba(18, 35, 72, 0.1);
 }
 
 .site-header__inner {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 12px 20px;
+  min-height: var(--site-header-height);
+  padding: 4px 16px;
   display: grid;
-  grid-template-columns: auto auto minmax(240px, 1fr) auto;
+  grid-template-columns: auto minmax(240px, 1fr) auto;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
 }
 
 /* Daily Tasks Page Styles */
@@ -478,9 +506,9 @@
 }
 
 .site-brand__logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   background: linear-gradient(135deg, #1b5be6, #184fd0);
   color: #fff;
   display: inline-flex;
@@ -488,8 +516,13 @@
   justify-content: center;
 }
 
+.site-brand__logo svg {
+  width: 14px;
+  height: 14px;
+}
+
 .site-brand__text {
-  font-size: 1.85rem;
+  font-size: 1.45rem;
   font-weight: 800;
   color: #1f4ea7;
 }
@@ -524,8 +557,8 @@
 
 .site-search {
   position: relative;
-  height: 42px;
-  width: 42px;
+  height: 34px;
+  width: 34px;
   border: 1px solid #d6dfed;
   border-radius: 999px;
   display: flex;
@@ -580,9 +613,9 @@
   border: none;
   background: transparent;
   color: #355883;
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
   border-radius: 50%;
   padding: 0;
   display: inline-flex;
@@ -762,7 +795,7 @@
   border-radius: 10px;
   background: #fff;
   color: #2b4469;
-  height: 36px;
+  height: 30px;
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
@@ -810,8 +843,8 @@
 }
 
 .site-user__avatar {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1b5be6, #184fd0);
   color: #fff;
@@ -860,7 +893,7 @@
 
 .site-auth__login,
 .site-auth__register {
-  height: 38px;
+  height: 30px;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
@@ -953,26 +986,12 @@
     grid-template-columns: auto 1fr auto;
     gap: 12px;
   }
-
-  .site-nav {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {
   .site-header__inner {
-    grid-template-columns: auto 1fr;
-  }
-
-  .site-search {
-    order: 3;
-    grid-column: 1 / -1;
-    justify-self: end;
-  }
-
-  .site-search.is-open {
-    width: 100%;
-    justify-self: stretch;
+    grid-template-columns: auto minmax(160px, 1fr) auto;
+    gap: 10px;
   }
 
   .site-footer__inner {
@@ -982,15 +1001,11 @@
 
 @media (max-width: 640px) {
   .site-brand__text {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
   }
 
   .site-header__actions {
     gap: 8px;
-  }
-
-  .site-user__trigger > span:first-child {
-    display: none;
   }
 
   .site-search__suggestions {

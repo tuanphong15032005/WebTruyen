@@ -123,7 +123,7 @@
 
 .main-content {
   flex: 1;
-  padding: 0;
+  padding: var(--site-header-height, 72px) 0 0;
   background-color: var(--bg);
   color: var(--text);
 }
@@ -133,11 +133,11 @@
 }
 
 .main-content--auth {
-  padding: 0;
+  padding-top: var(--site-header-height, 72px);
 }
 
 .main-content--spaced {
-  padding: 20px 0;
+  padding: calc(var(--site-header-height, 72px) + 20px) 0 20px;
 }
 
 .nav-link {
