@@ -37,8 +37,7 @@ const CHAPTER_STATUS_LABELS = {
 
 const CHAPTER_APPROVAL_LABELS = {
   pending: 'Đang chờ duyệt',
-  approved: 'Đã duyệt',
-  rejected: 'Từ chối',
+  approved: 'đã được duyệt - giờ bạn có thể đăng chương này công khai',
 };
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
@@ -326,8 +325,9 @@ const StoryDetail = () => {
     try {
       setSubmittingApprovalChapterId(String(chapterId));
       const response = await storyService.submitChapterApproval(chapterId);
-      const nextApprovalStatus =
-        String(response?.approvalStatus || 'pending').toLowerCase();
+      const nextApprovalStatus = String(
+        response?.approvalStatus || 'pending',
+      ).toLowerCase();
 
       setVolumes((prev) =>
         prev.map((volume) => {
@@ -335,7 +335,9 @@ const StoryDetail = () => {
           if (currentVolumeId !== String(volumeId)) {
             return volume;
           }
-          const chapterList = Array.isArray(volume.chapters) ? volume.chapters : [];
+          const chapterList = Array.isArray(volume.chapters)
+            ? volume.chapters
+            : [];
           return {
             ...volume,
             chapters: chapterList.map((chapter) =>
@@ -350,7 +352,11 @@ const StoryDetail = () => {
       notify('chương của bạn đã được gửi đi duyệt', 'success');
     } catch (error) {
       console.error('submitChapterApproval error', error);
-      notify('gửi duyệt thất bại', 'error');
+      const message =
+        typeof error?.message === 'string' && error.message.trim()
+          ? error.message.trim()
+          : 'gửi duyệt thất bại';
+      notify(message, 'error');
     } finally {
       setSubmittingApprovalChapterId(null);
     }
@@ -458,18 +464,6 @@ const StoryDetail = () => {
                     <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
                   </svg>
                   Xem truyện
-                </Button>
-                <Button
-                  type='button'
-                  className='story-detail__view'
-                  onClick={() =>
-                    navigate(`/author/comments?storyId=${storyId}`)
-                  }
-                >
-                  <svg viewBox='0 0 24 24' aria-hidden='true'>
-                    <path d='M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7l-5 5V6a2 2 0 0 1 2-2zm4 5h8v2H8zm0 4h5v2H8z' />
-                  </svg>
-                  Quản lý bình luận
                 </Button>
               </div>
 
@@ -801,7 +795,10 @@ const StoryDetail = () => {
                       const approvalStatusKey = String(
                         chapter.approvalStatus || '',
                       ).toLowerCase();
-                      const hasApprovalStatus = Boolean(
+                      const hasApprovalStatusValue =
+                        chapter.approvalStatus != null &&
+                        String(chapter.approvalStatus).trim() !== '';
+                      const showApprovalStatus = Boolean(
                         CHAPTER_APPROVAL_LABELS[approvalStatusKey],
                       );
                       const isSubmittingApproval =
@@ -822,7 +819,7 @@ const StoryDetail = () => {
                                 String(chapter.status || '').toLowerCase()
                               ] || 'Nháp'}
                             </div>
-                            {hasApprovalStatus && (
+                            {showApprovalStatus && (
                               <div className='story-detail__chapter-approval'>
                                 <span
                                   className={`story-detail__approval-badge story-detail__approval-badge--${approvalStatusKey}`}
@@ -842,7 +839,7 @@ const StoryDetail = () => {
                             )}
                           </div>
                           <div className='story-detail__chapter-actions'>
-                            {!hasApprovalStatus && (
+                            {!hasApprovalStatusValue && (
                               <button
                                 type='button'
                                 className='story-detail__chapter-submit'
@@ -851,7 +848,9 @@ const StoryDetail = () => {
                                 }
                                 disabled={isSubmittingApproval}
                               >
-                                {isSubmittingApproval ? 'Đang gửi...' : 'Gửi duyệt'}
+                                {isSubmittingApproval
+                                  ? 'Đang gửi...'
+                                  : 'Gửi duyệt'}
                               </button>
                             )}
                             <Link

@@ -660,6 +660,8 @@
 .story-detail__approval-badge--approved {
   color: #148b40;
   background: #ebf8f0;
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .story-detail__approval-badge--rejected {

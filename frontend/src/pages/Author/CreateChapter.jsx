@@ -35,6 +35,7 @@ const CreateChapter = () => {
   const [isFree, setIsFree] = useState(true);
   const [priceCoin, setPriceCoin] = useState('');
   const [status, setStatus] = useState('draft');
+  const [approvalStatus, setApprovalStatus] = useState('');
   const [content, setContent] = useState('');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -59,6 +60,8 @@ const CreateChapter = () => {
       ),
     [],
   );
+  const canSetPublished =
+    String(approvalStatus || '').toLowerCase() === 'approved';
 
   const formatTime = useCallback((iso) => {
     if (!iso) return '';
@@ -442,6 +445,7 @@ const CreateChapter = () => {
     dirtyRef.current = false;
     hasManualSavedRef.current = false;
     setDraftStatusText('');
+    setApprovalStatus('');
   }, [editChapterId, storyId, volumeId]);
 
   useEffect(() => {
@@ -465,6 +469,14 @@ const CreateChapter = () => {
         );
         if (typeof data.status === 'string' && data.status.trim()) {
           setStatus(data.status.toLowerCase());
+        }
+        if (
+          typeof data.approvalStatus === 'string' &&
+          data.approvalStatus.trim()
+        ) {
+          setApprovalStatus(data.approvalStatus.toLowerCase());
+        } else {
+          setApprovalStatus('');
         }
         setSavedHtml(data.fullHtml || '');
 
@@ -524,6 +536,12 @@ const CreateChapter = () => {
     loadingContent,
     tryRestoreDraft,
   ]);
+
+  useEffect(() => {
+    if (status === 'published' && !canSetPublished) {
+      setStatus('draft');
+    }
+  }, [canSetPublished, status]);
 
   useEffect(() => {
     if (
@@ -643,11 +661,13 @@ const CreateChapter = () => {
       setSaving(true);
       const quill = quillRef.current?.getEditor();
       const contentHtml = quill?.root?.innerHTML || content;
+      const finalStatus =
+        status === 'published' && canSetPublished ? 'published' : 'draft';
       const payload = {
         title: title.trim(),
         isFree,
         priceCoin: isFree ? null : Number(priceCoin),
-        status,
+        status: finalStatus,
         contentHtml,
         contentDelta: JSON.stringify(quill?.getContents() || {}),
       };
@@ -754,11 +774,16 @@ const CreateChapter = () => {
             onChange={(e) => setStatus(e.target.value)}
           >
             <option value='draft'>Nháp</option>
-            <option value='published'>Công khai</option>
+            {canSetPublished && <option value='published'>Công khai</option>}
           </select>
           <span className='field-hint'>
             Tình trạng hiện tại: {CHAPTER_STATUS_LABELS[status] || 'Nháp'}
           </span>
+          {!canSetPublished && (
+            <span className='field-hint'>
+              Chỉ có thể chuyển sang Công khai sau khi chương được duyệt.
+            </span>
+          )}
         </div>
         <div className='field'>
           <span className='field-label'>Nội dung</span>

@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 import java.util.List;
@@ -107,11 +108,18 @@ public class ChapterController {
                 ? userPrincipal.getUser().getId()
                 : null;
 
-        ChapterApprovalStatus approvalStatus = chapterService.submitChapterForApproval(id, userId);
-        return ResponseEntity.ok(Map.of(
-                "message", "Chapter submitted for review",
-                "approvalStatus", approvalStatus.name()
-        ));
+        try {
+            ChapterApprovalStatus approvalStatus = chapterService.submitChapterForApproval(id, userId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Chapter submitted for review",
+                    "approvalStatus", approvalStatus.name()
+            ));
+        } catch (ResponseStatusException ex) {
+            String message = ex.getReason() != null && !ex.getReason().isBlank()
+                    ? ex.getReason()
+                    : "gửi duyệt thất bại";
+            return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
+        }
     }
 
     

@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ChapterServiceImpl implements ChapterService {
+    private static final int MIN_APPROVAL_WORD_COUNT = 800;
+
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
@@ -508,6 +510,7 @@ public class ChapterServiceImpl implements ChapterService {
         result.put("fullHtml", fullHtml.toString());
         result.put("sequenceIndex", chapter.getSequenceIndex());
         result.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
+        result.put("approvalStatus", chapter.getApprovalStatus() != null ? chapter.getApprovalStatus().toString() : null);
         
         return result;
     }
@@ -526,10 +529,43 @@ public class ChapterServiceImpl implements ChapterService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Chapter already submitted for review");
         }
 
+        int wordCount = countChapterWordCount(chapterId);
+        if (wordCount < MIN_APPROVAL_WORD_COUNT) {
+            int missingWords = MIN_APPROVAL_WORD_COUNT - wordCount;
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Độ dài chương đang dưới mức tối thiểu 800 từ, bạn còn thiếu " + missingWords + " từ"
+            );
+        }
+
         chapter.setApprovalStatus(ChapterApprovalStatus.pending);
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
         return chapter.getApprovalStatus();
+    }
+
+    private int countChapterWordCount(Long chapterId) {
+        List<ChapterSegmentEntity> segments = chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapterId);
+        int totalWords = 0;
+        for (ChapterSegmentEntity segment : segments) {
+            if (segment == null || segment.getSegmentText() == null) {
+                continue;
+            }
+            String text = Jsoup.parse(segment.getSegmentText()).text();
+            totalWords += countWords(text);
+        }
+        return totalWords;
+    }
+
+    private int countWords(String text) {
+        if (text == null) {
+            return 0;
+        }
+        String normalized = text.replace('\u00A0', ' ').trim();
+        if (normalized.isEmpty()) {
+            return 0;
+        }
+        return normalized.split("\\s+").length;
     }
 //<<<<<<< HEAD
 
