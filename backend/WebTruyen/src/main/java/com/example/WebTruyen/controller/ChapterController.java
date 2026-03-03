@@ -2,6 +2,7 @@ package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.SimpleDailyTaskService;
@@ -10,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 import java.util.List;
 
 
@@ -94,4 +97,22 @@ public class ChapterController {
         
         return ResponseEntity.ok(chapters);
     }
+
+    @PostMapping("/{id}/submit-approval")
+    public ResponseEntity<Map<String, String>> submitChapterApproval(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        ChapterApprovalStatus approvalStatus = chapterService.submitChapterForApproval(id, userId);
+        return ResponseEntity.ok(Map.of(
+                "message", "Chapter submitted for review",
+                "approvalStatus", approvalStatus.name()
+        ));
+    }
+
+    
 }
