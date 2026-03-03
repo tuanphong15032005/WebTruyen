@@ -35,6 +35,12 @@ const CHAPTER_STATUS_LABELS = {
   archived: 'Lưu trữ',
 };
 
+const CHAPTER_APPROVAL_LABELS = {
+  pending: 'Đang chờ duyệt',
+  approved: 'Đã duyệt',
+  rejected: 'Từ chối',
+};
+
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
 const formatRelativeTime = (value) => {
@@ -80,6 +86,8 @@ const StoryDetail = () => {
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
   const [savingVolumeId, setSavingVolumeId] = useState(null);
   const [uploadingVolumeCoverId, setUploadingVolumeCoverId] = useState(null);
+  const [submittingApprovalChapterId, setSubmittingApprovalChapterId] =
+    useState(null);
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'volumes' ? 'volumes' : 'info',
@@ -311,6 +319,40 @@ const StoryDetail = () => {
     } finally {
       setUploadingVolumeCoverId(null);
       event.target.value = '';
+    }
+  };
+
+  const handleSubmitChapterApproval = async (volumeId, chapterId) => {
+    try {
+      setSubmittingApprovalChapterId(String(chapterId));
+      const response = await storyService.submitChapterApproval(chapterId);
+      const nextApprovalStatus =
+        String(response?.approvalStatus || 'pending').toLowerCase();
+
+      setVolumes((prev) =>
+        prev.map((volume) => {
+          const currentVolumeId = String(volume.id || volume.volumeId);
+          if (currentVolumeId !== String(volumeId)) {
+            return volume;
+          }
+          const chapterList = Array.isArray(volume.chapters) ? volume.chapters : [];
+          return {
+            ...volume,
+            chapters: chapterList.map((chapter) =>
+              String(chapter.id) === String(chapterId)
+                ? { ...chapter, approvalStatus: nextApprovalStatus }
+                : chapter,
+            ),
+          };
+        }),
+      );
+
+      notify('chương của bạn đã được gửi đi duyệt', 'success');
+    } catch (error) {
+      console.error('submitChapterApproval error', error);
+      notify('gửi duyệt thất bại', 'error');
+    } finally {
+      setSubmittingApprovalChapterId(null);
     }
   };
 
@@ -755,40 +797,73 @@ const StoryDetail = () => {
                     {chapters.length === 0 && (
                       <p className='story-detail__muted'>Chưa có chương nào.</p>
                     )}
-                    {chapters.map((chapter) => (
-                      <div key={chapter.id} className='story-detail__chapter'>
-                        <div>
-                          <span>
-                            {chapter.sequenceIndex
-                              ? `Chương ${chapter.sequenceIndex}: `
-                              : ''}
-                            {chapter.title}
-                          </span>
-                          <div className='story-detail__chapter-status'>
-                            Trạng thái:{' '}
-                            {CHAPTER_STATUS_LABELS[
-                              String(chapter.status || '').toLowerCase()
-                            ] || 'Nháp'}
-                          </div>
-                          {chapter.lastUpdateAt && (
-                            <div className='story-detail__muted'>
-                              Cập nhật:{' '}
-                              {new Date(
-                                chapter.lastUpdateAt,
-                              ).toLocaleDateString()}
+                    {chapters.map((chapter) => {
+                      const approvalStatusKey = String(
+                        chapter.approvalStatus || '',
+                      ).toLowerCase();
+                      const hasApprovalStatus = Boolean(
+                        CHAPTER_APPROVAL_LABELS[approvalStatusKey],
+                      );
+                      const isSubmittingApproval =
+                        submittingApprovalChapterId === String(chapter.id);
+
+                      return (
+                        <div key={chapter.id} className='story-detail__chapter'>
+                          <div>
+                            <span>
+                              {chapter.sequenceIndex
+                                ? `Chương ${chapter.sequenceIndex}: `
+                                : ''}
+                              {chapter.title}
+                            </span>
+                            <div className='story-detail__chapter-status'>
+                              Trạng thái:{' '}
+                              {CHAPTER_STATUS_LABELS[
+                                String(chapter.status || '').toLowerCase()
+                              ] || 'Nháp'}
                             </div>
-                          )}
+                            {hasApprovalStatus && (
+                              <div className='story-detail__chapter-approval'>
+                                <span
+                                  className={`story-detail__approval-badge story-detail__approval-badge--${approvalStatusKey}`}
+                                >
+                                  <span className='story-detail__approval-dot' />
+                                  {CHAPTER_APPROVAL_LABELS[approvalStatusKey]}
+                                </span>
+                              </div>
+                            )}
+                            {chapter.lastUpdateAt && (
+                              <div className='story-detail__muted'>
+                                Cập nhật:{' '}
+                                {new Date(
+                                  chapter.lastUpdateAt,
+                                ).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                          <div className='story-detail__chapter-actions'>
+                            {!hasApprovalStatus && (
+                              <button
+                                type='button'
+                                className='story-detail__chapter-submit'
+                                onClick={() =>
+                                  handleSubmitChapterApproval(id, chapter.id)
+                                }
+                                disabled={isSubmittingApproval}
+                              >
+                                {isSubmittingApproval ? 'Đang gửi...' : 'Gửi duyệt'}
+                              </button>
+                            )}
+                            <Link
+                              className='story-detail__chapter-edit'
+                              to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
+                            >
+                              Sửa chương
+                            </Link>
+                          </div>
                         </div>
-                        <div className='story-detail__chapter-actions'>
-                          <Link
-                            className='story-detail__chapter-edit'
-                            to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
-                          >
-                            Sửa chương
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

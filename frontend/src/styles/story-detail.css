@@ -630,9 +630,66 @@
   color: #627796;
 }
 
+.story-detail__chapter-approval {
+  margin-top: 4px;
+}
+
+.story-detail__approval-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.81rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.story-detail__approval-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.story-detail__approval-badge--pending {
+  color: #b57a09;
+  background: #fff7df;
+}
+
+.story-detail__approval-badge--approved {
+  color: #148b40;
+  background: #ebf8f0;
+}
+
+.story-detail__approval-badge--rejected {
+  color: #cc3d3d;
+  background: #fff0f0;
+}
+
 .story-detail__chapter-actions {
   display: flex;
   gap: 8px;
+}
+
+.story-detail__chapter-submit {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #b8d7c4;
+  background: #f3fff7;
+  color: #1d7f4f;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.story-detail__chapter-submit:hover:not(:disabled) {
+  background: #e8f9ef;
+}
+
+.story-detail__chapter-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .story-detail__chapter-edit {
