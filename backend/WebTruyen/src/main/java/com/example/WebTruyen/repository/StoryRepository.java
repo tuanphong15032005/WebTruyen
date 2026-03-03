@@ -92,11 +92,14 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             select s
             from StoryEntity s
             left join s.storyTags st
+            left join s.originalAuthorUser oau
             where s.status = :status
               and (:query is null or lower(s.title) like lower(concat('%', :query, '%')))
               and (
                     :authorName is null
                     or lower(coalesce(s.author.authorPenName, s.author.username, '')) like lower(concat('%', :authorName, '%'))
+                    or lower(coalesce(s.originalAuthorName, '')) like lower(concat('%', :authorName, '%'))
+                    or lower(coalesce(oau.authorPenName, oau.username, '')) like lower(concat('%', :authorName, '%'))
               )
               and (:completionStatus is null or s.completionStatus = :completionStatus)
               and (:tagCount = 0 or st.tag.id in :tagIds)
