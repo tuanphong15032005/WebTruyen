@@ -10,7 +10,6 @@ import '../../styles/create-story.css';
 const STORY_STATUS_OPTIONS = [
   { value: 'draft', label: 'Nháp' },
   { value: 'published', label: 'Công khai' },
-  { value: 'archived', label: 'Lưu trữ' },
 ];
 
 const STORY_KIND_OPTIONS = [
@@ -68,7 +67,9 @@ const CreateStory = () => {
         const normalized = list
           .filter((tag) => tag && tag.id != null)
           .filter((tag) => {
-            const name = String(tag.name || '').trim().toLowerCase();
+            const name = String(tag.name || '')
+              .trim()
+              .toLowerCase();
             return !(name === '+ thêm' || name === 'thêm' || name === '+ them');
           })
           .map((tag) => ({

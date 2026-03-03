@@ -1,4 +1,3 @@
-﻿
 ﻿import React, {
   useCallback,
   useEffect,
@@ -20,7 +19,6 @@ import { isEmptyHtml } from '../../utils/helpers';
 const CHAPTER_STATUS_LABELS = {
   draft: 'Nháp',
   published: 'Công khai',
-  archived: 'Lưu trữ',
 };
 
 const AUTOSAVE_INTERVAL_MS = 10_000;
@@ -469,7 +467,7 @@ const CreateChapter = () => {
           setStatus(data.status.toLowerCase());
         }
         setSavedHtml(data.fullHtml || '');
-        
+
         // Set content in editor when it's ready
         const setEditorContent = () => {
           const quill = quillRef.current?.getEditor();
@@ -490,7 +488,7 @@ const CreateChapter = () => {
             setTimeout(setEditorContent, 500);
           }
         };
-        
+
         if (quillRef.current?.getEditor()) {
           setEditorContent();
         } else {
@@ -757,7 +755,6 @@ const CreateChapter = () => {
           >
             <option value='draft'>Nháp</option>
             <option value='published'>Công khai</option>
-            <option value='archived'>Lưu trữ</option>
           </select>
           <span className='field-hint'>
             Tình trạng hiện tại: {CHAPTER_STATUS_LABELS[status] || 'Nháp'}
@@ -813,8 +810,7 @@ const CreateChapter = () => {
           </div>
         </div>
       )}
-
-      </div>
+    </div>
   );
 };
 
