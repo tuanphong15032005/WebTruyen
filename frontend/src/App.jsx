@@ -34,6 +34,7 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
+import Report from './pages/Reader/report';
 
 import './App.css';
 
@@ -93,6 +94,7 @@ function App() {
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
+        <Route path='/stories/report' element={<Report />} />
         <Route
           path='/wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}
