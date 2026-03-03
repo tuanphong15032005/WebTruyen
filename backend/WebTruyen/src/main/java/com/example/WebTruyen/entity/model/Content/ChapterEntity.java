@@ -43,6 +43,11 @@ public class ChapterEntity {
     @Column(nullable = false)
     private ChapterStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false)
+    @Builder.Default
+    private ChapterApprovalStatus approvalStatus = ChapterApprovalStatus.pending;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
