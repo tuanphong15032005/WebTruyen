@@ -4,6 +4,7 @@ import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 
@@ -42,4 +43,5 @@ public interface ChapterService {
     void recordChapterView(Long chapterId, Long userId);
     Long getNextChapterId(Long chapterId);
     Long getPreviousChapterId(Long chapterId);
+    ChapterApprovalStatus submitChapterForApproval(Long chapterId, Long authorId);
 }

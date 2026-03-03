@@ -4,6 +4,7 @@ import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.keys.ReadingHistoryId;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
@@ -509,6 +510,26 @@ public class ChapterServiceImpl implements ChapterService {
         result.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
         
         return result;
+    }
+
+    @Override
+    @Transactional
+    public ChapterApprovalStatus submitChapterForApproval(Long chapterId, Long authorId) {
+        if (authorId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        ChapterEntity chapter = chapterRepository.findByIdAndVolume_Story_Author_Id(chapterId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+
+        if (chapter.getApprovalStatus() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Chapter already submitted for review");
+        }
+
+        chapter.setApprovalStatus(ChapterApprovalStatus.pending);
+        chapter.setLastUpdateAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+        return chapter.getApprovalStatus();
     }
 //<<<<<<< HEAD
 
