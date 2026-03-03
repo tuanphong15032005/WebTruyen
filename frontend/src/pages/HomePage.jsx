@@ -239,6 +239,8 @@ function HomePage() {
   const [recommendTagName, setRecommendTagName] = useState('');
   const [communityComments, setCommunityComments] = useState([]);
   const [chapterMetaByStoryId, setChapterMetaByStoryId] = useState({});
+  const [shouldLoadOriginalCovers, setShouldLoadOriginalCovers] =
+    useState(false);
   const [heroPrevStory, setHeroPrevStory] = useState(null);
   const [heroPrevVisible, setHeroPrevVisible] = useState(false);
   const [heroSlideDirection, setHeroSlideDirection] = useState(1);
@@ -254,6 +256,7 @@ function HomePage() {
     swiped: false,
   });
   const activeHeroIndexRef = useRef(0);
+  const originalSectionRef = useRef(null);
 
   const activeHeroStory = heroStories[activeHeroIndex] || null;
 
@@ -274,6 +277,40 @@ function HomePage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (loading) return undefined;
+    if (shouldLoadOriginalCovers || originalStories.length === 0) {
+      return undefined;
+    }
+
+    const sectionElement = originalSectionRef.current;
+    if (!sectionElement) return undefined;
+
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setShouldLoadOriginalCovers(true);
+      return undefined;
+    }
+
+    const firstOriginalCard =
+      sectionElement.querySelector('.home-story-card') || sectionElement;
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        setShouldLoadOriginalCovers(true);
+        observer.disconnect();
+      },
+      {
+        root: null,
+        threshold: 0.01,
+        rootMargin: '0px',
+      },
+    );
+
+    observer.observe(firstOriginalCard);
+    return () => observer.disconnect();
+  }, [loading, originalStories.length, shouldLoadOriginalCovers]);
 
   useEffect(() => {
     // Hieuson - 24/2 + Náº¡p dá»¯ liá»‡u trang chá»§ gá»“m banner, cáº­p nháº­t, ranking, gá»£i Ã½ vÃ  pháº£n há»“i cá»™ng Ä‘á»“ng.
@@ -587,7 +624,11 @@ function HomePage() {
   };
 
   const renderStoryTiles = useCallback(
-    (stories) => {
+    (stories, options = {}) => {
+      const {
+        deferCoverLoading = false,
+        shouldLoadCovers = true,
+      } = options;
       if (!Array.isArray(stories) || stories.length === 0) {
         return (
           <p className='home-story-grid__empty'>Chưa có truyện để hiển thị.</p>
@@ -600,6 +641,9 @@ function HomePage() {
         const statusInfo = getStoryStatusInfo(story);
         const authorName =
           story.authorPenName || story.authorName || 'Chưa có bút danh';
+        const hasCover = Boolean(story.coverUrl);
+        const showCoverImage =
+          hasCover && (!deferCoverLoading || shouldLoadCovers);
 
         return (
           <article key={story.id} className='home-story-card'>
@@ -608,8 +652,17 @@ function HomePage() {
               className='home-story-card__link'
             >
               <div className='home-story-card__cover'>
-                {story.coverUrl ? (
-                  <img src={story.coverUrl} alt={story.title} />
+                {showCoverImage ? (
+                  <img
+                    src={story.coverUrl}
+                    alt={story.title}
+                    loading='lazy'
+                    decoding='async'
+                  />
+                ) : hasCover && deferCoverLoading ? (
+                  <div className='home-story-card__cover-empty home-story-card__cover-empty--lazy'>
+                    Đang tải ảnh...
+                  </div>
                 ) : (
                   <div className='home-story-card__cover-empty'>No cover</div>
                 )}
@@ -829,7 +882,7 @@ function HomePage() {
                 </div>
               </section>
 
-              <section className='home-section'>
+              <section className='home-section' ref={originalSectionRef}>
                 <div className='home-section__head'>
                   <h2>
                     <PenTool
@@ -840,7 +893,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(originalStories)}
+                  {renderStoryTiles(originalStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
 
@@ -855,7 +911,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(translatedStories)}
+                  {renderStoryTiles(translatedStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
 
@@ -870,7 +929,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(aiStories)}
+                  {renderStoryTiles(aiStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
 
@@ -885,7 +947,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(completedStories)}
+                  {renderStoryTiles(completedStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
             </div>

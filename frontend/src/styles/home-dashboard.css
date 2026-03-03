@@ -467,6 +467,19 @@
   font-size: 0.82rem;
 }
 
+.home-story-card__cover-empty--lazy {
+  color: #5e7498;
+  background: linear-gradient(110deg, #e8effb 8%, #f4f8ff 18%, #e8effb 33%);
+  background-size: 200% 100%;
+  animation: home-cover-shimmer 1.2s linear infinite;
+}
+
+@keyframes home-cover-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 .home-story-card__overlay {
   position: absolute;
   left: 0;
