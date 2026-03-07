@@ -34,6 +34,9 @@ public class VolumeEntity {
     @Column(name = "cover_url", length = 1000)
     private String coverUrl;
 
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultVolume;
+
     @Column(name = "sequence_index", nullable = false)
     private Integer sequenceIndex;
 
