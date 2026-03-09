@@ -8,10 +8,14 @@ import com.example.WebTruyen.repository.UserRoleRepository;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -46,6 +50,17 @@ public class UserProfileController {
                         .roleDescription(userRole.getRole().getDescription())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @PostMapping("/{userId}/avatar")
+    public Map<String, String> uploadAvatar(@PathVariable Long userId, @RequestParam("avatar") MultipartFile file) {
+        try {
+            String avatarUrl = userService.uploadAvatar(userId, file);
+            if (avatarUrl == null) throw new RuntimeException("Avatar upload returned null url");
+            return Map.of("avatarUrl", avatarUrl);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Avatar upload failed", ex);
+        }
     }
 
 

@@ -15,3 +15,12 @@ export async function getUserProfileById(userId) {
   const res = await axiosClient.get(`/api/users/profile/${userId}`)
   return res.data
 }
+//create an avatar upload API function
+export async function uploadAvatar(userId, formData) {
+  const res = await axiosClient.post(`/api/users/profile/${userId}/avatar`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return res.data
+}
