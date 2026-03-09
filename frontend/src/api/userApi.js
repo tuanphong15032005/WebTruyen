@@ -1,19 +1,16 @@
-import { axiosClient } from './axiosClient'
+import api from '../services/api'
 
 export async function dailyCheckIn() {
   // Backend API đã có sẵn: POST /api/wallet/checkin
-  const res = await axiosClient.post('/api/wallet/checkin')
-  return res.data
+  return await api.post('/wallet/checkin')
 }
 
 export async function getUserProfile() {
-  const res = await axiosClient.get('/api/user/profile')
-  return res.data
+  return await api.get('/user/profile')
 }
 
 export async function getUserProfileById(userId) {
-  const res = await axiosClient.get(`/api/users/profile/${userId}`)
-  return res.data
+  return await api.get(`/users/profile/${userId}`)
 }
 //create an avatar upload API function
 export async function uploadAvatar(userId, formData) {
