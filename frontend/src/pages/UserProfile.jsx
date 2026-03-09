@@ -727,7 +727,7 @@ export default function UserProfile({ userData }) {
                 <div style={{ backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '16px', border: '1px solid #e9ecef', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
                     <Calendar size={20} />
-                    <span style={{ fontWeight: '500' }}>Nhiệm vụ hàng ngày</span>
+                    <span style={{ fontWeight: '500' }}>Nhiệm vụ hàng ngày.</span>
                   </div>
                   <button 
                     onClick={() => navigate('/daily-tasks')}
