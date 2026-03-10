@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface FollowUserRepository extends JpaRepository<FollowUserEntity, Long> {
     
@@ -27,4 +28,15 @@ public interface FollowUserRepository extends JpaRepository<FollowUserEntity, Lo
     @Transactional
     @Query(value = "DELETE FROM follows_users WHERE user_id = :userId AND target_user_id = :targetUserId", nativeQuery = true)
     void deleteFollow(@Param("userId") Long userId, @Param("targetUserId") Long targetUserId);
+    
+    @Query(value = "SELECT " +
+            "u.id, u.username, u.display_name, u.avatar_url, u.author_pen_name, " +
+            "f.created_at, " +
+            "(SELECT COUNT(*) FROM stories s WHERE s.author_id = u.id) as stories_count " +
+            "FROM follows_users f " +
+            "INNER JOIN users u ON f.user_id = u.id " +
+            "WHERE f.target_user_id = :targetUserId " +
+            "ORDER BY f.created_at DESC", 
+            nativeQuery = true)
+    List<Object[]> findFollowersWithDetails(@Param("targetUserId") Long targetUserId);
 }

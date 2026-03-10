@@ -115,6 +115,9 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     
     long countByAuthor_Id(Long authorId);
     
+    // Count only published stories by author
+    long countByAuthor_IdAndStatus(Long authorId, StoryStatus status);
+    
 //    List<StoryEntity> findByAuthorIdOrderByCreatedAtDesc(Long authorId);
 //>>>>>>> origin/portfolio
 }

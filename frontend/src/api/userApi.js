@@ -24,3 +24,8 @@ export async function uploadAvatar(userId, formData) {
   })
   return res.data
 }
+
+export async function getFollowersList(userId) {
+  const res = await axiosClient.get(`/api/users/${userId}/followers`)
+  return res.data
+}
