@@ -1,10 +1,10 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Outlet } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import '../App.css';
 
-function MainLayout({ children }) {
+function MainLayout() {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
   const isAuthPage = [
@@ -27,7 +27,7 @@ function MainLayout({ children }) {
               : 'main-content--spaced'
         }`}
       >
-        {children}
+        <Outlet />
       </main>
       <Footer />
     </div>

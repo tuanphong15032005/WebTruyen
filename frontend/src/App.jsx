@@ -88,6 +88,7 @@ function App() {
   const location = useLocation();
 
   return (
+
     <Routes>
       {/* Documentation Routes */}
       <Route path="/policy" element={<DocsLayout />}>
@@ -99,81 +100,81 @@ function App() {
 
       {/* Main App Routes */}
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<><RouteScrollManager /><HomePage /></>} />
-        <Route path='search' element={<><RouteScrollManager /><SearchPage /></>} />
-        <Route path='login' element={<><RouteScrollManager /><Login /></>} />
-        <Route path='register' element={<><RouteScrollManager /><Register /></>} />
-        <Route path='verify' element={<><RouteScrollManager /><VerifyCode /></>} />
-        <Route path='forgot-password' element={<><RouteScrollManager /><ForgotPassword /></>} />
-        <Route path='reset-password' element={<><RouteScrollManager /><ResetPassword /></>} />
-        <Route path='wallet/topup' element={<><RouteScrollManager /><WalletTopupPage /></>} />
+        <Route index element={<HomePage />} />
+        <Route path='search' element={<SearchPage />} />
+        <Route path='login' element={<Login />} />
+        <Route path='register' element={<Register />} />
+        <Route path='verify' element={<VerifyCode />} />
+        <Route path='forgot-password' element={<ForgotPassword />} />
+        <Route path='reset-password' element={<ResetPassword />} />
+        <Route path='wallet/topup' element={<WalletTopupPage />} />
         <Route
           path='wallet/confirmation/:id'
-          element={<><RouteScrollManager /><PaymentConfirmationPage /></>}
+          element={<PaymentConfirmationPage />}
         />
         <Route
           path='donation-history'
-          element={<><RouteScrollManager /><CoinTransactionHistoryPage /></>}
+          element={<CoinTransactionHistoryPage />}
         />
-        <Route path='profile' element={<><RouteScrollManager /><UserProfile /></>} />
-        <Route path='daily-tasks' element={<><RouteScrollManager /><DailyTasksPage /></>} />
-        <Route path='user/:userId' element={<><RouteScrollManager /><UserPortfolioPage /></>} />
-        <Route path='donate/:userId' element={<><RouteScrollManager /><DonatePage /></>} />
-        <Route path='authordashboard' element={<><RouteScrollManager /><AuthorDashboard /></>} />
-        <Route path='author/my-stories' element={<><RouteScrollManager /><ManageStories /></>} />
-        <Route path='manage-stories' element={<><RouteScrollManager /><ManageStories /></>} />
-        <Route path='library' element={<><RouteScrollManager /><LibraryStories /></>} />
-        <Route path='author/create-story' element={<><RouteScrollManager /><CreateStory /></>} />
-        <Route path='author/stories/:storyId/edit' element={<><RouteScrollManager /><CreateStory /></>} />
-        <Route path='author/stories/:storyId' element={<><RouteScrollManager /><StoryDetail /></>} />
-        <Route path='stories/:storyId/metadata' element={<><RouteScrollManager /><StoryMetadata /></>} />
-        <Route path='stories/:storyId/reviews' element={<><RouteScrollManager /><StoryReviews /></>} />
+        <Route path='profile' element={<UserProfile />} />
+        <Route path='daily-tasks' element={<DailyTasksPage />} />
+        <Route path='user/:userId' element={<UserPortfolioPage />} />
+        <Route path='donate/:userId' element={<DonatePage />} />
+        <Route path='authordashboard' element={<AuthorDashboard />} />
+        <Route path='author/my-stories' element={<ManageStories />} />
+        <Route path='manage-stories' element={<ManageStories />} />
+        <Route path='library' element={<LibraryStories />} />
+        <Route path='author/create-story' element={<CreateStory />} />
+        <Route path='author/stories/:storyId/edit' element={<CreateStory />} />
+        <Route path='author/stories/:storyId' element={<StoryDetail />} />
+        <Route path='stories/:storyId/metadata' element={<StoryMetadata />} />
+        <Route path='stories/:storyId/reviews' element={<StoryReviews />} />
         <Route
           path='stories/:storyId/chapters/:chapterId'
-          element={<><RouteScrollManager /><ChapterPage /></>}
+          element={<ChapterPage />}
         />
         <Route
           path='author/stories/:storyId/volumes/:volumeId/create-chapter'
-          element={<><RouteScrollManager /><CreateChapter /></>}
+          element={<CreateChapter />}
         />
         <Route
           path='author/comments'
           element={
-            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
               <CommentManagement />
-            </RoleProtectedRoute></>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path='author/performance-analytics'
           element={
-            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
               <PerformanceAnalytics />
-            </RoleProtectedRoute></>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path='admin/dashboard'
           element={
-            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <AdminDashboard />
-            </RoleProtectedRoute></>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path='admin/content-moderation'
           element={
-            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ContentModeration />
-            </RoleProtectedRoute></>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path='admin/violation-reports'
           element={
-            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ViolationReportManagement />
-            </RoleProtectedRoute></>
+            </RoleProtectedRoute>
           }
         />
       </Route>
