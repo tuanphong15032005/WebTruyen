@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import DocsLayout from './layouts/DocsLayout';
 import HomePage from './pages/HomePage';
 
 import SearchPage from './pages/SearchPage';
@@ -33,6 +34,9 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import TermsOfService from './pages/docs/TermsOfService';
+import PrivacyPolicy from './pages/docs/PrivacyPolicy';
+import UploadRule from './pages/docs/UploadRule';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 
 import './App.css';
@@ -81,89 +85,99 @@ function RouteScrollManager() {
   return null;
 }
 function App() {
+  const location = useLocation();
+
   return (
-    <MainLayout>
-      <RouteScrollManager />
-      <Routes>
-        <Route path='/' element={<HomePage />} />
-        <Route path='/search' element={<SearchPage />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/register' element={<Register />} />
-        <Route path='/verify' element={<VerifyCode />} />
-        <Route path='/forgot-password' element={<ForgotPassword />} />
-        <Route path='/reset-password' element={<ResetPassword />} />
-        <Route path='/wallet/topup' element={<WalletTopupPage />} />
+    <Routes>
+      {/* Documentation Routes */}
+      <Route path="/policy" element={<DocsLayout />}>
+        <Route index element={<TermsOfService />} />
+        <Route path="terms-of-service" element={<TermsOfService />} />
+        <Route path="privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="upload-rule" element={<UploadRule />} />
+      </Route>
+
+      {/* Main App Routes */}
+      <Route path="/" element={<MainLayout />}>
+        <Route index element={<><RouteScrollManager /><HomePage /></>} />
+        <Route path='search' element={<><RouteScrollManager /><SearchPage /></>} />
+        <Route path='login' element={<><RouteScrollManager /><Login /></>} />
+        <Route path='register' element={<><RouteScrollManager /><Register /></>} />
+        <Route path='verify' element={<><RouteScrollManager /><VerifyCode /></>} />
+        <Route path='forgot-password' element={<><RouteScrollManager /><ForgotPassword /></>} />
+        <Route path='reset-password' element={<><RouteScrollManager /><ResetPassword /></>} />
+        <Route path='wallet/topup' element={<><RouteScrollManager /><WalletTopupPage /></>} />
         <Route
-          path='/wallet/confirmation/:id'
-          element={<PaymentConfirmationPage />}
+          path='wallet/confirmation/:id'
+          element={<><RouteScrollManager /><PaymentConfirmationPage /></>}
         />
         <Route
-          path='/donation-history'
-          element={<CoinTransactionHistoryPage />}
+          path='donation-history'
+          element={<><RouteScrollManager /><CoinTransactionHistoryPage /></>}
         />
-        <Route path='/profile' element={<UserProfile />} />
-        <Route path='/daily-tasks' element={<DailyTasksPage />} />
-        <Route path='/user/:userId' element={<UserPortfolioPage />} />
-        <Route path='/donate/:userId' element={<DonatePage />} />
-        <Route path='/authordashboard' element={<AuthorDashboard />} />
-        <Route path='/author/my-stories' element={<ManageStories />} />
-        <Route path='/manage-stories' element={<ManageStories />} />
-        <Route path='/library' element={<LibraryStories />} />
-        <Route path='/author/create-story' element={<CreateStory />} />
-        <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
-        <Route path='/author/stories/:storyId' element={<StoryDetail />} />
-        <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
-        <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
+        <Route path='profile' element={<><RouteScrollManager /><UserProfile /></>} />
+        <Route path='daily-tasks' element={<><RouteScrollManager /><DailyTasksPage /></>} />
+        <Route path='user/:userId' element={<><RouteScrollManager /><UserPortfolioPage /></>} />
+        <Route path='donate/:userId' element={<><RouteScrollManager /><DonatePage /></>} />
+        <Route path='authordashboard' element={<><RouteScrollManager /><AuthorDashboard /></>} />
+        <Route path='author/my-stories' element={<><RouteScrollManager /><ManageStories /></>} />
+        <Route path='manage-stories' element={<><RouteScrollManager /><ManageStories /></>} />
+        <Route path='library' element={<><RouteScrollManager /><LibraryStories /></>} />
+        <Route path='author/create-story' element={<><RouteScrollManager /><CreateStory /></>} />
+        <Route path='author/stories/:storyId/edit' element={<><RouteScrollManager /><CreateStory /></>} />
+        <Route path='author/stories/:storyId' element={<><RouteScrollManager /><StoryDetail /></>} />
+        <Route path='stories/:storyId/metadata' element={<><RouteScrollManager /><StoryMetadata /></>} />
+        <Route path='stories/:storyId/reviews' element={<><RouteScrollManager /><StoryReviews /></>} />
         <Route
-          path='/stories/:storyId/chapters/:chapterId'
-          element={<ChapterPage />}
-        />
-        <Route
-          path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
-          element={<CreateChapter />}
+          path='stories/:storyId/chapters/:chapterId'
+          element={<><RouteScrollManager /><ChapterPage /></>}
         />
         <Route
-          path='/author/comments'
+          path='author/stories/:storyId/volumes/:volumeId/create-chapter'
+          element={<><RouteScrollManager /><CreateChapter /></>}
+        />
+        <Route
+          path='author/comments'
           element={
-            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['AUTHOR']}>
               <CommentManagement />
-            </RoleProtectedRoute>
+            </RoleProtectedRoute></>
           }
         />
         <Route
-          path='/author/performance-analytics'
+          path='author/performance-analytics'
           element={
-            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['AUTHOR']}>
               <PerformanceAnalytics />
-            </RoleProtectedRoute>
+            </RoleProtectedRoute></>
           }
         />
         <Route
-          path='/admin/dashboard'
+          path='admin/dashboard'
           element={
-            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <AdminDashboard />
-            </RoleProtectedRoute>
+            </RoleProtectedRoute></>
           }
         />
         <Route
-          path='/admin/content-moderation'
+          path='admin/content-moderation'
           element={
-            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ContentModeration />
-            </RoleProtectedRoute>
+            </RoleProtectedRoute></>
           }
         />
         <Route
-          path='/admin/violation-reports'
+          path='admin/violation-reports'
           element={
-            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <><RouteScrollManager /><RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ViolationReportManagement />
-            </RoleProtectedRoute>
+            </RoleProtectedRoute></>
           }
         />
-      </Routes>
-    </MainLayout>
+      </Route>
+    </Routes>
   );
 }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { BookOpen, Mail, Share2 } from 'lucide-react';
 import '../styles/site-shell.css';
 
@@ -21,18 +22,18 @@ function Footer() {
 
         <div className='site-footer__col'>
           <h4>Khám phá</h4>
-          <a href='/'>Truyện mới</a>
-          <a href='/'>Truyện HOT</a>
-          <a href='/'>Truyện hoàn thành</a>
-          <a href='/'>Thể loại</a>
+          <Link to='/'>Truyện mới</Link>
+          <Link to='/'>Truyện HOT</Link>
+          <Link to='/'>Truyện hoàn thành</Link>
+          <Link to='/'>Thể loại</Link>
         </div>
 
         <div className='site-footer__col'>
           <h4>Hỗ trợ</h4>
-          <a href='/'>Điều khoản dịch vụ</a>
-          <a href='/'>Chính sách bảo mật</a>
-          <a href='/'>Quy định diễn đàn</a>
-          <a href='/'>Báo lỗi / Góp ý</a>
+          <Link to='/policy/terms-of-service'>Điều khoản dịch vụ</Link>
+          <Link to='/policy/privacy-policy'>Chính sách bảo mật</Link>
+          <Link to='/policy/upload-rule'>Quy định diễn đàn</Link>
+          <Link to='/'>Báo lỗi / Góp ý</Link>
         </div>
 
         <div className='site-footer__col'>
