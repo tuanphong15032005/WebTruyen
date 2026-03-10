@@ -4,10 +4,12 @@ import com.example.WebTruyen.dto.request.UpdateProfileRequest;
 import com.example.WebTruyen.dto.response.UserProfileResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.UserRepository;
+import com.example.WebTruyen.service.StorageService;
 import com.example.WebTruyen.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -17,6 +19,7 @@ public class UserServiceImpl implements UserService {
 
 
     private final UserRepository userRepository;
+    private final StorageService storageService;
 
 
     @Override
@@ -53,6 +56,25 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return mapToResponse(user);
+    }
+
+    @Override
+    public String uploadAvatar(Long userId, MultipartFile file) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            // Upload the avatar image using StorageService
+            String avatarUrl = storageService.saveImage(file);
+            
+            // Update user's avatar URL in database
+            user.setAvatarUrl(avatarUrl);
+            userRepository.save(user);
+            
+            return avatarUrl;
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to upload avatar: " + ex.getMessage(), ex);
+        }
     }
 
 

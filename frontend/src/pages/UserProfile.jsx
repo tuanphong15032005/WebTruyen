@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -16,9 +16,11 @@ import {
   UserCircle,
   Edit3,
   Save,
-  Gem
+  Gem,
+  Camera,
+  Upload
 } from 'lucide-react';
-import { dailyCheckIn, getUserProfileById } from '../api/userApi';
+import { dailyCheckIn, getUserProfileById, uploadAvatar } from '../api/userApi';
 import { getWallet } from '../api/walletApi';
 import { WalletContext } from '../context/WalletContext';
 
@@ -40,6 +42,12 @@ export default function UserProfile({ userData }) {
   const [loading, setLoading] = useState(true);
   const [hasClaimedMonthlyBonus, setHasClaimedMonthlyBonus] = useState(false);
   const [userRoles, setUserRoles] = useState([]);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
+  const [existingAvatarUrl, setExistingAvatarUrl] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState('');
+  const avatarInputRef = useRef(null);
 
   // ✅ Fix: Fetch profile từ API dùng token, không hardcode
   useEffect(() => {
@@ -52,6 +60,7 @@ export default function UserProfile({ userData }) {
           setDisplayName(userData.displayName || userData.username || '');
           setFavoriteQuote(userData.bio || '');
           setTempName(userData.displayName || userData.username || '');
+          setExistingAvatarUrl(userData.avatarUrl || '');
           setLoading(false);
           return;
         }
@@ -73,6 +82,7 @@ export default function UserProfile({ userData }) {
           setDisplayName(data.displayName || data.username || '');
           setFavoriteQuote(data.bio || '');
           setTempName(data.displayName || data.username || '');
+          setExistingAvatarUrl(data.avatarUrl || '');
         } else {
           // Fallback: thử lấy theo id nếu có
           const userId = userData?.id || 1;
@@ -85,6 +95,7 @@ export default function UserProfile({ userData }) {
             setDisplayName(data.displayName || data.username || '');
             setFavoriteQuote(data.bio || '');
             setTempName(data.displayName || data.username || '');
+            setExistingAvatarUrl(data.avatarUrl || '');
           }
         }
       } catch (error) {
@@ -96,6 +107,17 @@ export default function UserProfile({ userData }) {
 
     fetchProfile();
   }, [userData]);
+
+  // Handle avatar preview
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreviewUrl('');
+      return;
+    }
+    const objectUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [avatarFile]);
 
   // ✅ Fix: Fetch wallet và log cấu trúc để debug
   useEffect(() => {
@@ -222,6 +244,68 @@ export default function UserProfile({ userData }) {
     }
   };
 
+  const handleAvatarChange = (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+    
+    // File validation
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (!allowedTypes.includes(selected.type)) {
+      setAvatarMessage('Chỉ chấp nhận các định dạng: JPEG, PNG, GIF, WebP');
+      setTimeout(() => setAvatarMessage(''), 3000);
+      return;
+    }
+    
+    if (selected.size > maxSize) {
+      setAvatarMessage('Kích thước file không được vượt quá 5MB');
+      setTimeout(() => setAvatarMessage(''), 3000);
+      return;
+    }
+    
+    setAvatarFile(selected);
+    setAvatarMessage('');
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) return;
+    
+    setUploadingAvatar(true);
+    setAvatarMessage('');
+    
+    try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+      
+      const userId = profileData?.id || localStorage.getItem('userId') || 1;
+      
+      const data = await uploadAvatar(userId, formData);
+      const newAvatarUrl = data.avatarUrl || data.url;
+      
+      // Update profile data with new avatar
+      setProfileData(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
+      setExistingAvatarUrl(newAvatarUrl);
+      setAvatarFile(null);
+      setAvatarPreviewUrl('');
+      setAvatarMessage('Cập nhật avatar thành công!');
+      setTimeout(() => setAvatarMessage(''), 3000);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Tải avatar lên thất bại, vui lòng thử lại!';
+      setAvatarMessage(errorMessage);
+      setTimeout(() => setAvatarMessage(''), 3000);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleCancelAvatarUpload = () => {
+    setAvatarFile(null);
+    setAvatarPreviewUrl('');
+    setAvatarMessage('');
+  };
+
   const getUserRoleDisplay = () => {
     console.log('🎯 getUserRoleDisplay called');
     console.log('🎯 userRoles state:', userRoles);
@@ -232,29 +316,27 @@ export default function UserProfile({ userData }) {
       return 'Thành viên';
     }
     
-    // Extract role names from userRoles array (DTO structure)
-    const roles = userRoles
+    // Extract role codes from userRoles array (DTO structure)
+    const roleCodes = userRoles
       .map(userRole => {
         console.log('🎯 Processing userRole:', userRole);
         console.log('🎯 userRole.roleName:', userRole?.roleName);
         console.log('🎯 userRole.roleCode:', userRole?.roleCode);
-        return userRole?.roleName || '';
+        return userRole?.roleCode || '';
       })
       .filter(Boolean);
     
-    console.log('🎯 Extracted role names:', roles);
+    console.log('🎯 Extracted role codes:', roleCodes);
     
-    if (roles.includes('ADMIN')) {
+    if (roleCodes.includes('ADMIN')) {
       return 'Quản trị viên';
-    } else if (roles.includes('MOD')) {
+    } else if (roleCodes.includes('MOD')) {
       return 'Biên tập viên';
-    } else if (roles.includes('AUTHOR')) {
+    } else if (roleCodes.includes('AUTHOR')) {
       return 'Tác giả';
-    } else if (roles.includes('REVIEWER')) {
+    } else if (roleCodes.includes('REVIEWER')) {
       return 'Reviewer';
-    } else if (roles.includes('READER')) {
-      return 'Reader';
-    } else if (roles.includes('Reader')) {
+    } else if (roleCodes.includes('READER')) {
       return 'Reader';
     } else {
       console.log('🎯 No matching role found, returning "Thành viên"');
@@ -376,9 +458,63 @@ export default function UserProfile({ userData }) {
           {/* User Info Card */}
           <div style={{ background: 'linear-gradient(135deg, #17a2b8, #138496)', borderRadius: '16px', padding: '24px', color: 'white', marginBottom: '24px', boxShadow: '0 8px 24px rgba(23, 162, 184, 0.2)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ width: '96px', height: '96px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: 'bold', marginBottom: '16px', border: '4px solid rgba(255,255,255,0.3)', boxSizing: 'border-box' }}>
-                {/* ✅ Fallback avatar */}
-                {(displayName || username || '?').charAt(0).toUpperCase()}
+              {/* Avatar with upload functionality */}
+              <div style={{ position: 'relative', marginBottom: '16px' }}>
+                <div 
+                  style={{ 
+                    width: '96px', 
+                    height: '96px', 
+                    borderRadius: '50%', 
+                    overflow: 'hidden',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: '36px', 
+                    fontWeight: 'bold', 
+                    marginBottom: '16px', 
+                    border: '4px solid rgba(255,255,255,0.3)', 
+                    boxSizing: 'border-box',
+                    cursor: 'pointer',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    position: 'relative'
+                  }}
+                  onClick={() => avatarInputRef.current?.click()}
+                >
+                  {avatarPreviewUrl || existingAvatarUrl ? (
+                    <img
+                      src={avatarPreviewUrl || existingAvatarUrl}
+                      alt='avatar'
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span style={{ color: 'white' }}>
+                      {(displayName || username || '?').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  {/* Camera overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0',
+                    right: '0',
+                    backgroundColor: '#17a2b8',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid white'
+                  }}>
+                    <Camera size={16} style={{ color: 'white' }} />
+                  </div>
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type='file'
+                  accept='image/*'
+                  onChange={handleAvatarChange}
+                  style={{ display: 'none' }}
+                />
               </div>
               <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
                 {displayName || username || 'Người dùng'}
@@ -416,6 +552,88 @@ export default function UserProfile({ userData }) {
                   <span>{coinB} Kim cương</span>
                 </div>
               </div>
+              
+              {/* Avatar upload preview and actions */}
+              {avatarFile && (
+                <div style={{ 
+                  width: '100%', 
+                  backgroundColor: 'rgba(255,255,255,0.15)', 
+                  borderRadius: '12px', 
+                  padding: '12px', 
+                  marginTop: '12px',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    marginBottom: '8px',
+                    fontSize: '14px',
+                    color: 'white'
+                  }}>
+                    <Upload size={16} />
+                    <span>Ảnh mới đã chọn</span>
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '8px',
+                    justifyContent: 'center'
+                  }}>
+                    <button
+                      onClick={handleAvatarUpload}
+                      disabled={uploadingAvatar}
+                      style={{
+                        backgroundColor: uploadingAvatar ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
+                        color: '#17a2b8',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
+                        opacity: uploadingAvatar ? 0.7 : 1
+                      }}
+                    >
+                      {uploadingAvatar ? 'Đang tải...' : 'Lưu'}
+                    </button>
+                    <button
+                      onClick={handleCancelAvatarUpload}
+                      disabled={uploadingAvatar}
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
+                        opacity: uploadingAvatar ? 0.7 : 1
+                      }}
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Avatar message */}
+              {avatarMessage && (
+                <div style={{ 
+                  marginTop: '8px', 
+                  padding: '6px 12px', 
+                  borderRadius: '6px', 
+                  fontSize: '12px', 
+                  fontWeight: '500', 
+                  backgroundColor: avatarMessage.includes('thành công') ? 'rgba(40, 167, 69, 0.2)' : 'rgba(220, 53, 69, 0.2)', 
+                  color: 'white',
+                  border: `1px solid ${avatarMessage.includes('thành công') ? 'rgba(40, 167, 69, 0.3)' : 'rgba(220, 53, 69, 0.3)'}`,
+                  textAlign: 'center'
+                }}>
+                  {avatarMessage}
+                </div>
+              )}
             </div>
           </div>
 
@@ -446,9 +664,29 @@ export default function UserProfile({ userData }) {
             <div style={{ display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'flex-start' }}>
               {/* Avatar */}
               <div style={{ flexShrink: 0 }}>
-                <div style={{ width: '128px', height: '128px', background: 'linear-gradient(135deg, #17a2b8, #138496)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', fontWeight: 'bold', color: 'white', boxShadow: '0 8px 24px rgba(23, 162, 184, 0.3)' }}>
-                  {/* ✅ Fallback avatar */}
-                  {(displayName || username || '?').charAt(0).toUpperCase()}
+                <div style={{ 
+                  width: '128px', 
+                  height: '128px', 
+                  borderRadius: '16px', 
+                  overflow: 'hidden',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontSize: '48px', 
+                  fontWeight: 'bold', 
+                  color: 'white', 
+                  boxShadow: '0 8px 24px rgba(23, 162, 184, 0.3)',
+                  background: avatarPreviewUrl || existingAvatarUrl ? 'transparent' : 'linear-gradient(135deg, #17a2b8, #138496)'
+                }}>
+                  {avatarPreviewUrl || existingAvatarUrl ? (
+                    <img
+                      src={avatarPreviewUrl || existingAvatarUrl}
+                      alt='avatar'
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    (displayName || username || '?').charAt(0).toUpperCase()
+                  )}
                 </div>
               </div>
 
@@ -489,27 +727,25 @@ export default function UserProfile({ userData }) {
                 <div style={{ backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '16px', border: '1px solid #e9ecef', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#666', marginBottom: '8px', fontSize: '14px' }}>
                     <Calendar size={20} />
-                    <span style={{ fontWeight: '500' }}>Nhận 5000 coin</span>
+                    <span style={{ fontWeight: '500' }}>Nhiệm vụ hàng ngày.</span>
                   </div>
                   <button 
-                    onClick={handleCheckIn} 
-                    disabled={checkInLoading}
+                    onClick={() => navigate('/daily-tasks')}
                     style={{ 
-                      color: hasClaimedMonthlyBonus ? '#6c757d' : '#28a745', 
+                      color: '#007bff', 
                       fontWeight: '600', 
                       textDecoration: 'none', 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '8px', 
-                      backgroundColor: hasClaimedMonthlyBonus ? '#e9ecef' : '#d4edda', 
-                      border: hasClaimedMonthlyBonus ? '1px solid #ced4da' : '1px solid #c3e6cb', 
+                      backgroundColor: '#e3f2fd', 
+                      border: '1px solid #bbdefb', 
                       borderRadius: '6px', 
                       padding: '4px 8px', 
-                      cursor: checkInLoading ? 'not-allowed' : 'pointer',
-                      opacity: checkInLoading ? 0.6 : 1
+                      cursor: 'pointer'
                     }}
                   >
-                    {checkInLoading ? 'Đang xử lý...' : (hasClaimedMonthlyBonus ? '✅ Đã nhận thưởng' : '🎁 Nhận 5000 coin')}
+                    🎯 Xem nhiệm vụ
                   </button>
                 </div>
 
