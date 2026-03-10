@@ -50,6 +50,9 @@ public class CommentEntity {
     @Column(nullable = false)
     private String content;
 
+    @Column(name = "is_spoiler", nullable = false)
+    private boolean spoiler;
+
     @Column(nullable = false)
     private Integer depth;
 
