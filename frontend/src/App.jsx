@@ -18,6 +18,7 @@ import DonatePage from './pages/Payment/DonatePage';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import DailyTasksPage from './pages/DailyTasksPage';
+import AchievementsPage from './pages/AchievementsPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
 import CreateStory from './pages/Author/CreateStory';
@@ -103,6 +104,7 @@ function App() {
         />
         <Route path='/profile' element={<UserProfile />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
+        <Route path='/achievements' element={<AchievementsPage />} />
         <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
