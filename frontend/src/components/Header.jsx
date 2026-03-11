@@ -1,5 +1,6 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+﻿import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+
 import {
   BookOpen,
   Bookmark,
@@ -9,6 +10,7 @@ import {
   Star,
   Trophy,
 } from 'lucide-react';
+
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import storyService from '../services/storyService';
@@ -61,7 +63,11 @@ function Header() {
       }
     };
     window.addEventListener('storage', syncUserFromStorage);
-    return () => window.removeEventListener('storage', syncUserFromStorage);
+    window.addEventListener('user-updated', syncUserFromStorage);
+    return () => {
+      window.removeEventListener('storage', syncUserFromStorage);
+      window.removeEventListener('user-updated', syncUserFromStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -215,7 +221,8 @@ function Header() {
 
   return (
     <header
-      className={`site-header ${isHomePage ? 'site-header--overlay' : 'site-header--solid'} ${isHomePage && isHeaderScrolled ? 'scrolled' : ''}`}>
+      className={`site-header ${isHomePage ? 'site-header--overlay' : 'site-header--solid'} ${isHomePage && isHeaderScrolled ? 'scrolled' : ''}`}
+    >
       <div className='site-header__inner'>
         <Link to='/' className='site-brand'>
           <span className='site-brand__logo'>
@@ -258,7 +265,9 @@ function Header() {
           {isSearchOpen && showSearchSuggestions && (
             <div className='site-search__suggestions'>
               {searchLoading && (
-                <p className='site-search__suggestion-muted'>Đang tìm kiếm...</p>
+                <p className='site-search__suggestion-muted'>
+                  Đang tìm kiếm...
+                </p>
               )}
 
               {!searchLoading &&
@@ -281,14 +290,16 @@ function Header() {
                     >
                       <span className='site-search__suggestion-cover'>
                         {story.coverUrl ? (
-                          <img src={story.coverUrl} alt={story.title || 'cover'} />
+                          <img
+                            src={story.coverUrl}
+                            alt={story.title || 'cover'}
+                          />
                         ) : (
                           <span className='site-search__suggestion-cover-empty'>
                             No cover
                           </span>
                         )}
                       </span>
-
                       <span className='site-search__suggestion-main'>
                         <strong>{story.title || 'Không rõ tên truyện'}</strong>
                         <span className='site-search__suggestion-meta'>
@@ -349,22 +360,20 @@ function Header() {
                 onClick={() => setShowDropdown((prev) => !prev)}
                 aria-label='Mở menu tài khoản'
               >
-                <span className='site-user__avatar'>
-                  {String(user.username || '?')
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.username || 'avatar'}
+                    className='site-user__avatar-image'
+                  />
+                ) : (
+                  <span className='site-user__avatar'>
+                    {String(user.username || '?')
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                )}
               </button>
-              {/*               {showDropdown && ( */}
-              {/*                 <div className='site-user__dropdown'> */}
-              {/*                   <Link to='/profile'>Hồ sơ cá nhân</Link> */}
-              {/*                   <Link to='/donation-history'>Lịch sử giao dịch</Link> */}
-              {/*                   <button type='button' onClick={handleLogout}> */}
-              {/*                     Đăng xuất */}
-              {/*                   </button> */}
-              {/*                 </div> */}
-              {/*               )} */}
-              {/* thay doi showDropdown tam thoi, sau nay se toi gian lai khi anh Minh gop lam cho cai menu dropdown nay gon lai */}
               {showDropdown && (
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
@@ -407,112 +416,6 @@ function Header() {
       </div>
     </header>
   );
-  // =======
-  //
-  //             {/* Right side */}
-  //             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-  //
-  //                 {/* Wallet */}
-  //                 {isLoggedIn && (
-  //                     <>
-  //                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-  //                             <div style={{ padding: '0px 0px 0px 5px', border: '1px solid #ddd', borderRadius: '8px', color: '#000', display: 'flex', alignItems: 'center' }}>
-  //                                 💎 {wallet.coinB}
-  //                                 <button
-  //                                     onClick={() => navigate('/wallet/topup')}
-  //                                     style={{ marginLeft: '5px', border: 'none', background: 'none', cursor: 'pointer' }}
-  //                                 >
-  //                                     +
-  //                                 </button>
-  //                             </div>
-  //
-  //                             <div style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', color: '#000', display: 'flex', alignItems: 'center' }}>
-  //                                 🪙 {wallet.coinA}
-  //                             </div>
-  //
-  //
-  //                         </div>
-  //                     </>
-  //                 )}
-  //
-  //                 {/* User */}
-  //                 {user ? (
-  //                     <div style={{ position: 'relative' }}>
-  //                         <div
-  //                             onClick={() => setShowDropdown(!showDropdown)}
-  //                             style={{
-  //                                 display: 'flex',
-  //                                 alignItems: 'center',
-  //                                 gap: '10px',
-  //                                 cursor: 'pointer'
-  //                             }}
-  //                         >
-  //                             <span style = {{color: 'black'}} >Xin chào, <strong>{user.username}</strong></span>
-  //                             <div style={{
-  //                                 width: '36px',
-  //                                 height: '36px',
-  //                                 borderRadius: '50%',
-  //                                 background: 'linear-gradient(135deg, #17a2b8, #138496)',
-  //                                 color: 'white',
-  //                                 display: 'flex',
-  //                                 alignItems: 'center',
-  //                                 justifyContent: 'center',
-  //                                 fontWeight: 'bold'
-  //                             }}>
-  //                                 {user.username.charAt(0).toUpperCase()}
-  //                             </div>
-  //                         </div>
-  //
-  //                         {showDropdown && (
-  //                             <div style={{
-  //                                 position: 'absolute',
-  //                                 right: 0,
-  //                                 top: '120%',
-  //                                 background: 'white',
-  //                                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-  //                                 borderRadius: '10px',
-  //                                 overflow: 'hidden',
-  //                                 minWidth: '180px'
-  //                             }}>
-  //                                 <Link to="/profile" style={dropdownItemStyle}>Hồ sơ cá nhân</Link>
-  //                                 <Link to="/donation-history" style={dropdownItemStyle}>Lịch sử giao dịch</Link>
-  //                                 {hasAnyRole(['AUTHOR'], user) && (
-  //                                   <>
-  //                                     <Link to="/author/comments" style={dropdownItemStyle}>Quản lý bình luận</Link>
-  //                                     <Link to="/author/performance-analytics" style={dropdownItemStyle}>Báo cáo hiệu suất truyện</Link>
-  //                                   </>
-  //                                 )}
-  //                                 {hasAnyRole(['ADMIN', 'MOD'], user) && (
-  //                                   <>
-  //                                     <Link to="/admin/content-moderation" style={dropdownItemStyle}>Quản lý kiểm duyệt nội dung</Link>
-  //                                     <Link to="/admin/violation-reports" style={dropdownItemStyle}>Quản lý báo cáo vi phạm</Link>
-  //                                   </>
-  //                                 )}
-  //                                 <div style={{ borderTop: '1px solid #eee' }}></div>
-  //                                 <button onClick={handleLogout} style={{ ...dropdownItemStyle, width: '100%', textAlign: 'left', background: 'none', border: 'none' }}>
-  //                                     Đăng xuất
-  //                                 </button>
-  //                             </div>
-  //                         )}
-  //                     </div>
-  //                 ) : (
-  //                     <div style={{ display: 'flex', gap: '12px' }}>
-  //                         <Link to="/login">Đăng nhập</Link>
-  //                         <Link to="/register" style={{
-  //                             padding: '6px 12px',
-  //                             background: '#17a2b8',
-  //                             color: 'white',
-  //                             borderRadius: '8px',
-  //                             textDecoration: 'none'
-  //                         }}>
-  //                             Đăng ký
-  //                         </Link>
-  //                     </div>
-  //                 )}
-  //             </div>
-  //         </header>
-  //     );
-  // >>>>>>> origin/minhfinal1
 }
 
 export default Header;

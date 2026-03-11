@@ -100,21 +100,25 @@ function Login() {
 
             if (response.ok) {
                 const user = await response.json();
+                const normalizedUser = {
+                    ...user,
+                    accessToken: user.accessToken || user.token || '',
+                };
 
                 // Lưu full user object
-                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('user', JSON.stringify(normalizedUser));
 
                 // Nếu backend trả JWT thì lưu riêng
-                if (user.accessToken) {
-                    localStorage.setItem("accessToken", user.accessToken);
+                if (normalizedUser.accessToken) {
+                    localStorage.setItem("accessToken", normalizedUser.accessToken);
                 }
 
-                if (user.userId) {
-                    localStorage.setItem("userId", user.userId);
+                if (normalizedUser.userId) {
+                    localStorage.setItem("userId", normalizedUser.userId);
                 }
 
-                if (user.username) {
-                    localStorage.setItem("username", user.username);
+                if (normalizedUser.username) {
+                    localStorage.setItem("username", normalizedUser.username);
                 }
 
                 // Track daily login task
