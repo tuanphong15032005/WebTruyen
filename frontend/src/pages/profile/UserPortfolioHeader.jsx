@@ -59,8 +59,18 @@ const UserPortfolioHeader = ({ data, onDonateClick }) => {
     
     return (
         <div className="relative">
-            {/* Cover Image (Gray placeholder) */}
-            <div className="h-48 bg-gray-300"></div>
+            {/* Cover Image */}
+            <div className="h-48 bg-gray-300">
+                {data.coverUrl ? (
+                    <img
+                        src={data.coverUrl}
+                        alt={`${data.displayName || data.username}'s cover`}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gray-300"></div>
+                )}
+            </div>
             
             {/* Profile Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

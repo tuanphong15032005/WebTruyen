@@ -19,8 +19,12 @@ import {
   Gem,
   Camera,
   Upload,
+  Settings,
+  Wallet,
+  Target,
+  Lock,
 } from 'lucide-react';
-import { dailyCheckIn, getUserProfileById, uploadAvatar } from '../api/userApi';
+import { dailyCheckIn, getUserProfileById, uploadAvatar, uploadCover } from '../api/userApi';
 import { getWallet } from '../api/walletApi';
 import { WalletContext } from '../context/WalletContext';
 
@@ -48,6 +52,19 @@ export default function UserProfile({ userData }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState('');
   const avatarInputRef = useRef(null);
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
+  const [existingCoverUrl, setExistingCoverUrl] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverMessage, setCoverMessage] = useState('');
+  const coverInputRef = useRef(null);
+
+  // Password change states
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // ✅ Fix: Fetch profile từ API dùng token, không hardcode
   useEffect(() => {
@@ -61,6 +78,7 @@ export default function UserProfile({ userData }) {
           setFavoriteQuote(userData.bio || '');
           setTempName(userData.displayName || userData.username || '');
           setExistingAvatarUrl(userData.avatarUrl || '');
+          setExistingCoverUrl(userData.coverUrl || '');
           setLoading(false);
           return;
         }
@@ -86,6 +104,7 @@ export default function UserProfile({ userData }) {
           setFavoriteQuote(data.bio || '');
           setTempName(data.displayName || data.username || '');
           setExistingAvatarUrl(data.avatarUrl || '');
+          setExistingCoverUrl(data.coverUrl || '');
         } else {
           // Fallback: thử lấy theo id nếu có
           const userId = userData?.id || 1;
@@ -102,6 +121,7 @@ export default function UserProfile({ userData }) {
             setFavoriteQuote(data.bio || '');
             setTempName(data.displayName || data.username || '');
             setExistingAvatarUrl(data.avatarUrl || '');
+            setExistingCoverUrl(data.coverUrl || '');
           }
         }
       } catch (error) {
@@ -124,6 +144,17 @@ export default function UserProfile({ userData }) {
     setAvatarPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [avatarFile]);
+
+  // Handle cover preview
+  useEffect(() => {
+    if (!coverFile) {
+      setCoverPreviewUrl('');
+      return;
+    }
+    const objectUrl = URL.createObjectURL(coverFile);
+    setCoverPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [coverFile]);
 
   // ✅ Fix: Fetch wallet và log cấu trúc để debug
   useEffect(() => {
@@ -346,6 +377,163 @@ export default function UserProfile({ userData }) {
     setAvatarMessage('');
   };
 
+  const handleCoverChange = (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+
+    // File validation
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(selected.type)) {
+      setCoverMessage('Chỉ chấp nhận các định dạng: JPEG, PNG, GIF, WebP');
+      setTimeout(() => setCoverMessage(''), 3000);
+      return;
+    }
+
+    if (selected.size > maxSize) {
+      setCoverMessage('Kích thước file không được vượt quá 5MB');
+      setTimeout(() => setCoverMessage(''), 3000);
+      return;
+    }
+
+    setCoverFile(selected);
+    setCoverMessage('');
+  };
+
+  const handleCoverUpload = async () => {
+    if (!coverFile) return;
+
+    setUploadingCover(true);
+    setCoverMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('cover', coverFile);
+
+      const userId = profileData?.id || localStorage.getItem('userId') || 1;
+
+      const data = await uploadCover(userId, formData);
+      const newCoverUrl = data.coverUrl || data.url;
+
+      // Update profile data with new cover
+      setProfileData((prev) => ({ ...prev, coverUrl: newCoverUrl }));
+      setExistingCoverUrl(newCoverUrl);
+      
+      // Update localStorage
+      try {
+        const rawUser = localStorage.getItem('user');
+        if (rawUser) {
+          const parsedUser = JSON.parse(rawUser);
+          localStorage.setItem(
+            'user',
+            JSON.stringify({ ...parsedUser, coverUrl: newCoverUrl }),
+          );
+          window.dispatchEvent(new Event('user-updated'));
+        }
+      } catch (storageError) {
+        console.warn('Failed to sync cover to localStorage:', storageError);
+      }
+      
+      setCoverFile(null);
+      setCoverPreviewUrl('');
+      setCoverMessage('Cập nhật ảnh bìa thành công!');
+      setTimeout(() => setCoverMessage(''), 3000);
+    } catch (error) {
+      console.error('Error uploading cover:', error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Tải ảnh bìa lên thất bại, vui lòng thử lại!';
+      setCoverMessage(errorMessage);
+      setTimeout(() => setCoverMessage(''), 3000);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleCancelCoverUpload = () => {
+    setCoverFile(null);
+    setCoverPreviewUrl('');
+    setCoverMessage('');
+  };
+
+  const handlePasswordChange = async () => {
+    // Validation
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage('Vui lòng điền đầy đủ tất cả các trường');
+      setTimeout(() => setPasswordMessage(''), 3000);
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordMessage('Mật khẩu mới phải có ít nhất 8 ký tự');
+      setTimeout(() => setPasswordMessage(''), 3000);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('Mật khẩu mới và xác nhận mật khẩu không khớp');
+      setTimeout(() => setPasswordMessage(''), 3000);
+      return;
+    }
+
+    if (oldPassword === newPassword) {
+      setPasswordMessage('Mật khẩu mới phải khác mật khẩu cũ');
+      setTimeout(() => setPasswordMessage(''), 3000);
+      return;
+    }
+
+    setChangingPassword(true);
+    setPasswordMessage('');
+
+    try {
+      const userId = profileData?.id || localStorage.getItem('userId') || 1;
+      const token = localStorage.getItem('accessToken');
+
+      const response = await fetch(
+        `http://localhost:8081/api/users/profile/${userId}/change-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            oldPassword: oldPassword,
+            newPassword: newPassword,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        setPasswordMessage('Mật khẩu đã được cập nhật thành công!');
+        // Clear form
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setPasswordMessage(''), 3000);
+      } else {
+        const errorData = await response.json();
+        setPasswordMessage(errorData.message || 'Cập nhật mật khẩu thất bại, vui lòng thử lại!');
+        setTimeout(() => setPasswordMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordMessage('Có lỗi xảy ra, vui lòng thử lại!');
+      setTimeout(() => setPasswordMessage(''), 3000);
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const getUserRoleDisplay = () => {
     console.log('🎯 getUserRoleDisplay called');
     console.log('🎯 userRoles state:', userRoles);
@@ -517,883 +705,408 @@ export default function UserProfile({ userData }) {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100%',
-        backgroundColor: '#f4f4f4',
-        fontFamily: 'Arial, sans-serif',
-        margin: 0,
-        padding: 0,
-      }}
-    >
-      {/* Main Content */}
-      <div
-        style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '32px 24px',
-          display: 'flex',
-          gap: '32px',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* Sidebar - 30% */}
-        <aside style={{ width: '30%', minWidth: '280px' }}>
-          {/* User Info Card */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #17a2b8, #138496)',
-              borderRadius: '16px',
-              padding: '24px',
-              color: 'white',
-              marginBottom: '24px',
-              boxShadow: '0 8px 24px rgba(23, 162, 184, 0.2)',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-              }}
-            >
-              {/* Avatar with upload functionality */}
-              <div style={{ position: 'relative', marginBottom: '16px' }}>
-                <div
-                  style={{
-                    width: '200px',
-                    height: '250px',
-                    borderRadius: '18px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '36px',
-                    fontWeight: 'bold',
-                    marginBottom: '16px',
-                    border: '3px solid rgba(255,255,255,0.35)',
-                    boxSizing: 'border-box',
-                    cursor: 'pointer',
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    position: 'relative',
-                  }}
-                  onClick={() => avatarInputRef.current?.click()}
-                >
-                  {hasAvatar ? (
-                    <img
-                      src={avatarPreviewUrl || existingAvatarUrl}
-                      alt='avatar'
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  ) : (
-                    <span style={{ color: 'white' }}>
-                      {(displayName || username || '?').charAt(0).toUpperCase()}
-                    </span>
-                  )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex">
+        {/* Sidebar - Giữ nguyên */}
+        <aside className="w-80 min-w-[320px] bg-white shadow-sm min-h-screen sticky top-0">
+          {/* Navigation Menu */}
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-6">Menu</h2>
+            {menuItems.map((item, index) => (
+              <button
+                key={index}
+                onClick={() => handleMenuClick(item.path)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  item.active
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
 
+        {/* Main Content Area */}
+        <main className="flex-1 max-w-6xl mx-auto px-6 pb-6">
+          {/* Cover Image Banner */}
+          <div className="h-52 rounded-xl overflow-hidden mb-6 relative group">
+            {existingCoverUrl ? (
+              <img
+                src={existingCoverUrl}
+                alt="Ảnh bìa"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-gray-300 to-gray-400"></div>
+            )}
+            
+            {/* Cover Upload Button */}
+            <div 
+              onClick={() => coverInputRef.current?.click()}
+              className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center cursor-pointer"
+            >
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-lg">
+                <Camera size={16} />
+                <span className="text-sm font-medium text-gray-700">Thay đổi ảnh bìa</span>
+              </div>
+            </div>
+            
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCoverChange}
+              className="hidden"
+            />
+          </div>
+
+          {/* Cover Upload Preview */}
+          {coverFile && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 relative z-20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-blue-700">
+                  <Upload size={16} />
+                  <span className="text-sm">Ảnh bìa mới đã chọn</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCoverUpload}
+                    disabled={uploadingCover}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition duration-200 focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploadingCover ? 'Đang tải...' : 'Lưu'}
+                  </button>
+                  <button
+                    onClick={handleCancelCoverUpload}
+                    disabled={uploadingCover}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition duration-200 focus:ring-2 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cover Message */}
+          {coverMessage && (
+            <div className={`mb-6 p-3 rounded-lg text-sm relative z-20 ${
+              coverMessage.includes('thành công')
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {coverMessage}
+            </div>
+          )}
+
+          {/* Profile Card - Nằm đè lên ảnh bìa */}
+          <div className="bg-white rounded-xl shadow-lg p-6 -mt-16 mb-6 relative z-10">
+            <div className="flex justify-between items-center">
+              {/* Left side - Avatar and Info */}
+              <div className="flex items-center gap-6">
+                {/* Avatar */}
+                <div className="relative">
+                  <div
+                    className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    {hasAvatar ? (
+                      <img
+                        src={avatarPreviewUrl || existingAvatarUrl}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-white">
+                          {(displayName || username || '?').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   {!hasAvatar && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: '6px',
-                        right: '6px',
-                        backgroundColor: '#17a2b8',
-                        borderRadius: '50%',
-                        width: '30px',
-                        height: '30px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '2px solid white',
-                      }}
-                    >
-                      <Camera size={15} style={{ color: 'white' }} />
+                    <div className="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 border-2 border-white">
+                      <Camera size={16} className="text-white" />
                     </div>
                   )}
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
                 </div>
-                <input
-                  ref={avatarInputRef}
-                  type='file'
-                  accept='image/*'
-                  onChange={handleAvatarChange}
-                  style={{ display: 'none' }}
-                />
-              </div>
-              <h2
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  margin: '0 0 8px 0',
-                }}
-              >
-                {displayName || username || 'Người dùng'}
-              </h2>
 
-              <p
-                style={{
-                  margin: '0 0 16px 0',
-                  opacity: 0.9,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                }}
-              >
-                <User size={16} />
-                {username || 'username'}
-              </p>
-
-              <div
-                style={{
-                  width: '100%',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {/* Coin A */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    marginBottom: '8px',
-                    transition: 'all 0.3s ease',
-                    transform: coinAnimation ? 'scale(1.1)' : 'scale(1)',
-                    backgroundColor: coinAnimation
-                      ? 'rgba(255,215,0,0.2)'
-                      : 'transparent',
-                    borderRadius: '8px',
-                    padding: '4px 8px',
-                  }}
-                >
-                  <Coins size={22} style={{ color: '#ffd700' }} />
-                  <span>{coinA} Coin</span>
-                </div>
-                {/* Divider */}
-                <div
-                  style={{
-                    height: '1px',
-                    backgroundColor: 'rgba(255,255,255,0.25)',
-                    margin: '8px 0',
-                  }}
-                />
-                {/* Coin B */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  <Gem size={22} style={{ color: '#a78bfa' }} />
-                  <span>{coinB} Kim cương</span>
-                </div>
-              </div>
-
-              {/* Avatar upload preview and actions */}
-              {avatarFile && (
-                <div
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'rgba(255,255,255,0.15)',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    marginTop: '12px',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                      color: 'white',
-                    }}
-                  >
-                    <Upload size={16} />
-                    <span>Ảnh mới đã chọn</span>
+                {/* User Info */}
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    {displayName || username || 'Người dùng'}
+                  </h1>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full font-medium">
+                      {getUserRoleDisplay()}
+                    </span>
+                    <span className="text-gray-500">@{username}</span>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '8px',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  
+                  {/* Stats */}
+                  <div className="flex gap-6 text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-800">{profileData?.storiesCount || 0}</span>
+                      <span className="text-gray-500 ml-1">Truyện</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-800">{profileData?.followersCount || 0}</span>
+                      <span className="text-gray-500 ml-1">Người theo dõi</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Avatar Upload Preview */}
+            {avatarFile && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Upload size={16} />
+                    <span className="text-sm">Ảnh mới đã chọn</span>
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       onClick={handleAvatarUpload}
                       disabled={uploadingAvatar}
-                      style={{
-                        backgroundColor: uploadingAvatar
-                          ? 'rgba(255,255,255,0.3)'
-                          : 'rgba(255,255,255,0.9)',
-                        color: '#17a2b8',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
-                        opacity: uploadingAvatar ? 0.7 : 1,
-                      }}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition duration-200 focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {uploadingAvatar ? 'Đang tải...' : 'Lưu'}
                     </button>
                     <button
                       onClick={handleCancelAvatarUpload}
                       disabled={uploadingAvatar}
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
-                        opacity: uploadingAvatar ? 0.7 : 1,
-                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition duration-200 focus:ring-2 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Hủy
                     </button>
                   </div>
                 </div>
-              )}
-
-              {/* Avatar message */}
-              {avatarMessage && (
-                <div
-                  style={{
-                    marginTop: '8px',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    backgroundColor: avatarMessage.includes('thành công')
-                      ? 'rgba(40, 167, 69, 0.2)'
-                      : 'rgba(220, 53, 69, 0.2)',
-                    color: 'white',
-                    border: `1px solid ${avatarMessage.includes('thành công') ? 'rgba(40, 167, 69, 0.3)' : 'rgba(220, 53, 69, 0.3)'}`,
-                    textAlign: 'center',
-                  }}
-                >
-                  {avatarMessage}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Menu */}
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              boxSizing: 'border-box',
-            }}
-          >
-            {menuItems.map((item, index) => (
-              <button
-                key={index}
-                onClick={() => handleMenuClick(item.path)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '16px 24px',
-                  backgroundColor: 'transparent',
-                  color: item.active ? '#17a2b8' : '#666',
-                  border: 'none',
-                  borderBottom:
-                    index !== menuItems.length - 1
-                      ? '1px solid #f0f0f0'
-                      : 'none',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: item.active ? '700' : '500',
-                  boxSizing: 'border-box',
-                  textAlign: 'left',
-                }}
-              >
-                <item.icon size={22} strokeWidth={item.active ? 2.5 : 2} />
-                <span style={{ textAlign: 'left', flex: 1 }}>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {/* Main Content - 70% */}
-        <main style={{ flex: 1 }}>
-          <h1
-            style={{
-              fontSize: '36px',
-              fontWeight: 'bold',
-              color: '#333',
-              margin: '0 0 32px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div
-              style={{
-                width: '8px',
-                height: '48px',
-                background: 'linear-gradient(180deg, #17a2b8, #138496)',
-                borderRadius: '4px',
-              }}
-            ></div>
-            Profile
-          </h1>
-
-          {/* Profile Overview */}
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '32px',
-              marginBottom: '32px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                gap: '32px',
-                alignItems: 'flex-start',
-              }}
-            >
-              {/* Info Grid */}
-              <div
-                style={{
-                  flex: 1,
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '20px',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '1px solid #e9ecef',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      color: '#666',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                    }}
-                  >
-                    <UserCircle size={20} />
-                    <span style={{ fontWeight: '500' }}>Tên hiển thị</span>
-                  </div>
-                  {/* ✅ Không hardcode */}
-                  <p
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      color: '#333',
-                      margin: 0,
-                    }}
-                  >
-                    {displayName || username || 'Chưa có tên'}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '1px solid #e9ecef',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      color: '#666',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                    }}
-                  >
-                    <Mail size={20} />
-                    <span style={{ fontWeight: '500' }}>Email</span>
-                  </div>
-                  {/* ✅ Không hardcode */}
-                  <p
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      color: '#333',
-                      margin: 0,
-                    }}
-                  >
-                    {profileData?.email || 'Chưa có email'}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '1px solid #e9ecef',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      color: '#666',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                    }}
-                  >
-                    <Shield size={20} />
-                    <span style={{ fontWeight: '500' }}>Chức vụ</span>
-                  </div>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      background: 'linear-gradient(135deg, #17a2b8, #138496)',
-                      color: 'white',
-                      padding: '4px 16px',
-                      borderRadius: '20px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      boxShadow: '0 2px 8px rgba(23, 162, 184, 0.3)',
-                    }}
-                  >
-                    {getUserRoleDisplay()}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '1px solid #e9ecef',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      color: '#666',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                    }}
-                  >
-                    <Calendar size={20} />
-                    <span style={{ fontWeight: '500' }}>
-                      Nhiệm vụ hàng ngày.
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => navigate('/daily-tasks')}
-                    style={{
-                      color: '#007bff',
-                      fontWeight: '600',
-                      textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      backgroundColor: '#e3f2fd',
-                      border: '1px solid #bbdefb',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    🎯 Xem nhiệm vụ
-                  </button>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: '#fffbeb',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '2px solid #fcd34d',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      color: '#b45309',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                    }}
-                  >
-                    <Coins size={20} />
-                    <span style={{ fontWeight: '500' }}>Coin (A)</span>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: '22px',
-                      fontWeight: 'bold',
-                      color: '#b45309',
-                      margin: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <Coins size={26} style={{ color: '#fbbf24' }} />
-                    {coinA} Coin
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: '#f5f3ff',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    border: '2px solid #c4b5fd',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      color: '#6d28d9',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                    }}
-                  >
-                    <Gem size={20} />
-                    <span style={{ fontWeight: '500' }}>Kim cương (B)</span>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: '22px',
-                      fontWeight: 'bold',
-                      color: '#6d28d9',
-                      margin: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <Gem size={26} style={{ color: '#a78bfa' }} />
-                    {coinB} Kim cương
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Favorite Quote */}
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '32px',
-              marginBottom: '32px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              boxSizing: 'border-box',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#333',
-                marginBottom: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '6px',
-                  height: '32px',
-                  background: 'linear-gradient(180deg, #17a2b8, #138496)',
-                  borderRadius: '3px',
-                }}
-              ></div>
-              Trích dẫn yêu thích
-            </h2>
-            <textarea
-              value={favoriteQuote}
-              onChange={(e) => setFavoriteQuote(e.target.value)}
-              placeholder='Nhập trích dẫn yêu thích của bạn...'
-              style={{
-                width: '100%',
-                height: '160px',
-                padding: '16px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '12px',
-                fontSize: '16px',
-                backgroundColor: '#f8f9fa',
-                color: '#333',
-                resize: 'none',
-                outline: 'none',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
-              }}
-            />
-            {bioMessage && (
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor:
-                    bioMessage.includes('thất bại') ||
-                    bioMessage.includes('lỗi')
-                      ? '#f8d7da'
-                      : '#d4edda',
-                  color:
-                    bioMessage.includes('thất bại') ||
-                    bioMessage.includes('lỗi')
-                      ? '#721c24'
-                      : '#155724',
-                  border: `1px solid ${bioMessage.includes('thất bại') || bioMessage.includes('lỗi') ? '#f5c6cb' : '#c3e6cb'}`,
-                }}
-              >
-                {bioMessage}
               </div>
             )}
-            <button
-              onClick={handleUpdateQuote}
-              style={{
-                marginTop: '16px',
-                background: 'linear-gradient(135deg, #17a2b8, #138496)',
-                color: 'white',
-                padding: '12px 32px',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 12px rgba(23, 162, 184, 0.3)',
-              }}
-            >
-              <Save size={20} /> Cập nhật
-            </button>
+
+            {/* Avatar Message */}
+            {avatarMessage && (
+              <div
+                className={`mt-2 p-3 rounded-lg text-sm ${
+                  avatarMessage.includes('thành công')
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}
+              >
+                {avatarMessage}
+              </div>
+            )}
           </div>
 
-          {/* Display Name */}
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '32px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              boxSizing: 'border-box',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#333',
-                marginBottom: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '6px',
-                  height: '32px',
-                  background: 'linear-gradient(180deg, #17a2b8, #138496)',
-                  borderRadius: '3px',
-                }}
-              ></div>
-              Tên hiển thị
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
-              <input
-                type='text'
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                placeholder='Nhập tên hiển thị mới...'
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  backgroundColor: '#f8f9fa',
-                  color: '#333',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-              <button
-                onClick={handleChangeName}
-                style={{
-                  background: 'linear-gradient(135deg, #17a2b8, #138496)',
-                  color: 'white',
-                  padding: '12px 32px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 12px rgba(23, 162, 184, 0.3)',
-                }}
-              >
-                <Edit3 size={20} /> Thay đổi
-              </button>
-              {nameMessage && (
-                <div
-                  style={{
-                    marginTop: '12px',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    backgroundColor:
-                      nameMessage.includes('thất bại') ||
-                      nameMessage.includes('lỗi')
-                        ? '#f8d7da'
-                        : '#d4edda',
-                    color:
-                      nameMessage.includes('thất bại') ||
-                      nameMessage.includes('lỗi')
-                        ? '#721c24'
-                        : '#155724',
-                    border: `1px solid ${nameMessage.includes('thất bại') || nameMessage.includes('lỗi') ? '#f5c6cb' : '#c3e6cb'}`,
-                  }}
-                >
-                  {nameMessage}
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-[300px_1fr] gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Wallet Card */}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Wallet className="text-blue-500" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-800">Ví</h3>
                 </div>
-              )}
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                    <div>
+                      <div className="text-sm text-gray-600">Coin</div>
+                      <div className="text-xl font-bold text-yellow-600">{coinA} Coin</div>
+                    </div>
+                    <Coins className="text-yellow-500" size={24} />
+                  </div>
+                  
+                  <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                    <div>
+                      <div className="text-sm text-gray-600">Kim cương</div>
+                      <div className="text-xl font-bold text-purple-600">{coinB} Kim cương</div>
+                    </div>
+                    <Gem className="text-purple-500" size={24} />
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => navigate('/wallet/topup')}
+                  className="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2 font-medium transition duration-200 focus:ring-2 focus:ring-blue-400"
+                >
+                  Nạp tiền
+                </button>
+              </div>
+
+              {/* Daily Missions Card */}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Target className="text-green-500" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-800">Nhiệm vụ hằng ngày</h3>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-4">
+                  Hoàn thành nhiệm vụ mỗi ngày để nhận phần thưởng.
+                </p>
+                
+                <button
+                  onClick={() => navigate('/daily-tasks')}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2 font-medium transition duration-200 focus:ring-2 focus:ring-blue-400"
+                >
+                  Xem nhiệm vụ
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Account Settings Card */}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <Settings className="text-blue-500" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-800">Cài đặt tài khoản</h3>
+                </div>
+                
+                <div className="space-y-6">
+                  {/* Display Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tên hiển thị
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        placeholder="Nhập tên hiển thị mới..."
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={handleChangeName}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 font-medium transition duration-200 focus:ring-2 focus:ring-blue-400"
+                      >
+                        Lưu tên
+                      </button>
+                    </div>
+                    {nameMessage && (
+                      <div
+                        className={`mt-2 p-2 rounded text-sm ${
+                          nameMessage.includes('thành công') || nameMessage.includes('thay đổi')
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}
+                      >
+                        {nameMessage}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Favorite Quote */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Trích dẫn yêu thích
+                    </label>
+                    <textarea
+                      value={favoriteQuote}
+                      onChange={(e) => setFavoriteQuote(e.target.value)}
+                      placeholder="Nhập trích dẫn yêu thích của bạn..."
+                      rows={4}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                    <button
+                      onClick={handleUpdateQuote}
+                      className="mt-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 font-medium transition duration-200 focus:ring-2 focus:ring-blue-400"
+                    >
+                      Cập nhật
+                    </button>
+                    {bioMessage && (
+                      <div
+                        className={`mt-2 p-2 rounded text-sm ${
+                          bioMessage.includes('thành công') || bioMessage.includes('cập nhật')
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}
+                      >
+                        {bioMessage}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Security */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Lock className="text-red-500" size={20} />
+                      <h4 className="text-md font-semibold text-gray-800">Bảo mật</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Mật khẩu cũ
+                        </label>
+                        <input
+                          type="password"
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
+                          placeholder="Nhập mật khẩu hiện tại"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Mật khẩu mới
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nhập lại mật khẩu
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Xác nhận lại mật khẩu mới"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <button 
+                        onClick={handlePasswordChange}
+                        disabled={changingPassword}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 font-medium transition duration-200 focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {changingPassword ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+                      </button>
+                      {passwordMessage && (
+                        <div className={`mt-2 p-2 rounded text-sm ${
+                          passwordMessage.includes('thành công')
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          {passwordMessage}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/*           Author Area */}
-          {/*           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', marginTop: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}> */}
-          {/*             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}> */}
-          {/*               <div style={{ width: '6px', height: '32px', background: 'linear-gradient(180deg, #17a2b8, #138496)', borderRadius: '3px' }}></div> */}
-          {/*               Khu vực tác giả */}
-          {/*             </h2> */}
-          {/*             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', flexWrap: 'wrap' }}> */}
-          {/*               <button */}
-          {/*                 onClick={() => navigate('/author/create-story')} */}
-          {/*                 style={{ */}
-          {/*                   background: 'linear-gradient(135deg, #28a745, #20c997)', */}
-          {/*                   color: 'white', */}
-          {/*                   padding: '16px 32px', */}
-          {/*                   borderRadius: '12px', */}
-          {/*                   fontSize: '16px', */}
-          {/*                   fontWeight: '600', */}
-          {/*                   border: 'none', */}
-          {/*                   cursor: 'pointer', */}
-          {/*                   display: 'flex', */}
-          {/*                   alignItems: 'center', */}
-          {/*                   gap: '12px', */}
-          {/*                   boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)', */}
-          {/*                   transition: 'transform 0.2s, box-shadow 0.2s', */}
-          {/*                   flex: '1', */}
-          {/*                   minWidth: '200px' */}
-          {/*                 }} */}
-          {/*                 onMouseOver={(e) => { */}
-          {/*                   e.currentTarget.style.transform = 'translateY(-2px)'; */}
-          {/*                   e.currentTarget.style.boxShadow = '0 6px 16px rgba(40, 167, 69, 0.4)'; */}
-          {/*                 }} */}
-          {/*                 onMouseOut={(e) => { */}
-          {/*                   e.currentTarget.style.transform = 'translateY(0)'; */}
-          {/*                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)'; */}
-          {/*                 }} */}
-          {/*               > */}
-          {/*                 <BookOpen size={24} /> */}
-          {/*                 Thêm truyện mới */}
-          {/*               </button> */}
-          {/*               <button */}
-          {/*                 onClick={() => navigate('/manage-stories')} */}
-          {/*                 style={{ */}
-          {/*                   background: 'linear-gradient(135deg, #007bff, #6610f2)', */}
-          {/*                   color: 'white', */}
-          {/*                   padding: '16px 32px', */}
-          {/*                   borderRadius: '12px', */}
-          {/*                   fontSize: '16px', */}
-          {/*                   fontWeight: '600', */}
-          {/*                   border: 'none', */}
-          {/*                   cursor: 'pointer', */}
-          {/*                   display: 'flex', */}
-          {/*                   alignItems: 'center', */}
-          {/*                   gap: '12px', */}
-          {/*                   boxShadow: '0 4px 12px rgba(0, 123, 255, 0.3)', */}
-          {/*                   transition: 'transform 0.2s, box-shadow 0.2s', */}
-          {/*                   flex: '1', */}
-          {/*                   minWidth: '200px' */}
-          {/*                 }} */}
-          {/*                 onMouseOver={(e) => { */}
-          {/*                   e.currentTarget.style.transform = 'translateY(-2px)'; */}
-          {/*                   e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 123, 255, 0.4)'; */}
-          {/*                 }} */}
-          {/*                 onMouseOut={(e) => { */}
-          {/*                   e.currentTarget.style.transform = 'translateY(0)'; */}
-          {/*                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)'; */}
-          {/*                 }} */}
-          {/*               > */}
-          {/*                 <Edit3 size={24} /> */}
-          {/*                 Quản lý truyện */}
-          {/*               </button> */}
-          {/*             </div> */}
-          {/*             <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}> */}
-          {/*               Quản lý các tác phẩm của bạn: tạo truyện mới, chỉnh sửa thông tin truyện và thêm/sửa chương. */}
-          {/*             </p> */}
-          {/*           </div> */}
         </main>
       </div>
     </div>

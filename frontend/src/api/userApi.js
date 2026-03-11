@@ -20,3 +20,12 @@ export async function uploadAvatar(userId, formData) {
     },
   });
 }
+
+//create a cover upload API function
+export async function uploadCover(userId, formData) {
+  return await api.post(`/users/profile/${userId}/upload-cover`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}

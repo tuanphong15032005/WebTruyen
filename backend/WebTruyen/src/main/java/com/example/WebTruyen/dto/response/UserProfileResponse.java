@@ -10,5 +10,8 @@ public class UserProfileResponse {
     private String displayName;
     private String bio;
     private String avatarUrl;
+    private String coverUrl;
     private String settingsJson;
+    private Long storiesCount;
+    private Long followersCount;
 }
