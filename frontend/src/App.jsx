@@ -34,9 +34,7 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
-import TermsOfService from './pages/docs/TermsOfService';
-import PrivacyPolicy from './pages/docs/PrivacyPolicy';
-import UploadRule from './pages/docs/UploadRule';
+import DynamicPage from './pages/docs/DynamicPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 
 import './App.css';
@@ -92,10 +90,10 @@ function App() {
     <Routes>
       {/* Documentation Routes */}
       <Route path="/policy" element={<DocsLayout />}>
-        <Route index element={<TermsOfService />} />
-        <Route path="terms-of-service" element={<TermsOfService />} />
-        <Route path="privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="upload-rule" element={<UploadRule />} />
+        <Route index element={<DynamicPage code="terms" />} />
+        <Route path="terms-of-service" element={<DynamicPage code="terms" />} />
+        <Route path="privacy-policy" element={<DynamicPage code="privacy" />} />
+        <Route path="upload-rule" element={<DynamicPage code="author-rules" />} />
       </Route>
 
       {/* Main App Routes */}

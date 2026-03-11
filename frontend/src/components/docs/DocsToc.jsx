@@ -1,37 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 function DocsToc() {
-  const [activeSection, setActiveSection] = useState('');
-  const [sections, setSections] = useState([]);
+  const [activeSection, setActiveSection] = React.useState('');
+  const [storageKey, setStorageKey] = React.useState(Date.now()); // Force re-render
 
-  useEffect(() => {
-    // Function to extract sections
-    const extractSections = () => {
-      const headingElements = document.querySelectorAll('h2[id], h3[id]');
-      const extractedSections = Array.from(headingElements).map((heading) => ({
-        id: heading.id,
-        title: heading.textContent,
-        level: parseInt(heading.tagName.charAt(1)),
-      }));
-      
-      setSections(extractedSections);
-      
-      // Set initial active section
-      if (extractedSections.length > 0) {
-        setActiveSection(extractedSections[0].id);
-      }
-    };
+  // Helper function to extract number from title
+  const extractNumber = (title) => {
+    const match = title.match(/\d+/);
+    return match ? parseInt(match[0]) : 0;
+  };
 
-    // Initial extraction
-    extractSections();
-
-    // Retry after a short delay if no sections found
-    if (sections.length === 0) {
-      const timer = setTimeout(extractSections, 100);
-      return () => clearTimeout(timer);
+  // Get page blocks from localStorage
+  const pageBlocks = React.useMemo(() => {
+    try {
+      const stored = localStorage.getItem('currentPageBlocks');
+      const blocks = stored ? JSON.parse(stored) : [];
+      console.log('DocsToc - reading localStorage, blocks:', blocks);
+      return blocks;
+    } catch (error) {
+      console.error('Error parsing localStorage:', error);
+      return [];
     }
+  }, [storageKey]); // Re-read when storageKey changes
 
-    // Scroll spy
+  // Check for localStorage changes periodically
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const currentStorage = localStorage.getItem('currentPageBlocks');
+      if (currentStorage) {
+        setStorageKey(Date.now()); // Trigger re-render
+      }
+    }, 500); // Check every 500ms
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Extract sections from page blocks
+  const sections = React.useMemo(() => {
+    console.log('DocsToc - pageBlocks:', pageBlocks);
+    console.log('DocsToc - pageBlocks length:', pageBlocks?.length);
+    
+    if (!pageBlocks || pageBlocks.length === 0) return [];
+    
+    const sections = pageBlocks.map((block, index) => ({
+      id: block.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+      title: block.title,
+      level: 2, // All blocks are h2 level
+      index: index,
+      // Extract number for sorting
+      number: extractNumber(block.title)
+    }));
+    
+    // Sort sections by extracted number
+    const sortedSections = sections.sort((a, b) => {
+      return a.number - b.number;
+    });
+    
+    console.log('DocsToc - sorted sections:', sortedSections);
+    return sortedSections;
+  }, [pageBlocks]);
+
+  // Scroll spy
+  React.useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 100;
       
@@ -47,7 +77,7 @@ function DocsToc() {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [sections]);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -83,7 +113,7 @@ function DocsToc() {
               activeSection === section.id
                 ? 'bg-blue-50 text-blue-600 font-medium border-l-2 border-blue-600'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            } ${section.level === 3 ? 'pl-6' : ''}`}
+            }`}
           >
             {section.title}
           </button>

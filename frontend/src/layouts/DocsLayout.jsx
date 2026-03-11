@@ -14,7 +14,7 @@ function DocsLayout() {
           <DocsSidebar />
         </aside>
         
-        {/* Main Content - max-width: 900px */}
+        {/* Main Content - full width with space for TOC */}
         <main className="flex-1 ml-60 mr-64">
           <div className="max-w-4xl mx-auto px-8 py-8">
             <Outlet />
