@@ -1,21 +1,17 @@
-import { axiosClient } from './axiosClient'
+import api from '../services/api'
 
 export async function createPaymentOrder(payload) {
-  const res = await axiosClient.post(`/api/payments`, payload)
-  return res.data
+  return await api.post(`/payments`, payload)
 }
 
 export async function confirmPayment(orderId) {
-  const res = await axiosClient.post(`/api/payments/${orderId}/confirm`)
-  return res.data
+  return await api.post(`/payments/${orderId}/confirm`)
 }
 
 export async function getPaymentDetail(orderId) {
-  const res = await axiosClient.get(`/api/payments/${orderId}`)
-  return res.data
+  return await api.get(`/payments/${orderId}`)
 }
 
 export async function getTransactionHistory() {
-  const res = await axiosClient.get(`/api/payments/history`)
-  return res.data
+  return await api.get(`/payments/history`)
 }

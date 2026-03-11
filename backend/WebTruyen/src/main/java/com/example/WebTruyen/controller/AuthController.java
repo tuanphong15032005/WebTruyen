@@ -53,7 +53,8 @@ public class AuthController {
                         .filter(role -> role != null && role.getCode() != null && !role.getCode().isBlank())
                         .map(role -> role.getCode().trim().toUpperCase())
                         .distinct()
-                        .toList()
+                        .toList(),
+                user.getAvatarUrl()
             );
 
             return ResponseEntity.ok(response);

@@ -4,6 +4,7 @@ package com.example.WebTruyen.entity.model.Content;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumItemEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
@@ -45,6 +46,13 @@ public class StoryEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StoryStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status")
+    private StoryApprovalStatus approvalStatus;
+
+    @Column(name = "approval_updated_at")
+    private LocalDateTime approvalUpdatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

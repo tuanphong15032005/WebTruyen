@@ -97,18 +97,6 @@ api.interceptors.response.use(
 
     return Promise.reject(new Error(message));
   },
-  //=======
-  //    const message =
-  //      error.response?.data?.message ||
-  //      (typeof error.response?.data === 'string' ? error.response.data : null) ||
-  //      error.message ||
-  //      'Đã xảy ra lỗi, vui lòng thử lại';
-  //
-  //    const err = new Error(message);
-  //    err.response = error.response;
-  //    return Promise.reject(err);
-  //  }
-  //>>>>>>> origin/minhfinal1:frontend/src/services/Api.js
 );
 
 export default api;

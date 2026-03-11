@@ -1,20 +1,17 @@
-import { axiosClient } from './axiosClient'
+import api from '../services/api'
 
 export async function getWallet() {
-  const res = await axiosClient.get('/api/wallet')
-  return res.data
+  return await api.get('/wallet')
 }
 
 export async function purchaseChapter(chapterPrice, chapterId) {
-  const res = await axiosClient.post('/api/wallet/purchase-chapter', { chapterPrice, chapterId })
-  return res.data
+  return await api.post('/wallet/purchase-chapter', { chapterPrice, chapterId })
 }
 
 export async function donateToAuthor(authorId, coinBAmount, message) {
-  const res = await axiosClient.post('/api/wallet/donate', {
+  return await api.post('/wallet/donate', {
     authorId,
     coinBAmount,
     message
   })
-  return res.data
 }
