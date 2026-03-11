@@ -24,17 +24,7 @@ public class AchievementEntity {
     @Column(columnDefinition = "LONGTEXT")
     private String description;
 
-
     @Lob
     @Column(name = "criteria_json", columnDefinition = "LONGTEXT")
     private String criteriaJson;
-
-    @Column(name = "reward_coin")
-    private Long rewardCoin;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "reward_coin_type")
-    private CoinType rewardCoinType;
-
-    public enum CoinType { A, B }
 }

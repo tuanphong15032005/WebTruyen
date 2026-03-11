@@ -3,7 +3,7 @@ package com.example.WebTruyen.controller;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.security.UserPrincipal;
-import com.example.WebTruyen.service.AchievementIntegrationService;
+import com.example.WebTruyen.service.TieredAchievementIntegrationService;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.SimpleDailyTaskService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class ChapterController {
 
     private final ChapterService chapterService;
     private final SimpleDailyTaskService simpleDailyTaskService;
-    private final AchievementIntegrationService achievementIntegrationService;
+    private final TieredAchievementIntegrationService achievementIntegrationService;
 
     @GetMapping("/{id}")
     public ResponseEntity<ChapterDetailResponse> getChapterDetail(
@@ -54,7 +54,7 @@ public class ChapterController {
                 log.info("Successfully tracked chapter reading for daily task");
                 
                 // Track achievements for chapter reading
-                achievementIntegrationService.processChapterRead(userId, id.intValue());
+                achievementIntegrationService.onChapterRead(userId);
                 log.info("Successfully tracked chapter reading achievement");
             } catch (Exception e) {
                 // Don't fail the chapter view recording if daily task tracking fails

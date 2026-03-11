@@ -1,239 +1,269 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { achievementApi } from '../services/achievementApi';
 import useNotify from '../hooks/useNotify';
+import { WalletContext } from '../context/WalletContext';
 
 const AchievementsPage = () => {
-  const [activeTab, setActiveTab] = useState('my');
-  const [myAchievements, setMyAchievements] = useState([]);
-  const [unlockedAchievements, setUnlockedAchievements] = useState([]);
-  const [unclaimedAchievements, setUnclaimedAchievements] = useState([]);
+  const [achievementProgress, setAchievementProgress] = useState([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
+  const [expandedAchievements, setExpandedAchievements] = useState({});
   const { notify } = useNotify();
+  const { refreshWallet } = useContext(WalletContext);
 
   useEffect(() => {
-    fetchData();
+    fetchProgress();
   }, []);
 
-  const fetchData = async () => {
+  const fetchProgress = async () => {
     try {
       setLoading(true);
-      const [myRes, unlockedRes, unclaimedRes] = await Promise.all([
-        achievementApi.getMyAchievements(),
-        achievementApi.getUnlockedAchievements(),
-        achievementApi.getUnclaimedAchievements()
-      ]);
-
-      // api.js response interceptor already extracts data, so use response directly
-      setMyAchievements(myRes || []);
-      setUnlockedAchievements(unlockedRes || []);
-      setUnclaimedAchievements(unclaimedRes || []);
-    } catch (error) {
-      console.error('Error fetching achievements:', error);
+      const progressData = await achievementApi.getAchievementProgress();
       
-      // Handle authentication errors
-      if (error.response?.status === 401) {
-        notify('Vui lòng đăng nhập để xem thành tích', 'error');
-      } else if (error.response?.status === 400) {
-        notify('Yêu cầu không hợp lệ', 'error');
-      } else {
-        notify('Lỗi khi tải thành tích. Vui lòng thử lại sau.', 'error');
+      // Parse JSON if needed
+      let parsedData = progressData || [];
+      if (typeof progressData === 'string') {
+        try {
+          parsedData = JSON.parse(progressData);
+        } catch (parseError) {
+          console.error('Error parsing progress data:', parseError);
+          parsedData = [];
+        }
       }
+      
+      setAchievementProgress(parsedData);
+    } catch (error) {
+      console.error('Error fetching achievement progress:', error);
+      notify('Lỗi tải dữ liệu thành tựu', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClaimAchievement = async (achievementId) => {
+  const toggleExpanded = (achievementCode) => {
+    setExpandedAchievements(prev => ({
+      ...prev,
+      [achievementCode]: !prev[achievementCode]
+    }));
+  };
+
+  const handleClaimTier = async (tierId) => {
     try {
-      setClaiming(achievementId);
-      await achievementApi.claimAchievement(achievementId);
+      setClaiming(tierId);
+      await achievementApi.claimTier(tierId);
       notify('Nhận thưởng thành công!', 'success');
-      fetchData(); // Refresh data
+      await refreshWallet(); // Refresh wallet to update header
+      fetchProgress(); // Refresh data
     } catch (error) {
-      console.error('Error claiming achievement:', error);
-      notify(error.response?.data?.message || 'Lỗi khi nhận thưởng', 'error');
+      console.error('Error claiming tier:', error);
+      notify(error.response?.data?.message || 'Lỗi nhận thưởng', 'error');
     } finally {
       setClaiming(null);
     }
   };
 
-  const AchievementCard = ({ achievement, userAchievement, showClaimButton = false }) => (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">
-            {achievement.name}
-          </h3>
-          <p className="text-gray-600 text-sm mb-3">
-            {achievement.description}
-          </p>
-          
-          {userAchievement && (
-            <div className="text-xs text-gray-500 mb-2">
-              Đạt được vào: {new Date(userAchievement.achievedAt).toLocaleDateString('vi-VN')}
+  const ProgressCard = ({ achievement }) => {
+    const { currentTierInfo, nextTierInfo, progressPercentage } = achievement;
+    
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">{achievement.achievementName}</h3>
+            <p className="text-gray-600 text-sm mt-1">{achievement.description}</p>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-600">
+              {achievement.currentProgress}/{nextTierInfo?.requirement || currentTierInfo?.requirement || 0}
             </div>
-          )}
+            <div className="text-sm text-gray-500">chương đã đọc</div>
+          </div>
+        </div>
 
-          {achievement.rewardCoin && (
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                🪙 {achievement.rewardCoin} {achievement.rewardCoinType}
+        {/* Progress Bar */}
+        <div className="mb-4">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Tiến độ</span>
+            <div className="flex items-center gap-2">
+              {nextTierInfo && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full border border-gray-200">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-bold">
+                    C
+                  </span>
+                  <span className="text-blue-800 font-semibold text-sm">
+                    {nextTierInfo.rewardCoin}
+                  </span>
+                </div>
+              )}
+              <span>{progressPercentage?.toFixed(1)}%</span>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div 
+              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+              style={{ width: `${progressPercentage || 0}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Current Tier Info */}
+        {currentTierInfo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-semibold text-blue-800">{currentTierInfo.name}</h4>
+                <p className="text-blue-600 text-sm mt-1">{currentTierInfo.description}</p>
+                <div className="flex items-center mt-2 text-sm text-blue-700">
+                  <span className="font-medium">Yêu cầu:</span>
+                  <span className="ml-2">{currentTierInfo.requirement} chương</span>
+                </div>
+                <div className="flex items-center mt-1 text-sm text-blue-700">
+                  <span className="font-medium">Thưởng:</span>
+                  <span className="ml-2">{currentTierInfo.rewardCoin} coin {currentTierInfo.rewardCoinType}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => handleClaimTier(currentTierInfo.id)}
+                disabled={claiming === currentTierInfo.id}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {claiming === currentTierInfo.id ? 'Đang xử lý...' : 'Nhận thưởng'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tiers List - Dropdown */}
+        <div className="space-y-2">
+          <div 
+            className="flex justify-between items-center cursor-pointer p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+            onClick={() => toggleExpanded(achievement.achievementCode)}
+          >
+            <h4 className="font-semibold text-gray-700">Các mốc đã đạt</h4>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {achievement.allTiers?.filter(tier => tier.visible).length} mốc
               </span>
-              {userAchievement?.isClaimed && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  ✓ Đã nhận
-                </span>
+              <svg 
+                className={`w-4 h-4 text-gray-500 transition-transform ${expandedAchievements[achievement.achievementCode] ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+          
+          {expandedAchievements[achievement.achievementCode] && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              {achievement.allTiers?.filter(tier => tier.visible).map((tier) => (
+                <div 
+                  key={tier.id}
+                  className={`flex justify-between items-center p-3 rounded-lg border ${
+                    tier.claimed 
+                      ? 'bg-green-50 border-green-200' 
+                      : tier.current 
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      tier.claimed 
+                        ? 'bg-green-600 text-white' 
+                        : tier.current 
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-400 text-white'
+                    }`}>
+                      {tier.tierLevel}
+                    </div>
+                    <div className="ml-3">
+                      <div className={`font-medium ${
+                        tier.claimed 
+                          ? 'text-green-800' 
+                          : tier.current 
+                          ? 'text-blue-800'
+                          : 'text-gray-600'
+                      }`}>
+                        {tier.name}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {tier.requirement} chương → {tier.rewardCoin} coin {tier.rewardCoinType}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    {tier.claimed && (
+                      <span className="text-green-600 font-medium">✓ Đã nhận</span>
+                    )}
+                    {tier.current && !tier.claimed && (
+                      <span className="text-blue-600 font-medium">Hiện tại</span>
+                    )}
+                    {!tier.current && !tier.claimed && (
+                      <span className="text-gray-500">Chưa mở khóa</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {achievement.allTiers?.filter(tier => tier.visible).length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  <p>Chưa đạt mốc nào. Hãy đọc truyện để bắt đầu!</p>
+                </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="ml-4">
-          {userAchievement ? (
-            <div className="text-2xl">🏆</div>
-          ) : (
-            <div className="text-2xl opacity-30">🏆</div>
-          )}
-        </div>
+        {/* Completion Status */}
+        {achievement.isCompleted && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center text-green-800">
+              <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-semibold">Hoàn thành tất cả các mốc!</span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {showClaimButton && userAchievement && !userAchievement.isClaimed && achievement.rewardCoin && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => handleClaimAchievement(achievement.id)}
-            disabled={claiming === achievement.id}
-            className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            {claiming === achievement.id ? 'Đang nhận...' : `Nhận thưởng 🪙 ${achievement.rewardCoin}`}
-          </button>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải thành tích...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Thành tích</h1>
-          <p className="text-gray-600">Hoàn thành nhiệm vụ và nhận thưởng</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex space-x-1 mb-8 bg-white rounded-lg shadow-sm p-1">
-          <button
-            onClick={() => setActiveTab('my')}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-              activeTab === 'my'
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Thành tích của tôi ({myAchievements.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('unlocked')}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-              activeTab === 'unlocked'
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Chưa mở khóa ({unlockedAchievements.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('rewards')}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors relative ${
-              activeTab === 'rewards'
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Phần thưởng
-            {unclaimedAchievements.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {unclaimedAchievements.length}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-4">
-          {activeTab === 'my' && (
-            <>
-              {myAchievements.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                  <div className="text-4xl mb-4">🏆</div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có thành tích</h3>
-                  <p className="text-gray-600">Hãy đọc truyện, bình luận và tham gia các hoạt động để mở khóa thành tích!</p>
-                </div>
-              ) : (
-                myAchievements.map((ua) => (
-                  <AchievementCard
-                    key={ua.id}
-                    achievement={ua.achievement}
-                    userAchievement={ua}
-                    showClaimButton={true}
-                  />
-                ))
-              )}
-            </>
-          )}
-
-          {activeTab === 'unlocked' && (
-            <>
-              {unlockedAchievements.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                  <div className="text-4xl mb-4">🎉</div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Tuyệt vời!</h3>
-                  <p className="text-gray-600">Bạn đã mở khóa tất cả thành tích!</p>
-                </div>
-              ) : (
-                unlockedAchievements.map((achievement) => (
-                  <AchievementCard
-                    key={achievement.id}
-                    achievement={achievement}
-                  />
-                ))
-              )}
-            </>
-          )}
-
-          {activeTab === 'rewards' && (
-            <>
-              {unclaimedAchievements.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                  <div className="text-4xl mb-4">💰</div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Không có phần thưởng nào</h3>
-                  <p className="text-gray-600">Bạn đã nhận tất cả phần thưởng có sẵn</p>
-                </div>
-              ) : (
-                unclaimedAchievements.map((ua) => (
-                  <AchievementCard
-                    key={ua.id}
-                    achievement={ua.achievement}
-                    userAchievement={ua}
-                    showClaimButton={true}
-                  />
-                ))
-              )}
-            </>
-          )}
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Thành tựu đọc truyện</h1>
+        <p className="text-gray-600">Theo dõi tiến độ đọc truyện và nhận thưởng theo từng mốc</p>
       </div>
+
+      {achievementProgress.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="text-gray-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Chưa có thành tựu nào</h3>
+          <p className="text-gray-600">Bắt đầu đọc truyện để mở khóa các thành tựu đầu tiên!</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {achievementProgress.map((achievement) => (
+            <ProgressCard key={achievement.achievementCode} achievement={achievement} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

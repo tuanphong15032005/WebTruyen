@@ -1,21 +1,17 @@
 import api from './api';
 
 export const achievementApi = {
-  // Get all achievements
-  getAllAchievements: () => api.get('/achievements'),
+  // Get all tiered achievement progress for current user
+  getAchievementProgress: () => api.get('/tiered-achievements/progress'),
   
-  // Get current user's achievements
-  getMyAchievements: () => api.get('/achievements/my'),
+  // Get specific achievement progress by code
+  getAchievementByCode: (achievementCode) => api.get(`/tiered-achievements/progress/${achievementCode}`),
   
-  // Get achievements that user hasn't unlocked yet
-  getUnlockedAchievements: () => api.get('/achievements/unlocked'),
+  // Claim a tier reward
+  claimTier: (tierId) => api.post(`/tiered-achievements/claim/${tierId}`),
   
-  // Get unclaimed achievements (ready to claim rewards)
-  getUnclaimedAchievements: () => api.get('/achievements/unclaimed'),
+  // Manual progress update (for testing)
+  incrementProgress: (achievementCode, value) => api.post(`/tiered-achievements/progress/${achievementCode}/increment?value=${value}`),
   
-  // Claim an achievement reward
-  claimAchievement: (achievementId) => api.post(`/achievements/claim/${achievementId}`),
-  
-  // Get achievements for a specific user (public profile)
-  getUserAchievements: (userId) => api.get(`/achievements/user/${userId}`),
+  setProgress: (achievementCode, value) => api.post(`/tiered-achievements/progress/${achievementCode}/set?value=${value}`),
 };
