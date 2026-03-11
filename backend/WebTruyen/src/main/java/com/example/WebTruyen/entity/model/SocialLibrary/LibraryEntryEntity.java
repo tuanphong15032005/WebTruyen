@@ -1,6 +1,7 @@
 package com.example.WebTruyen.entity.model.SocialLibrary;
 
 
+import com.example.WebTruyen.entity.enums.ReadingStatus;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
@@ -32,9 +33,19 @@ public class LibraryEntryEntity {
             foreignKey = @ForeignKey(name = "fk_library_story"))
     private StoryEntity story;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reading_status", nullable = false)
+    private ReadingStatus readingStatus;
+
     @Column(name = "added_at", nullable = false)
     private LocalDateTime addedAt;
 
     @Column(name = "is_favorite", nullable = false)
     private boolean favorite;
+
+    @PrePersist
+    public void prePersist() {
+        if (readingStatus == null) readingStatus = ReadingStatus.plan_to_read;
+        if (addedAt == null) addedAt = LocalDateTime.now();
+    }
 }

@@ -3,6 +3,7 @@ package com.example.WebTruyen.entity.model.CoreIdentity;
 
 import com.example.WebTruyen.entity.model.Content.StoryReviewEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.NotificationEntity;
 import jakarta.persistence.*;
@@ -106,6 +107,10 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
     private List<ReadingHistoryEntity> readingHistories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<LibraryAlbumEntity> libraryAlbums = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
