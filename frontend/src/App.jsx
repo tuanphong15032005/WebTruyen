@@ -68,6 +68,10 @@ function RouteScrollManager() {
 
   useEffect(() => {
     if (location.hash) return;
+    const hasResumeSegment =
+      /^\/stories\/[^/]+\/chapters\/[^/]+$/.test(location.pathname) &&
+      new URLSearchParams(location.search).has('segmentId');
+    if (hasResumeSegment) return;
 
     const mainContent = document.querySelector('main.main-content');
     if (mainContent) {

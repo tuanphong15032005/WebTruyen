@@ -22,6 +22,7 @@
   color: var(--text);
   width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .ql-editor {
@@ -29,11 +30,30 @@
   font-size: 1rem;
   line-height: 1.7;
   color: var(--text);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ql-editor img {
   max-width: 100%;
   height: auto;
+}
+
+.ql-editor p,
+.ql-editor li,
+.ql-editor blockquote,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor pre,
+.ql-editor a,
+.ql-editor span,
+.ql-editor strong,
+.ql-editor em {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ql-snow .ql-stroke {

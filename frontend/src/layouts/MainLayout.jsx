@@ -7,6 +7,9 @@ import '../App.css';
 function MainLayout({ children }) {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const isReadingPage = /^\/stories\/[^/]+\/chapters\/[^/]+$/.test(
+    location.pathname,
+  );
   const isAuthPage = [
     '/login',
     '/register',
@@ -17,10 +20,12 @@ function MainLayout({ children }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
+      {!isReadingPage && <Header />}
       <main
         className={`main-content ${
-          isHomePage
+          isReadingPage
+            ? ''
+            : isHomePage
             ? 'main-content--home'
             : isAuthPage
               ? 'main-content--auth'
@@ -29,7 +34,7 @@ function MainLayout({ children }) {
       >
         {children}
       </main>
-      <Footer />
+      {!isReadingPage && <Footer />}
     </div>
   );
 }
