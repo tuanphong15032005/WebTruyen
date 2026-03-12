@@ -25,6 +25,7 @@ import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
+import ReportChapterPage from './pages/report/ReportChapterPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
 
@@ -118,6 +119,7 @@ function App() {
           path='/stories/:storyId/chapters/:chapterId'
           element={<ChapterPage />}
         />
+        <Route path='/report' element={<ReportChapterPage />} />
         <Route
           path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}

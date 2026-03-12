@@ -291,6 +291,7 @@ const VerticalToolbar = ({
   onBackToMetadata,
   onSettings,
   onBookmarks,
+  onReport,
   hasPrev,
   hasNext,
 }) => (
@@ -335,6 +336,14 @@ const VerticalToolbar = ({
       title='Bookmarks'
     >
       <Bookmark size={18} />
+    </button>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onReport}
+      title='Báo lỗi'
+    >
+      <Flag size={18} />
     </button>
     <button
       type='button'
@@ -1136,6 +1145,11 @@ const ChapterPage = () => {
         }
         onSettings={() => setShowSettings(true)}
         onBookmarks={() => setShowPanel(true)}
+        onReport={() => {
+          if (storyId && chapterIdParam) {
+            navigate(`/report?storyId=${storyId}&chapterId=${chapterIdParam}`);
+          }
+        }}
         hasPrev={Boolean(previousChapterId)}
         hasNext={Boolean(nextChapterId)}
       />
