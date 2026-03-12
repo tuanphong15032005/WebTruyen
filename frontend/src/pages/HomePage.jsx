@@ -7,6 +7,7 @@
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  ArrowUp,
   Bookmark,
   Bot,
   BookOpen,
@@ -247,6 +248,7 @@ function HomePage() {
   const [heroSlideDirection, setHeroSlideDirection] = useState(1);
   const [heroDragOffset, setHeroDragOffset] = useState(0);
   const [heroDragging, setHeroDragging] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const heroTransitionTimerRef = useRef(null);
   const heroRafRef = useRef({ first: 0, second: 0 });
@@ -264,6 +266,35 @@ function HomePage() {
   useEffect(() => {
     activeHeroIndexRef.current = activeHeroIndex;
   }, [activeHeroIndex]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const updateScrollProgress = () => {
+      const scrollTop =
+        window.scrollY || document.documentElement.scrollTop || 0;
+      const scrollableHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+
+      if (scrollableHeight <= 0) {
+        setScrollProgress(0);
+        return;
+      }
+
+      setScrollProgress(
+        Math.min(1, Math.max(0, scrollTop / scrollableHeight)),
+      );
+    };
+
+    updateScrollProgress();
+    window.addEventListener('scroll', updateScrollProgress, { passive: true });
+    window.addEventListener('resize', updateScrollProgress);
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollProgress);
+      window.removeEventListener('resize', updateScrollProgress);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -730,6 +761,11 @@ function HomePage() {
   );
 
   const heroSlideClass = heroSlideDirection > 0 ? 'to-next' : 'to-prev';
+  const showScrollTopButton = scrollProgress > 0.08;
+
+  const handleScrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   return (
     <div className='home-dashboard'>
@@ -1130,6 +1166,15 @@ function HomePage() {
         {/*         )} */}
         {/* >>>>>>> origin/portfolio */}
       </div>
+      <button
+        type='button'
+        className={`home-scroll-top ${showScrollTopButton ? 'is-visible' : ''}`}
+        style={{ '--scroll-progress': scrollProgress }}
+        onClick={handleScrollToTop}
+        aria-label='Quay lại đầu trang'
+      >
+        <ArrowUp className='home-scroll-top__icon' aria-hidden='true' />
+      </button>
     </div>
   );
 }
