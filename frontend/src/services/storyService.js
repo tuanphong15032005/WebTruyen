@@ -105,6 +105,9 @@ const storyService = {
   createChapter: (storyId, volumeId, payload) =>
     api.post(`/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
 
+  submitStoryApproval: (storyId) =>
+    api.post(`/stories/${storyId}/submit-approval`),
+
   submitChapterApproval: (chapterId) =>
     api.post(`/chapters/${chapterId}/submit-approval`),
 

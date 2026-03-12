@@ -6,6 +6,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import Button from '../../components/Button';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import CreateVolume from './CreateVolume';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -26,7 +27,12 @@ const KIND_LABELS = {
 const STORY_STATUS_LABELS = {
   draft: 'Nháp',
   published: 'Công khai',
-  archived: 'Lưu trữ',
+};
+
+const STORY_APPROVAL_LABELS = {
+  pending: 'Đang chờ duyệt',
+  approved: 'duyệt thành công, giờ có thể đăng công khai',
+  rejected: 'Bị từ chối duyệt',
 };
 
 const CHAPTER_STATUS_LABELS = {
@@ -37,7 +43,7 @@ const CHAPTER_STATUS_LABELS = {
 
 const CHAPTER_APPROVAL_LABELS = {
   pending: 'Đang chờ duyệt',
-  approved: 'đã được duyệt - giờ bạn có thể đăng chương này công khai',
+  approved: 'duyệt thành công, giờ có thể đăng công khai',
 };
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
@@ -85,6 +91,7 @@ const StoryDetail = () => {
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
   const [savingVolumeId, setSavingVolumeId] = useState(null);
   const [uploadingVolumeCoverId, setUploadingVolumeCoverId] = useState(null);
+  const [submittingApprovalStory, setSubmittingApprovalStory] = useState(false);
   const [submittingApprovalChapterId, setSubmittingApprovalChapterId] =
     useState(null);
   const [expandedSummary, setExpandedSummary] = useState(false);
@@ -217,6 +224,24 @@ const StoryDetail = () => {
   );
 
   const canExpandSummary = summaryText.length > 260;
+  const storyApprovalStatusKey = String(story?.approvalStatus || '').toLowerCase();
+  const hasStoryApprovalStatusValue =
+    story?.approvalStatus != null && String(story.approvalStatus).trim() !== '';
+  const storyApprovalStatusLabel =
+    STORY_APPROVAL_LABELS[storyApprovalStatusKey] ||
+    (hasStoryApprovalStatusValue ? String(story.approvalStatus) : '');
+  const storyApprovalBadgeClass = STORY_APPROVAL_LABELS[storyApprovalStatusKey]
+    ? `story-detail__approval-badge--${storyApprovalStatusKey}`
+    : 'story-detail__approval-badge--pending';
+  const showStoryApprovalStatus =
+    Boolean(storyApprovalStatusLabel) &&
+    !(
+      storyApprovalStatusKey === 'approved' &&
+      String(story?.status || '').toLowerCase() === 'published'
+    );
+  const canSubmitStoryApproval =
+    !hasStoryApprovalStatusValue &&
+    String(story?.status || '').toLowerCase() === 'draft';
 
   const toggleVolume = (volumeId) => {
     setExpandedVolumes((prev) => {
@@ -362,6 +387,31 @@ const StoryDetail = () => {
     }
   };
 
+  const handleSubmitStoryApproval = async () => {
+    try {
+      setSubmittingApprovalStory(true);
+      const response = await storyService.submitStoryApproval(storyId);
+      const nextApprovalStatus = String(
+        response?.approvalStatus || 'pending',
+      ).toLowerCase();
+
+      setStory((prev) =>
+        prev ? { ...prev, approvalStatus: nextApprovalStatus } : prev,
+      );
+      notify('Gửi duyệt truyện thành công', 'success');
+    } catch (error) {
+      console.error('submitStoryApproval error', error);
+      const message =
+        error?.response?.data?.message ||
+        (typeof error?.message === 'string' && error.message.trim()
+          ? error.message.trim()
+          : 'gửi duyệt truyện thất bại');
+      notify(message, 'error');
+    } finally {
+      setSubmittingApprovalStory(false);
+    }
+  };
+
   const handleViewMetadata = () => {
     const isPublished =
       String(story?.status || '').toLowerCase() === 'published';
@@ -429,11 +479,12 @@ const StoryDetail = () => {
           }}
         />
       </div>
-
       {activeTab === 'info' && (
         <div className='story-detail__info'>
           {loadingStory && (
-            <p className='story-detail__muted'>Đang tải dữ liệu...</p>
+            <div className='story-detail__loading'>
+              <LoadingSpinner size={74} label='Đang tải dữ liệu...' />
+            </div>
           )}
           {story && (
             <div className='story-detail__card story-detail__frame'>
@@ -605,10 +656,36 @@ const StoryDetail = () => {
                 </div>
 
                 <div className='story-detail__summary-header'>
-                  <span className='story-detail__label'>Nội dung</span>
-                  <span className='story-detail__muted'>
-                    ( Cập nhật: {formatDateTime(story.lastUpdatedAt)} )
-                  </span>
+                  <div className='story-detail__summary-header-info'>
+                    <span className='story-detail__label'>Nội dung</span>
+                    <span className='story-detail__muted'>
+                      ( Cập nhật: {formatDateTime(story.lastUpdatedAt)} )
+                    </span>
+                  </div>
+                  {(canSubmitStoryApproval || showStoryApprovalStatus) && (
+                    <div className='story-detail__summary-approval'>
+                      {canSubmitStoryApproval && (
+                        <button
+                          type='button'
+                          className='story-detail__chapter-submit story-detail__story-submit-inline'
+                          onClick={handleSubmitStoryApproval}
+                          disabled={submittingApprovalStory || !story}
+                        >
+                          {submittingApprovalStory ? 'Đang gửi...' : 'Gửi duyệt'}
+                        </button>
+                      )}
+                      {showStoryApprovalStatus && (
+                        <div className='story-detail__story-approval'>
+                          <span
+                            className={`story-detail__approval-badge ${storyApprovalBadgeClass}`}
+                          >
+                            <span className='story-detail__approval-dot' />
+                            {storyApprovalStatusLabel}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -653,7 +730,9 @@ const StoryDetail = () => {
           )}
 
           {loadingVolumes && (
-            <p className='story-detail__muted'>Đang tải danh sách volume...</p>
+            <div className='story-detail__loading'>
+              <LoadingSpinner size={74} label='Đang tải danh sách volume...' />
+            </div>
           )}
 
           {!loadingVolumes && volumes.length === 0 && (
@@ -798,9 +877,15 @@ const StoryDetail = () => {
                       const hasApprovalStatusValue =
                         chapter.approvalStatus != null &&
                         String(chapter.approvalStatus).trim() !== '';
-                      const showApprovalStatus = Boolean(
-                        CHAPTER_APPROVAL_LABELS[approvalStatusKey],
-                      );
+                      const chapterStatusKey = String(
+                        chapter.status || '',
+                      ).toLowerCase();
+                      const showApprovalStatus =
+                        Boolean(CHAPTER_APPROVAL_LABELS[approvalStatusKey]) &&
+                        !(
+                          approvalStatusKey === 'approved' &&
+                          chapterStatusKey === 'published'
+                        );
                       const isSubmittingApproval =
                         submittingApprovalChapterId === String(chapter.id);
 
@@ -816,7 +901,7 @@ const StoryDetail = () => {
                             <div className='story-detail__chapter-status'>
                               Trạng thái:{' '}
                               {CHAPTER_STATUS_LABELS[
-                                String(chapter.status || '').toLowerCase()
+                                chapterStatusKey
                               ] || 'Nháp'}
                             </div>
                             {showApprovalStatus && (

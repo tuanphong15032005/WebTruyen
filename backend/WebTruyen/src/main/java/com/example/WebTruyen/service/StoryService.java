@@ -10,6 +10,7 @@ import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
@@ -358,13 +359,46 @@ public class StoryService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not the owner of this story");
         }
 
-        if (req.title() != null && !req.title().isBlank()) {
-            story.setTitle(req.title().trim());
+        String previousTitle = normalizeCompareText(story.getTitle());
+        String previousSummary = normalizeCompareText(story.getSummary());
+        StoryStatus previousStatus = story.getStatus() == null ? StoryStatus.draft : story.getStatus();
+        StoryApprovalStatus currentApprovalStatus = story.getApprovalStatus();
+
+        String nextTitle = req.title() != null && !req.title().isBlank()
+                ? req.title().trim()
+                : story.getTitle();
+        String nextSummary = req.summaryHtml() != null
+                ? req.summaryHtml()
+                : story.getSummary();
+        boolean hasApprovalSensitiveChange =
+                !Objects.equals(previousTitle, normalizeCompareText(nextTitle))
+                        || !Objects.equals(previousSummary, normalizeCompareText(nextSummary));
+
+        StoryApprovalStatus effectiveApprovalStatus = hasApprovalSensitiveChange
+                && currentApprovalStatus != StoryApprovalStatus.rejected
+                ? null
+                : currentApprovalStatus;
+
+        StoryStatus nextStatus = resolveStatus(req);
+        if (hasApprovalSensitiveChange && previousStatus == StoryStatus.published) {
+            nextStatus = StoryStatus.draft;
         }
-        if (req.summaryHtml() != null) {
-            story.setSummary(req.summaryHtml());
+        if (previousStatus == StoryStatus.draft
+                && nextStatus == StoryStatus.published
+                && effectiveApprovalStatus != StoryApprovalStatus.approved) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Story must be approved before publishing"
+            );
         }
-        story.setStatus(resolveStatus(req));
+
+        story.setTitle(nextTitle);
+        story.setSummary(nextSummary);
+        story.setStatus(nextStatus);
+        if (hasApprovalSensitiveChange && currentApprovalStatus != StoryApprovalStatus.rejected) {
+            story.setApprovalStatus(null);
+            story.setApprovalUpdatedAt(LocalDateTime.now());
+        }
 
         StoryKind kind = parseKind(req.kind(), story.getKind() == null ? StoryKind.original : story.getKind());
         story.setKind(kind);
@@ -392,6 +426,35 @@ public class StoryService {
         StoryEntity saved = storyRepository.save(story);
         List<TagDto> tagDtos = syncStoryTags(saved, normalizeIds(req.tagIds()), true);
         return toResponse(saved, tagDtos, false);
+    }
+
+    @Transactional
+    public StoryApprovalStatus submitStoryForApproval(Long storyId, Long authorId) {
+        if (authorId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        if (storyId == null || storyId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid story id");
+        }
+
+        int rawStoryId;
+        try {
+            rawStoryId = Math.toIntExact(storyId);
+        } catch (ArithmeticException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid story id");
+        }
+
+        StoryEntity story = storyRepository.findByIdAndAuthorId(rawStoryId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+
+        if (story.getApprovalStatus() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Story already submitted for review");
+        }
+
+        story.setApprovalStatus(StoryApprovalStatus.pending);
+        story.setApprovalUpdatedAt(LocalDateTime.now());
+        storyRepository.save(story);
+        return story.getApprovalStatus();
     }
 
     private void validateCreateStoryRequest(CreateStoryRequest req) {
@@ -422,6 +485,7 @@ public class StoryService {
                 story.getSummary(),
                 story.getCoverUrl(),
                 story.getStatus() != null ? story.getStatus().name() : null,
+                story.getApprovalStatus() != null ? story.getApprovalStatus().name() : null,
                 story.getKind() != null ? story.getKind().name() : null,
                 story.getCompletionStatus() != null ? story.getCompletionStatus().name() : null,
                 story.getCompletedAt(),
@@ -625,6 +689,10 @@ public class StoryService {
 
     // Hieu Son - ngay 26/02/2026
     // Ham ho tro chuan hoa chuoi tim kiem.
+    private String normalizeCompareText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
     private String trimToNull(String value) {
         if (value == null) {
             return null;

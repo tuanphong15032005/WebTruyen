@@ -18,8 +18,10 @@ import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
 import com.example.WebTruyen.dto.response.AuthorCommentResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
+import com.example.WebTruyen.security.JwtTokenProvider;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.CommentService;
 import com.example.WebTruyen.service.SimpleDailyTaskService;
@@ -29,6 +31,7 @@ import com.example.WebTruyen.service.VolumeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,6 +41,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api")
@@ -52,12 +56,27 @@ public class StoryController {
     private final StoryReviewService storyReviewService;
     private final CommentService commentService;
     private final SimpleDailyTaskService simpleDailyTaskService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
         return userPrincipal.getUser();
+    }
+
+    private Long resolveUserIdFromToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        String normalized = token.trim();
+        if (normalized.startsWith("Bearer ")) {
+            normalized = normalized.substring("Bearer ".length()).trim();
+        }
+        if (!jwtTokenProvider.validateToken(normalized)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return jwtTokenProvider.getUserIdFromToken(normalized);
     }
 
     @PostMapping(value = "/stories", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -186,6 +205,29 @@ public class StoryController {
         CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
         UserEntity currentUser = requireUser(userPrincipal);
         return storyService.updateStory(currentUser, storyId, data, cover);
+    }
+
+    @PostMapping("/stories/{storyId}/submit-approval")
+    public ResponseEntity<Map<String, String>> submitStoryApproval(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        try {
+            StoryApprovalStatus approvalStatus = storyService.submitStoryForApproval(storyId, userId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Story submitted for review",
+                    "approvalStatus", approvalStatus.name()
+            ));
+        } catch (ResponseStatusException ex) {
+            String message = ex.getReason() != null && !ex.getReason().isBlank()
+                    ? ex.getReason()
+                    : "gửi duyệt truyện thất bại";
+            return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
+        }
     }
 
     // L?y danh s?ch volume v? chapter theo story
@@ -509,6 +551,77 @@ public class StoryController {
             @PathVariable Long chapterId
     ) {
         return chapterService.getChapterContent(chapterId);
+    }
+
+    @GetMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Object> getChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return chapterService.getChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId()
+        );
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> saveChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @RequestBody(required = false) Map<String, Object> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String draftContent = payload != null ? Objects.toString(payload.get("draftContent"), "") : "";
+        return chapterService.saveChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId(),
+                draftContent
+        );
+    }
+
+    @PostMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft/beacon", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> saveChapterDraftByBeacon(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @RequestParam("token") String token,
+            @RequestBody(required = false) Map<String, Object> payload
+    ) {
+        Long userId = resolveUserIdFromToken(token);
+        String draftContent = payload != null ? Objects.toString(payload.get("draftContent"), "") : "";
+        return chapterService.saveChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                userId,
+                draftContent
+        );
+    }
+
+    @DeleteMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Boolean> deleteChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        chapterService.deleteChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId()
+        );
+        return Map.of("deleted", true);
     }
 
     public record AuthorReplyRequest(String content) {}

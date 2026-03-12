@@ -94,7 +94,7 @@ function App() {
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
-        <Route path='/stories/report' element={<Report />} />
+        <Route path='/stories/:storyId/report' element={<Report />} />
         <Route
           path='/wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}
