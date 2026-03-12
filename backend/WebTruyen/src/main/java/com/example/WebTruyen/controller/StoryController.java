@@ -12,6 +12,7 @@ import com.example.WebTruyen.dto.response.CreateVolumeResponse;
 import com.example.WebTruyen.dto.response.HomeCommunityCommentResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
+import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
@@ -105,6 +106,19 @@ public class StoryController {
     @GetMapping("/public/stories/{storyId}/sidebar")
     public StorySidebarResponse getPublicStorySidebar(@PathVariable Integer storyId) {
         return storyService.getPublicStorySidebar(storyId);
+    }
+
+    @GetMapping("/stories/{storyId}/resume-point")
+    public ResponseEntity<StoryResumePointResponse> getStoryResumePoint(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        StoryResumePointResponse response = storyService.getStoryResumePoint(currentUser, storyId);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/public/stories")

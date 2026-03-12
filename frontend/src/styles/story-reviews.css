@@ -1,8 +1,12 @@
 .story-reviews {
   display: grid;
+  justify-items: center;
+  padding: 0 16px;
 }
 
 .story-reviews__frame {
+  width: min(50vw, 760px);
+  max-width: 100%;
   background: #ffffff;
   border: 1px solid #b7d9b1;
   border-radius: 16px;
@@ -172,4 +176,26 @@
   color: #2d8ce8;
   font-weight: 600;
   cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .story-reviews__frame {
+    width: min(720px, 100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .story-reviews {
+    padding: 0 10px;
+  }
+
+  .story-reviews__frame {
+    width: 100%;
+    padding: 14px;
+  }
+
+  .story-reviews__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

@@ -7,6 +7,7 @@ import com.example.WebTruyen.dto.response.StorySidebarResponse;
 //=======
 import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
 //>>>>>>> origin/minhfinal1
+import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
@@ -84,6 +85,7 @@ public class StoryService {
     private final ModerationActionRepository moderationActionRepository;
     private final UserRoleRepository userRoleRepository;
 //>>>>>>> origin/minhfinal1
+    private final ReadingHistoryRepository readingHistoryRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
@@ -183,6 +185,35 @@ public class StoryService {
                 resolveSimilarStories(story),
                 resolveSameAuthorStories(story)
         );
+    }
+
+    @Transactional
+    public StoryResumePointResponse getStoryResumePoint(UserEntity currentUser, Integer storyId) {
+        if (currentUser == null || storyId == null) {
+            return null;
+        }
+
+        StoryEntity story = requirePublishedStoryById(storyId.longValue());
+
+        return readingHistoryRepository
+                .findById_UserIdAndId_StoryId(currentUser.getId(), story.getId())
+                .map(history -> {
+                    Long chapterId = history.getLastChapter() != null
+                            ? history.getLastChapter().getId()
+                            : history.getLastSegment() != null && history.getLastSegment().getChapter() != null
+                                ? history.getLastSegment().getChapter().getId()
+                                : null;
+                    Long segmentId = history.getLastSegment() != null
+                            ? history.getLastSegment().getId()
+                            : null;
+
+                    if (chapterId == null || segmentId == null) {
+                        return null;
+                    }
+
+                    return new StoryResumePointResponse(story.getId(), chapterId, segmentId);
+                })
+                .orElse(null);
     }
 
     @Transactional

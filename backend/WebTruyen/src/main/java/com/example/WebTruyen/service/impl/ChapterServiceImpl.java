@@ -765,7 +765,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional
-    public void recordChapterView(Long chapterId, Long userId) {
+    public void recordChapterView(Long chapterId, Long userId, Long segmentId) {
         ChapterEntity chapter = getChapterById(chapterId);
         StoryEntity story = chapter.getVolume().getStory();
         Long storyId = story != null ? story.getId() : null;
@@ -783,6 +783,13 @@ public class ChapterServiceImpl implements ChapterService {
         if (user == null) {
             return;
         }
+        ChapterSegmentEntity lastSegment = null;
+        if (segmentId != null) {
+            lastSegment = chapterSegmentRepository.findById(segmentId)
+                    .filter(segment -> segment.getChapter() != null
+                            && Objects.equals(segment.getChapter().getId(), chapter.getId()))
+                    .orElse(null);
+        }
         //record + lưu lịch sử đọc mới nhất cho user
         ReadingHistoryEntity history = readingHistoryRepository
                 .findById_UserIdAndId_StoryId(userId, storyId)
@@ -792,6 +799,46 @@ public class ChapterServiceImpl implements ChapterService {
                         .story(story)
                         .build());
         history.setLastChapter(chapter);
+        history.setLastSegment(lastSegment);
+        readingHistoryRepository.save(history);
+    }
+
+    @Override
+    @Transactional
+    public void updateReadingProgress(Long chapterId, Long userId, Long segmentId) {
+        if (userId == null) {
+            return;
+        }
+
+        ChapterEntity chapter = getChapterById(chapterId);
+        StoryEntity story = chapter.getVolume().getStory();
+        Long storyId = story != null ? story.getId() : null;
+        if (storyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Story not found for chapter");
+        }
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return;
+        }
+
+        ChapterSegmentEntity lastSegment = null;
+        if (segmentId != null) {
+            lastSegment = chapterSegmentRepository.findById(segmentId)
+                    .filter(segment -> segment.getChapter() != null
+                            && Objects.equals(segment.getChapter().getId(), chapter.getId()))
+                    .orElse(null);
+        }
+
+        ReadingHistoryEntity history = readingHistoryRepository
+                .findById_UserIdAndId_StoryId(userId, storyId)
+                .orElseGet(() -> ReadingHistoryEntity.builder()
+                        .id(new ReadingHistoryId(userId, storyId))
+                        .user(user)
+                        .story(story)
+                        .build());
+        history.setLastChapter(chapter);
+        history.setLastSegment(lastSegment);
         readingHistoryRepository.save(history);
     }
 //=======

@@ -1,5 +1,6 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.dto.request.ChapterProgressRequest;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
@@ -41,25 +42,39 @@ public class ChapterController {
     @PostMapping("/{id}/view")
     public ResponseEntity<Void> recordChapterView(
             @PathVariable Long id,
+            @RequestBody(required = false) ChapterProgressRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
                 ? userPrincipal.getUser().getId()
                 : null;
         
-        chapterService.recordChapterView(id, userId);
+        chapterService.recordChapterView(id, userId, request != null ? request.segmentId() : null);
         
         // Track chapter reading for daily task
-        if (userId != null) {
-            try {
-                log.info("Tracking chapter reading for daily task - user: {}, chapter: {}", userId, id);
-                simpleDailyTaskService.updateTaskProgress(userId, "READ_CHAPTERS", 1);
-                log.info("Successfully tracked chapter reading for daily task");
-            } catch (Exception e) {
-                // Don't fail the chapter view recording if daily task tracking fails
-                log.warn("Failed to track chapter reading for daily task - user: {}, chapter: {}", userId, id, e);
-            }
-        }
+//        if (userId != null) {
+//            try {
+//                log.info("Tracking chapter reading for daily task - user: {}, chapter: {}", userId, id);
+//                simpleDailyTaskService.updateTaskProgress(userId, "READ_CHAPTERS", 1);
+//                log.info("Successfully tracked chapter reading for daily task");
+//            } catch (Exception e) {
+//                // Don't fail the chapter view recording if daily task tracking fails
+//                log.warn("Failed to track chapter reading for daily task - user: {}, chapter: {}", userId, id, e);
+//            }
+//        }
         
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/progress")
+    public ResponseEntity<Void> updateReadingProgress(
+            @PathVariable Long id,
+            @RequestBody(required = false) ChapterProgressRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        chapterService.updateReadingProgress(id, userId, request != null ? request.segmentId() : null);
         return ResponseEntity.ok().build();
     }
 

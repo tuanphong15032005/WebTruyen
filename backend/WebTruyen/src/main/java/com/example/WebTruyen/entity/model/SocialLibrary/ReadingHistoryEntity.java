@@ -2,6 +2,7 @@ package com.example.WebTruyen.entity.model.SocialLibrary;
 
 import com.example.WebTruyen.entity.keys.ReadingHistoryId;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
+import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
@@ -38,4 +39,9 @@ public class ReadingHistoryEntity {
     @JoinColumn(name = "last_chapter_id",
             foreignKey = @ForeignKey(name = "fk_readhist_chapter"))
     private ChapterEntity lastChapter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "last_segment_id",
+            foreignKey = @ForeignKey(name = "fk_readhist_segment"))
+    private ChapterSegmentEntity lastSegment;
 }

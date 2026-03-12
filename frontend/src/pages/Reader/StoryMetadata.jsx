@@ -11,7 +11,7 @@ const COMPLETION_LABELS = {
 };
 
 const KIND_LABELS = {
-  original: 'Truyện gốc',
+  original: 'Truyện sáng tác',
   translated: 'Truyện dịch',
   ai: 'Truyện AI',
 };
@@ -180,6 +180,7 @@ const StoryMetadata = () => {
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [loadingSidebar, setLoadingSidebar] = useState(false);
+  const [loadingResumePoint, setLoadingResumePoint] = useState(false);
 
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [expandedVolumes, setExpandedVolumes] = useState(() => new Set());
@@ -187,6 +188,7 @@ const StoryMetadata = () => {
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [librarySaved, setLibrarySaved] = useState(false);
   const [libraryLoading, setLibraryLoading] = useState(false);
+  const [resumePoint, setResumePoint] = useState(null);
 
   const [commentContent, setCommentContent] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -342,6 +344,30 @@ const StoryMetadata = () => {
     }
   }, [storyId]);
 
+  const fetchResumePoint = useCallback(async () => {
+    if (!currentUser) {
+      setResumePoint(null);
+      return;
+    }
+
+    try {
+      setLoadingResumePoint(true);
+      logFlowStart('METADATA_FETCH_RESUME_POINT_FLOW', {
+        endpoint: `/stories/${storyId}/resume-point`,
+        method: 'GET',
+        payload: { storyId },
+      });
+      const response = await storyService.getStoryResumePoint(storyId);
+      logFlowSuccess(response);
+      setResumePoint(response || null);
+    } catch (error) {
+      logFlowError(error);
+      setResumePoint(null);
+    } finally {
+      setLoadingResumePoint(false);
+    }
+  }, [currentUser, storyId]);
+
   useEffect(() => {
     fetchStory();
     fetchVolumes();
@@ -349,7 +375,9 @@ const StoryMetadata = () => {
     fetchSidebar();
     fetchNotifyStatus();
     fetchLibraryStatus();
+    fetchResumePoint();
   }, [
+    fetchResumePoint,
     fetchSidebar,
     fetchLibraryStatus,
     fetchNotifyStatus,
@@ -648,7 +676,7 @@ const StoryMetadata = () => {
   };
 
   const goToReaderChapter = useCallback(
-    (targetChapterId) => {
+    (targetChapterId, targetSegmentId = null) => {
       // Hieuson - thêm log ở console side, ngày 3/1/2026.
       console.group('[METADATA_GO_TO_READER_CHAPTER_FLOW]');
       console.log('Step 1 - log entry');
@@ -673,10 +701,12 @@ const StoryMetadata = () => {
       console.log('Step 3 - log API response');
       console.log('response', {
         success: true,
-        navigateTo: `/stories/${storyId}/chapters/${targetChapterId}`,
+        navigateTo: `/stories/${storyId}/chapters/${targetChapterId}${targetSegmentId ? `?segmentId=${targetSegmentId}` : ''}`,
       });
       console.groupEnd();
-      navigate(`/stories/${storyId}/chapters/${targetChapterId}`);
+      navigate(
+        `/stories/${storyId}/chapters/${targetChapterId}${targetSegmentId ? `?segmentId=${targetSegmentId}` : ''}`,
+      );
     },
     [navigate, notify, storyId],
   );
@@ -710,6 +740,29 @@ const StoryMetadata = () => {
     console.groupEnd();
     goToReaderChapter(latestReadableChapterId);
   }, [goToReaderChapter, latestReadableChapterId]);
+
+  const handleContinueReading = useCallback(() => {
+    const chapterId = Number(resumePoint?.chapterId || 0);
+    const segmentId = Number(resumePoint?.segmentId || 0);
+    if (!chapterId || !segmentId) {
+      notify('Chưa có vị trí đọc gần nhất để tiếp tục', 'info');
+      return;
+    }
+
+    console.group('[METADATA_CONTINUE_READING_FLOW]');
+    console.log('Step 1 - log entry');
+    console.log('METADATA_CONTINUE_READING_FLOW triggered');
+    console.log('Step 2 - log payload');
+    console.log('payload', { chapterId, segmentId, storyId });
+    console.log('Step 3 - log API response');
+    console.log('response', {
+      targetChapterId: chapterId,
+      targetSegmentId: segmentId,
+    });
+    console.groupEnd();
+
+    goToReaderChapter(chapterId, segmentId);
+  }, [goToReaderChapter, notify, resumePoint, storyId]);
 
   const normalizeCommentNode = useCallback(
     (comment) => ({
@@ -1379,6 +1432,16 @@ const StoryMetadata = () => {
 
                   <div className='story-metadata__actions-row'>
                     <div className='story-metadata__actions'>
+                      {resumePoint?.chapterId && resumePoint?.segmentId && (
+                        <button
+                          type='button'
+                          className='story-metadata__action-btn continue'
+                          onClick={handleContinueReading}
+                          disabled={loadingResumePoint}
+                        >
+                          Đọc tiếp
+                        </button>
+                      )}
                       <button
                         type='button'
                         className='story-metadata__action-btn'
