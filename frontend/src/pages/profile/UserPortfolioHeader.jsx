@@ -52,6 +52,15 @@ const UserPortfolioHeader = ({ data, onDonateClick }) => {
             console.log('🔗 Follow API response:', result);
             setIsFollowing(result.isFollowing);
             setFollowersCount(result.followersCount);
+            
+            // Emit custom event to sync with other components
+            window.dispatchEvent(new CustomEvent('followStatusChanged', {
+                detail: {
+                    authorId: data.userId,
+                    isFollowing: result.isFollowing,
+                    followersCount: result.followersCount
+                }
+            }));
         } catch (error) {
             console.error('Error toggling follow:', error);
         }

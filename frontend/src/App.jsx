@@ -4,6 +4,10 @@ import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 
 import SearchPage from './pages/SearchPage';
+// ===== WebTruyen Author Search Feature START =====
+// Import AuthorSearchPage for author discovery functionality
+// ===== WebTruyen Author Search Feature END =====
+import AuthorSearchPage from './pages/AuthorSearchPage';
 
 import Login from './pages/Authentication/Login';
 import Register from './pages/Authentication/Register';
@@ -88,6 +92,10 @@ function App() {
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
+        {/* ===== WebTruyen Author Search Feature START ===== */}
+        {/* Author search/discovery page */}
+        {/* ===== WebTruyen Author Search Feature END ===== */}
+        <Route path='/authors' element={<AuthorSearchPage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/verify' element={<VerifyCode />} />

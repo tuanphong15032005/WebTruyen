@@ -1,6 +1,6 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Bookmark, Eye, Gem, Search, Star } from 'lucide-react';
+import { BookOpen, Bookmark, Eye, Gem, Search, Star, Users } from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import storyService from '../services/storyService';
@@ -324,6 +324,20 @@ function Header() {
         </form>
 
         <div className='site-header__actions'>
+          {/* ===== WebTruyen Author Search Feature START ===== */}
+          {/* Author discovery button */}
+          {/* ===== WebTruyen Author Search Feature END ===== */}
+          <Link 
+            to='/authors' 
+            className='site-authors-discovery-btn'
+            title='Khám phá và tìm kiếm nhóm sáng tạo'
+          >
+            <Users size={16} />
+            <span className='site-authors-discovery-btn__text'>
+              Khám phá tác giả
+            </span>
+          </Link>
+
           {isLoggedIn && (
             <div className='site-wallet'>
               <button
