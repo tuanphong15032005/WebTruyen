@@ -37,6 +37,9 @@ public interface ChapterService {
     );
 
     Map<String, Object> getChapterContent(Long chapterId);
+    Map<String, Object> getChapterDraft(Long storyId, Long volumeId, Long chapterId, Long authorId);
+    Map<String, Object> saveChapterDraft(Long storyId, Long volumeId, Long chapterId, Long authorId, String draftContent);
+    void deleteChapterDraft(Long storyId, Long volumeId, Long chapterId, Long authorId);
 
     // ===== Chapter Reader Page (ChapterPage branch) =====
     ChapterDetailResponse getChapterDetail(Long chapterId, Long userId);
