@@ -34,6 +34,7 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import AdminTermsPage from './pages/Admin/AdminTermsPage';
 import DynamicPage from './pages/docs/DynamicPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 
@@ -172,6 +173,14 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ViolationReportManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='admin/terms'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <AdminTermsPage />
             </RoleProtectedRoute>
           }
         />
