@@ -1247,7 +1247,14 @@ const ChapterPage = () => {
                 <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
                 {liked ? 'Đã thích' : 'Thả tim'}
               </button>
-              <button className='interaction-btn'>
+              <button 
+                className='interaction-btn'
+                onClick={() => {
+                  if (storyId && chapterIdParam) {
+                    navigate(`/report?storyId=${storyId}&chapterId=${chapterIdParam}`);
+                  }
+                }}
+              >
                 <Flag size={18} />
                 Báo lỗi
               </button>
