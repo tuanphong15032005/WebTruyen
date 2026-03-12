@@ -19,6 +19,7 @@ import {
   Star,
   TrendingUp,
 } from 'lucide-react';
+import LoadingSpinner from '../components/LoadingSpinner';
 import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
 import '../styles/home-dashboard.css';
@@ -735,7 +736,7 @@ function HomePage() {
       <div className='home-dashboard__container'>
         {loading && (
           <div className='home-dashboard__loading'>
-            Đang tải dữ liệu trang chủ...
+            <LoadingSpinner size={84} label='Đang tải dữ liệu trang chủ...' />
           </div>
         )}
 
