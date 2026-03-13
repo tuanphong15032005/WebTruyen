@@ -18,7 +18,16 @@ public interface AchievementTierRepository extends JpaRepository<AchievementTier
     List<AchievementTierEntity> findByAchievementId(@Param("achievementId") Integer achievementId);
     
     @Query("SELECT at FROM AchievementTierEntity at WHERE at.achievement.code = :achievementCode ORDER BY at.tierLevel")
+    List<AchievementTierEntity> findByAchievementCodeOrderByTierLevel(@Param("achievementCode") String achievementCode);
+    
+    @Query("SELECT at FROM AchievementTierEntity at WHERE at.achievement.code = :achievementCode ORDER BY at.tierLevel")
     List<AchievementTierEntity> findByAchievementCode(@Param("achievementCode") String achievementCode);
     
     Optional<AchievementTierEntity> findByAchievementIdAndTierLevel(Integer achievementId, Integer tierLevel);
+    
+    boolean existsByAchievementIdAndTierLevel(Integer achievementId, Integer tierLevel);
+    
+    long count();
+    
+    long countByIsActive(boolean isActive);
 }

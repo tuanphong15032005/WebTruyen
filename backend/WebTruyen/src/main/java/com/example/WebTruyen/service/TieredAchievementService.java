@@ -28,35 +28,43 @@ public class TieredAchievementService {
     private final WalletService walletService;
 
     @Transactional
-    public void updateProgress(Integer userId, String achievementCode, Integer incrementValue) {
-        log.info("Updating progress for user {} and achievement {} with increment {}", userId, achievementCode, incrementValue);
+    public void updateProgress(Long userId, String achievementCode, Integer incrementValue) {
+        log.info("DEBUG: Updating progress for user {} and achievement {} with increment {}", userId, achievementCode, incrementValue);
         
-        AchievementEntity achievement = achievementRepository.findByCode(achievementCode)
-                .orElseThrow(() -> new RuntimeException("Achievement not found: " + achievementCode));
-        
-        UserAchievementProgressEntity progress = userAchievementProgressRepository
-                .findByUserIdAndAchievementId(userId, achievement.getId())
-                .orElse(UserAchievementProgressEntity.builder()
-                        .id(UserAchievementProgressId.builder()
-                                .userId(userId)
-                                .achievementId(achievement.getId())
-                                .build())
-                        .user(UserEntity.builder().id(userId.longValue()).build())
-                        .achievement(achievement)
-                        .progress(0)
-                        .updatedAt(LocalDateTime.now())
-                        .build());
-        
-        progress.setProgress(progress.getProgress() + incrementValue);
-        progress.setUpdatedAt(LocalDateTime.now());
-        
-        userAchievementProgressRepository.save(progress);
-        
-        log.info("Updated progress for user {} achievement {}: {}", userId, achievementCode, progress.getProgress());
+        try {
+            AchievementEntity achievement = achievementRepository.findByCode(achievementCode)
+                    .orElseThrow(() -> new RuntimeException("Achievement not found: " + achievementCode));
+            
+            log.info("DEBUG: Found achievement: {} (ID: {}, Active: {})", achievement.getCode(), achievement.getId(), achievement.getIsActive());
+            
+            UserAchievementProgressEntity progress = userAchievementProgressRepository
+                    .findByUserIdAndAchievementId(userId, achievement.getId())
+                    .orElse(UserAchievementProgressEntity.builder()
+                            .id(UserAchievementProgressId.builder()
+                                    .userId(userId)
+                                    .achievementId(achievement.getId())
+                                    .build())
+                            .user(UserEntity.builder().id(userId).build())
+                            .achievement(achievement)
+                            .progress(0)
+                            .updatedAt(LocalDateTime.now())
+                            .build());
+            
+            int oldProgress = progress.getProgress();
+            progress.setProgress(oldProgress + incrementValue);
+            progress.setUpdatedAt(LocalDateTime.now());
+            
+            UserAchievementProgressEntity saved = userAchievementProgressRepository.save(progress);
+            
+            log.info("DEBUG: Updated progress for user {} achievement {}: {} -> {}", userId, achievementCode, oldProgress, saved.getProgress());
+        } catch (Exception e) {
+            log.error("DEBUG: Error updating progress for user {} achievement {}: {}", userId, achievementCode, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Transactional
-    public void setProgress(Integer userId, String achievementCode, Integer value) {
+    public void setProgress(Long userId, String achievementCode, Integer value) {
         log.info("Setting progress for user {} and achievement {} to {}", userId, achievementCode, value);
         
         AchievementEntity achievement = achievementRepository.findByCode(achievementCode)
@@ -69,7 +77,7 @@ public class TieredAchievementService {
                                 .userId(userId)
                                 .achievementId(achievement.getId())
                                 .build())
-                        .user(UserEntity.builder().id(userId.longValue()).build())
+                        .user(UserEntity.builder().id(userId).build())
                         .achievement(achievement)
                         .progress(0)
                         .updatedAt(LocalDateTime.now())
@@ -83,11 +91,16 @@ public class TieredAchievementService {
         log.info("Set progress for user {} achievement {}: {}", userId, achievementCode, progress.getProgress());
     }
 
-    public AchievementProgressDto getAchievementProgress(Integer userId, String achievementCode) {
+    public AchievementProgressDto getAchievementProgress(Long userId, String achievementCode) {
         log.info("Getting achievement progress for user {} and achievement {}", userId, achievementCode);
         
         AchievementEntity achievement = achievementRepository.findByCode(achievementCode)
                 .orElseThrow(() -> new RuntimeException("Achievement not found: " + achievementCode));
+        
+        // Check if achievement is active
+        if (!achievement.getIsActive()) {
+            throw new RuntimeException("Achievement is not active: " + achievementCode);
+        }
         
         List<AchievementTierEntity> allTiers = achievementTierRepository
                 .findByAchievementCode(achievementCode);
@@ -116,19 +129,19 @@ public class TieredAchievementService {
         return buildProgressDto(achievement, allTiers, progress, claimedTierIds);
     }
 
-    public List<AchievementProgressDto> getAllAchievementProgress(Integer userId) {
+    public List<AchievementProgressDto> getAllAchievementProgress(Long userId) {
         log.info("Getting all achievement progress for user {}", userId);
         
-        // Focus only on reading achievements for now
-        List<String> readingAchievementCodes = Arrays.asList("READ_CHAPTERS");
+        // Get all active achievements
+        List<AchievementEntity> activeAchievements = achievementRepository.findByIsActive(true);
         List<AchievementProgressDto> result = new ArrayList<>();
         
-        for (String achievementCode : readingAchievementCodes) {
+        for (AchievementEntity achievement : activeAchievements) {
             try {
-                AchievementProgressDto progress = getAchievementProgress(userId, achievementCode);
+                AchievementProgressDto progress = getAchievementProgress(userId, achievement.getCode());
                 result.add(progress);
             } catch (Exception e) {
-                log.warn("Could not get progress for achievement {}: {}", achievementCode, e.getMessage());
+                log.warn("Could not get progress for achievement {}: {}", achievement.getCode(), e.getMessage());
             }
         }
         
@@ -136,7 +149,7 @@ public class TieredAchievementService {
     }
 
     @Transactional
-    public AchievementTierDto claimTier(Integer userId, Integer tierId) {
+    public AchievementTierDto claimTier(Long userId, Integer tierId) {
         log.info("User {} claiming tier {}", userId, tierId);
         
         AchievementTierEntity tier = achievementTierRepository.findById(tierId)
@@ -155,7 +168,7 @@ public class TieredAchievementService {
         }
         
         UserAchievementClaimEntity claim = UserAchievementClaimEntity.builder()
-                .user(UserEntity.builder().id(userId.longValue()).build())
+                .user(UserEntity.builder().id(userId).build())
                 .tier(tier)
                 .claimedAt(LocalDateTime.now())
                 .build();
@@ -251,9 +264,9 @@ public class TieredAchievementService {
     }
 
     @Transactional
-    private void grantReward(Integer userId, AchievementTierEntity tier) {
+    private void grantReward(Long userId, AchievementTierEntity tier) {
         if (tier.getRewardCoin() != null && tier.getRewardCoin() > 0) {
-            UserEntity user = UserEntity.builder().id(userId.longValue()).build();
+            UserEntity user = UserEntity.builder().id(userId).build();
             
             if (tier.getRewardCoinType() == CoinType.A) {
                 walletService.addCoinA(user, tier.getRewardCoin(), 

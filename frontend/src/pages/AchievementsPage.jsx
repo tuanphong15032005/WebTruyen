@@ -65,6 +65,22 @@ const AchievementsPage = () => {
   const ProgressCard = ({ achievement }) => {
     const { currentTierInfo, nextTierInfo, progressPercentage } = achievement;
     
+    // Get category-specific labels
+    const getCategoryInfo = (achievementCode) => {
+      if (achievementCode.includes('READ_CHAPTERS')) {
+        return { label: 'chương đã đọc', unit: 'chương' };
+      } else if (achievementCode.includes('COMMENT')) {
+        return { label: 'bình luận đã viết', unit: 'bình luận' };
+      } else if (achievementCode.includes('WRITTEN_CHAPTERS')) {
+        return { label: 'chương đã viết', unit: 'chương' };
+      } else if (achievementCode.includes('FOLLOWER')) {
+        return { label: 'người theo dõi', unit: 'người' };
+      }
+      return { label: 'tiến độ', unit: '' };
+    };
+    
+    const categoryInfo = getCategoryInfo(achievement.achievementCode);
+    
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
@@ -76,7 +92,7 @@ const AchievementsPage = () => {
             <div className="text-2xl font-bold text-blue-600">
               {achievement.currentProgress}/{nextTierInfo?.requirement || currentTierInfo?.requirement || 0}
             </div>
-            <div className="text-sm text-gray-500">chương đã đọc</div>
+            <div className="text-sm text-gray-500">{categoryInfo.label}</div>
           </div>
         </div>
 
@@ -115,7 +131,7 @@ const AchievementsPage = () => {
                 <p className="text-blue-600 text-sm mt-1">{currentTierInfo.description}</p>
                 <div className="flex items-center mt-2 text-sm text-blue-700">
                   <span className="font-medium">Yêu cầu:</span>
-                  <span className="ml-2">{currentTierInfo.requirement} chương</span>
+                  <span className="ml-2">{currentTierInfo.requirement} {categoryInfo.unit}</span>
                 </div>
                 <div className="flex items-center mt-1 text-sm text-blue-700">
                   <span className="font-medium">Thưởng:</span>
@@ -189,7 +205,7 @@ const AchievementsPage = () => {
                         {tier.name}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {tier.requirement} chương → {tier.rewardCoin} coin {tier.rewardCoinType}
+                        {tier.requirement} {categoryInfo.unit} → {tier.rewardCoin} coin {tier.rewardCoinType}
                       </div>
                     </div>
                   </div>
@@ -243,8 +259,8 @@ const AchievementsPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Thành tựu đọc truyện</h1>
-        <p className="text-gray-600">Theo dõi tiến độ đọc truyện và nhận thưởng theo từng mốc</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Thành tựu</h1>
+        <p className="text-gray-600">Theo dõi tiến độ và nhận thưởng theo từng mốc thành tựu</p>
       </div>
 
       {achievementProgress.length === 0 ? (
@@ -255,13 +271,14 @@ const AchievementsPage = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Chưa có thành tựu nào</h3>
-          <p className="text-gray-600">Bắt đầu đọc truyện để mở khóa các thành tựu đầu tiên!</p>
+          <p className="text-gray-600">Bắt đầu đọc truyện, viết bình luận hoặc tạo nội dung để mở khóa các thành tựu đầu tiên!</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {achievementProgress.map((achievement) => (
-            <ProgressCard key={achievement.achievementCode} achievement={achievement} />
-          ))}
+          {achievementProgress
+            .map((achievement) => (
+              <ProgressCard key={achievement.achievementCode} achievement={achievement} />
+            ))}
         </div>
       )}
     </div>

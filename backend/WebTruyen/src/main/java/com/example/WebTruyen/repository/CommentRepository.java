@@ -34,6 +34,8 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
     List<CommentEntity> findByParentComment_IdOrderByCreatedAtAsc(Long parentCommentId);
     
     List<CommentEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
+    
+    long countByUserId(Long userId);
 
     @Query("""
             select c from CommentEntity c

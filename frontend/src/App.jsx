@@ -34,6 +34,7 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 
 import './App.css';
@@ -161,6 +162,14 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ViolationReportManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/achievements'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <AchievementManagementPage />
             </RoleProtectedRoute>
           }
         />

@@ -12,10 +12,10 @@ import java.util.Optional;
 @Repository
 public interface UserAchievementClaimRepository extends JpaRepository<UserAchievementClaimEntity, Long> {
     
-    Optional<UserAchievementClaimEntity> findByUserIdAndTierId(Integer userId, Integer tierId);
+    Optional<UserAchievementClaimEntity> findByUserIdAndTierId(Long userId, Integer tierId);
     
     @Query("SELECT uac FROM UserAchievementClaimEntity uac WHERE uac.user.id = :userId AND uac.tier.achievement.code = :achievementCode ORDER BY uac.tier.tierLevel DESC")
-    List<UserAchievementClaimEntity> findClaimsByUserIdAndAchievementCode(@Param("userId") Integer userId, @Param("achievementCode") String achievementCode);
+    List<UserAchievementClaimEntity> findClaimsByUserIdAndAchievementCode(@Param("userId") Long userId, @Param("achievementCode") String achievementCode);
     
-    boolean existsByUserIdAndTierId(Integer userId, Integer tierId);
+    boolean existsByUserIdAndTierId(Long userId, Integer tierId);
 }

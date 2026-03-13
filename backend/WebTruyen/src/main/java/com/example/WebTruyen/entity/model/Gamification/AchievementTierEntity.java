@@ -25,6 +25,16 @@ public class AchievementTierEntity {
     @Column(nullable = false)
     private Integer requirement;
 
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String description;
+
+    @Column(length = 50)
+    private String code;
+
     @Column(name = "reward_coin", nullable = false)
     private Long rewardCoin;
 
@@ -32,8 +42,18 @@ public class AchievementTierEntity {
     @Column(name = "reward_coin_type", nullable = false)
     private CoinType rewardCoinType;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
     @Column(name = "created_at", nullable = false)
     private java.time.LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = java.time.LocalDateTime.now();
+        }
+    }
 
     // Helper methods
     public String getName() {

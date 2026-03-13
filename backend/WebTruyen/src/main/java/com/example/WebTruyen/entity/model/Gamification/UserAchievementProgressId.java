@@ -14,7 +14,7 @@ import java.util.Objects;
 @AllArgsConstructor
 public class UserAchievementProgressId implements Serializable {
 
-    private Integer userId;
+    private Long userId;
     private Integer achievementId;
 
     @Override

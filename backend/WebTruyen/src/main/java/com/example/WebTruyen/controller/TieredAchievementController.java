@@ -2,6 +2,8 @@ package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.achievement.AchievementProgressDto;
 import com.example.WebTruyen.dto.achievement.AchievementTierDto;
+import com.example.WebTruyen.entity.model.Gamification.AchievementEntity;
+import com.example.WebTruyen.repository.AchievementRepository;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.TieredAchievementService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tiered-achievements")
@@ -20,6 +23,7 @@ import java.util.List;
 public class TieredAchievementController {
 
     private final TieredAchievementService tieredAchievementService;
+    private final AchievementRepository achievementRepository;
 
     @GetMapping("/progress")
     public ResponseEntity<List<AchievementProgressDto>> getAllAchievementProgress(
@@ -31,7 +35,7 @@ public class TieredAchievementController {
         UserPrincipal userPrincipal = (UserPrincipal) userDetails;
         Long userId = userPrincipal.getUser().getId();
         
-        List<AchievementProgressDto> progress = tieredAchievementService.getAllAchievementProgress(Math.toIntExact(userId));
+        List<AchievementProgressDto> progress = tieredAchievementService.getAllAchievementProgress(userId);
         return ResponseEntity.ok(progress);
     }
 
@@ -48,7 +52,7 @@ public class TieredAchievementController {
         
         try {
             AchievementProgressDto progress = tieredAchievementService.getAchievementProgress(
-                    Math.toIntExact(userId), achievementCode);
+                    userId, achievementCode);
             return ResponseEntity.ok(progress);
         } catch (Exception e) {
             log.error("Error getting achievement progress for code {}: {}", achievementCode, e.getMessage());
@@ -69,7 +73,7 @@ public class TieredAchievementController {
         
         try {
             AchievementTierDto claimedTier = tieredAchievementService.claimTier(
-                    Math.toIntExact(userId), tierId);
+                    userId, tierId);
             return ResponseEntity.ok(claimedTier);
         } catch (Exception e) {
             log.error("Error claiming tier {}: {}", tierId, e.getMessage());
@@ -90,7 +94,7 @@ public class TieredAchievementController {
         Long userId = userPrincipal.getUser().getId();
         
         try {
-            tieredAchievementService.updateProgress(Math.toIntExact(userId), achievementCode, value);
+            tieredAchievementService.updateProgress(userId, achievementCode, value);
             return ResponseEntity.ok("Progress updated successfully");
         } catch (Exception e) {
             log.error("Error updating progress for code {}: {}", achievementCode, e.getMessage());
@@ -111,7 +115,7 @@ public class TieredAchievementController {
         Long userId = userPrincipal.getUser().getId();
         
         try {
-            tieredAchievementService.setProgress(Math.toIntExact(userId), achievementCode, value);
+            tieredAchievementService.setProgress(userId, achievementCode, value);
             return ResponseEntity.ok("Progress set successfully");
         } catch (Exception e) {
             log.error("Error setting progress for code {}: {}", achievementCode, e.getMessage());
