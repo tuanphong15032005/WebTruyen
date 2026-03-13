@@ -806,66 +806,60 @@ public class StoryService {
     public List<AdminPendingContentResponse> getPendingModerationContent(UserEntity currentUser) {
         requireModerator(currentUser);
 
-        List<ModerationActionEntity> actions = moderationActionRepository.findByTargetKindInOrderByCreatedAtDesc(
-                Arrays.asList(
-                        ModerationActionEntity.ModerationTargetKind.story,
-                        ModerationActionEntity.ModerationTargetKind.chapter
-                )
+        List<StoryApprovalStatus> storyStatuses = Arrays.asList(
+                StoryApprovalStatus.pending, StoryApprovalStatus.approved, StoryApprovalStatus.rejected
         );
-        Map<String, ModerationActionEntity> latestActionByTarget = latestActionByTarget(actions);
+        List<ChapterApprovalStatus> chapterStatuses = Arrays.asList(
+                ChapterApprovalStatus.pending, ChapterApprovalStatus.approved, ChapterApprovalStatus.rejected
+        );
 
-        List<AdminPendingContentResponse> draftStories = storyRepository.findByStatusOrderByCreatedAtDesc(StoryStatus.draft)
+        List<AdminPendingContentResponse> storyItems = storyRepository
+                .findByApprovalStatusInOrderByCreatedAtDesc(storyStatuses)
                 .stream()
-                .filter(story -> !latestActionByTarget.containsKey(buildTargetKey(
-                        ModerationActionEntity.ModerationTargetKind.story,
-                        story.getId()
-                )))
-                .map(story -> new AdminPendingContentResponse(
-                        story.getId(),
-                        "story",
-                        story.getId(),
-                        story.getTitle(),
-                        resolveAuthorName(story),
-                        resolveGenre(story),
-                        resolveRatingAgeClassification(story),
-                        story.getCreatedAt(),
-                        "pending",
-                        null,
-                        null,
-                        null,
-                        null
-                ))
+                .map(this::toStoryPendingResponse)
                 .toList();
 
-        List<AdminPendingContentResponse> draftChapters = chapterRepository.findByStatusOrderByCreatedAtDesc(ChapterStatus.draft)
+        List<AdminPendingContentResponse> chapterItems = chapterRepository
+                .findByApprovalStatusInOrderByCreatedAtDesc(chapterStatuses)
                 .stream()
-                .filter(chapter -> !latestActionByTarget.containsKey(buildTargetKey(
-                        ModerationActionEntity.ModerationTargetKind.chapter,
-                        chapter.getId()
-                )))
-                .map(chapter -> toPendingChapterResponse(chapter, null))
+                .map(this::toChapterPendingResponse)
                 .toList();
 
-        Set<String> seenTargets = new HashSet<>();
-        draftStories.forEach(item -> seenTargets.add("story:" + item.contentId()));
-        draftChapters.forEach(item -> seenTargets.add("chapter:" + item.contentId()));
-
-        List<AdminPendingContentResponse> processedItems = latestActionByTarget.values().stream()
-                .map(this::toProcessedModerationResponse)
-                .filter(Objects::nonNull)
-                .filter(item -> seenTargets.add(item.contentType() + ":" + item.contentId()))
-                .toList();
-
-        return Stream.concat(Stream.concat(draftStories.stream(), draftChapters.stream()), processedItems.stream())
+        return Stream.concat(storyItems.stream(), chapterItems.stream())
                 .sorted((a, b) -> {
-                    LocalDateTime left = a.moderationProcessedAt() != null ? a.moderationProcessedAt() : a.submissionDate();
-                    LocalDateTime right = b.moderationProcessedAt() != null ? b.moderationProcessedAt() : b.submissionDate();
+                    LocalDateTime left = a.submissionDate();
+                    LocalDateTime right = b.submissionDate();
                     if (left == null && right == null) return 0;
                     if (left == null) return 1;
                     if (right == null) return -1;
                     return right.compareTo(left);
                 })
                 .toList();
+    }
+
+    private AdminPendingContentResponse toStoryPendingResponse(StoryEntity story) {
+        String approvalStatus = story.getApprovalStatus() != null
+                ? story.getApprovalStatus().name().toLowerCase()
+                : "pending";
+        return new AdminPendingContentResponse(
+                story.getId(),
+                "story",
+                story.getId(),
+                story.getTitle(),
+                resolveAuthorName(story),
+                resolveGenre(story),
+                resolveRatingAgeClassification(story),
+                story.getApprovalUpdatedAt() != null ? story.getApprovalUpdatedAt() : story.getCreatedAt(),
+                null,
+                null,
+                null,
+                null,
+                approvalStatus
+        );
+    }
+
+    private AdminPendingContentResponse toChapterPendingResponse(ChapterEntity chapter) {
+        return toPendingChapterResponse(chapter, null);
     }
 
     @Transactional
@@ -884,6 +878,8 @@ public class StoryService {
         requireModerator(currentUser);
         StoryEntity story = requireStoryById(storyId);
         story.setStatus(StoryStatus.archived);
+        story.setApprovalStatus(StoryApprovalStatus.rejected);
+        story.setApprovalUpdatedAt(LocalDateTime.now());
         storyRepository.save(story);
         saveModerationAction(currentUser, "reject", ModerationActionEntity.ModerationTargetKind.story, storyId, note);
     }

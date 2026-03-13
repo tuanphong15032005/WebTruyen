@@ -82,13 +82,13 @@
   color: #b91c1c;
 }
 
-.admin-moderation__tabs {
-  margin-top: 16px;
+.admin-moderation__type-tabs {
+  margin-top: 12px;
   display: flex;
   gap: 8px;
 }
 
-.admin-moderation__tabs button {
+.admin-moderation__type-tabs button {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #fff;
@@ -97,7 +97,28 @@
   cursor: pointer;
 }
 
-.admin-moderation__tabs button.active {
+.admin-moderation__type-tabs button.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+.admin-moderation__status-tabs {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-moderation__status-tabs button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.admin-moderation__status-tabs button.active {
   background: #0ea5e9;
   border-color: #0ea5e9;
   color: #fff;
