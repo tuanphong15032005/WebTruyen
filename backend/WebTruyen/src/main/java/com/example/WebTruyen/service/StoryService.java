@@ -103,13 +103,21 @@ public class StoryService {
         UserEntity originalAuthorUser = kind == StoryKind.translated
                 ? resolveOriginalAuthorUser(req.originalAuthorUserId())
                 : null;
+        StoryStatus requestedStatus = resolveStatus(req);
+
+        if (requestedStatus == StoryStatus.published) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Truyện phải được duyệt trước khi công khai"
+            );
+        }
 
         StoryEntity story = StoryEntity.builder()
                 .author(currentUser)
                 .title(req.title().trim())
                 .summary(req.summaryHtml())
                 .coverUrl(coverUrl)
-                .status(resolveStatus(req))
+                .status(requestedStatus)
                 .kind(kind)
                 .originalAuthorName(originalAuthorName)
                 .completionStatus(completionStatus)
@@ -420,7 +428,7 @@ public class StoryService {
                 && effectiveApprovalStatus != StoryApprovalStatus.approved) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Story must be approved before publishing"
+                    "Truyện phải được duyệt trước khi công khai"
             );
         }
 
@@ -864,6 +872,8 @@ public class StoryService {
     public void approveStoryModeration(UserEntity currentUser, Long storyId) {
         requireModerator(currentUser);
         StoryEntity story = requireStoryById(storyId);
+        story.setApprovalStatus(StoryApprovalStatus.approved);
+        story.setApprovalUpdatedAt(LocalDateTime.now());
         story.setStatus(StoryStatus.published);
         storyRepository.save(story);
         saveModerationAction(currentUser, "approve", ModerationActionEntity.ModerationTargetKind.story, storyId, null);
