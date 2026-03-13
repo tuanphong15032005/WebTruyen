@@ -9,7 +9,7 @@ function ContentModeration() {
   const [busyKey, setBusyKey] = useState('');
   const [activeStatus, setActiveStatus] = useState('pending');
   const [demoItem, setDemoItem] = useState(null);
-  const [demoChapterContent, setDemoChapterContent] = useState(null);
+  const [demoContent, setDemoContent] = useState(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState('');
   const [noteModal, setNoteModal] = useState({
@@ -48,7 +48,7 @@ function ContentModeration() {
     setError('');
     try {
       const data = await storyService.getPendingModerationContent();
-      setItems(Array.isArray(data) ? data.filter((i) => i.contentType === 'chapter') : []);
+      setItems(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || 'Không thể tải nội dung chờ duyệt');
     } finally {
@@ -86,7 +86,13 @@ function ContentModeration() {
     setError('');
 
     try {
-      if (action === 'approve') {
+      if (item.contentType === 'story') {
+        if (action === 'approve') {
+          await storyService.approveModerationStory(item.contentId);
+        } else {
+          await storyService.rejectModerationStory(item.contentId, note);
+        }
+      } else if (action === 'approve') {
         await storyService.approveModerationChapter(item.contentId);
       } else {
         await storyService.rejectModerationChapter(item.contentId, note);
@@ -136,24 +142,33 @@ function ContentModeration() {
 
   const closeDemoModal = () => {
     setDemoItem(null);
-    setDemoChapterContent(null);
+    setDemoContent(null);
     setDemoLoading(false);
     setDemoError('');
   };
 
   const noteActionLabel = 'Từ chối';
 
+  const contentTypeLabel = (contentType) => {
+    if (contentType === 'story') return 'Truyện';
+    if (contentType === 'chapter') return 'Chương';
+    return contentType || 'Nội dung';
+  };
+
   const handleViewDemo = async (item) => {
     setDemoItem(item);
-    setDemoChapterContent(null);
+    setDemoContent(null);
     setDemoLoading(true);
     setDemoError('');
 
-    const storyId = item.storyId;
-    const chapterId = item.contentId;
     try {
-      const content = await storyService.getChapterContent(storyId, chapterId);
-      setDemoChapterContent(content || null);
+      if (item.contentType === 'story') {
+        const story = await storyService.getStory(item.storyId);
+        setDemoContent(story || null);
+      } else {
+        const content = await storyService.getChapterContent(item.storyId, item.contentId);
+        setDemoContent(content || null);
+      }
     } catch (err) {
       setDemoError(err.message || 'Không thể tải nội dung chương');
     } finally {
@@ -225,11 +240,11 @@ function ContentModeration() {
         <table>
           <thead>
             <tr>
+              <th>Loại</th>
               <th>Tên truyện</th>
               <th>Tác giả</th>
               <th>Thể loại</th>
-              <th>Phân loại độ tuổi</th>
-              <th>Ngày gửi</th>
+              <th>Xử lý</th>
               <th>Trạng thái</th>
               {showActions && <th>Thao tác</th>}
             </tr>
@@ -252,16 +267,16 @@ function ContentModeration() {
                 const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
                 const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');
                 const isBusy = busyKey === approveKey || busyKey === rejectKey;
-                const canModerate = item.moderationStatus === 'pending';
+                const canModerate = displayStatus(item) === 'pending';
                 return (
                   <tr key={`${item.contentType}-${item.contentId}`}>
+                    <td>{contentTypeLabel(item.contentType)}</td>
                     <td>{item.storyTitle}</td>
                     <td>{item.authorName}</td>
                     <td>{item.genre}</td>
-                    <td>{item.ratingAgeClassification}</td>
                     <td>
-                      {item.submissionDate
-                        ? new Date(item.submissionDate).toLocaleString('vi-VN')
+                      {item.moderationProcessedAt
+                        ? new Date(item.moderationProcessedAt).toLocaleString('vi-VN')
                         : '—'}
                     </td>
                     <td>
@@ -308,7 +323,7 @@ function ContentModeration() {
         <div className='admin-moderation__modal-backdrop' onClick={closeDemoModal}>
           <div className='admin-moderation__modal' onClick={(event) => event.stopPropagation()}>
             <div className='admin-moderation__modal-head'>
-              <h2>Xem nội dung chương</h2>
+              <h2>{demoItem.contentType === 'story' ? 'Xem nội dung truyện' : 'Xem nội dung chương'}</h2>
               <button type='button' onClick={closeDemoModal} aria-label='Đóng popup demo'>
                 x
               </button>
@@ -326,7 +341,11 @@ function ContentModeration() {
 
             {!demoLoading && !demoError && (
               <div className='admin-moderation__modal-content'>
-                <h3>{demoChapterContent?.title || `Chương #${demoItem.contentId}`}</h3>
+                <h3>
+                  {demoItem.contentType === 'story'
+                    ? demoContent?.title || demoItem.storyTitle || `Truyện #${demoItem.contentId}`
+                    : demoContent?.title || `Chương #${demoItem.contentId}`}
+                </h3>
                 <p className='admin-moderation__modal-meta'>
                   Truyện: {demoItem.storyTitle || '—'}
                 </p>
@@ -334,10 +353,19 @@ function ContentModeration() {
                   Tác giả: {demoItem.authorName || 'Không có'}
                 </p>
                 <div className='admin-moderation__modal-summary admin-moderation__modal-chapter-body'>
-                  {demoChapterContent?.fullHtml ? (
+                  {demoItem.contentType === 'story' ? (
+                    demoContent?.summaryHtml ? (
+                      <div
+                        className='admin-moderation__chapter-content'
+                        dangerouslySetInnerHTML={{ __html: demoContent.summaryHtml }}
+                      />
+                    ) : (
+                      <p>Truyện chưa có phần giới thiệu.</p>
+                    )
+                  ) : demoContent?.fullHtml ? (
                     <div
                       className='admin-moderation__chapter-content'
-                      dangerouslySetInnerHTML={{ __html: demoChapterContent.fullHtml }}
+                      dangerouslySetInnerHTML={{ __html: demoContent.fullHtml }}
                     />
                   ) : (
                     <p>Chương chưa có nội dung.</p>
