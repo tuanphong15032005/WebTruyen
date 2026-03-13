@@ -86,6 +86,41 @@ function ViolationReportManagement() {
 
   const showRestoreColumn = statusFilter === 'RESOLVED';
 
+  const targetLabel = (item) => {
+    if (!item) return '—';
+    const targetId = item.targetId != null ? item.targetId : '—';
+    const storyTitle = item.storyTitle || null;
+    const chapterTitle = item.chapterTitle || null;
+
+    if (item.reportedContent === 'STORY') {
+      return storyTitle ? `Truyện: ${storyTitle}` : `Truyện #${targetId}`;
+    }
+    if (item.reportedContent === 'CHAPTER') {
+      const chapterPart = chapterTitle ? `Chương: ${chapterTitle}` : `Chương #${targetId}`;
+      if (storyTitle) {
+        return `${chapterPart} (Truyện: ${storyTitle})`;
+      }
+      return chapterPart;
+    }
+    if (item.reportedContent === 'COMMENT') {
+      const commentPart = `Bình luận #${targetId}`;
+      if (chapterTitle && storyTitle) {
+        return `${commentPart} (Chương: ${chapterTitle} - Truyện: ${storyTitle})`;
+      }
+      if (storyTitle) {
+        return `${commentPart} (Truyện: ${storyTitle})`;
+      }
+      if (chapterTitle) {
+        return `${commentPart} (Chương: ${chapterTitle})`;
+      }
+      return commentPart;
+    }
+    if (storyTitle) {
+      return `Nội dung #${targetId} (Truyện: ${storyTitle})`;
+    }
+    return `Nội dung #${targetId}`;
+  };
+
   const awaitingCount = useMemo(
     () => items.filter((item) => REVIEWABLE_STATUSES.includes(item.reportStatus)).length,
     [items]
@@ -166,39 +201,40 @@ function ViolationReportManagement() {
         <p>Xử lý các báo cáo về thư rác, vi phạm bản quyền và nội dung không phù hợp do người dùng gửi.</p>
       </header>
 
-      <div className='admin-reports__toolbar'>
-        <div className='admin-reports__stats'>
-          <span className='admin-reports__badge admin-reports__badge--awaiting'>
-            Chờ xử lý: {awaitingCount}
-          </span>
-          <span className='admin-reports__badge admin-reports__badge--resolved'>
-            Đã xử lý: {resolvedCount}
-          </span>
-          <span className='admin-reports__badge admin-reports__badge--dismissed'>
-            Đã bác bỏ: {dismissedCount}
-          </span>
+      <div className='admin-reports__card'>
+        <div className='admin-reports__toolbar'>
+          <div className='admin-reports__stats'>
+            <span className='admin-reports__badge admin-reports__badge--awaiting'>
+              Chờ xử lý: {awaitingCount}
+            </span>
+            <span className='admin-reports__badge admin-reports__badge--resolved'>
+              Đã xử lý: {resolvedCount}
+            </span>
+            <span className='admin-reports__badge admin-reports__badge--dismissed'>
+              Đã bác bỏ: {dismissedCount}
+            </span>
+          </div>
+          <button type='button' className='admin-reports__refresh' onClick={loadReports} disabled={loading}>
+            Tải lại
+          </button>
         </div>
-        <button type='button' className='admin-reports__refresh' onClick={loadReports} disabled={loading}>
-          Tải lại
-        </button>
-      </div>
 
-      <div className='admin-reports__type-tabs'>
-        <button type='button' className={typeFilter === 'ALL' ? 'active' : ''} onClick={() => setTypeFilter('ALL')}>
-          Tất cả
-        </button>
-        <button type='button' className={typeFilter === 'STORY' ? 'active' : ''} onClick={() => setTypeFilter('STORY')}>
-          Báo cáo Truyện
-        </button>
-        <button type='button' className={typeFilter === 'CHAPTER' ? 'active' : ''} onClick={() => setTypeFilter('CHAPTER')}>
-          Báo cáo Chương
-        </button>
-        <button type='button' className={typeFilter === 'COMMENT' ? 'active' : ''} onClick={() => setTypeFilter('COMMENT')}>
-          Báo cáo Bình luận
-        </button>
-      </div>
+        <div className='admin-reports__type-tabs'>
+          <button type='button' className={typeFilter === 'ALL' ? 'active' : ''} onClick={() => setTypeFilter('ALL')}>
+            Tất cả
+          </button>
+          <button type='button' className={typeFilter === 'STORY' ? 'active' : ''} onClick={() => setTypeFilter('STORY')}>
+            Báo cáo Truyện
+          </button>
+          <button type='button' className={typeFilter === 'CHAPTER' ? 'active' : ''} onClick={() => setTypeFilter('CHAPTER')}>
+            Báo cáo Chương
+          </button>
+          <button type='button' className={typeFilter === 'COMMENT' ? 'active' : ''} onClick={() => setTypeFilter('COMMENT')}>
+            Báo cáo Bình luận
+          </button>
+        </div>
 
-      <div className='admin-reports__filters'>
+        <div className='admin-reports__filters'>
           <button type='button' className={statusFilter === 'REVIEWABLE' ? 'active' : ''} onClick={() => setStatusFilter('REVIEWABLE')}>
             Chờ xem xét
           </button>
@@ -208,16 +244,19 @@ function ViolationReportManagement() {
           <button type='button' className={statusFilter === 'REJECTED' ? 'active' : ''} onClick={() => setStatusFilter('REJECTED')}>
             Đã bác bỏ
           </button>
+        </div>
       </div>
 
       {error && <div className='admin-reports__error'>{error}</div>}
 
-      <div className='admin-reports__grid'>
+      <div className='admin-reports__card admin-reports__card--table'>
+        <div className='admin-reports__grid'>
         <table>
           <thead>
-            <tr>
+          <tr>
               <th>Loại vi phạm</th>
               <th>Loại nội dung</th>
+              <th>Đối tượng</th>
               <th>Người báo cáo</th>
               <th>Chi tiết</th>
               <th>Trạng thái</th>
@@ -243,6 +282,7 @@ function ViolationReportManagement() {
                   <tr key={item.reportId}>
                     <td>{item.violationType}</td>
                     <td>{targetKindLabel[item.reportedContent] || item.reportedContent}</td>
+                    <td>{targetLabel(item)}</td>
                     <td>{item.reportedBy}</td>
                     <td>{item.reportDetails || '—'}</td>
                     <td>
@@ -294,6 +334,7 @@ function ViolationReportManagement() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
       {warnBanModal.open && (
         <div className='admin-reports__warn-ban-backdrop' onClick={closeWarnBanModal}>

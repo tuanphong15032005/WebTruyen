@@ -62,16 +62,21 @@ public class ReportModerationService {
         requireModerator(currentUser);
         ReportEntity report = requireReport(reportId);
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.story && report.getStory() != null) {
+            String violationType = normalizeViolationType(report.getReason());
+            boolean severe = "COPYRIGHT".equals(violationType);
             StoryEntity story = report.getStory();
-            story.setStatus(StoryStatus.archived);
+            story.setStatus(severe ? StoryStatus.archived : StoryStatus.draft);
             story.setApprovalStatus(null);
+            story.setApprovalUpdatedAt(LocalDateTime.now());
             storyRepository.save(story);
             resolveReport(report, currentUser, "HIDE_STORY");
             return;
         }
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.chapter && report.getChapter() != null) {
+            String violationType = normalizeViolationType(report.getReason());
+            boolean severe = "COPYRIGHT".equals(violationType);
             ChapterEntity chapter = report.getChapter();
-            chapter.setStatus(ChapterStatus.archived);
+            chapter.setStatus(severe ? ChapterStatus.archived : ChapterStatus.draft);
             chapter.setApprovalStatus(null);
             chapter.setLastUpdateAt(LocalDateTime.now());
             chapterRepository.save(chapter);
@@ -191,6 +196,9 @@ public class ReportModerationService {
         String reportDetails = (report.getDetails() == null || report.getDetails().isBlank())
                 ? report.getReason()
                 : report.getDetails();
+        Long storyId = resolveStoryIdForTarget(report);
+        String storyTitle = resolveStoryTitleForTarget(report);
+        String chapterTitle = resolveChapterTitleForTarget(report);
 
         return new AdminViolationReportResponse(
                 report.getId(),
@@ -202,6 +210,9 @@ public class ReportModerationService {
                 resolveActionResult(report),
                 report.getAction(),
                 targetId,
+                storyId,
+                storyTitle,
+                chapterTitle,
                 report.getCreatedAt()
         );
     }
@@ -215,6 +226,65 @@ public class ReportModerationService {
         }
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.comment && report.getComment() != null) {
             return report.getComment().getId();
+        }
+        return null;
+    }
+
+    private Long resolveStoryIdForTarget(ReportEntity report) {
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.story && report.getStory() != null) {
+            return report.getStory().getId();
+        }
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.chapter && report.getChapter() != null) {
+            StoryEntity story = report.getChapter().getVolume() != null
+                    ? report.getChapter().getVolume().getStory()
+                    : null;
+            return story != null ? story.getId() : null;
+        }
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.comment && report.getComment() != null) {
+            CommentEntity comment = report.getComment();
+            if (comment.getStory() != null) {
+                return comment.getStory().getId();
+            }
+            if (comment.getChapter() != null && comment.getChapter().getVolume() != null) {
+                StoryEntity story = comment.getChapter().getVolume().getStory();
+                return story != null ? story.getId() : null;
+            }
+        }
+        return null;
+    }
+
+    private String resolveStoryTitleForTarget(ReportEntity report) {
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.story && report.getStory() != null) {
+            return report.getStory().getTitle();
+        }
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.chapter && report.getChapter() != null) {
+            StoryEntity story = report.getChapter().getVolume() != null
+                    ? report.getChapter().getVolume().getStory()
+                    : null;
+            return story != null ? story.getTitle() : null;
+        }
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.comment && report.getComment() != null) {
+            CommentEntity comment = report.getComment();
+            if (comment.getStory() != null) {
+                return comment.getStory().getTitle();
+            }
+            if (comment.getChapter() != null && comment.getChapter().getVolume() != null) {
+                StoryEntity story = comment.getChapter().getVolume().getStory();
+                return story != null ? story.getTitle() : null;
+            }
+        }
+        return null;
+    }
+
+    private String resolveChapterTitleForTarget(ReportEntity report) {
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.chapter && report.getChapter() != null) {
+            return report.getChapter().getTitle();
+        }
+        if (report.getTargetKind() == ReportEntity.ReportTargetKind.comment && report.getComment() != null) {
+            CommentEntity comment = report.getComment();
+            if (comment.getChapter() != null) {
+                return comment.getChapter().getTitle();
+            }
         }
         return null;
     }

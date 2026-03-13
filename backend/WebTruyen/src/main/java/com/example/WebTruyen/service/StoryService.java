@@ -1,14 +1,30 @@
 package com.example.WebTruyen.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
+
+import org.jsoup.Jsoup;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
-//<<<<<<< HEAD
+import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
+import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StorySidebarItemResponse;
 import com.example.WebTruyen.dto.response.StorySidebarResponse;
-//=======
-import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
-//>>>>>>> origin/minhfinal1
-import com.example.WebTruyen.dto.response.StoryResumePointResponse;
-import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
@@ -17,10 +33,7 @@ import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.keys.StoryTagId;
-//<<<<<<< HEAD
-//=======
 import com.example.WebTruyen.entity.model.CommentAndMod.ModerationActionEntity;
-//>>>>>>> origin/minhfinal1
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
@@ -31,42 +44,17 @@ import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
-//<<<<<<< HEAD
 import com.example.WebTruyen.repository.LibraryEntryRepository;
-//=======
 import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
-//>>>>>>> origin/minhfinal1
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
 import com.example.WebTruyen.repository.TagRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.UserRoleRepository;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.jsoup.Jsoup;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-//<<<<<<< HEAD
-import java.util.Collections;
-//=======
-import java.util.Arrays;
-//>>>>>>> origin/minhfinal1
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Comparator;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -1074,9 +1062,9 @@ public class StoryService {
         if (penName != null && !penName.isBlank()) {
             return penName;
         }
-        String username = story.getAuthor().getUsername();
-        if (username != null && !username.isBlank()) {
-            return username;
+        String displayName = story.getAuthor().getDisplayName();
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
         }
         return "Unknown";
     }

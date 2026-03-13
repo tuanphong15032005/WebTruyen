@@ -140,6 +140,13 @@
   padding: calc(var(--site-header-height, 72px) + 20px) 0 20px;
 }
 
+.main-content--admin {
+  padding: var(--site-header-height, 72px) 0 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .nav-link {
   margin: 0 15px;
 

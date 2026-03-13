@@ -2,16 +2,40 @@
   padding: 24px;
   max-width: 1280px;
   margin: 0 auto;
+  background: #f1f5f9;
+  min-height: 100%;
+  border-radius: 12px;
+}
+
+.admin-reports__header {
+  margin-bottom: 20px;
 }
 
 .admin-reports__header h1 {
   margin: 0;
   color: #1f2937;
+  font-size: 24px;
+  font-weight: 700;
 }
 
 .admin-reports__header p {
   margin-top: 8px;
   color: #4b5563;
+  font-size: 14px;
+}
+
+.admin-reports__card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.admin-reports__card--table {
+  padding: 0;
+  overflow: hidden;
 }
 
 .admin-reports__toolbar {

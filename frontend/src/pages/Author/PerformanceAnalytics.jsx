@@ -37,10 +37,13 @@ function SimpleBarChart({ title, data, colorClass }) {
 
 function PerformanceAnalytics() {
   const [storyOptions, setStoryOptions] = useState([]);
-  const [selectedStoryId, setSelectedStoryId] = useState('');
+  const [selectedStoryId, setSelectedStoryId] = useState('ALL');
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [overall, setOverall] = useState(null);
+  const [overallLoading, setOverallLoading] = useState(true);
+  const [overallError, setOverallError] = useState('');
   const [error, setError] = useState('');
 
   const loadStoryOptions = async () => {
@@ -50,17 +53,24 @@ function PerformanceAnalytics() {
       const stories = await authorAnalyticsService.getAuthorStories();
       const list = Array.isArray(stories) ? stories : [];
       setStoryOptions(list);
-      if (list.length > 0) {
-        const firstId = String(list[0].id);
-        setSelectedStoryId(firstId);
-        await loadStoryPerformance(firstId);
-      } else {
-        setAnalytics(null);
-      }
+      setAnalytics(null);
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách truyện');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOverallPerformance = async () => {
+    setOverallLoading(true);
+    setOverallError('');
+    try {
+      const data = await authorAnalyticsService.getOverallPerformance();
+      setOverall(data);
+    } catch (err) {
+      setOverallError(err.message || 'Không thể tải tổng hiệu suất truyện');
+    } finally {
+      setOverallLoading(false);
     }
   };
 
@@ -83,11 +93,16 @@ function PerformanceAnalytics() {
 
   useEffect(() => {
     loadStoryOptions();
+    loadOverallPerformance();
   }, []);
 
   const handleChangeStory = async (event) => {
     const storyId = event.target.value;
     setSelectedStoryId(storyId);
+    if (storyId === 'ALL') {
+      setAnalytics(null);
+      return;
+    }
     await loadStoryPerformance(storyId);
   };
 
@@ -104,10 +119,13 @@ function PerformanceAnalytics() {
           id='storySelector'
           value={selectedStoryId}
           onChange={handleChangeStory}
-          disabled={loading || storyOptions.length === 0}
+          disabled={loading}
         >
+          <option value='ALL'>Tất cả truyện</option>
           {storyOptions.length === 0 ? (
-            <option value=''>Chưa có truyện</option>
+            <option value='' disabled>
+              Chưa có truyện
+            </option>
           ) : (
             storyOptions.map((story) => (
               <option key={story.id} value={story.id}>
@@ -120,7 +138,37 @@ function PerformanceAnalytics() {
 
       {error && <div className='author-analytics__error'>{error}</div>}
 
-      {!analytics || loadingDetail ? (
+      {selectedStoryId === 'ALL' ? (
+        <section className='author-analytics__overall'>
+          <h2>Tổng tất cả truyện</h2>
+          {overallLoading ? (
+            <div className='author-analytics__placeholder'>Đang tải tổng hiệu suất...</div>
+          ) : overallError ? (
+            <div className='author-analytics__error'>{overallError}</div>
+          ) : overall ? (
+            <div className='author-analytics__kpi-grid author-analytics__kpi-grid--overall'>
+              <article className='author-analytics__kpi'>
+                <span>Tổng số truyện</span>
+                <strong>{overall.storyCount ?? 0}</strong>
+              </article>
+              <article className='author-analytics__kpi'>
+                <span>Tổng lượt xem</span>
+                <strong>{overall.totalViews ?? 0}</strong>
+              </article>
+              <article className='author-analytics__kpi'>
+                <span>Tổng Coin đạt được</span>
+                <strong>{overall.totalCoinEarned ?? 0}</strong>
+              </article>
+              <article className='author-analytics__kpi'>
+                <span>Tổng follower</span>
+                <strong>{overall.totalFollowers ?? 0}</strong>
+              </article>
+            </div>
+          ) : (
+            <div className='author-analytics__placeholder'>Chưa có dữ liệu tổng hiệu suất.</div>
+          )}
+        </section>
+      ) : !analytics || loadingDetail ? (
         <div className='author-analytics__placeholder'>Đang tải dữ liệu thống kê...</div>
       ) : (
         <>

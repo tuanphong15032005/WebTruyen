@@ -7,7 +7,10 @@ function ContentModeration() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyKey, setBusyKey] = useState('');
+  const [activeContentType, setActiveContentType] = useState('all');
   const [activeStatus, setActiveStatus] = useState('pending');
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [demoItem, setDemoItem] = useState(null);
   const [demoContent, setDemoContent] = useState(null);
   const [demoLoading, setDemoLoading] = useState(false);
@@ -38,10 +41,41 @@ function ContentModeration() {
     [items]
   );
   const filteredItems = useMemo(() => {
-    return items.filter((item) => displayStatus(item) === activeStatus);
-  }, [items, activeStatus]);
+    let list = items.filter((item) => displayStatus(item) === activeStatus);
+    if (activeContentType !== 'all') {
+      list = list.filter((item) => item.contentType === activeContentType);
+    }
+    return list;
+  }, [items, activeStatus, activeContentType]);
 
-  const showActions = activeStatus === 'pending';
+  const sortedItems = useMemo(() => {
+    if (!sortBy) return filteredItems;
+    const list = [...filteredItems];
+    const mult = sortOrder === 'asc' ? 1 : -1;
+    list.sort((a, b) => {
+      if (sortBy === 'type') {
+        const va = (a.contentType || '').toLowerCase();
+        const vb = (b.contentType || '').toLowerCase();
+        return mult * (va < vb ? -1 : va > vb ? 1 : 0);
+      }
+      if (sortBy === 'author') {
+        const va = (a.authorName || '').toLowerCase();
+        const vb = (b.authorName || '').toLowerCase();
+        return mult * va.localeCompare(vb);
+      }
+      return 0;
+    });
+    return list;
+  }, [filteredItems, sortBy, sortOrder]);
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   const loadModerationContent = async () => {
     setLoading(true);
@@ -99,6 +133,8 @@ function ContentModeration() {
       }
 
       await loadModerationContent();
+      closeDemoModal();
+      closeNoteModal();
     } catch (err) {
       setError(err.message || 'Thao tác kiểm duyệt thất bại');
     } finally {
@@ -130,7 +166,6 @@ function ContentModeration() {
   const handleSubmitNote = async () => {
     if (!noteModal.item || !noteModal.action) return;
     await executeAction(noteModal.item, noteModal.action, noteModal.note.trim());
-    closeNoteModal();
   };
 
   const statusLabel = (status) => {
@@ -185,32 +220,48 @@ function ContentModeration() {
         </p>
       </header>
 
-      <div className='admin-moderation__toolbar'>
-        <div className='admin-moderation__stats'>
-          <span className='admin-moderation__badge'>
-            Chờ duyệt: {pendingCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--approved'>
-            Đã duyệt: {approvedCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--rejected'>
-            Từ chối: {rejectedCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--processed'>
-            Đã xử lý: {processedCount}
-          </span>
+      <div className='admin-moderation__card admin-moderation__controls-card'>
+        <div className='admin-moderation__toolbar'>
+          <div className='admin-moderation__stats'>
+            <span className='admin-moderation__badge'>
+              Chờ duyệt: {pendingCount}
+            </span>
+            <span className='admin-moderation__badge admin-moderation__badge--approved'>
+              Đã duyệt: {approvedCount}
+            </span>
+            <span className='admin-moderation__badge admin-moderation__badge--rejected'>
+              Từ chối: {rejectedCount}
+            </span>
+            <span className='admin-moderation__badge admin-moderation__badge--processed'>
+              Đã xử lý: {processedCount}
+            </span>
+          </div>
+          <button
+            type='button'
+            className='admin-moderation__refresh'
+            onClick={loadModerationContent}
+            disabled={loading}
+          >
+            Tải lại
+          </button>
         </div>
-        <button
-          type='button'
-          className='admin-moderation__refresh'
-          onClick={loadModerationContent}
-          disabled={loading}
-        >
-          Tải lại
-        </button>
-      </div>
 
-      <div className='admin-moderation__tabs'>
+        <div className='admin-moderation__filters'>
+          <label className='admin-moderation__filter-label'>
+            Loại:
+            <select
+              className='admin-moderation__select'
+              value={activeContentType}
+              onChange={(e) => setActiveContentType(e.target.value)}
+            >
+              <option value='all'>Tất cả</option>
+              <option value='story'>Truyện</option>
+              <option value='chapter'>Chương</option>
+            </select>
+          </label>
+        </div>
+
+        <div className='admin-moderation__tabs'>
         <button
           type='button'
           className={activeStatus === 'pending' ? 'active' : ''}
@@ -233,41 +284,46 @@ function ContentModeration() {
           Từ chối
         </button>
       </div>
+      </div>
 
       {error && <div className='admin-moderation__error'>{error}</div>}
 
-      <div className='admin-moderation__grid'>
+      <div className='admin-moderation__card admin-moderation__card--table'>
+        <div className='admin-moderation__grid'>
         <table>
           <thead>
             <tr>
-              <th>Loại</th>
+              <th className='admin-moderation__th--sortable' onClick={() => handleSort('type')}>
+                Loại {sortBy === 'type' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
               <th>Tên truyện</th>
-              <th>Tác giả</th>
+              <th className='admin-moderation__th--sortable' onClick={() => handleSort('author')}>
+                Tác giả {sortBy === 'author' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
               <th>Thể loại</th>
               <th>Xử lý</th>
               <th>Trạng thái</th>
-              {showActions && <th>Thao tác</th>}
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={showActions ? 7 : 6} className='admin-moderation__empty'>
+                <td colSpan={7} className='admin-moderation__empty'>
                   Đang tải hàng chờ kiểm duyệt...
                 </td>
               </tr>
-            ) : filteredItems.length === 0 ? (
+            ) : sortedItems.length === 0 ? (
               <tr>
-                <td colSpan={showActions ? 7 : 6} className='admin-moderation__empty'>
+                <td colSpan={7} className='admin-moderation__empty'>
                   Không có bản ghi ở trạng thái này
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => {
+              sortedItems.map((item) => {
                 const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
                 const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');
                 const isBusy = busyKey === approveKey || busyKey === rejectKey;
-                const canModerate = displayStatus(item) === 'pending';
                 return (
                   <tr key={`${item.contentType}-${item.contentId}`}>
                     <td>{contentTypeLabel(item.contentType)}</td>
@@ -284,40 +340,23 @@ function ContentModeration() {
                         {statusLabel(displayStatus(item))}
                       </span>
                     </td>
-                    {showActions && (
-                      <td className='admin-moderation__actions'>
-                        <button
-                          type='button'
-                          className='demo'
-                          disabled={isBusy}
-                          onClick={() => handleViewDemo(item)}
-                        >
-                          Xem demo
-                        </button>
-                        <button
-                          type='button'
-                          className='approve'
-                          disabled={isBusy || !canModerate}
-                          onClick={() => handleAction(item, 'approve')}
-                        >
-                          Duyệt
-                        </button>
-                        <button
-                          type='button'
-                          className='reject'
-                          disabled={isBusy || !canModerate}
-                          onClick={() => handleAction(item, 'reject')}
-                        >
-                          Từ chối
-                        </button>
-                      </td>
-                    )}
+                    <td className='admin-moderation__actions'>
+                      <button
+                        type='button'
+                        className='demo'
+                        disabled={isBusy}
+                        onClick={() => handleViewDemo(item)}
+                      >
+                        Xem demo
+                      </button>
+                    </td>
                   </tr>
                 );
               })
             )}
           </tbody>
         </table>
+      </div>
       </div>
       {demoItem && (
         <div className='admin-moderation__modal-backdrop' onClick={closeDemoModal}>
@@ -341,9 +380,17 @@ function ContentModeration() {
 
             {!demoLoading && !demoError && (
               <div className='admin-moderation__modal-content'>
+                {demoItem.contentType === 'story' && demoContent?.coverUrl && (
+                  <div className='admin-moderation__modal-cover'>
+                    <img
+                      src={demoContent.coverUrl}
+                      alt={`Bìa: ${demoContent?.title || demoItem.storyTitle || 'Truyện'}`}
+                    />
+                  </div>
+                )}
                 <h3>
                   {demoItem.contentType === 'story'
-                    ? demoContent?.title || demoItem.storyTitle || `Truyện #${demoItem.contentId}`
+                    ? demoContent?.title || demoContent?.data?.title || demoItem.storyTitle || `Truyện #${demoItem.contentId}`
                     : demoContent?.title || `Chương #${demoItem.contentId}`}
                 </h3>
                 <p className='admin-moderation__modal-meta'>
@@ -371,6 +418,26 @@ function ContentModeration() {
                     <p>Chương chưa có nội dung.</p>
                   )}
                 </div>
+              </div>
+            )}
+            {displayStatus(demoItem) === 'pending' && !demoLoading && (
+              <div className='admin-moderation__modal-actions'>
+                <button
+                  type='button'
+                  className='admin-moderation__modal-btn approve'
+                  disabled={busyKey === buildActionKey(demoItem.contentType, demoItem.contentId, 'approve')}
+                  onClick={() => handleAction(demoItem, 'approve')}
+                >
+                  Duyệt
+                </button>
+                <button
+                  type='button'
+                  className='admin-moderation__modal-btn reject'
+                  disabled={busyKey === buildActionKey(demoItem.contentType, demoItem.contentId, 'reject')}
+                  onClick={() => openNoteModal(demoItem, 'reject')}
+                >
+                  Từ chối
+                </button>
               </div>
             )}
           </div>
