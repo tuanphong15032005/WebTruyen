@@ -1,6 +1,16 @@
 ﻿import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Bookmark, Eye, Gem, Search, Star } from 'lucide-react';
+
+import {
+  BookOpen,
+  Bookmark,
+  Eye,
+  Gem,
+  Search,
+  Star,
+  Trophy,
+} from 'lucide-react';
+
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import storyService from '../services/storyService';
@@ -367,6 +377,7 @@ function Header() {
               {showDropdown && (
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
+                  <Link to='/achievements'>Thành tích</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
 
                   {hasAnyRole(['AUTHOR'], user) && (

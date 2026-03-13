@@ -29,6 +29,7 @@ import com.example.WebTruyen.service.SimpleDailyTaskService;
 import com.example.WebTruyen.service.StoryReviewService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
+import com.example.WebTruyen.service.TieredAchievementIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -54,10 +55,14 @@ public class StoryController {
     private final StoryService storyService;
     private final VolumeService volumeService;
     private final ChapterService chapterService;
-    private final StoryReviewService storyReviewService;
     private final CommentService commentService;
+    private final StoryReviewService storyReviewService;
     private final SimpleDailyTaskService simpleDailyTaskService;
+
+    private final TieredAchievementIntegrationService achievementIntegrationService;
+
     private final JwtTokenProvider jwtTokenProvider;
+
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
@@ -88,7 +93,9 @@ public class StoryController {
     ) throws Exception {
         CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
         UserEntity currentUser = requireUser(userPrincipal);
-        return storyService.createStory(currentUser, data, cover);
+        StoryResponse response = storyService.createStory(currentUser, data, cover);
+        
+        return response;
     }
 
     // Lấy thông tin chi tiết truyện theo id
@@ -294,12 +301,20 @@ public class StoryController {
         
         // Track comment for daily task
         try {
-            log.info("Tracking comment for daily task - user: {}, story: {}", currentUser.getId(), storyId);
             simpleDailyTaskService.updateTaskProgress(currentUser.getId(), "MAKE_COMMENTS", null);
             log.info("Successfully tracked comment for daily task");
         } catch (Exception e) {
             // Don't fail the comment creation if daily task tracking fails
             log.warn("Failed to track comment for daily task - user: {}, story: {}", currentUser.getId(), storyId, e);
+        }
+        
+        // Trigger achievement event for comment creation
+        try {
+
+            achievementIntegrationService.onCommentCreated(currentUser.getId());
+            log.info("Achievement event triggered successfully for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("Failed to trigger achievement event for user {}: {}", currentUser.getId(), e.getMessage(), e);
         }
         
         return response;
@@ -368,6 +383,15 @@ public class StoryController {
         } catch (Exception e) {
             // Don't fail the comment creation if daily task tracking fails
             log.warn("Failed to track chapter comment for daily task - user: {}, story: {}, chapter: {}", currentUser.getId(), storyId, chapterId, e);
+        }
+        
+        // Trigger achievement event for comment creation
+        try {
+            log.info("DEBUG: About to trigger achievement event for user: {}", currentUser.getId());
+            achievementIntegrationService.onCommentCreated(currentUser.getId());
+            log.info("DEBUG: Achievement event triggered successfully for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("DEBUG: Failed to trigger achievement event for user {}: {}", currentUser.getId(), e.getMessage(), e);
         }
         
         return response;
@@ -544,7 +568,24 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return chapterService.createChapterFromHtml( currentUser,  storyId,  volumeId, req);
+        CreateChapterResponse response = chapterService.createChapterFromHtml(currentUser, storyId, volumeId, req);
+        
+        // Trigger achievement event only for published chapters
+        try {
+            // Check if the created chapter is published from request
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                achievementIntegrationService.onChapterCreated(currentUser.getId());
+                log.info("Triggered chapter creation achievement for published chapter - user: {}", currentUser.getId());
+            } else {
+                log.info("Chapter created but not published - no achievement triggered - user: {}, status: {}", 
+                    currentUser.getId(), req != null ? req.getStatus() : "null");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to trigger chapter creation achievement: {}", e.getMessage());
+        }
+        
+        return response;
     }
 
     @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -556,6 +597,26 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
+        
+        // Get current chapter status before update
+        try {
+            // Check if this is a status change to published
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                
+                // Check if chapter was previously not published
+                var currentChapter = chapterService.getChapterById(chapterId);
+                if (currentChapter != null && currentChapter.getStatus() != null && 
+                    !"published".equals(currentChapter.getStatus().toString())) {
+                    
+                    log.info("Chapter status changing to published - triggering achievement for user: {}", currentUser.getId());
+                    achievementIntegrationService.onChapterCreated(currentUser.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to check chapter status for achievement: {}", e.getMessage());
+        }
+        
         return chapterService.updateChapterFromHtml(currentUser, storyId, volumeId, chapterId, req);
     }
     

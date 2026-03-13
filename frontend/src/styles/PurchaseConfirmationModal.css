@@ -45,6 +45,14 @@
   font-weight: 600;
 }
 
+.chapter-title span:last-child {
+  color: #1976d2;
+  font-weight: 700;
+  max-width: 200px;
+  text-align: right;
+  word-wrap: break-word;
+}
+
 .modal-actions {
   display: flex;
   gap: 12px;

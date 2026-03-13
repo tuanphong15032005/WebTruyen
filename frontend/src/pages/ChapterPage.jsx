@@ -1631,12 +1631,15 @@ const ChapterPage = () => {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         response={purchaseResponse}
+        chapterTitle={chapter?.title}
       />
 
       <PurchaseErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errorMessage={purchaseError}
+        chapterPrice={chapter?.priceCoin}
+        currentBalance={wallet?.coinA + wallet?.coinB || 0}
       />
 
       <ScrollTopButton />
