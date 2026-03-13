@@ -10,6 +10,7 @@ import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
 import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.TagDto;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
@@ -823,6 +824,7 @@ public class StoryService {
                         "pending",
                         null,
                         null,
+                        null,
                         null
                 ))
                 .toList();
@@ -889,6 +891,7 @@ public class StoryService {
         ChapterEntity chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
         chapter.setStatus(ChapterStatus.published);
+        chapter.setApprovalStatus(ChapterApprovalStatus.approved);
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
         saveModerationAction(currentUser, "approve", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, null);
@@ -900,6 +903,7 @@ public class StoryService {
         ChapterEntity chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
         chapter.setStatus(ChapterStatus.archived);
+        chapter.setApprovalStatus(ChapterApprovalStatus.rejected);
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
         saveModerationAction(currentUser, "reject", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, note);
@@ -915,6 +919,9 @@ public class StoryService {
 
     private AdminPendingContentResponse toPendingChapterResponse(ChapterEntity chapter, ModerationActionEntity action) {
         StoryEntity story = chapter.getVolume().getStory();
+        String approvalStatus = chapter.getApprovalStatus() != null
+                ? chapter.getApprovalStatus().name().toLowerCase()
+                : "pending";
         return new AdminPendingContentResponse(
                 chapter.getId(),
                 "chapter",
@@ -927,7 +934,8 @@ public class StoryService {
                 action == null ? "pending" : resolveModerationStatus(action.getActionType()),
                 action == null ? null : action.getActionType(),
                 action == null ? null : action.getNotes(),
-                action == null ? null : action.getCreatedAt()
+                action == null ? null : action.getCreatedAt(),
+                approvalStatus
         );
     }
 
@@ -962,7 +970,8 @@ public class StoryService {
                     resolveModerationStatus(action.getActionType()),
                     action.getActionType(),
                     action.getNotes(),
-                    action.getCreatedAt()
+                    action.getCreatedAt(),
+                    null
             );
         }
         if (action.getTargetKind() == ModerationActionEntity.ModerationTargetKind.chapter) {

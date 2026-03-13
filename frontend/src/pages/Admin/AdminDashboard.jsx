@@ -28,10 +28,7 @@ function AdminDashboard() {
           </button>
         </div>
 
-        <div className='admin-dashboard__links'>
-          <Link to='/admin/content-moderation'>Mở trang kiểm duyệt riêng</Link>
-          <Link to='/admin/violation-reports'>Mở trang báo cáo riêng</Link>
-        </div>
+
       </div>
 
       <div className='admin-dashboard__panel'>

@@ -1,7 +1,17 @@
 package com.example.WebTruyen.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.example.WebTruyen.dto.response.AdminViolationReportResponse;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
 import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
@@ -14,15 +24,8 @@ import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.UserRoleRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +64,7 @@ public class ReportModerationService {
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.story && report.getStory() != null) {
             StoryEntity story = report.getStory();
             story.setStatus(StoryStatus.archived);
+            story.setApprovalStatus(null);
             storyRepository.save(story);
             resolveReport(report, currentUser, "HIDE_STORY");
             return;
@@ -68,6 +72,7 @@ public class ReportModerationService {
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.chapter && report.getChapter() != null) {
             ChapterEntity chapter = report.getChapter();
             chapter.setStatus(ChapterStatus.archived);
+            chapter.setApprovalStatus(null);
             chapter.setLastUpdateAt(LocalDateTime.now());
             chapterRepository.save(chapter);
             resolveReport(report, currentUser, "HIDE_CHAPTER");
@@ -90,6 +95,7 @@ public class ReportModerationService {
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.story && report.getStory() != null) {
             StoryEntity story = report.getStory();
             story.setStatus(StoryStatus.archived);
+            story.setApprovalStatus(null);
             storyRepository.save(story);
             resolveReport(report, currentUser, "REMOVE_STORY");
             return;
@@ -97,6 +103,7 @@ public class ReportModerationService {
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.chapter && report.getChapter() != null) {
             ChapterEntity chapter = report.getChapter();
             chapter.setStatus(ChapterStatus.archived);
+            chapter.setApprovalStatus(null);
             chapter.setLastUpdateAt(LocalDateTime.now());
             chapterRepository.save(chapter);
             resolveReport(report, currentUser, "REMOVE_CHAPTER");
@@ -237,9 +244,29 @@ public class ReportModerationService {
         }
         String normalized = action.trim().toUpperCase(Locale.ROOT);
         if (normalized.contains("BAN_USER")) return "BANNED_USER";
+        if (normalized.contains("RESTORED")) return "RESTORED";
         if (normalized.contains("HIDE")) return "HIDDEN_CONTENT";
         if (normalized.contains("REMOVE")) return "REMOVED_CONTENT";
         if (normalized.contains("WARN_USER")) return "WARNED_USER";
         return normalized;
+    }
+
+    @Transactional
+    public void restoreStoryForReport(UserEntity currentUser, Long reportId) {
+        requireModerator(currentUser);
+        ReportEntity report = requireReport(reportId);
+        if (report.getTargetKind() != ReportEntity.ReportTargetKind.story || report.getStory() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ áp dụng cho báo cáo truyện");
+        }
+        String action = report.getAction();
+        if (action == null || (!action.contains("HIDE_STORY") && !action.contains("REMOVE_STORY"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Báo cáo chưa xử lý ẩn/gỡ truyện");
+        }
+        StoryEntity story = report.getStory();
+        story.setStatus(StoryStatus.published);
+        story.setApprovalStatus(StoryApprovalStatus.approved);
+        storyRepository.save(story);
+        report.setAction(action + "_RESTORED");
+        reportRepository.save(report);
     }
 }

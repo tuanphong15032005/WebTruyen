@@ -420,16 +420,32 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuthorCommentResponse> listAuthorComments(Long authorId, Integer storyId, Long chapterId) {
+    public List<AuthorCommentResponse> listAuthorComments(
+            Long authorId,
+            Integer storyId,
+            Long chapterId,
+            LocalDateTime fromDate,
+            LocalDateTime toDate
+    ) {
         StoryEntity story = requireAuthorStory(authorId, storyId);
         List<CommentEntity> roots;
 
         if (chapterId != null) {
             chapterRepository.findByIdAndVolume_Story_Id(chapterId, story.getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
-            roots = commentRepository.findByChapter_IdAndParentCommentIsNullOrderByCreatedAtDesc(chapterId);
+            if (fromDate != null && toDate != null) {
+                roots = commentRepository.findByChapter_IdAndParentCommentIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                        chapterId, fromDate, toDate);
+            } else {
+                roots = commentRepository.findByChapter_IdAndParentCommentIsNullOrderByCreatedAtDesc(chapterId);
+            }
         } else {
-            roots = commentRepository.findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(storyId);
+            if (fromDate != null && toDate != null) {
+                roots = commentRepository.findByStory_IdAndParentCommentIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                        storyId, fromDate, toDate);
+            } else {
+                roots = commentRepository.findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(storyId);
+            }
         }
 
         List<Long> rootIds = roots.stream().map(CommentEntity::getId).toList();

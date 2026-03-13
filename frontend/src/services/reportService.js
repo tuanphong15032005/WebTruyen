@@ -6,6 +6,7 @@ const reportService = {
   hideReportedContent: (reportId) => api.post(`/admin/reports/${reportId}/hide`),
   removeReportedContent: (reportId) => api.post(`/admin/reports/${reportId}/remove`),
   warnOrBanUser: (reportId, payload) => api.post(`/admin/reports/${reportId}/warn-ban`, payload),
+  restoreReportedStory: (reportId) => api.post(`/admin/reports/${reportId}/restore`),
 };
 
 export default reportService;

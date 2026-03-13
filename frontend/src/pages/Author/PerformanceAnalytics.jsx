@@ -13,7 +13,7 @@ function SimpleBarChart({ title, data, colorClass }) {
       <h3>{title}</h3>
       <div className='author-analytics__chart'>
         {!data || data.length === 0 ? (
-          <div className='author-analytics__chart-empty'>No data</div>
+          <div className='author-analytics__chart-empty'>Không có dữ liệu</div>
         ) : (
           data.map((item, index) => {
             const value = Number(item.value) || 0;
@@ -58,7 +58,7 @@ function PerformanceAnalytics() {
         setAnalytics(null);
       }
     } catch (err) {
-      setError(err.message || 'Failed to load story options');
+      setError(err.message || 'Không thể tải danh sách truyện');
     } finally {
       setLoading(false);
     }
@@ -75,7 +75,7 @@ function PerformanceAnalytics() {
       const data = await authorAnalyticsService.getStoryPerformance(storyId);
       setAnalytics(data);
     } catch (err) {
-      setError(err.message || 'Failed to load analytics');
+      setError(err.message || 'Không thể tải thống kê');
     } finally {
       setLoadingDetail(false);
     }
@@ -94,12 +94,12 @@ function PerformanceAnalytics() {
   return (
     <section className='author-analytics'>
       <header className='author-analytics__header'>
-        <h1>Performance Analytics</h1>
-        <p>Track views, followers, and Coin revenue to evaluate your story performance.</p>
+        <h1>Hiệu suất truyện</h1>
+        <p>Theo dõi lượt xem, follower và Coin đạt được để đánh giá hiệu suất truyện.</p>
       </header>
 
       <div className='author-analytics__toolbar'>
-        <label htmlFor='storySelector'>Story selector</label>
+        <label htmlFor='storySelector'>Chọn truyện</label>
         <select
           id='storySelector'
           value={selectedStoryId}
@@ -107,7 +107,7 @@ function PerformanceAnalytics() {
           disabled={loading || storyOptions.length === 0}
         >
           {storyOptions.length === 0 ? (
-            <option value=''>No stories available</option>
+            <option value=''>Chưa có truyện</option>
           ) : (
             storyOptions.map((story) => (
               <option key={story.id} value={story.id}>
@@ -121,52 +121,52 @@ function PerformanceAnalytics() {
       {error && <div className='author-analytics__error'>{error}</div>}
 
       {!analytics || loadingDetail ? (
-        <div className='author-analytics__placeholder'>Loading analytics...</div>
+        <div className='author-analytics__placeholder'>Đang tải dữ liệu thống kê...</div>
       ) : (
         <>
           <div className='author-analytics__kpi-grid'>
             <article className='author-analytics__kpi'>
-              <span>Total views</span>
+              <span>Lượt xem</span>
               <strong>{analytics.totalViews ?? 0}</strong>
             </article>
             <article className='author-analytics__kpi'>
-              <span>Total Coin earned</span>
+              <span>Coin đạt được</span>
               <strong>{analytics.totalCoinEarned ?? 0}</strong>
             </article>
             <article className='author-analytics__kpi'>
-              <span>Total followers</span>
+              <span>Follower</span>
               <strong>{analytics.totalFollowers ?? 0}</strong>
             </article>
           </div>
 
           <div className='author-analytics__charts-grid'>
             <SimpleBarChart
-              title='Views over time'
+              title='Lượt xem theo thời gian'
               data={analytics.viewsOverTime}
               colorClass='views'
             />
             <SimpleBarChart
-              title='Coin revenue chart'
+              title='Coin đạt được theo thời gian'
               data={analytics.coinRevenueOverTime}
               colorClass='coin'
             />
             <SimpleBarChart
-              title='Follower growth chart'
+              title='Follower theo thời gian'
               data={analytics.followerGrowthOverTime}
               colorClass='followers'
             />
           </div>
 
           <section className='author-analytics__table-wrap'>
-            <h3>Chapter performance table</h3>
+            <h3>Bảng hiệu suất chương</h3>
             <table>
               <thead>
                 <tr>
-                  <th>Chapter</th>
-                  <th>Status</th>
-                  <th>Estimated Views</th>
-                  <th>Coin Earned</th>
-                  <th>Unlock Count</th>
+                  <th>Chương</th>
+                  <th>Trạng thái</th>
+                  <th>Lượt xem ước tính</th>
+                  <th>Coin đạt được</th>
+                  <th>Số lần mở khóa</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,7 +183,7 @@ function PerformanceAnalytics() {
                 ) : (
                   <tr>
                     <td colSpan={5} className='author-analytics__empty'>
-                      No chapter statistics
+                      Không có thống kê chương
                     </td>
                   </tr>
                 )}

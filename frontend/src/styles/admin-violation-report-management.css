@@ -51,6 +51,27 @@
   border-color: #fecaca;
 }
 
+.admin-reports__type-tabs {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-reports__type-tabs button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.admin-reports__type-tabs button.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
 .admin-reports__filters {
   margin-top: 12px;
   display: flex;
@@ -160,6 +181,23 @@
 .admin-reports__actions button.hide { background: #16a34a; }
 .admin-reports__actions button.remove { background: #dc2626; }
 .admin-reports__actions button.warn-ban { background: #d97706; }
+
+.admin-reports__actions button.restore,
+.admin-reports__grid td button.restore {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #16a34a;
+  color: #fff;
+}
+
+.admin-reports__grid td button.restore:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 .admin-reports__actions button:disabled {
   opacity: 0.55;

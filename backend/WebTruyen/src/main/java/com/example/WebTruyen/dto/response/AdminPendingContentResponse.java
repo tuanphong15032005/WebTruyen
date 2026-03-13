@@ -14,5 +14,6 @@ public record AdminPendingContentResponse(
         String moderationStatus,
         String moderationActionType,
         String moderationNote,
-        LocalDateTime moderationProcessedAt
+        LocalDateTime moderationProcessedAt,
+        String approvalStatus
 ) {}

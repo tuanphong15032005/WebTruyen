@@ -298,6 +298,23 @@
   line-height: 1.6;
 }
 
+.admin-moderation__modal-chapter-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.admin-moderation__chapter-content {
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.75;
+}
+.admin-moderation__chapter-content p {
+  margin: 0 0 1em;
+}
+.admin-moderation__chapter-content p:last-child {
+  margin-bottom: 0;
+}
+
 .admin-moderation__modal-state {
   margin: 0;
   padding: 20px;
@@ -370,4 +387,15 @@
 .admin-moderation__note-actions .confirm {
   background: #2563eb;
   color: #fff;
+}
+
+.admin-moderation__modal-chapter-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.admin-moderation__chapter-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.7;
 }
