@@ -511,6 +511,14 @@ public class StoryController {
         UserEntity currentUser = requireUser(userPrincipal);
         CreateChapterResponse response = chapterService.createChapterFromHtml(currentUser, storyId, volumeId, req);
         
+        // Trigger achievement event for chapter creation
+        try {
+            achievementIntegrationService.onChapterCreated(currentUser.getId());
+            log.info("Triggered chapter creation achievement for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.warn("Failed to trigger chapter creation achievement: {}", e.getMessage());
+        }
+        
         return response;
     }
 
