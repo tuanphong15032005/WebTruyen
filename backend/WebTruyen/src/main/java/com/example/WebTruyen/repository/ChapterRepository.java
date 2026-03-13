@@ -1,5 +1,6 @@
 package com.example.WebTruyen.repository;
 
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import org.springframework.data.domain.Pageable;
@@ -64,6 +65,9 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     List<ChapterEntity> findScheduledChaptersToPublish(@Param("status") ChapterStatus status, @Param("now") LocalDateTime now);
     List<ChapterEntity> findByStatusOrderByCreatedAtDesc(ChapterStatus status);
     List<ChapterEntity> findByApprovalStatusOrderByCreatedAtDesc(ChapterApprovalStatus approvalStatus);
+
+    /** Lấy chapter theo approval_status (dùng cho kiểm duyệt) */
+    List<ChapterEntity> findByApprovalStatusInOrderByCreatedAtDesc(List<ChapterApprovalStatus> approvalStatuses);
 
     @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.author.id = :authorId ORDER BY c.lastUpdateAt DESC")
     List<ChapterEntity> findByAuthorId(@Param("authorId") Long authorId);

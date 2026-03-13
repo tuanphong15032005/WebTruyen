@@ -1,5 +1,6 @@
 package com.example.WebTruyen.repository;
 
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
@@ -36,6 +37,9 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     List<StoryEntity> findByStatusOrderByCreatedAtAsc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleDesc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleAsc(StoryStatus status);
+
+    /** Lấy truyện theo approval_status (dùng cho kiểm duyệt) */
+    List<StoryEntity> findByApprovalStatusInOrderByCreatedAtDesc(List<StoryApprovalStatus> approvalStatuses);
 
 //<<<<<<< HEAD
     // Muc dich: Dem so luot luu vao thu vien theo story de hien thi sidebar metadata. Hieuson + 10h30
