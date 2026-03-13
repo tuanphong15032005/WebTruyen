@@ -18,6 +18,7 @@ import DonatePage from './pages/Payment/DonatePage';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import DailyTasksPage from './pages/DailyTasksPage';
+import AchievementsPage from './pages/AchievementsPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
 import CreateStory from './pages/Author/CreateStory';
@@ -33,6 +34,7 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import Report from './pages/Reader/report';
 
@@ -109,6 +111,7 @@ function App() {
         />
         <Route path='/profile' element={<UserProfile />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
+        <Route path='/achievements' element={<AchievementsPage />} />
         <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
@@ -165,6 +168,14 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ViolationReportManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/achievements'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <AchievementManagementPage />
             </RoleProtectedRoute>
           }
         />
