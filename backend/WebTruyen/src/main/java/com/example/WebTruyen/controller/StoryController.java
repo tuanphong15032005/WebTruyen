@@ -570,10 +570,17 @@ public class StoryController {
         UserEntity currentUser = requireUser(userPrincipal);
         CreateChapterResponse response = chapterService.createChapterFromHtml(currentUser, storyId, volumeId, req);
         
-        // Trigger achievement event for chapter creation
+        // Trigger achievement event only for published chapters
         try {
-            achievementIntegrationService.onChapterCreated(currentUser.getId());
-            log.info("Triggered chapter creation achievement for user: {}", currentUser.getId());
+            // Check if the created chapter is published from request
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                achievementIntegrationService.onChapterCreated(currentUser.getId());
+                log.info("Triggered chapter creation achievement for published chapter - user: {}", currentUser.getId());
+            } else {
+                log.info("Chapter created but not published - no achievement triggered - user: {}, status: {}", 
+                    currentUser.getId(), req != null ? req.getStatus() : "null");
+            }
         } catch (Exception e) {
             log.warn("Failed to trigger chapter creation achievement: {}", e.getMessage());
         }
@@ -590,6 +597,26 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
+        
+        // Get current chapter status before update
+        try {
+            // Check if this is a status change to published
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                
+                // Check if chapter was previously not published
+                var currentChapter = chapterService.getChapterById(chapterId);
+                if (currentChapter != null && currentChapter.getStatus() != null && 
+                    !"published".equals(currentChapter.getStatus().toString())) {
+                    
+                    log.info("Chapter status changing to published - triggering achievement for user: {}", currentUser.getId());
+                    achievementIntegrationService.onChapterCreated(currentUser.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to check chapter status for achievement: {}", e.getMessage());
+        }
+        
         return chapterService.updateChapterFromHtml(currentUser, storyId, volumeId, chapterId, req);
     }
     

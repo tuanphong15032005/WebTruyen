@@ -7,6 +7,7 @@ import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.AchievementRepository;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.entity.model.Gamification.AchievementEntity;
+import com.example.WebTruyen.entity.enums.ChapterStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -155,12 +156,17 @@ public class TieredAchievementIntegrationService {
     @Transactional
     public void onChapterCreated(Long userId) {
         log.info("Processing chapter created event for user: {}", userId);
-        
-        // Trigger hard-coded achievement
-        tieredAchievementService.updateProgress(userId, "WRITTEN_CHAPTERS", 1);
-        
-        // Trigger all achievements in WRITING category dynamically
-        triggerAchievementsByCategory(userId, "WRITING", 1);
+        try {
+            // Trigger hard-coded achievement only for published chapters
+            tieredAchievementService.updateProgress(userId, "WRITTEN_CHAPTERS", 1);
+            
+            // Trigger all achievements in WRITING category dynamically
+            triggerAchievementsByCategory(userId, "WRITING", 1);
+            
+            log.info("Successfully updated WRITTEN_CHAPTERS progress for user: {}", userId);
+        } catch (Exception e) {
+            log.error("Failed to update WRITTEN_CHAPTERS progress for user {}: {}", userId, e.getMessage());
+        }
     }
 
     @Transactional
@@ -175,9 +181,10 @@ public class TieredAchievementIntegrationService {
     public void recalculateWritingProgress(Long userId) {
         log.info("Recalculating writing progress for user: {}", userId);
         try {
-            Integer chaptersWritten = (int) chapterRepository.countByAuthorId(userId);
+            // Count only published chapters for achievement
+            Integer chaptersWritten = (int) chapterRepository.countByAuthorIdAndStatus(userId, ChapterStatus.published);
             tieredAchievementService.setProgress(userId, "WRITTEN_CHAPTERS", chaptersWritten);
-            log.info("Updated writing progress for user {}: {} chapters", userId, chaptersWritten);
+            log.info("Updated writing progress for user {}: {} published chapters", userId, chaptersWritten);
         } catch (Exception e) {
             log.error("Error recalculating writing progress for user {}: {}", userId, e.getMessage());
         }
