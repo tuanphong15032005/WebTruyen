@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BookOpen, Bookmark, Eye, Filter, Search, Star } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  BookOpen,
+  Bookmark,
+  Eye,
+  Filter,
+  Search,
+  Star,
+} from 'lucide-react';
 import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
 import '../styles/home-dashboard.css';
@@ -15,11 +24,59 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Tạm ngưng' },
 ];
 
+const SORT_OPTIONS = [
+  { value: 'views', label: 'Lượt xem', defaultDirection: 'desc' },
+  { value: 'saved', label: 'Lượt lưu', defaultDirection: 'desc' },
+  { value: 'rating', label: 'Rating', defaultDirection: 'desc' },
+  { value: 'publishTime', label: 'Thời gian đăng tải', defaultDirection: 'desc' },
+];
+
+const DEFAULT_SORT_BY = 'views';
+const DEFAULT_SORT_DIRECTION = 'desc';
+
 const parseTagIdsCsv = (value) =>
   String(value || '')
     .split(',')
     .map((item) => Number(item.trim()))
     .filter((item) => Number.isFinite(item) && item > 0);
+
+const getDefaultSortDirection = (sortBy) =>
+  SORT_OPTIONS.find((item) => item.value === sortBy)?.defaultDirection ||
+  DEFAULT_SORT_DIRECTION;
+
+const getSortValue = (story, sortBy) => {
+  if (sortBy === 'saved') return Number(story?.savedCount || 0);
+  if (sortBy === 'rating') return Number(story?.ratingAvg || 0);
+  if (sortBy === 'publishTime') {
+    const timestamp = Date.parse(story?.createdAt || '');
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+  return Number(story?.readerCount || 0);
+};
+
+const sortStories = (list, sortBy, sortDirection) => {
+  const safeList = Array.isArray(list) ? [...list] : [];
+  const directionFactor = sortDirection === 'asc' ? 1 : -1;
+
+  safeList.sort((left, right) => {
+    const leftValue = getSortValue(left, sortBy);
+    const rightValue = getSortValue(right, sortBy);
+
+    if (leftValue !== rightValue) {
+      return directionFactor * (leftValue - rightValue);
+    }
+
+    const leftCreatedAt = Date.parse(left?.createdAt || '') || 0;
+    const rightCreatedAt = Date.parse(right?.createdAt || '') || 0;
+    if (leftCreatedAt !== rightCreatedAt) {
+      return rightCreatedAt - leftCreatedAt;
+    }
+
+    return String(left?.title || '').localeCompare(String(right?.title || ''), 'vi');
+  });
+
+  return safeList;
+};
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
@@ -129,6 +186,10 @@ function SearchPage() {
   const [keywordInput, setKeywordInput] = useState('');
   const [authorInput, setAuthorInput] = useState('');
   const [statusInput, setStatusInput] = useState('all');
+  const [sortByInput, setSortByInput] = useState(DEFAULT_SORT_BY);
+  const [sortDirectionInput, setSortDirectionInput] = useState(
+    DEFAULT_SORT_DIRECTION,
+  );
   const [selectedTagIds, setSelectedTagIds] = useState([]);
   const [tags, setTags] = useState([]);
   const [stories, setStories] = useState([]);
@@ -220,6 +281,16 @@ function SearchPage() {
     [selectedTagIds],
   );
 
+  const activeSortOption = useMemo(
+    () => SORT_OPTIONS.find((item) => item.value === sortByInput) || SORT_OPTIONS[0],
+    [sortByInput],
+  );
+
+  const sortedStories = useMemo(
+    () => sortStories(stories, sortByInput, sortDirectionInput),
+    [stories, sortByInput, sortDirectionInput],
+  );
+
   const toggleTag = (tagId) => {
     const normalizedId = Number(tagId);
     if (!normalizedId) return;
@@ -230,6 +301,16 @@ function SearchPage() {
       }
       return [...prev, normalizedId];
     });
+  };
+
+  const handleSortByChange = (event) => {
+    const nextSortBy = event.target.value;
+    setSortByInput(nextSortBy);
+    setSortDirectionInput(getDefaultSortDirection(nextSortBy));
+  };
+
+  const toggleSortDirection = () => {
+    setSortDirectionInput((prev) => (prev === 'desc' ? 'asc' : 'desc'));
   };
 
   const applySearch = () => {
@@ -302,6 +383,19 @@ function SearchPage() {
                   </option>
                 ))}
               </select>
+
+              <label htmlFor='search-sort'>Sắp xếp theo</label>
+              <select
+                id='search-sort'
+                value={sortByInput}
+                onChange={handleSortByChange}
+              >
+                {SORT_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className='search-page__advanced-right'>
@@ -329,19 +423,45 @@ function SearchPage() {
           <p>
             {loading
               ? 'Đang tải kết quả...'
-              : `Tìm thấy ${stories.length} truyện phù hợp`}
+              : `Tìm thấy ${sortedStories.length} truyện phù hợp`}
           </p>
+          {!loading && sortedStories.length > 0 && (
+            <div className='search-page__result-sort'>
+              <span>{activeSortOption.label}</span>
+              <button
+                type='button'
+                className='search-page__sort-direction'
+                onClick={toggleSortDirection}
+                aria-label={
+                  sortDirectionInput === 'desc'
+                    ? 'Đang sắp xếp giảm dần, bấm để đổi thành tăng dần'
+                    : 'Đang sắp xếp tăng dần, bấm để đổi thành giảm dần'
+                }
+                title={
+                  sortDirectionInput === 'desc'
+                    ? 'Đang sắp xếp giảm dần'
+                    : 'Đang sắp xếp tăng dần'
+                }
+              >
+                {sortDirectionInput === 'desc' ? (
+                  <ArrowUp size={16} />
+                ) : (
+                  <ArrowDown size={16} />
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {!loading && stories.length === 0 && (
+        {!loading && sortedStories.length === 0 && (
           <div className='search-page__empty'>
             Không có truyện nào thỏa mãn bộ lọc hiện tại.
           </div>
         )}
 
-        {!loading && stories.length > 0 && (
+        {!loading && sortedStories.length > 0 && (
           <div className='home-story-grid search-page__results-grid'>
-            {stories.map((story) => {
+            {sortedStories.map((story) => {
               const meta = chapterMetaByStoryId[story.id] || {};
               const categoryTag = getStoryCategory(story);
               const statusInfo = getStoryStatusInfo(story);
@@ -420,7 +540,7 @@ function SearchPage() {
           </div>
         )}
 
-        {!loading && stories.length > 0 && (
+        {!loading && sortedStories.length > 0 && (
           <div className='search-page__apply-row'>
             <button type='button' onClick={applySearch}>
               <Search size={16} />

@@ -1,7 +1,9 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.dto.request.ChapterProgressRequest;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.TieredAchievementIntegrationService;
 import com.example.WebTruyen.service.ChapterService;
@@ -11,6 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
 import java.util.List;
 
 
@@ -39,12 +44,13 @@ public class ChapterController {
     @PostMapping("/{id}/view")
     public ResponseEntity<Void> recordChapterView(
             @PathVariable Long id,
+            @RequestBody(required = false) ChapterProgressRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
                 ? userPrincipal.getUser().getId()
                 : null;
         
-        chapterService.recordChapterView(id, userId);
+        chapterService.recordChapterView(id, userId, request != null ? request.segmentId() : null);
         
         // Track chapter reading for daily task
         if (userId != null) {
@@ -62,6 +68,19 @@ public class ChapterController {
             }
         }
         
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/progress")
+    public ResponseEntity<Void> updateReadingProgress(
+            @PathVariable Long id,
+            @RequestBody(required = false) ChapterProgressRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        chapterService.updateReadingProgress(id, userId, request != null ? request.segmentId() : null);
         return ResponseEntity.ok().build();
     }
 
@@ -100,4 +119,29 @@ public class ChapterController {
         
         return ResponseEntity.ok(chapters);
     }
+
+    @PostMapping("/{id}/submit-approval")
+    public ResponseEntity<Map<String, String>> submitChapterApproval(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        try {
+            ChapterApprovalStatus approvalStatus = chapterService.submitChapterForApproval(id, userId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Chapter submitted for review",
+                    "approvalStatus", approvalStatus.name()
+            ));
+        } catch (ResponseStatusException ex) {
+            String message = ex.getReason() != null && !ex.getReason().isBlank()
+                    ? ex.getReason()
+                    : "gửi duyệt thất bại";
+            return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
+        }
+    }
+
+    
 }

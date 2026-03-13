@@ -36,6 +36,7 @@ import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
+import Report from './pages/Reader/report';
 
 import './App.css';
 
@@ -69,6 +70,10 @@ function RouteScrollManager() {
 
   useEffect(() => {
     if (location.hash) return;
+    const hasResumeSegment =
+      /^\/stories\/[^/]+\/chapters\/[^/]+$/.test(location.pathname) &&
+      new URLSearchParams(location.search).has('segmentId');
+    if (hasResumeSegment) return;
 
     const mainContent = document.querySelector('main.main-content');
     if (mainContent) {
@@ -95,6 +100,7 @@ function App() {
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
+        <Route path='/stories/:storyId/report' element={<Report />} />
         <Route
           path='/wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}

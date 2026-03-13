@@ -500,6 +500,12 @@
   color: #8f712a;
 }
 
+.story-metadata__action-btn.continue {
+  border: 1px solid #93d7a3;
+  background: #e7f8eb;
+  color: #2f7f45;
+}
+
 .story-metadata__notify-wrap {
   display: inline-flex;
   align-items: center;

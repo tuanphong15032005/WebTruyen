@@ -7,5 +7,6 @@ public record ChapterSummaryResponse(
         String title,
         Integer sequenceIndex,
         LocalDateTime lastUpdateAt,
-        String status
+        String status,
+        String approvalStatus
 ) {}

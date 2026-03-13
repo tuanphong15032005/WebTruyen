@@ -18,6 +18,7 @@ const storyService = {
 
   getStory: (storyId) => api.get(`/stories/${storyId}`),
   getPublicStory: (storyId) => api.get(`/public/stories/${storyId}`),
+  getStoryResumePoint: (storyId) => api.get(`/stories/${storyId}/resume-point`),
   // Mục đích: Lấy dữ liệu sidebar metadata (thông tin thêm/truyện tương tự/cùng tác giả). Hieuson + 10h30
   getPublicStorySidebar: (storyId) =>
     api.get(`/public/stories/${storyId}/sidebar`),
@@ -104,6 +105,12 @@ const storyService = {
 
   createChapter: (storyId, volumeId, payload) =>
     api.post(`/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
+
+  submitStoryApproval: (storyId) =>
+    api.post(`/stories/${storyId}/submit-approval`),
+
+  submitChapterApproval: (chapterId) =>
+    api.post(`/chapters/${chapterId}/submit-approval`),
 
   updateChapter: (storyId, volumeId, chapterId, payload) =>
     api.put(`/stories/${storyId}/volumes/${volumeId}/chapters/${chapterId}`, payload),
