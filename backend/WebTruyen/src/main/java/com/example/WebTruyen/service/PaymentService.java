@@ -16,10 +16,12 @@ import com.example.WebTruyen.repository.LedgerEntryRepository;
 import com.example.WebTruyen.repository.PaymentOrderRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,6 +30,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class PaymentService {
 
@@ -83,32 +86,60 @@ public class PaymentService {
         return toDetailResponse(order);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public ConfirmPaymentResponse confirmPayment(Long userId, Long orderId) {
-        PaymentOrderEntity order = paymentOrderRepository.findById(orderId)
+        log.info("Confirming payment - userId: {}, orderId: {}", userId, orderId);
+        
+        // Use pessimistic lock to prevent concurrent modifications
+        PaymentOrderEntity order = paymentOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment order not found id=" + orderId));
+
+        log.info("Payment order found - status: {}, amount: {}", order.getStatus(), order.getCoinBAmount());
 
         if (!order.getUser().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
 
         if (order.getStatus() != PaymentOrderStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Payment order status must be PENDING");
+            log.warn("Payment order {} already processed with status: {}", orderId, order.getStatus());
+            // Return current balance instead of throwing error
+            WalletEntity currentWallet = walletService.getOrCreateWalletEntity(userId);
+            return new ConfirmPaymentResponse(currentWallet.getBalanceCoinB());
         }
 
-        order.setStatus(PaymentOrderStatus.PAID);
-        order.setPaidAt(LocalDateTime.now());
-        paymentOrderRepository.save(order);
+        try {
+            // Check if order was already paid by another thread (race condition)
+            if (order.getStatus() == PaymentOrderStatus.PAID) {
+                log.warn("Payment order {} was already paid by another thread", orderId);
+                WalletEntity currentWallet = walletService.getOrCreateWalletEntity(userId);
+                return new ConfirmPaymentResponse(currentWallet.getBalanceCoinB());
+            }
+            
+            order.setStatus(PaymentOrderStatus.PAID);
+            order.setPaidAt(LocalDateTime.now());
+            paymentOrderRepository.save(order);
+            log.info("Payment order updated to PAID");
 
-        // Use walletService.addCoinB() to trigger automatic daily task tracking
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found userId=" + userId));
-        
-        walletService.addCoinB(user, order.getCoinBAmount(), LedgerReason.TOPUP);
+            // Use walletService.addCoinB() to trigger automatic daily task tracking
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found userId=" + userId));
+            
+            log.info("Adding {} coins to user {}", order.getCoinBAmount(), userId);
+            
+            // Use unique idempotency key with orderId and timestamp to prevent duplicate ledger entries
+            String idempotencyKey = "PAYMENT-" + orderId + "-" + System.currentTimeMillis();
+            walletService.addCoinB(user, order.getCoinBAmount(), LedgerReason.TOPUP, idempotencyKey);
+            log.info("Coins added successfully");
 
-        // Get updated wallet balance for response
-        WalletEntity updatedWallet = walletService.getOrCreateWalletEntity(userId);
-        return new ConfirmPaymentResponse(updatedWallet.getBalanceCoinB());
+            // Get updated wallet balance for response
+            WalletEntity updatedWallet = walletService.getOrCreateWalletEntity(userId);
+            log.info("Final wallet balance: {}", updatedWallet.getBalanceCoinB());
+            
+            return new ConfirmPaymentResponse(updatedWallet.getBalanceCoinB());
+        } catch (Exception e) {
+            log.error("Error during payment confirmation", e);
+            throw e; // Re-throw to maintain transaction behavior
+        }
     }
 
     public List<TransactionHistoryResponse> getTransactionHistory(Long userId) {

@@ -351,10 +351,17 @@ public class WalletService {
 
     private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
                                   LedgerReason reason, String refType, String description) {
+        createLedgerEntry(userId, coinType, delta, reason, refType, description, null);
+    }
+
+    private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
+                                  LedgerReason reason, String refType, String description, String idempotencyKey) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
-        String idempotencyKey = String.format("%s_%d_%s_%d", refType, userId, coinType, System.currentTimeMillis());
+        // Use provided idempotency key or generate default one
+        String finalIdempotencyKey = idempotencyKey != null ? idempotencyKey : 
+            String.format("%s_%d_%s_%d", refType, userId, coinType, System.currentTimeMillis());
         
         // Create ledger entry for all transaction types
         // Use timestamp as refId since transactions don't have a specific reference ID
@@ -367,7 +374,7 @@ public class WalletService {
                 .reason(reason)
                 .refType(refType)
                 .refId(refId)
-                .idempotencyKey(idempotencyKey)
+                .idempotencyKey(finalIdempotencyKey)
                 .createdAt(LocalDateTime.now())
                 .build();
         
@@ -395,6 +402,10 @@ public class WalletService {
     }
 
     public void addCoinB(UserEntity user, Long amount, LedgerReason reason) {
+        addCoinB(user, amount, reason, null);
+    }
+
+    public void addCoinB(UserEntity user, Long amount, LedgerReason reason, String idempotencyKey) {
         // 1. Lấy wallet
         WalletEntity wallet = getOrCreateWalletEntity(user.getId());
         // 2. Lấy balance cũ
@@ -426,7 +437,7 @@ public class WalletService {
         };
         
         createLedgerEntry(user.getId(), CoinType.B, amount, reason, 
-            refType, description);
+            refType, description, idempotencyKey);
         
         // Auto-track daily task for topup only (donation is tracked separately)
         if (reason == LedgerReason.TOPUP) {

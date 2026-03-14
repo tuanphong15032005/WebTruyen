@@ -15,6 +15,8 @@ import WalletTopupPage from './pages/Payment/WalletTopupPage';
 import PaymentConfirmationPage from './pages/Payment/PaymentConfirmationPage';
 import CoinTransactionHistoryPage from './pages/Payment/TransactionHistoryPage';
 import DonatePage from './pages/Payment/DonatePage';
+import PaymentSuccessPage from './pages/Payment/PaymentSuccessPage';
+import VNPayReturnHandler from './components/VNPayReturnHandler';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import DailyTasksPage from './pages/DailyTasksPage';
@@ -99,6 +101,8 @@ function App() {
         <Route path='/verify' element={<VerifyCode />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
+        <Route path='/payment/vnpay-return' element={<VNPayReturnHandler />} />
+        <Route path='/payment/success' element={<PaymentSuccessPage />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
         <Route path='/stories/:storyId/report' element={<Report />} />
         <Route
