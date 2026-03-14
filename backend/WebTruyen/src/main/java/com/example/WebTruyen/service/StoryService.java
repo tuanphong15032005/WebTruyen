@@ -8,9 +8,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.jsoup.Jsoup;
@@ -19,20 +21,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.WebTruyen.dto.request.UpdateStoryLibraryRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
+import com.example.WebTruyen.dto.response.LibraryAlbumOptionResponse;
+import com.example.WebTruyen.dto.response.LibraryStoryResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.StoryLibraryDialogResponse;
 import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StorySidebarItemResponse;
 import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.enums.LibraryAlbumVisibility;
+import com.example.WebTruyen.entity.enums.ReadingStatus;
 import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.keys.StoryTagId;
+import com.example.WebTruyen.entity.keys.LibraryAlbumItemId;
 import com.example.WebTruyen.entity.model.CommentAndMod.ModerationActionEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
@@ -40,10 +49,14 @@ import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumItemEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.repository.LibraryAlbumItemRepository;
+import com.example.WebTruyen.repository.LibraryAlbumRepository;
 import com.example.WebTruyen.repository.LibraryEntryRepository;
 import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
@@ -74,6 +87,8 @@ public class StoryService {
     private final ModerationActionRepository moderationActionRepository;
     private final UserRoleRepository userRoleRepository;
 //>>>>>>> origin/minhfinal1
+    private final LibraryAlbumRepository libraryAlbumRepository;
+    private final LibraryAlbumItemRepository libraryAlbumItemRepository;
     private final ReadingHistoryRepository readingHistoryRepository;
 
     @Transactional
@@ -288,29 +303,15 @@ public class StoryService {
         List<StoryEntity> stories = storyRepository.findByAuthor_IdOrderByCreatedAtDesc(currentUser.getId());
         return stories.stream()
                 .map(story -> {
-                    List<TagDto> tagDtos = story.getStoryTags().stream()
-                            .map(StoryTagEntity::getTag)
-                            .filter(Objects::nonNull)
-                            .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
-                            .toList();
-                    return toResponse(story, tagDtos, false);
+                    return toResponse(story, buildTagDtos(story), false);
                 })
                 .toList();
     }
 
     @Transactional
-    public List<StoryResponse> getLibraryStories(UserEntity currentUser) {
-        List<StoryEntity> stories = storyRepository
-                .findLibraryStoriesByUserIdOrderByAddedAtDesc(currentUser.getId());
-        return stories.stream()
-                .map(story -> {
-                    List<TagDto> tagDtos = story.getStoryTags().stream()
-                            .map(StoryTagEntity::getTag)
-                            .filter(Objects::nonNull)
-                            .map(t -> new TagDto(t.getId(), t.getName(), t.getSlug()))
-                            .toList();
-                    return toResponse(story, tagDtos, false);
-                })
+    public List<LibraryStoryResponse> getLibraryStories(UserEntity currentUser) {
+        return libraryEntryRepository.findByUser_IdOrderByAddedAtDesc(currentUser.getId()).stream()
+                .map(this::toLibraryResponse)
                 .toList();
     }
 
@@ -345,36 +346,264 @@ public class StoryService {
     }
 
     @Transactional
-    public boolean getLibraryStatus(UserEntity currentUser, Long storyId) {
-        if (currentUser == null) {
-            return false;
-        }
+    public Map<String, Boolean> getLibraryStatus(UserEntity currentUser, Long storyId) {
         requireStoryById(storyId);
+        if (currentUser == null) {
+            return Map.of("saved", false, "favorite", false);
+        }
         return libraryEntryRepository
                 .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
-                .isPresent();
+                .map(entry -> Map.of(
+                        "saved", true,
+                        "favorite", entry.isFavorite()
+                ))
+                .orElseGet(() -> Map.of("saved", false, "favorite", false));
     }
 
     @Transactional
-    public boolean toggleLibraryStatus(UserEntity currentUser, Long storyId) {
+    public StoryLibraryDialogResponse getStoryLibraryDialog(UserEntity currentUser, Long storyId) {
+        requireStoryById(storyId);
+        return buildStoryLibraryDialog(currentUser, storyId);
+    }
+
+    @Transactional
+    public StoryLibraryDialogResponse updateStoryLibraryDialog(UserEntity currentUser, Long storyId, UpdateStoryLibraryRequest req) {
+        StoryEntity story = requireStoryById(storyId);
+        ReadingStatus targetStatus = parseLibraryReadingStatus(req != null ? req.readingStatus() : null);
+        Set<Long> selectedAlbumIds = normalizeAlbumIds(req != null ? req.albumIds() : null);
+
+        List<LibraryAlbumEntity> userAlbums = libraryAlbumRepository.findByUser_IdOrderByUpdatedAtDesc(currentUser.getId());
+        validateSelectedAlbums(selectedAlbumIds, userAlbums);
+
+        if (targetStatus == null) {
+            List<LibraryAlbumEntity> touchedAlbums = userAlbums.stream()
+                    .filter(album -> albumContainsStory(album, storyId))
+                    .toList();
+            touchedAlbums.forEach(album -> {
+                if (album.getItems() == null) {
+                    return;
+                }
+                album.getItems().removeIf(item -> item.getStory() != null && Objects.equals(item.getStory().getId(), storyId));
+            });
+            libraryAlbumItemRepository.deleteAllForUserStory(currentUser.getId(), storyId);
+            libraryEntryRepository.findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                    .ifPresent(libraryEntryRepository::delete);
+            touchAlbums(touchedAlbums);
+            return buildStoryLibraryDialog(currentUser, storyId);
+        }
+
+        LibraryEntryEntity entry = libraryEntryRepository
+                .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .orElseGet(() -> LibraryEntryEntity.builder()
+                        .user(currentUser)
+                        .story(story)
+                        .favorite(false)
+                        .addedAt(LocalDateTime.now())
+                        .build());
+
+        entry.setReadingStatus(targetStatus);
+        libraryEntryRepository.save(entry);
+        syncAlbumMemberships(userAlbums, story, selectedAlbumIds);
+
+        return buildStoryLibraryDialog(currentUser, storyId);
+    }
+
+    @Transactional
+    public Map<String, Boolean> toggleLibraryStatus(UserEntity currentUser, Long storyId) {
         StoryEntity story = requireStoryById(storyId);
         return libraryEntryRepository
                 .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
                 .map(existing -> {
                     libraryEntryRepository.delete(existing);
-                    return false;
+                    return Map.of("saved", false, "favorite", false);
                 })
                 .orElseGet(() -> {
                     libraryEntryRepository.save(
                             LibraryEntryEntity.builder()
                                     .user(currentUser)
                                     .story(story)
+                                    .readingStatus(ReadingStatus.plan_to_read)
                                     .favorite(false)
                                     .addedAt(LocalDateTime.now())
                                     .build()
                     );
-                    return true;
+                    return Map.of("saved", true, "favorite", false);
                 });
+    }
+
+    @Transactional
+    public Map<String, Boolean> toggleLibraryFavoriteStatus(UserEntity currentUser, Long storyId) {
+        StoryEntity story = requireStoryById(storyId);
+        LibraryEntryEntity entry = libraryEntryRepository
+                .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .orElseGet(() -> LibraryEntryEntity.builder()
+                        .user(currentUser)
+                        .story(story)
+                        .readingStatus(ReadingStatus.plan_to_read)
+                        .favorite(false)
+                        .addedAt(LocalDateTime.now())
+                        .build());
+
+        entry.setFavorite(!entry.isFavorite());
+        LibraryEntryEntity savedEntry = libraryEntryRepository.save(entry);
+        return Map.of(
+                "saved", true,
+                "favorite", savedEntry.isFavorite()
+        );
+    }
+
+    private StoryLibraryDialogResponse buildStoryLibraryDialog(UserEntity currentUser, Long storyId) {
+        if (currentUser == null) {
+            return new StoryLibraryDialogResponse(false, false, null, List.of());
+        }
+
+        LibraryEntryEntity entry = libraryEntryRepository
+                .findByUser_IdAndStory_Id(currentUser.getId(), storyId)
+                .orElse(null);
+
+        List<LibraryAlbumOptionResponse> albums = libraryAlbumRepository
+                .findByUser_IdOrderByUpdatedAtDesc(currentUser.getId())
+                .stream()
+                .map(album -> toLibraryAlbumOptionResponse(album, storyId))
+                .toList();
+
+        return new StoryLibraryDialogResponse(
+                entry != null,
+                entry != null && entry.isFavorite(),
+                entry != null && entry.getReadingStatus() != null ? entry.getReadingStatus().name() : null,
+                albums
+        );
+    }
+
+    private LibraryAlbumOptionResponse toLibraryAlbumOptionResponse(LibraryAlbumEntity album, Long storyId) {
+        List<LibraryAlbumItemEntity> items = album.getItems() != null ? album.getItems() : List.of();
+        boolean containsStory = albumContainsStory(album, storyId);
+        String coverUrl = items.stream()
+                .filter(item -> item.getStory() != null)
+                .max(Comparator.comparing(
+                        LibraryAlbumItemEntity::getAddedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .map(LibraryAlbumItemEntity::getStory)
+                .filter(Objects::nonNull)
+                .map(StoryEntity::getCoverUrl)
+                .orElse(null);
+
+        return new LibraryAlbumOptionResponse(
+                album.getId(),
+                album.getName(),
+                album.getDescription(),
+                album.getVisibility() != null ? album.getVisibility().getValue() : LibraryAlbumVisibility.PRIVATE.getValue(),
+                (long) items.size(),
+                coverUrl,
+                containsStory
+        );
+    }
+
+    private boolean albumContainsStory(LibraryAlbumEntity album, Long storyId) {
+        List<LibraryAlbumItemEntity> items = album.getItems();
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+        return items.stream()
+                .map(LibraryAlbumItemEntity::getStory)
+                .filter(Objects::nonNull)
+                .anyMatch(story -> Objects.equals(story.getId(), storyId));
+    }
+
+    private void validateSelectedAlbums(Set<Long> selectedAlbumIds, List<LibraryAlbumEntity> userAlbums) {
+        if (selectedAlbumIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> ownedAlbumIds = userAlbums.stream()
+                .map(LibraryAlbumEntity::getId)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (!ownedAlbumIds.containsAll(selectedAlbumIds)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bộ sưu tập không tồn tại hoặc không thuộc về bạn");
+        }
+    }
+
+    private Set<Long> normalizeAlbumIds(List<Long> albumIds) {
+        if (albumIds == null || albumIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> normalized = new HashSet<>();
+        albumIds.stream()
+                .filter(Objects::nonNull)
+                .map(Long::valueOf)
+                .forEach(normalized::add);
+        return normalized;
+    }
+
+    private ReadingStatus parseLibraryReadingStatus(String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            return null;
+        }
+
+        String normalized = rawStatus.trim().toLowerCase();
+        if ("none".equals(normalized)) {
+            return null;
+        }
+
+        try {
+            return ReadingStatus.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái đọc không hợp lệ");
+        }
+    }
+
+    private void syncAlbumMemberships(List<LibraryAlbumEntity> userAlbums, StoryEntity story, Set<Long> selectedAlbumIds) {
+        if (userAlbums.isEmpty()) {
+            return;
+        }
+
+        List<LibraryAlbumEntity> touchedAlbums = new ArrayList<>();
+        for (LibraryAlbumEntity album : userAlbums) {
+            boolean shouldContain = selectedAlbumIds.contains(album.getId());
+            boolean currentlyContains = albumContainsStory(album, story.getId());
+
+            if (shouldContain && !currentlyContains) {
+                LibraryAlbumItemEntity newItem =
+                        LibraryAlbumItemEntity.builder()
+                                .id(new LibraryAlbumItemId(album.getId(), story.getId()))
+                                .album(album)
+                                .story(story)
+                                .build();
+                libraryAlbumItemRepository.save(
+                        newItem
+                );
+                if (album.getItems() != null) {
+                    album.getItems().add(newItem);
+                }
+                touchedAlbums.add(album);
+                continue;
+            }
+
+            if (!shouldContain && currentlyContains) {
+                libraryAlbumItemRepository.deleteFromAlbum(album.getId(), story.getId());
+                if (album.getItems() != null) {
+                    album.getItems().removeIf(item -> item.getStory() != null && Objects.equals(item.getStory().getId(), story.getId()));
+                }
+                touchedAlbums.add(album);
+            }
+        }
+
+        touchAlbums(touchedAlbums);
+    }
+
+    private void touchAlbums(List<LibraryAlbumEntity> albums) {
+        if (albums == null || albums.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        albums.stream()
+                .filter(Objects::nonNull)
+                .forEach(album -> album.setUpdatedAt(now));
+        libraryAlbumRepository.saveAll(albums);
     }
 
     @Transactional
@@ -529,6 +758,103 @@ public class StoryService {
                 tags,
                 story.getCreatedAt()
         );
+    }
+
+    StoryResponse toStoryResponse(StoryEntity story, boolean publishedOnly) {
+        return toResponse(story, buildTagDtos(story), publishedOnly);
+    }
+
+    private List<TagDto> buildTagDtos(StoryEntity story) {
+        return story.getStoryTags().stream()
+                .map(StoryTagEntity::getTag)
+                .filter(Objects::nonNull)
+                .map(tag -> new TagDto(tag.getId(), tag.getName(), tag.getSlug()))
+                .toList();
+    }
+
+    private LibraryStoryResponse toLibraryResponse(LibraryEntryEntity entry) {
+        StoryEntity story = entry.getStory();
+        StoryResponse base = toResponse(story, buildTagDtos(story), false);
+        ChapterEntity latestChapter = chapterRepository
+                .findTopByVolume_Story_IdAndStatusOrderByVolume_SequenceIndexDescSequenceIndexDesc(
+                        story.getId(),
+                        ChapterStatus.published
+                )
+                .orElse(null);
+        long chapterCount = chapterRepository.countByVolume_Story_IdAndStatus(
+                story.getId(),
+                ChapterStatus.published
+        );
+
+        return new LibraryStoryResponse(
+                base.id(),
+                base.authorId(),
+                base.authorPenName(),
+                base.translatorPenName(),
+                base.title(),
+                base.summaryHtml(),
+                base.coverUrl(),
+                base.status(),
+                base.approvalStatus(),
+                base.kind(),
+                base.completionStatus(),
+                base.completedAt(),
+                base.originalAuthorName(),
+                base.originalAuthorUserId(),
+                base.ratingSum(),
+                base.ratingCount(),
+                base.ratingAvg(),
+                base.readerCount(),
+                base.savedCount(),
+                base.wordCount(),
+                base.lastUpdatedAt(),
+                base.tags(),
+                base.createdAt(),
+                entry.getReadingStatus() != null ? entry.getReadingStatus().name() : null,
+                entry.isFavorite(),
+                entry.getAddedAt(),
+                formatLatestChapterLabel(latestChapter),
+                formatLatestVolumeLabel(latestChapter),
+                chapterCount
+        );
+    }
+
+    private String formatLatestChapterLabel(ChapterEntity latestChapter) {
+        if (latestChapter == null) {
+            return null;
+        }
+
+        Integer sequenceIndex = latestChapter.getSequenceIndex();
+        String title = latestChapter.getTitle() != null ? latestChapter.getTitle().trim() : "";
+        if (sequenceIndex != null && sequenceIndex > 0 && !title.isBlank()) {
+            return "Chương " + sequenceIndex + ": " + title;
+        }
+        if (sequenceIndex != null && sequenceIndex > 0) {
+            return "Chương " + sequenceIndex;
+        }
+        if (!title.isBlank()) {
+            return title;
+        }
+        return null;
+    }
+
+    private String formatLatestVolumeLabel(ChapterEntity latestChapter) {
+        if (latestChapter == null || latestChapter.getVolume() == null) {
+            return null;
+        }
+
+        String volumeTitle = latestChapter.getVolume().getTitle() != null
+                ? latestChapter.getVolume().getTitle().trim()
+                : "";
+        if (!volumeTitle.isBlank()) {
+            return volumeTitle;
+        }
+
+        Integer volumeSequence = latestChapter.getVolume().getSequenceIndex();
+        if (volumeSequence != null && volumeSequence > 0) {
+            return "Tập " + volumeSequence;
+        }
+        return null;
     }
 
     private BigDecimal computeRatingAverage(long ratingSum, int ratingCount) {

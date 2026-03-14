@@ -7,6 +7,8 @@ import '../App.css';
 function MainLayout({ children }) {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const isLibraryPage =
+    location.pathname === '/library' || location.pathname.startsWith('/library/');
   const isReadingPage = /^\/stories\/[^/]+\/chapters\/[^/]+$/.test(
     location.pathname,
   );
@@ -32,6 +34,8 @@ function MainLayout({ children }) {
             ? 'main-content--home'
             : isAuthPage
               ? 'main-content--auth'
+              : isLibraryPage
+                ? 'main-content--library'
               : 'main-content--spaced'
         }`}
       >
