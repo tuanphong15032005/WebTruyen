@@ -1,6 +1,8 @@
 package com.example.WebTruyen.repository;
 
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,9 +33,13 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     
     // Query methods for published stories with sorting
     List<StoryEntity> findByStatusOrderByCreatedAtDesc(StoryStatus status);
+    List<StoryEntity> findByApprovalStatusOrderByCreatedAtDesc(StoryApprovalStatus approvalStatus);
     List<StoryEntity> findByStatusOrderByCreatedAtAsc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleDesc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleAsc(StoryStatus status);
+
+    /** Lấy truyện theo approval_status (dùng cho kiểm duyệt) */
+    List<StoryEntity> findByApprovalStatusInOrderByCreatedAtDesc(List<StoryApprovalStatus> approvalStatuses);
 
 //<<<<<<< HEAD
     // Muc dich: Dem so luot luu vao thu vien theo story de hien thi sidebar metadata. Hieuson + 10h30

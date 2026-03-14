@@ -12,5 +12,8 @@ public record AdminViolationReportResponse(
         String actionResult,
         String actionRaw,
         Long targetId,
+        Long storyId,
+        String storyTitle,
+        String chapterTitle,
         LocalDateTime reportedAt
 ) {}

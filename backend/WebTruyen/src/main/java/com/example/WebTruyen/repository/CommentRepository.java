@@ -85,5 +85,12 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
 
     /** Direct replies (children) of a comment, for cascade delete. */
     List<CommentEntity> findByParentComment_Id(Long parentCommentId);
-//>>>>>>> origin/minhfinal1
+
+    /** Author comments filtered by date range (chapter). */
+    List<CommentEntity> findByChapter_IdAndParentCommentIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+            Long chapterId, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
+    /** Author comments filtered by date range (story). */
+    List<CommentEntity> findByStory_IdAndParentCommentIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+            Integer storyId, java.time.LocalDateTime from, java.time.LocalDateTime to);
 }

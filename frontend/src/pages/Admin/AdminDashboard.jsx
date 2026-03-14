@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import ContentModeration from './ContentModeration';
 import ViolationReportManagement from './ViolationReportManagement';
 import '../../styles/admin-dashboard.css';
@@ -8,36 +7,35 @@ function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('moderation');
 
   return (
-    <section className='admin-dashboard'>
-
-      <div className='admin-dashboard__topbar'>
-        <div className='admin-dashboard__tabs'>
+    <div className='admin-dashboard'>
+      <aside className='admin-dashboard__sidebar'>
+        <div className='admin-dashboard__logo'>
+          <span className='admin-dashboard__logo-icon'>A</span>
+          <span className='admin-dashboard__logo-text'>Admin Panel</span>
+        </div>
+        <nav className='admin-dashboard__nav'>
           <button
             type='button'
-            className={activeTab === 'moderation' ? 'active' : ''}
+            className={`admin-dashboard__nav-item ${activeTab === 'moderation' ? 'active' : ''}`}
             onClick={() => setActiveTab('moderation')}
           >
+            <span className='admin-dashboard__nav-icon'>📋</span>
             Kiểm duyệt nội dung
           </button>
           <button
             type='button'
-            className={activeTab === 'reports' ? 'active' : ''}
+            className={`admin-dashboard__nav-item ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
           >
+            <span className='admin-dashboard__nav-icon'>⚠️</span>
             Quản lý Báo cáo vi phạm
           </button>
-        </div>
-
-        <div className='admin-dashboard__links'>
-          <Link to='/admin/content-moderation'>Mở trang kiểm duyệt riêng</Link>
-          <Link to='/admin/violation-reports'>Mở trang báo cáo riêng</Link>
-        </div>
-      </div>
-
-      <div className='admin-dashboard__panel'>
+        </nav>
+      </aside>
+      <main className='admin-dashboard__main'>
         {activeTab === 'moderation' ? <ContentModeration /> : <ViolationReportManagement />}
-      </div>
-    </section>
+      </main>
+    </div>
   );
 }
 

@@ -7,9 +7,12 @@ function ContentModeration() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyKey, setBusyKey] = useState('');
+  const [activeContentType, setActiveContentType] = useState('all');
   const [activeStatus, setActiveStatus] = useState('pending');
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [demoItem, setDemoItem] = useState(null);
-  const [demoStory, setDemoStory] = useState(null);
+  const [demoContent, setDemoContent] = useState(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState('');
   const [noteModal, setNoteModal] = useState({
@@ -18,33 +21,72 @@ function ContentModeration() {
     action: '',
     note: '',
   });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const PAGE_SIZE = 10;
+  const displayStatus = (item) => item.approvalStatus ?? item.moderationStatus;
 
   const pendingCount = useMemo(
-    () => items.filter((item) => item.moderationStatus === 'pending').length,
+    () => items.filter((item) => displayStatus(item) === 'pending').length,
     [items]
   );
   const processedCount = useMemo(
-    () => items.filter((item) => item.moderationStatus !== 'pending').length,
+    () => items.filter((item) => displayStatus(item) !== 'pending').length,
     [items]
   );
   const approvedCount = useMemo(
-    () => items.filter((item) => item.moderationStatus === 'approved').length,
+    () => items.filter((item) => displayStatus(item) === 'approved').length,
     [items]
   );
   const rejectedCount = useMemo(
-    () => items.filter((item) => item.moderationStatus === 'rejected').length,
+    () => items.filter((item) => displayStatus(item) === 'rejected').length,
     [items]
   );
-  const requestEditCount = useMemo(
-    () => items.filter((item) => item.moderationStatus === 'request_edit').length,
-    [items]
-  );
-
   const filteredItems = useMemo(() => {
-    return items.filter((item) => item.moderationStatus === activeStatus);
-  }, [items, activeStatus]);
+    let list = items.filter((item) => displayStatus(item) === activeStatus);
+    if (activeContentType !== 'all') {
+      list = list.filter((item) => item.contentType === activeContentType);
+    }
+    return list;
+  }, [items, activeStatus, activeContentType]);
 
-  const showActions = activeStatus === 'pending';
+  const sortedItems = useMemo(() => {
+    if (!sortBy) return filteredItems;
+    const list = [...filteredItems];
+    const mult = sortOrder === 'asc' ? 1 : -1;
+    list.sort((a, b) => {
+      if (sortBy === 'type') {
+        const va = (a.contentType || '').toLowerCase();
+        const vb = (b.contentType || '').toLowerCase();
+        return mult * (va < vb ? -1 : va > vb ? 1 : 0);
+      }
+      if (sortBy === 'author') {
+        const va = (a.authorName || '').toLowerCase();
+        const vb = (b.authorName || '').toLowerCase();
+        return mult * va.localeCompare(vb);
+      }
+      return 0;
+    });
+    return list;
+  }, [filteredItems, sortBy, sortOrder]);
+
+  const totalItems = sortedItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedItems = useMemo(
+    () => sortedItems.slice(startIndex, startIndex + PAGE_SIZE),
+    [sortedItems, startIndex]
+  );
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   const loadModerationContent = async () => {
     setLoading(true);
@@ -53,7 +95,7 @@ function ContentModeration() {
       const data = await storyService.getPendingModerationContent();
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Failed to load pending content');
+      setError(err.message || 'Không thể tải nội dung chờ duyệt');
     } finally {
       setLoading(false);
     }
@@ -62,6 +104,10 @@ function ContentModeration() {
   useEffect(() => {
     loadModerationContent();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeStatus, activeContentType]);
 
   useEffect(() => {
     if (!demoItem && !noteModal.open) return undefined;
@@ -92,24 +138,20 @@ function ContentModeration() {
       if (item.contentType === 'story') {
         if (action === 'approve') {
           await storyService.approveModerationStory(item.contentId);
-        } else if (action === 'reject') {
+        } else {
           await storyService.rejectModerationStory(item.contentId, note);
-        } else {
-          await storyService.requestEditModerationStory(item.contentId, note);
         }
+      } else if (action === 'approve') {
+        await storyService.approveModerationChapter(item.contentId);
       } else {
-        if (action === 'approve') {
-          await storyService.approveModerationChapter(item.contentId);
-        } else if (action === 'reject') {
-          await storyService.rejectModerationChapter(item.contentId, note);
-        } else {
-          await storyService.requestEditModerationChapter(item.contentId, note);
-        }
+        await storyService.rejectModerationChapter(item.contentId, note);
       }
 
       await loadModerationContent();
+      closeDemoModal();
+      closeNoteModal();
     } catch (err) {
-      setError(err.message || 'Moderation action failed');
+      setError(err.message || 'Thao tác kiểm duyệt thất bại');
     } finally {
       setBusyKey('');
     }
@@ -139,38 +181,46 @@ function ContentModeration() {
   const handleSubmitNote = async () => {
     if (!noteModal.item || !noteModal.action) return;
     await executeAction(noteModal.item, noteModal.action, noteModal.note.trim());
-    closeNoteModal();
   };
 
   const statusLabel = (status) => {
-    if (status === 'approved') return 'Approved';
-    if (status === 'rejected') return 'Rejected';
-    if (status === 'request_edit') return 'Request Edit';
-    if (status === 'pending') return 'Pending';
-    return status || 'Processed';
+    if (status === 'approved') return 'Đã duyệt';
+    if (status === 'rejected') return 'Từ chối';
+    if (status === 'pending') return 'Chờ duyệt';
+    return status || 'Đã xử lý';
   };
 
   const closeDemoModal = () => {
     setDemoItem(null);
-    setDemoStory(null);
+    setDemoContent(null);
     setDemoLoading(false);
     setDemoError('');
   };
 
-  const noteActionLabel = noteModal.action === 'request-edit' ? 'Request Edit' : 'Reject';
+  const noteActionLabel = 'Từ chối';
+
+  const contentTypeLabel = (contentType) => {
+    if (contentType === 'story') return 'Truyện';
+    if (contentType === 'chapter') return 'Chương';
+    return contentType || 'Nội dung';
+  };
 
   const handleViewDemo = async (item) => {
     setDemoItem(item);
-    setDemoStory(null);
+    setDemoContent(null);
     setDemoLoading(true);
     setDemoError('');
 
-    const storyId = item.storyId || item.contentId;
     try {
-      const story = await storyService.getStory(storyId);
-      setDemoStory(story || null);
+      if (item.contentType === 'story') {
+        const story = await storyService.getStory(item.storyId);
+        setDemoContent(story || null);
+      } else {
+        const content = await storyService.getChapterContent(item.storyId, item.contentId);
+        setDemoContent(content || null);
+      }
     } catch (err) {
-      setDemoError(err.message || 'Failed to load story demo');
+      setDemoError(err.message || 'Không thể tải nội dung chương');
     } finally {
       setDemoLoading(false);
     }
@@ -181,178 +231,178 @@ function ContentModeration() {
       <header className='admin-moderation__header'>
         <h1>Kiểm duyệt nội dung</h1>
         <p>
-          Xem xét câu chuyện và các chương trước khi xuất bản để đảm bảo bản quyền, phù hợp với độ tuổi và tiêu chuẩn cộng đồng.
+          Xem xét các chương truyện trước khi xuất bản để đảm bảo bản quyền, phù hợp với độ tuổi và tiêu chuẩn cộng đồng.
         </p>
       </header>
 
-      <div className='admin-moderation__toolbar'>
-        <div className='admin-moderation__stats'>
-          <span className='admin-moderation__badge'>
-            Pending: {pendingCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--approved'>
-            Approved: {approvedCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--rejected'>
-            Rejected: {rejectedCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--request-edit'>
-            Request Edit: {requestEditCount}
-          </span>
-          <span className='admin-moderation__badge admin-moderation__badge--processed'>
-            Processed: {processedCount}
-          </span>
+      <div className='admin-moderation__card admin-moderation__controls-card'>
+        <div className='admin-moderation__toolbar'>
+          <div className='admin-moderation__stats'>
+            <span className='admin-moderation__badge'>
+              Chờ duyệt: {pendingCount}
+            </span>
+            <span className='admin-moderation__badge admin-moderation__badge--approved'>
+              Đã duyệt: {approvedCount}
+            </span>
+            <span className='admin-moderation__badge admin-moderation__badge--rejected'>
+              Từ chối: {rejectedCount}
+            </span>
+            <span className='admin-moderation__badge admin-moderation__badge--processed'>
+              Đã xử lý: {processedCount}
+            </span>
+          </div>
+          <button
+            type='button'
+            className='admin-moderation__refresh'
+            onClick={loadModerationContent}
+            disabled={loading}
+          >
+            Tải lại
+          </button>
         </div>
-        <button
-          type='button'
-          className='admin-moderation__refresh'
-          onClick={loadModerationContent}
-          disabled={loading}
-        >
-          Refresh
-        </button>
-      </div>
 
-      <div className='admin-moderation__tabs'>
+        <div className='admin-moderation__filters'>
+          <label className='admin-moderation__filter-label'>
+            Loại:
+            <select
+              className='admin-moderation__select'
+              value={activeContentType}
+              onChange={(e) => setActiveContentType(e.target.value)}
+            >
+              <option value='all'>Tất cả</option>
+              <option value='story'>Truyện</option>
+              <option value='chapter'>Chương</option>
+            </select>
+          </label>
+        </div>
+
+        <div className='admin-moderation__tabs'>
         <button
           type='button'
           className={activeStatus === 'pending' ? 'active' : ''}
           onClick={() => setActiveStatus('pending')}
         >
-          Pending
+          Chờ duyệt
         </button>
         <button
           type='button'
           className={activeStatus === 'approved' ? 'active' : ''}
           onClick={() => setActiveStatus('approved')}
         >
-          Approved
+          Đã duyệt
         </button>
         <button
           type='button'
           className={activeStatus === 'rejected' ? 'active' : ''}
           onClick={() => setActiveStatus('rejected')}
         >
-          Rejected
+          Từ chối
         </button>
-        <button
-          type='button'
-          className={activeStatus === 'request_edit' ? 'active' : ''}
-          onClick={() => setActiveStatus('request_edit')}
-        >
-          Request Edit
-        </button>
+      </div>
       </div>
 
       {error && <div className='admin-moderation__error'>{error}</div>}
 
-      <div className='admin-moderation__grid'>
+      <div className='admin-moderation__card admin-moderation__card--table'>
+        <div className='admin-moderation__grid'>
         <table>
           <thead>
             <tr>
-              <th>Type</th>
-              <th>Story Title</th>
-              <th>Author Name</th>
-              <th>Genre</th>
-              <th>Rating / Age Classification</th>
-              <th>Submission Date</th>
-              <th>Status</th>
-              <th>Processed At</th>
-              <th>Moderation Note</th>
-              {showActions && <th>Actions</th>}
+              <th className='admin-moderation__th--sortable' onClick={() => handleSort('type')}>
+                Loại {sortBy === 'type' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
+              <th>Tên truyện</th>
+              <th className='admin-moderation__th--sortable' onClick={() => handleSort('author')}>
+                Tác giả {sortBy === 'author' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
+              <th>Thể loại</th>
+              <th>Xử lý</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={showActions ? 10 : 9} className='admin-moderation__empty'>
-                  Loading moderation queue...
+                <td colSpan={7} className='admin-moderation__empty'>
+                  Đang tải hàng chờ kiểm duyệt...
                 </td>
               </tr>
-            ) : filteredItems.length === 0 ? (
+            ) : sortedItems.length === 0 ? (
               <tr>
-                <td colSpan={showActions ? 10 : 9} className='admin-moderation__empty'>
-                  No records in this status
+                <td colSpan={7} className='admin-moderation__empty'>
+                  Không có bản ghi ở trạng thái này
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => {
+              paginatedItems.map((item) => {
                 const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
                 const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');
-                const editKey = buildActionKey(item.contentType, item.contentId, 'request-edit');
-                const isBusy = busyKey === approveKey || busyKey === rejectKey || busyKey === editKey;
-                const canModerate = item.moderationStatus === 'pending';
+                const isBusy = busyKey === approveKey || busyKey === rejectKey;
                 return (
                   <tr key={`${item.contentType}-${item.contentId}`}>
-                    <td>{item.contentType}</td>
+                    <td>{contentTypeLabel(item.contentType)}</td>
                     <td>{item.storyTitle}</td>
                     <td>{item.authorName}</td>
                     <td>{item.genre}</td>
-                    <td>{item.ratingAgeClassification}</td>
-                    <td>
-                      {item.submissionDate
-                        ? new Date(item.submissionDate).toLocaleString()
-                        : 'N/A'}
-                    </td>
-                    <td>
-                      <span className={`admin-moderation__status admin-moderation__status--${item.moderationStatus || 'processed'}`}>
-                        {statusLabel(item.moderationStatus)}
-                      </span>
-                    </td>
                     <td>
                       {item.moderationProcessedAt
-                        ? new Date(item.moderationProcessedAt).toLocaleString()
-                        : '-'}
+                        ? new Date(item.moderationProcessedAt).toLocaleString('vi-VN')
+                        : '—'}
                     </td>
-                    <td>{item.moderationNote || '-'}</td>
-                    {showActions && (
-                      <td className='admin-moderation__actions'>
-                        <button
-                          type='button'
-                          className='demo'
-                          disabled={isBusy || item.contentType !== 'story'}
-                          onClick={() => handleViewDemo(item)}
-                        >
-                          Xem demo
-                        </button>
-                        <button
-                          type='button'
-                          className='approve'
-                          disabled={isBusy || !canModerate}
-                          onClick={() => handleAction(item, 'approve')}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type='button'
-                          className='reject'
-                          disabled={isBusy || !canModerate}
-                          onClick={() => handleAction(item, 'reject')}
-                        >
-                          Reject
-                        </button>
-                        <button
-                          type='button'
-                          className='edit'
-                          disabled={isBusy || !canModerate}
-                          onClick={() => handleAction(item, 'request-edit')}
-                        >
-                          Request Edit
-                        </button>
-                      </td>
-                    )}
+                    <td>
+                      <span className={`admin-moderation__status admin-moderation__status--${displayStatus(item) || 'processed'}`}>
+                        {statusLabel(displayStatus(item))}
+                      </span>
+                    </td>
+                    <td className='admin-moderation__actions'>
+                      <button
+                        type='button'
+                        className='demo'
+                        disabled={isBusy}
+                        onClick={() => handleViewDemo(item)}
+                      >
+                        Xem demo
+                      </button>
+                    </td>
                   </tr>
                 );
               })
             )}
           </tbody>
         </table>
+        {!loading && totalItems > 0 && (
+          <div className='admin-moderation__pagination'>
+            <span className='admin-moderation__pagination-info'>
+              Trang {safePage} / {totalPages} ({totalItems} bản ghi)
+            </span>
+            <div className='admin-moderation__pagination-btns'>
+              <button
+                type='button'
+                className='admin-moderation__pagination-btn'
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Trước
+              </button>
+              <button
+                type='button'
+                className='admin-moderation__pagination-btn'
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       </div>
       {demoItem && (
         <div className='admin-moderation__modal-backdrop' onClick={closeDemoModal}>
           <div className='admin-moderation__modal' onClick={(event) => event.stopPropagation()}>
             <div className='admin-moderation__modal-head'>
-              <h2>Demo truyện chờ duyệt</h2>
+              <h2>{demoItem.contentType === 'story' ? 'Xem nội dung truyện' : 'Xem nội dung chương'}</h2>
               <button type='button' onClick={closeDemoModal} aria-label='Đóng popup demo'>
                 x
               </button>
@@ -370,23 +420,64 @@ function ContentModeration() {
 
             {!demoLoading && !demoError && (
               <div className='admin-moderation__modal-content'>
-                <h3>{demoStory?.title || demoItem.storyTitle}</h3>
+                {demoItem.contentType === 'story' && demoContent?.coverUrl && (
+                  <div className='admin-moderation__modal-cover'>
+                    <img
+                      src={demoContent.coverUrl}
+                      alt={`Bìa: ${demoContent?.title || demoItem.storyTitle || 'Truyện'}`}
+                    />
+                  </div>
+                )}
+                <h3>
+                  {demoItem.contentType === 'story'
+                    ? demoContent?.title || demoContent?.data?.title || demoItem.storyTitle || `Truyện #${demoItem.contentId}`
+                    : demoContent?.title || `Chương #${demoItem.contentId}`}
+                </h3>
                 <p className='admin-moderation__modal-meta'>
-                  Tác giả: {demoStory?.authorPenName || demoItem.authorName || 'N/A'}
+                  Truyện: {demoItem.storyTitle || '—'}
                 </p>
                 <p className='admin-moderation__modal-meta'>
-                  Thể loại: {demoStory?.kind || demoItem.genre || 'N/A'}
+                  Tác giả: {demoItem.authorName || 'Không có'}
                 </p>
-                <p className='admin-moderation__modal-meta'>
-                  Phân loại độ tuổi: {demoItem.ratingAgeClassification || 'N/A'}
-                </p>
-                <div className='admin-moderation__modal-summary'>
-                  {demoStory?.summaryHtml ? (
-                    <div dangerouslySetInnerHTML={{ __html: demoStory.summaryHtml }} />
+                <div className='admin-moderation__modal-summary admin-moderation__modal-chapter-body'>
+                  {demoItem.contentType === 'story' ? (
+                    demoContent?.summaryHtml ? (
+                      <div
+                        className='admin-moderation__chapter-content'
+                        dangerouslySetInnerHTML={{ __html: demoContent.summaryHtml }}
+                      />
+                    ) : (
+                      <p>Truyện chưa có phần giới thiệu.</p>
+                    )
+                  ) : demoContent?.fullHtml ? (
+                    <div
+                      className='admin-moderation__chapter-content'
+                      dangerouslySetInnerHTML={{ __html: demoContent.fullHtml }}
+                    />
                   ) : (
-                    <p>Truyện chưa có mô tả để xem demo.</p>
+                    <p>Chương chưa có nội dung.</p>
                   )}
                 </div>
+              </div>
+            )}
+            {displayStatus(demoItem) === 'pending' && !demoLoading && (
+              <div className='admin-moderation__modal-actions'>
+                <button
+                  type='button'
+                  className='admin-moderation__modal-btn approve'
+                  disabled={busyKey === buildActionKey(demoItem.contentType, demoItem.contentId, 'approve')}
+                  onClick={() => handleAction(demoItem, 'approve')}
+                >
+                  Duyệt
+                </button>
+                <button
+                  type='button'
+                  className='admin-moderation__modal-btn reject'
+                  disabled={busyKey === buildActionKey(demoItem.contentType, demoItem.contentId, 'reject')}
+                  onClick={() => openNoteModal(demoItem, 'reject')}
+                >
+                  Từ chối
+                </button>
               </div>
             )}
           </div>
@@ -398,9 +489,9 @@ function ContentModeration() {
             className='admin-moderation__note-modal'
             onClick={(event) => event.stopPropagation()}
           >
-            <h3>{noteActionLabel} - Moderation Note</h3>
+            <h3>{noteActionLabel}</h3>
             <p className='admin-moderation__note-help'>
-              Optional note for this action.
+              Ghi chú tùy chọn cho hành động này.
             </p>
             <textarea
               value={noteModal.note}
@@ -408,14 +499,14 @@ function ContentModeration() {
                 setNoteModal((prev) => ({ ...prev, note: event.target.value }))
               }
               rows={4}
-              placeholder='Enter moderation note...'
+              placeholder='Nhập ghi chú kiểm duyệt...'
             />
             <div className='admin-moderation__note-actions'>
               <button type='button' className='cancel' onClick={closeNoteModal}>
-                Cancel
+                Hủy
               </button>
               <button type='button' className='confirm' onClick={handleSubmitNote}>
-                Confirm
+                Xác nhận
               </button>
             </div>
           </div>

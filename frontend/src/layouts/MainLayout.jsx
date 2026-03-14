@@ -17,13 +17,16 @@ function MainLayout({ children }) {
     '/forgot-password',
     '/reset-password',
   ].includes(location.pathname);
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {!isReadingPage && <Header />}
       <main
         className={`main-content ${
-          isReadingPage
+          isAdminPage
+            ? 'main-content--admin'
+            : isReadingPage
             ? ''
             : isHomePage
             ? 'main-content--home'

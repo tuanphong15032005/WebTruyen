@@ -444,10 +444,14 @@ public class StoryController {
     public List<AuthorCommentResponse> getAuthorComments(
             @RequestParam Integer storyId,
             @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) java.time.Instant fromDate,
+            @RequestParam(required = false) java.time.Instant toDate,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId);
+        java.time.LocalDateTime from = fromDate != null ? fromDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        java.time.LocalDateTime to = toDate != null ? toDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId, from, to);
     }
 
     @PostMapping(value = "/author/comments/{parentCommentId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)
