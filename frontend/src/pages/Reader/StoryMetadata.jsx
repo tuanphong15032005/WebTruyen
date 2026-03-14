@@ -1,5 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import StoryLibraryModal from '../../components/StoryLibraryModal';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
 import '../../styles/story-metadata.css';
@@ -144,7 +145,7 @@ const MetaLine = ({
     {typeof onValueClick === 'function' ? (
       <button
         type='button'
-        className={`story-metadata__meta-value ${valueClass}`.trim()}
+        className={`story-metadata__meta-value story-metadata__meta-value--button ${valueClass}`.trim()}
         onClick={onValueClick}
         style={{
           background: 'none',
@@ -182,12 +183,13 @@ const StoryMetadata = () => {
   const [loadingSidebar, setLoadingSidebar] = useState(false);
   const [loadingResumePoint, setLoadingResumePoint] = useState(false);
 
-  const [expandedSummary, setExpandedSummary] = useState(false);
   const [expandedVolumes, setExpandedVolumes] = useState(() => new Set());
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [librarySaved, setLibrarySaved] = useState(false);
-  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
+  const [favoriteSaved, setFavoriteSaved] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [resumePoint, setResumePoint] = useState(null);
 
   const [commentContent, setCommentContent] = useState('');
@@ -338,9 +340,11 @@ const StoryMetadata = () => {
       const response = await storyService.getLibraryStatus(storyId);
       logFlowSuccess(response);
       setLibrarySaved(Boolean(response?.saved));
+      setFavoriteSaved(Boolean(response?.favorite));
     } catch (error) {
       logFlowError(error);
       setLibrarySaved(false);
+      setFavoriteSaved(false);
     }
   }, [storyId]);
 
@@ -519,7 +523,6 @@ const StoryMetadata = () => {
     [story],
   );
 
-  const canExpandSummary = summaryText.length > 300;
   const latestReviewContent = latestReview ? latestReview.content || '' : '';
   const latestReviewShort = truncateText(
     latestReviewContent,
@@ -764,6 +767,20 @@ const StoryMetadata = () => {
     goToReaderChapter(chapterId, segmentId);
   }, [goToReaderChapter, notify, resumePoint, storyId]);
 
+  const handleShareToFacebook = useCallback(() => {
+    const shareUrl = window.location.href;
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    const shareWindow = window.open('', '_blank');
+
+    if (shareWindow) {
+      shareWindow.opener = null;
+      shareWindow.location.href = facebookShareUrl;
+      return;
+    }
+
+    notify('Trình duyệt đang chặn tab mới. Hãy cho phép popup để chia sẻ.', 'info');
+  }, [notify]);
+
   const normalizeCommentNode = useCallback(
     (comment) => ({
       ...comment,
@@ -800,42 +817,73 @@ const StoryMetadata = () => {
     }
   };
 
+  const handleLibraryDialogSaved = useCallback(
+    (response) => {
+      const saved = Boolean(response?.saved);
+      const favorite = Boolean(response?.favorite);
+      const followerDelta = Number(saved) - Number(librarySaved);
+      setLibrarySaved(saved);
+      setFavoriteSaved(favorite);
+      setSidebar((prev) => {
+        if (!prev || followerDelta === 0) return prev;
+        const currentFollowers = Number(prev.followerCount || 0);
+        const nextFollowers = Math.max(0, currentFollowers + followerDelta);
+        return {
+          ...prev,
+          followerCount: nextFollowers,
+        };
+      });
+    },
+    [librarySaved],
+  );
+
   const handleToggleLibrary = async () => {
     if (!currentUser) {
       notify('Bạn cần đăng nhập để lưu truyện vào thư viện', 'info');
       navigate('/login');
       return;
     }
+    setShowLibraryModal(true);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!currentUser) {
+      notify('Bạn cần đăng nhập để thêm truyện vào yêu thích', 'info');
+      navigate('/login');
+      return;
+    }
+
     try {
-      setLibraryLoading(true);
-      logFlowStart('METADATA_TOGGLE_LIBRARY_FLOW', {
-        endpoint: `/stories/${storyId}/library/toggle`,
+      setFavoriteLoading(true);
+      logFlowStart('METADATA_TOGGLE_FAVORITE_FLOW', {
+        endpoint: `/stories/${storyId}/favorite/toggle`,
         method: 'POST',
         payload: { storyId },
       });
-      const response = await storyService.toggleLibraryStatus(storyId);
+      const response = await storyService.toggleFavoriteStatus(storyId);
       logFlowSuccess(response);
       const saved = Boolean(response?.saved);
+      const favorite = Boolean(response?.favorite);
+      const followerDelta = Number(saved) - Number(librarySaved);
+
       setLibrarySaved(saved);
+      setFavoriteSaved(favorite);
       setSidebar((prev) => {
-        if (!prev) return prev;
+        if (!prev || followerDelta === 0) return prev;
         const currentFollowers = Number(prev.followerCount || 0);
-        const nextFollowers = Math.max(0, currentFollowers + (saved ? 1 : -1));
         return {
           ...prev,
-          followerCount: nextFollowers,
+          followerCount: Math.max(0, currentFollowers + followerDelta),
         };
       });
-      notify(
-        saved ? 'Đã lưu vào thư viện' : 'Đã bỏ lưu khỏi thư viện',
-        'success',
-      );
+
+      notify(favorite ? 'Đã thêm vào yêu thích' : 'Đã bỏ khỏi yêu thích', 'success');
     } catch (error) {
       logFlowError(error);
-      console.error('toggle library error', error);
-      notify('Không thể cập nhật thư viện', 'error');
+      console.error('toggle favorite error', error);
+      notify('Không thể cập nhật trạng thái yêu thích', 'error');
     } finally {
-      setLibraryLoading(false);
+      setFavoriteLoading(false);
     }
   };
 
@@ -1244,7 +1292,20 @@ const StoryMetadata = () => {
             )}
 
             {story && (
-              <div className='story-metadata__card'>
+              <>
+                <button
+                  type='button'
+                  className={`story-metadata__favorite-toggle ${favoriteSaved ? 'is-active' : ''}`}
+                  onClick={handleToggleFavorite}
+                  disabled={favoriteLoading}
+                  aria-label={favoriteSaved ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                  title={favoriteSaved ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                >
+                  <svg viewBox='0 0 24 24' aria-hidden='true'>
+                    <path d='M12 21.35 10.55 20C5.4 15.24 2 12.09 2 8.25 2 5.1 4.42 2.75 7.5 2.75c1.74 0 3.41.81 4.5 2.09a5.9 5.9 0 0 1 4.5-2.09C19.58 2.75 22 5.1 22 8.25c0 3.84-3.4 6.99-8.55 11.76L12 21.35z' />
+                  </svg>
+                </button>
+                <div className='story-metadata__card'>
                 <aside className='story-metadata__cover-col'>
                   {story.coverUrl ? (
                     <img
@@ -1262,25 +1323,28 @@ const StoryMetadata = () => {
                     type='button'
                     className={`story-metadata__side-btn ${librarySaved ? 'saved' : ''}`}
                     onClick={handleToggleLibrary}
-                    disabled={libraryLoading}
                   >
                     <svg viewBox='0 0 24 24' aria-hidden='true'>
                       <path d='M6 3h12a2 2 0 0 1 2 2v16l-8-3.8L4 21V5a2 2 0 0 1 2-2z' />
                     </svg>
                     <span>
-                      {libraryLoading
-                        ? 'Đang xử lý...'
-                        : librarySaved
-                          ? 'Đã lưu'
-                          : 'Lưu vào thư viện'}
+                      {librarySaved ? 'Đã lưu' : 'Lưu vào thư viện'}
                     </span>
                   </button>
                   <button
                     type='button'
+                    className='story-metadata__side-btn share'
+                    onClick={handleShareToFacebook}
+                  >
+                    <svg viewBox='0 0 24 24' aria-hidden='true'>
+                      <path d='M14 9h3V5h-3c-2.76 0-5 2.24-5 5v2H6v4h3v5h4v-5h3.11l.89-4H13v-2c0-.55.45-1 1-1z' />
+                    </svg>
+                    <span>Chia sẻ</span>
+                  </button>
+                  <button
+                    type='button'
                     className='story-metadata__side-btn ghost'
-                    onClick={() => {
-                      navigate(`/stories/report`);
-                    }}
+                    onClick={() => navigate(`/stories/${storyId}/report`)}
                   >
                     <svg viewBox='0 0 24 24' aria-hidden='true'>
                       <path d='M12 2 2 6v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V6L12 2zm0 6a1.6 1.6 0 1 1 0 3.2A1.6 1.6 0 0 1 12 8zm1.2 10h-2.4v-1.8h.9v-3.4h-.9V11h2.4v5.2h.9V18z' />
@@ -1414,21 +1478,11 @@ const StoryMetadata = () => {
                     <span>Nội dung</span>
                   </div>
 
-                  <div
-                    className={`story-metadata__summary ${expandedSummary ? 'expanded' : ''}`}
-                  >
-                    {summaryText || 'Chưa có tóm tắt.'}
+                  <div className='story-metadata__summary'>
+                    <p className='story-metadata__summary-text'>
+                      {summaryText || 'Chưa có tóm tắt.'}
+                    </p>
                   </div>
-
-                  {canExpandSummary && (
-                    <button
-                      type='button'
-                      className='story-metadata__summary-toggle'
-                      onClick={() => setExpandedSummary((prev) => !prev)}
-                    >
-                      {expandedSummary ? 'Thu gọn' : 'Xem thêm'}
-                    </button>
-                  )}
 
                   <div className='story-metadata__actions-row'>
                     <div className='story-metadata__actions'>
@@ -1470,14 +1524,13 @@ const StoryMetadata = () => {
                         disabled={notifyLoading}
                         aria-label='Bật/tắt thông báo'
                       >
-                        <span className='story-metadata__notify-switch-knob'>
-                          {notifyEnabled ? 'V' : 'X'}
-                        </span>
+                        <span className='story-metadata__notify-switch-knob' />
                       </button>
                     </div>
                   </div>
                 </article>
-              </div>
+                </div>
+              </>
             )}
           </section>
 
@@ -1818,6 +1871,13 @@ const StoryMetadata = () => {
           </section>
         </aside>
       </div>
+      <StoryLibraryModal
+        isOpen={showLibraryModal}
+        story={story}
+        onClose={() => setShowLibraryModal(false)}
+        onSaved={handleLibraryDialogSaved}
+        notify={notify}
+      />
     </div>
   );
 };
