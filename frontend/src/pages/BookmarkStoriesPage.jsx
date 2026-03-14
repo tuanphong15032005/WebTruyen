@@ -29,8 +29,24 @@ const BookmarkStoriesPage = () => {
     const now = new Date();
     const bookmarkDate = new Date(date);
     const diffTime = Math.abs(now - bookmarkDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
+    // Check if it's actually today by comparing dates
+    const isToday = now.toDateString() === bookmarkDate.toDateString();
+    
+    // Debug logs
+    console.log('formatLastBookmark debug:', {
+      now: now.toISOString(),
+      bookmarkDate: bookmarkDate.toISOString(),
+      nowDateString: now.toDateString(),
+      bookmarkDateString: bookmarkDate.toDateString(),
+      isToday,
+      diffTime,
+      diffDays
+    });
+    
+    if (isToday) return 'Đánh dấu hôm nay';
+    if (diffDays === 0) return 'Đánh dấu hôm nay';
     if (diffDays === 1) return 'Đánh dấu 1 ngày trước';
     if (diffDays < 7) return `Đánh dấu ${diffDays} ngày trước`;
     if (diffDays < 30) return `Đánh dấu ${Math.floor(diffDays / 7)} tuần trước`;

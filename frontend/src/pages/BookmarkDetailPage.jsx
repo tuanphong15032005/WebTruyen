@@ -33,8 +33,31 @@ const BookmarkDetailPage = () => {
   }, [storyId]);
 
   const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    const now = new Date();
+    const bookmarkDate = new Date(dateString);
+    const diffTime = Math.abs(now - bookmarkDate);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Check if it's actually today by comparing dates
+    const isToday = now.toDateString() === bookmarkDate.toDateString();
+    
+    // Debug logs
+    console.log('formatDate debug:', {
+      now: now.toISOString(),
+      bookmarkDate: bookmarkDate.toISOString(),
+      nowDateString: now.toDateString(),
+      bookmarkDateString: bookmarkDate.toDateString(),
+      isToday,
+      diffTime,
+      diffDays
+    });
+    
+    if (isToday) return 'hôm nay';
+    if (diffDays === 0) return 'hôm nay';
+    if (diffDays === 1) return 'hôm qua';
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return `${Math.floor(diffDays / 30)} tháng trước`;
   };
 
   const handleContinueReading = (bookmark) => {
@@ -92,7 +115,7 @@ const BookmarkDetailPage = () => {
           </button>
           <div>
             <h1>{storyTitle}</h1>
-            <p>Your Bookmarks ({bookmarks.length} saved)</p>
+            <p>Bookmarks của bạn (đã lưu {bookmarks.length})</p>
           </div>
         </div>
         <div className="header-right">
@@ -112,7 +135,7 @@ const BookmarkDetailPage = () => {
               <h3 className="chapter-title">{bookmark.chapterTitle}</h3>
               <div className="bookmark-meta">
                 <Clock size={14} />
-                <span>Saved {formatDate(bookmark.createdAt)}</span>
+                <span>Lưu {formatDate(bookmark.createdAt)}</span>
               </div>
             </div>
             
