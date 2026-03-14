@@ -30,6 +30,9 @@ function ViolationReportManagement() {
     mode: 'warn',
     banHours: '72',
   });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const PAGE_SIZE = 10;
 
   const loadReports = async () => {
     setLoading(true);
@@ -76,6 +79,19 @@ function ViolationReportManagement() {
     }
     return list.filter((item) => item.reportStatus === statusFilter);
   }, [items, statusFilter, typeFilter]);
+
+  const totalItems = filteredItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedItems = useMemo(
+    () => filteredItems.slice(startIndex, startIndex + PAGE_SIZE),
+    [filteredItems, startIndex]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, statusFilter]);
 
   const canRestoreStory = (item) =>
     item.reportedContent === 'STORY' &&
@@ -276,7 +292,7 @@ function ViolationReportManagement() {
                 <td colSpan={showActions || showRestoreColumn ? 9 : 7} className='admin-reports__empty'>Không có báo cáo trong danh sách này</td>
               </tr>
             ) : (
-              filteredItems.map((item) => {
+              paginatedItems.map((item) => {
                 const disabled = busyId === item.reportId || !canTakeAction(item);
                 return (
                   <tr key={item.reportId}>
@@ -334,6 +350,31 @@ function ViolationReportManagement() {
             )}
           </tbody>
         </table>
+        {!loading && totalItems > 0 && (
+          <div className='admin-reports__pagination'>
+            <span className='admin-reports__pagination-info'>
+              Trang {safePage} / {totalPages} ({totalItems} báo cáo)
+            </span>
+            <div className='admin-reports__pagination-btns'>
+              <button
+                type='button'
+                className='admin-reports__pagination-btn'
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Trước
+              </button>
+              <button
+                type='button'
+                className='admin-reports__pagination-btn'
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        )}
         </div>
       </div>
       {warnBanModal.open && (

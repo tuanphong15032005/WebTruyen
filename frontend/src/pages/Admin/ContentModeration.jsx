@@ -21,7 +21,9 @@ function ContentModeration() {
     action: '',
     note: '',
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
+  const PAGE_SIZE = 10;
   const displayStatus = (item) => item.approvalStatus ?? item.moderationStatus;
 
   const pendingCount = useMemo(
@@ -68,6 +70,15 @@ function ContentModeration() {
     return list;
   }, [filteredItems, sortBy, sortOrder]);
 
+  const totalItems = sortedItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedItems = useMemo(
+    () => sortedItems.slice(startIndex, startIndex + PAGE_SIZE),
+    [sortedItems, startIndex]
+  );
+
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
@@ -93,6 +104,10 @@ function ContentModeration() {
   useEffect(() => {
     loadModerationContent();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeStatus, activeContentType]);
 
   useEffect(() => {
     if (!demoItem && !noteModal.open) return undefined;
@@ -320,7 +335,7 @@ function ContentModeration() {
                 </td>
               </tr>
             ) : (
-              sortedItems.map((item) => {
+              paginatedItems.map((item) => {
                 const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
                 const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');
                 const isBusy = busyKey === approveKey || busyKey === rejectKey;
@@ -356,6 +371,31 @@ function ContentModeration() {
             )}
           </tbody>
         </table>
+        {!loading && totalItems > 0 && (
+          <div className='admin-moderation__pagination'>
+            <span className='admin-moderation__pagination-info'>
+              Trang {safePage} / {totalPages} ({totalItems} bản ghi)
+            </span>
+            <div className='admin-moderation__pagination-btns'>
+              <button
+                type='button'
+                className='admin-moderation__pagination-btn'
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Trước
+              </button>
+              <button
+                type='button'
+                className='admin-moderation__pagination-btn'
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       </div>
       {demoItem && (
