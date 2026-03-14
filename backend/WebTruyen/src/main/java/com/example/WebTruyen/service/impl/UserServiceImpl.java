@@ -95,4 +95,10 @@ public class UserServiceImpl implements UserService {
 
         return response;
     }
+
+    @Override
+    public UserEntity findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+    }
 }
