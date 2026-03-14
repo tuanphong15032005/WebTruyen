@@ -23,6 +23,7 @@ import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
 import BookmarkStoriesPage from './pages/BookmarkStoriesPage';
 import BookmarkDetailPage from './pages/BookmarkDetailPage';
+import ReadingHistoryPage from './pages/ReadingHistoryPage';
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
@@ -122,6 +123,7 @@ function App() {
         <Route path='/library' element={<LibraryStories />} />
         <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
         <Route path='/bookmarks/story/:storyId' element={<BookmarkDetailPage />} />
+        <Route path='/reading-history' element={<ReadingHistoryPage />} />
         <Route path='/author/create-story' element={<CreateStory />} />
         <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
         <Route path='/author/stories/:storyId' element={<StoryDetail />} />

@@ -204,7 +204,7 @@ public class StoryService {
         StoryEntity story = requirePublishedStoryById(storyId.longValue());
 
         return readingHistoryRepository
-                .findById_UserIdAndId_StoryId(currentUser.getId(), story.getId())
+                .findByUserIdAndStoryId(Long.valueOf(currentUser.getId()), Long.valueOf(story.getId()))
                 .map(history -> {
                     Long chapterId = history.getLastChapter() != null
                             ? history.getLastChapter().getId()

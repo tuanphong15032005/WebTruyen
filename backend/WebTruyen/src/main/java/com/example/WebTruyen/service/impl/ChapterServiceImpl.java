@@ -792,7 +792,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
         //record + lưu lịch sử đọc mới nhất cho user
         ReadingHistoryEntity history = readingHistoryRepository
-                .findById_UserIdAndId_StoryId(userId, storyId)
+                .findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()
                         .id(new ReadingHistoryId(userId, storyId))
                         .user(user)
@@ -831,7 +831,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         ReadingHistoryEntity history = readingHistoryRepository
-                .findById_UserIdAndId_StoryId(userId, storyId)
+                .findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()
                         .id(new ReadingHistoryId(userId, storyId))
                         .user(user)

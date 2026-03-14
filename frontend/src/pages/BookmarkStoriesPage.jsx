@@ -66,7 +66,7 @@ const BookmarkStoriesPage = () => {
               <Library size={20} />
               <span>Thư viện</span>
             </div>
-            <div className="menu-item">
+            <div className="menu-item" onClick={() => navigate('/reading-history')}>
               <History size={20} />
               <span>Lịch sử đọc truyện</span>
             </div>
@@ -101,7 +101,7 @@ const BookmarkStoriesPage = () => {
             <Library size={20} />
             <span>Thư viện</span>
           </div>
-          <div className="menu-item">
+          <div className="menu-item" onClick={() => navigate('/reading-history')}>
             <History size={20} />
             <span>Lịch sử đọc truyện</span>
           </div>
