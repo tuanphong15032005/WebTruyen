@@ -21,6 +21,8 @@ import DailyTasksPage from './pages/DailyTasksPage';
 import AchievementsPage from './pages/AchievementsPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
+import BookmarkStoriesPage from './pages/BookmarkStoriesPage';
+import BookmarkDetailPage from './pages/BookmarkDetailPage';
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
@@ -118,6 +120,8 @@ function App() {
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
         <Route path='/library' element={<LibraryStories />} />
+        <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
+        <Route path='/bookmarks/story/:storyId' element={<BookmarkDetailPage />} />
         <Route path='/author/create-story' element={<CreateStory />} />
         <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
         <Route path='/author/stories/:storyId' element={<StoryDetail />} />
@@ -125,6 +129,10 @@ function App() {
         <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
         <Route
           path='/stories/:storyId/chapters/:chapterId'
+          element={<ChapterPage />}
+        />
+        <Route
+          path='/reader'
           element={<ChapterPage />}
         />
         <Route

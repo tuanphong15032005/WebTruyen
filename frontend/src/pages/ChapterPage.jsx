@@ -830,7 +830,13 @@ const ChapterPage = () => {
   const navigate = useNavigate();
   const { notify } = useNotify();
 
-  const initialId = Number(chapterIdParam) || INITIAL_CHAPTER_ID;
+  // Handle /reader route with query parameters
+  const readerChapterId = searchParams.get('chapterId');
+  const readerStoryId = searchParams.get('storyId');
+  const finalChapterId = readerChapterId || chapterIdParam;
+  const finalStoryId = readerStoryId || storyId;
+  
+  const initialId = Number(finalChapterId) || INITIAL_CHAPTER_ID;
   const { chapterId, chapter, allChapters, loading, error, refreshChapter } =
     useChapter(initialId);
   const { bookmarks, toggleBookmark, removeBookmark, getBookmarkSegmentId } =
@@ -938,10 +944,10 @@ const ChapterPage = () => {
     activeReadingSegmentIdRef.current = fallbackSegmentId || null;
     chapterQualifiedRef.current = Boolean(
       chapter?.id &&
-      viewedChapterKeysRef.current.has(`${storyId || ''}:${chapter.id}`),
+      viewedChapterKeysRef.current.has(`${finalStoryId || ''}:${chapter.id}`),
     );
     lastPersistedProgressRef.current = '';
-  }, [chapter?.id, resumeSegmentId, storyId, visibleSegments]);
+  }, [chapter?.id, resumeSegmentId, finalStoryId, visibleSegments]);
 
   const resolveSegmentIdFromViewportCenter = useCallback(() => {
     const segmentElements = Array.from(
@@ -1221,7 +1227,7 @@ const ChapterPage = () => {
   useEffect(() => {
     if (!chapter?.id || isLocked) return undefined;
 
-    const chapterViewKey = `${storyId || ''}:${chapter.id}`;
+    const chapterViewKey = `${finalStoryId || ''}:${chapter.id}`;
     if (viewedChapterKeysRef.current.has(chapterViewKey)) {
       chapterQualifiedRef.current = true;
       return undefined;
@@ -1252,7 +1258,7 @@ const ChapterPage = () => {
         chapterViewTimerRef.current = null;
       }
     };
-  }, [chapter?.id, storyId, isLocked, getActiveSegmentId]);
+  }, [chapter?.id, finalStoryId, isLocked, getActiveSegmentId]);
 
   useEffect(() => {
     if (!chapter?.id || isLocked) return undefined;
@@ -1335,9 +1341,9 @@ const ChapterPage = () => {
   }, [settings.bgColor, settings.textColor]);
 
   const gotoChapter = async (targetId) => {
-    if (!storyId || !targetId) return;
+    if (!finalStoryId || !targetId) return;
     await persistQualifiedProgress({ chapterIdOverride: chapter?.id });
-    navigate(`/stories/${storyId}/chapters/${targetId}`);
+    navigate(`/stories/${finalStoryId}/chapters/${targetId}`);
   };
 
   const navigateWithQualifiedProgress = useCallback(
@@ -1383,6 +1389,7 @@ const ChapterPage = () => {
         segmentId: segment.id,
         text: previewSegment(segment.segmentText),
         positionPercent: progressPercent(),
+        isFavorite: true, // Manual bookmark
       });
       notify(existed ? 'Đã xóa bookmark' : 'Đã lưu bookmark', 'success');
     } catch (err) {
@@ -1484,8 +1491,8 @@ const ChapterPage = () => {
         onNextChapter={() => nextChapterId && gotoChapter(nextChapterId)}
         onHome={() => navigateWithQualifiedProgress('/')}
         onBackToMetadata={() =>
-          storyId &&
-          navigateWithQualifiedProgress(`/stories/${storyId}/metadata`)
+          finalStoryId &&
+          navigateWithQualifiedProgress(`/stories/${finalStoryId}/metadata`)
         }
         onSettings={() => setShowSettings(true)}
         onBookmarks={() => setShowPanel(true)}
@@ -1594,7 +1601,7 @@ const ChapterPage = () => {
             </div>
 
             <CommentsSection
-              storyId={storyId}
+              storyId={finalStoryId}
               chapterId={chapterId}
               dark={dark}
             />

@@ -2,6 +2,8 @@ package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.request.CreateBookmarkRequest;
 import com.example.WebTruyen.dto.response.BookmarkResponse;
+import com.example.WebTruyen.dto.response.BookmarkStoryResponse;
+import com.example.WebTruyen.dto.response.BookmarkStoryDetailResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.BookmarkService;
@@ -55,5 +57,22 @@ public class BookmarkController {
         UserEntity currentUser = requireUser(userPrincipal);
         bookmarkService.delete(currentUser, bookmarkId);
         return Map.of("deleted", true);
+    }
+
+    @GetMapping("/stories")
+    public List<BookmarkStoryResponse> getBookmarkStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return bookmarkService.getBookmarkStories(currentUser);
+    }
+
+    @GetMapping("/story/{storyId}")
+    public List<BookmarkStoryDetailResponse> getBookmarkStoryDetails(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return bookmarkService.getBookmarkStoryDetails(currentUser, storyId);
     }
 }
