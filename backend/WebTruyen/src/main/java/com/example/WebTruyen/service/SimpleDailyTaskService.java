@@ -701,6 +701,10 @@ public class SimpleDailyTaskService {
     public boolean isMissionAvailable(String missionCode) {
         try {
             LocalDate today = LocalDate.now();
+            
+            // Ensure daily missions exist for today before checking
+            ensureDailyMissionsExist(today);
+            
             return dailyMissionRepository.findByDateAndMissionCode(today, missionCode).isPresent();
         } catch (Exception e) {
             log.warn("Error checking mission availability for {}: {}", missionCode, e.getMessage());
