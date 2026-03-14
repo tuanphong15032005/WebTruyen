@@ -100,8 +100,16 @@ const storyService = {
 
   getLibraryStatus: (storyId) => api.get(`/stories/${storyId}/library-status`),
 
+  getStoryLibraryDialog: (storyId) => api.get(`/stories/${storyId}/library-dialog`),
+
+  updateStoryLibraryDialog: (storyId, payload) =>
+    api.put(`/stories/${storyId}/library-dialog`, payload),
+
   toggleLibraryStatus: (storyId) =>
     api.post(`/stories/${storyId}/library/toggle`),
+
+  toggleFavoriteStatus: (storyId) =>
+    api.post(`/stories/${storyId}/favorite/toggle`),
 
   createChapter: (storyId, volumeId, payload) =>
     api.post(`/stories/${storyId}/volumes/${volumeId}/chapters`, payload),
