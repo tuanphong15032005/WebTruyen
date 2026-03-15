@@ -1,11 +1,7 @@
-import { useState } from 'react';
-import ContentModeration from './ContentModeration';
-import ViolationReportManagement from './ViolationReportManagement';
+import { NavLink, Outlet } from 'react-router-dom';
 import '../../styles/admin-dashboard.css';
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('moderation');
-
   return (
     <div className='admin-dashboard'>
       <aside className='admin-dashboard__sidebar'>
@@ -14,26 +10,46 @@ function AdminDashboard() {
           <span className='admin-dashboard__logo-text'>Admin Panel</span>
         </div>
         <nav className='admin-dashboard__nav'>
-          <button
-            type='button'
-            className={`admin-dashboard__nav-item ${activeTab === 'moderation' ? 'active' : ''}`}
-            onClick={() => setActiveTab('moderation')}
+          <NavLink
+            to='moderation'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
           >
             <span className='admin-dashboard__nav-icon'>📋</span>
             Kiểm duyệt nội dung
-          </button>
-          <button
-            type='button'
-            className={`admin-dashboard__nav-item ${activeTab === 'reports' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reports')}
+          </NavLink>
+          <NavLink
+            to='reports'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
           >
             <span className='admin-dashboard__nav-icon'>⚠️</span>
             Quản lý Báo cáo vi phạm
-          </button>
+          </NavLink>
+          <NavLink
+            to='achievements'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className='admin-dashboard__nav-icon'>🏆</span>
+            Quản lý thành tích
+          </NavLink>
+          <NavLink
+            to='finance'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className='admin-dashboard__nav-icon'>💳</span>
+            Quản lý chi trả và hoàn tiền
+          </NavLink>
         </nav>
       </aside>
       <main className='admin-dashboard__main'>
-        {activeTab === 'moderation' ? <ContentModeration /> : <ViolationReportManagement />}
+        <Outlet />
       </main>
     </div>
   );
