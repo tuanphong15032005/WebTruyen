@@ -1,0 +1,454 @@
+/* UserProfile.css - Giao diện hồ sơ cá nhân */
+
+/* ====== STYLE CHUNG ====== */
+.user-profile-container {
+  background-color: #FFFFFF;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* ====== SIDEBAR ====== */
+.user-profile-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background-color: #ffffff;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  border-right: 1px solid #e5e7eb;
+  padding: 24px 16px;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-menu-item:hover {
+  background-color: #f9fafb;
+  color: #374151;
+}
+
+.sidebar-menu-item.active {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.sidebar-menu-item .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
+}
+
+.sidebar-menu-item.active .icon {
+  color: #2563eb;
+}
+
+/* ====== MAIN CONTENT ====== */
+.user-profile-main {
+  flex: 1;
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ====== BANNER & AVATAR ====== */
+.profile-banner-container {
+  width: 100%;
+  margin-bottom: -80px;
+  position: relative;
+}
+
+.profile-banner {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.profile-info-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  position: relative;
+  z-index: 10;
+  margin-top: -40px;
+  margin-bottom: 24px;
+}
+
+.profile-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.profile-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 15px;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.02);
+}
+
+.profile-info h1 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.profile-role-badge {
+  display: inline-block;
+  background-color: #dbeafe;
+  color: #1e40af;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profile-username {
+  color: #9ca3af;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-box {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 20px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.stat-number {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  display: block;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* ====== NHIỆM VỤ HẰNG NGÀY ====== */
+.daily-missions-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  margin-bottom: 24px;
+}
+
+.daily-missions-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.missions-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.missions-icon-circle .icon {
+  color: #059669;
+  width: 20px;
+  height: 20px;
+}
+
+.daily-missions-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.daily-missions-description {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.daily-missions-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.daily-missions-button:hover {
+  background-color: #1d4ed8;
+}
+
+/* ====== 2 CỘT CÀI ĐẶT & BẢO MẬT ====== */
+.settings-security-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.settings-card, .security-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.card-header .icon {
+  color: #1f2937;
+  width: 20px;
+  height: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #f9fafb;
+  font-size: 14px;
+  color: #111827;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.form-input:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: white;
+}
+
+.form-textarea {
+  resize: none;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 12px;
+}
+
+.input-with-button .form-input {
+  flex: 1;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-dark {
+  background-color: #1e293b;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+.btn-dark:hover {
+  background-color: #334155;
+}
+
+/* ====== AVATAR UPLOAD ====== */
+.avatar-upload-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid white;
+  transition: background-color 0.2s ease;
+}
+
+.avatar-upload-overlay:hover {
+  background-color: #1d4ed8;
+}
+
+.avatar-upload-overlay .icon {
+  color: white;
+  width: 16px;
+  height: 16px;
+}
+
+/* ====== MESSAGES ====== */
+.message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.message.success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.message.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.message.info {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 1024px) {
+  .settings-security-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .profile-stats {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-profile-sidebar {
+    display: none;
+  }
+  
+  .user-profile-main {
+    padding: 16px;
+  }
+  
+  .profile-left {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .profile-info h1 {
+    font-size: 24px;
+  }
+}
