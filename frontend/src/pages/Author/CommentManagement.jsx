@@ -534,7 +534,7 @@ const CommentManagement = () => {
               value={filterYear}
               onChange={(e) => setFilterYear(Number(e.target.value))}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+              {Array.from({ length: 1 }, (_, i) => new Date().getFullYear() - i).map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
