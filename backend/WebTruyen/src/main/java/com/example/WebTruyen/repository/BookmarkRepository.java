@@ -1,7 +1,10 @@
 package com.example.WebTruyen.repository;
 
 import com.example.WebTruyen.entity.model.SocialLibrary.BookmarkEntity;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,4 +18,8 @@ public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> 
     Optional<BookmarkEntity> findByUser_IdAndChapter_IdAndSegment_Id(Long userId, Long chapterId, Long segmentId);
 
     Optional<BookmarkEntity> findByIdAndUser_Id(Long bookmarkId, Long userId);
+
+    @Modifying
+    @Query("delete from BookmarkEntity b where b.chapter.id = :chapterId")
+    int deleteAllByChapterId(@Param("chapterId") Long chapterId);
 }

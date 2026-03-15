@@ -2,6 +2,7 @@ package com.example.WebTruyen.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import org.jsoup.Jsoup;
@@ -237,8 +239,10 @@ public class StoryService {
             String sort,
             String q,
             String author,
+            String kind,
             String completionStatus,
-            List<Long> tagIds
+            List<Long> tagIds,
+            List<Long> excludeTagIds
     ) {
         // Parse sort parameter, default to createdAt desc (newest first)
         String sortField = "createdAt";
@@ -256,19 +260,38 @@ public class StoryService {
         
         String normalizedQuery = trimToNull(q);
         String normalizedAuthor = trimToNull(author);
+        StoryKind kindFilter = parseKindForSearch(kind);
         StoryCompletionStatus completionStatusFilter = parseCompletionStatusForSearch(completionStatus);
         List<Long> normalizedTagIds = normalizeIds(tagIds);
+        Set<Long> excludedTagIdSet = new HashSet<>(normalizeIds(excludeTagIds));
         List<Long> queryTagIds = normalizedTagIds.isEmpty() ? List.of(-1L) : normalizedTagIds;
         long tagCount = normalizedTagIds.size();
 
         List<StoryEntity> stories = storyRepository.findPublishedStoriesWithAdvancedFilters(
                 StoryStatus.published,
-                normalizedQuery,
+                null,
+                kindFilter,
                 normalizedAuthor,
                 completionStatusFilter,
                 queryTagIds,
                 tagCount
         );
+
+        if (normalizedQuery != null) {
+            stories = stories.stream()
+                    .filter(story -> matchesSearchQuery(story.getTitle(), normalizedQuery))
+                    .toList();
+        }
+
+        if (!excludedTagIdSet.isEmpty()) {
+            stories = stories.stream()
+                    .filter(story -> story.getStoryTags().stream()
+                            .map(StoryTagEntity::getTag)
+                            .filter(Objects::nonNull)
+                            .map(TagEntity::getId)
+                            .noneMatch(excludedTagIdSet::contains))
+                    .toList();
+        }
 
         Comparator<StoryEntity> comparator = buildPublishedStorySortComparator(sortField);
         if (comparator != null) {
@@ -1016,6 +1039,17 @@ public class StoryService {
         }
     }
 
+    private StoryKind parseKindForSearch(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return StoryKind.valueOf(raw.trim().toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
     // Hieu Son - ngay 26/02/2026
     // Ham ho tro sap xep ket qua truyen cong khai theo truong sort nhan tu query.
     private Comparator<StoryEntity> buildPublishedStorySortComparator(String sortField) {
@@ -1053,6 +1087,45 @@ public class StoryService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean matchesSearchQuery(String title, String query) {
+        String normalizedTitle = normalizeSearchText(title);
+        String normalizedQuery = normalizeSearchText(query);
+        if (normalizedQuery == null) {
+            return true;
+        }
+        if (normalizedTitle == null) {
+            return false;
+        }
+        if (normalizedTitle.contains(normalizedQuery)) {
+            return true;
+        }
+
+        List<String> tokens = Arrays.stream(normalizedQuery.split(" "))
+                .map(String::trim)
+                .filter(token -> !token.isEmpty())
+                .toList();
+
+        return !tokens.isEmpty() && tokens.stream().allMatch(normalizedTitle::contains);
+    }
+
+    private String normalizeSearchText(String value) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+
+        return Normalizer.normalize(trimmed, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase(Locale.ROOT)
+                .replace('\u0111', 'd')
+                .replace('\u0110', 'd')
+                .replaceAll("[^\\p{L}\\p{N}]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private String normalizeOriginalAuthorName(StoryKind kind, String name) {

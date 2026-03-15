@@ -465,14 +465,14 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   };
 
   const openReplyForm = (comment, rootId) => {
-    const mentionUsername =
-      Number(comment?.userId) !== currentUserId ? comment?.username : null;
+    const mentionUsername = comment?.username || null;
     setEditingCommentId(null);
     setEditingContent('');
     setReplyForId(comment.id);
     setReplyTarget({
       rootId: String(rootId || comment.id),
       parentCommentId: comment.id,
+      parentUserId: comment?.userId ?? null,
       mentionUsername,
     });
     setReplyContent('');
@@ -610,12 +610,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   const renderCommentItem = (comment, isReply = false, rootId = null) => {
     const commentRootId = String(rootId || comment.id);
     const isOwner = currentUserId === Number(comment.userId);
-    const mention =
-      isReply &&
-      comment.parentUsername &&
-      Number(comment.parentUserId) !== Number(comment.userId)
-        ? `@${comment.parentUsername} `
-        : '';
+    const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
     const isEditing = editingCommentId === comment.id;
 
     return (

@@ -1,5 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import SkeletonBlock from '../../components/SkeletonBlock';
 import StoryLibraryModal from '../../components/StoryLibraryModal';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -93,6 +94,31 @@ const formatRatingValue = (value) => {
   return raw.toFixed(2).replace('.', ',');
 };
 
+const getRankMedal = (rank) => {
+  if (rank === 1) {
+    return {
+      icon: '🥇',
+      label: 'Huy chương vàng',
+      className: 'story-metadata__rank-medal--gold',
+    };
+  }
+  if (rank === 2) {
+    return {
+      icon: '🥈',
+      label: 'Huy chương bạc',
+      className: 'story-metadata__rank-medal--silver',
+    };
+  }
+  if (rank === 3) {
+    return {
+      icon: '🥉',
+      label: 'Huy chương đồng',
+      className: 'story-metadata__rank-medal--bronze',
+    };
+  }
+  return null;
+};
+
 const toEpoch = (value) => {
   const time = new Date(value || 0).getTime();
   return Number.isFinite(time) ? time : 0;
@@ -176,11 +202,11 @@ const StoryMetadata = () => {
   const [comments, setComments] = useState([]);
   const [sidebar, setSidebar] = useState(null);
 
-  const [loadingStory, setLoadingStory] = useState(false);
-  const [loadingVolumes, setLoadingVolumes] = useState(false);
-  const [loadingReviews, setLoadingReviews] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [loadingSidebar, setLoadingSidebar] = useState(false);
+  const [loadingStory, setLoadingStory] = useState(true);
+  const [loadingVolumes, setLoadingVolumes] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [loadingComments, setLoadingComments] = useState(true);
+  const [loadingSidebar, setLoadingSidebar] = useState(true);
   const [loadingResumePoint, setLoadingResumePoint] = useState(false);
 
   const [expandedVolumes, setExpandedVolumes] = useState(() => new Set());
@@ -193,16 +219,22 @@ const StoryMetadata = () => {
   const [resumePoint, setResumePoint] = useState(null);
 
   const [commentContent, setCommentContent] = useState('');
+  const [commentHasSpoiler, setCommentHasSpoiler] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [replyForId, setReplyForId] = useState(null);
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyContent, setReplyContent] = useState('');
+  const [replyHasSpoiler, setReplyHasSpoiler] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
   const [savingComment, setSavingComment] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
+  const [editingHasSpoiler, setEditingHasSpoiler] = useState(false);
   const [submittingReportForId, setSubmittingReportForId] = useState(null);
   const [visibleRepliesByRoot, setVisibleRepliesByRoot] = useState({});
+  const [revealedSpoilerComments, setRevealedSpoilerComments] = useState({});
+  const [latestReviewRevealed, setLatestReviewRevealed] = useState(false);
+
   const [commentsPage, setCommentsPage] = useState(0);
   const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [commentsTotal, setCommentsTotal] = useState(0);
@@ -492,11 +524,18 @@ const StoryMetadata = () => {
     [sidebar],
   );
 
-  const weeklyRankText = useMemo(() => {
-    const rank = Number(sidebar?.weeklyRank || 0);
+  const allTimeRank = useMemo(
+    () => Number(sidebar?.weeklyRank || 0),
+    [sidebar],
+  );
+
+  const allTimeRankText = useMemo(() => {
+    const rank = allTimeRank;
     if (!rank) return 'Chưa xếp hạng';
     return `#${rank}`;
-  }, [sidebar]);
+  }, [allTimeRank]);
+
+  const allTimeRankMedal = useMemo(() => getRankMedal(allTimeRank), [allTimeRank]);
 
   const similarStories = useMemo(
     () =>
@@ -529,6 +568,9 @@ const StoryMetadata = () => {
     REVIEW_PREVIEW_LENGTH,
   );
   const latestReviewIsLong = latestReviewContent.length > REVIEW_PREVIEW_LENGTH;
+  const latestReviewIsSpoiler = Boolean(latestReview?.spoiler);
+  const latestReviewVisible =
+    Boolean(latestReview) && (!latestReviewIsSpoiler || latestReviewRevealed);
 
   const readableChapterCandidates = useMemo(() => {
     const volumeList = Array.isArray(volumes) ? volumes : [];
@@ -805,8 +847,10 @@ const StoryMetadata = () => {
       setSubmittingComment(true);
       await storyService.createStoryComment(storyId, {
         content: commentContent.trim(),
+        spoiler: commentHasSpoiler,
       });
       setCommentContent('');
+      setCommentHasSpoiler(false);
       notify('Đã đăng bình luận', 'success');
       await fetchCommentsPage(0, false);
     } catch (error) {
@@ -893,23 +937,25 @@ const StoryMetadata = () => {
   };
 
   const openReplyForm = (comment, rootId) => {
-    const mentionUsername =
-      Number(comment?.userId) !== currentUserId ? comment?.username : null;
+    const mentionUsername = comment?.username || null;
     setEditingCommentId(null);
     setEditingContent('');
     setReplyForId(comment.id);
     setReplyTarget({
       rootId: String(rootId || comment.id),
       parentCommentId: comment.id,
+      parentUserId: comment?.userId ?? null,
       mentionUsername,
     });
     setReplyContent('');
+    setReplyHasSpoiler(false);
   };
 
   const closeReplyForm = () => {
     setReplyForId(null);
     setReplyTarget(null);
     setReplyContent('');
+    setReplyHasSpoiler(false);
   };
 
   const updateCommentInTree = useCallback((nodes, targetId, updater) => {
@@ -977,11 +1023,18 @@ const StoryMetadata = () => {
       const response = await storyService.createStoryComment(storyId, {
         content: replyContent.trim(),
         parentCommentId: replyTarget.parentCommentId,
+        spoiler: replyHasSpoiler,
       });
 
       const createdReply = response;
       if (createdReply?.id) {
-        const normalizedReply = normalizeCommentNode(createdReply);
+        const normalizedReply = normalizeCommentNode({
+          ...createdReply,
+          parentUserId:
+            createdReply?.parentUserId ?? replyTarget?.parentUserId ?? null,
+          parentUsername:
+            createdReply?.parentUsername ?? replyTarget?.mentionUsername ?? null,
+        });
         const targetRootId = String(replyTarget.rootId);
         setComments((prev) =>
           prev.map((root) =>
@@ -1019,11 +1072,13 @@ const StoryMetadata = () => {
     closeReplyForm();
     setEditingCommentId(comment.id);
     setEditingContent(comment.content || '');
+    setEditingHasSpoiler(Boolean(comment?.spoiler));
   };
 
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditingContent('');
+    setEditingHasSpoiler(false);
   };
 
   const handleSaveEdit = async (commentId) => {
@@ -1035,11 +1090,13 @@ const StoryMetadata = () => {
       setSavingComment(true);
       await storyService.updateStoryComment(storyId, commentId, {
         content: editingContent.trim(),
+        spoiler: editingHasSpoiler,
       });
       setComments((prev) =>
         updateCommentInTree(prev, commentId, (node) => ({
           ...node,
           content: editingContent.trim(),
+          spoiler: editingHasSpoiler,
         })),
       );
       notify('Đã cập nhật bình luận', 'success');
@@ -1138,6 +1195,14 @@ const StoryMetadata = () => {
           placeholder='Nhập trả lời...'
           maxLength={4000}
         />
+        <label className='story-metadata__spoiler-toggle'>
+          <input
+            type='checkbox'
+            checked={replyHasSpoiler}
+            onChange={(event) => setReplyHasSpoiler(event.target.checked)}
+          />
+          <span>Chứa spoil</span>
+        </label>
         <div className='story-metadata__reply-form-footer'>
           <span>{replyContent.trim().length} ký tự</span>
           <div className='story-metadata__reply-form-buttons'>
@@ -1160,12 +1225,12 @@ const StoryMetadata = () => {
   const renderCommentItem = (comment, isReply = false, rootId = null) => {
     const commentRootId = String(rootId || comment.id);
     const isOwner = currentUserId === Number(comment.userId);
-    const mention =
-      isReply &&
-      comment.parentUsername &&
-      Number(comment.parentUserId) !== Number(comment.userId)
-        ? `@${comment.parentUsername} `
-        : '';
+    const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
+    const isHidden = Boolean(comment?.hidden);
+    const isSpoiler = Boolean(comment?.spoiler);
+    const spoilerRevealed = Boolean(
+      revealedSpoilerComments[String(comment.id)],
+    );
 
     const isEditing = editingCommentId === comment.id;
 
@@ -1206,6 +1271,16 @@ const StoryMetadata = () => {
                 onChange={(event) => setEditingContent(event.target.value)}
                 maxLength={4000}
               />
+              <label className='story-metadata__spoiler-toggle'>
+                <input
+                  type='checkbox'
+                  checked={editingHasSpoiler}
+                  onChange={(event) =>
+                    setEditingHasSpoiler(event.target.checked)
+                  }
+                />
+                <span>Chứa spoil</span>
+              </label>
               <div className='story-metadata__edit-actions'>
                 <button
                   type='button'
@@ -1224,15 +1299,41 @@ const StoryMetadata = () => {
               </div>
             </div>
           ) : (
-            <p>
-              {mention && (
-                <span className='story-metadata__mention'>{mention}</span>
+            <>
+              {isHidden ? (
+                <p className='story-metadata__content-mask story-metadata__content-mask--hidden'>
+                  Bình luận đã bị ẩn do vi phạm tiêu chuẩn cộng đồng.
+                </p>
+              ) : isSpoiler && !spoilerRevealed ? (
+                <div className='story-metadata__content-mask-wrap'>
+                  <p className='story-metadata__content-mask'>
+                    Bình luận này có chứa spoiler.
+                  </p>
+                  <button
+                    type='button'
+                    className='story-metadata__reveal-btn'
+                    onClick={() =>
+                      setRevealedSpoilerComments((prev) => ({
+                        ...prev,
+                        [String(comment.id)]: true,
+                      }))
+                    }
+                  >
+                    Hiện bình luận
+                  </button>
+                </div>
+              ) : (
+                <p>
+                  {mention && (
+                    <span className='story-metadata__mention'>{mention}</span>
+                  )}
+                  {comment.content}
+                </p>
               )}
-              {comment.content}
-            </p>
+            </>
           )}
 
-          {!isEditing && (
+          {!isEditing && !isHidden && (
             <div className='story-metadata__comment-actions'>
               <button
                 type='button'
@@ -1280,15 +1381,126 @@ const StoryMetadata = () => {
     );
   };
 
+  const renderSidebarSkeletonItems = (count = 3) =>
+    Array.from({ length: count }, (_, index) => (
+      <div
+        key={`sidebar-skeleton-${index}`}
+        className='story-metadata__sidebar-item story-metadata__sidebar-item--skeleton'
+        aria-hidden='true'
+      >
+        <SkeletonBlock className='story-metadata__sidebar-item-cover-skeleton' />
+        <div className='story-metadata__sidebar-item-body story-metadata__sidebar-item-body--skeleton'>
+          <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--title' />
+          <SkeletonBlock className='story-metadata__sidebar-line-skeleton' />
+          <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--short' />
+        </div>
+      </div>
+    ));
+
+  const renderCommentSkeletons = (count = 3) =>
+    Array.from({ length: count }, (_, index) => (
+      <article
+        key={`comment-skeleton-${index}`}
+        className='story-metadata__comment story-metadata__comment--skeleton'
+        aria-hidden='true'
+      >
+        <SkeletonBlock className='story-metadata__comment-avatar-skeleton' />
+        <div className='story-metadata__comment-body'>
+          <div className='story-metadata__comment-head story-metadata__comment-head--skeleton'>
+            <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--name' />
+            <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--time' />
+          </div>
+          <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--content' />
+          <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--content short' />
+        </div>
+      </article>
+    ));
+
+  const renderVolumeSkeletons = (count = 3) =>
+    Array.from({ length: count }, (_, index) => (
+      <div
+        key={`volume-skeleton-${index}`}
+        className='story-metadata__volume story-metadata__volume--skeleton'
+        aria-hidden='true'
+      >
+        <div className='story-metadata__volume-head'>
+          <span className='story-metadata__volume-head-main'>
+            <SkeletonBlock className='story-metadata__volume-cover-skeleton' />
+            <span className='story-metadata__volume-head-text story-metadata__volume-head-text--skeleton'>
+              <SkeletonBlock className='story-metadata__volume-line-skeleton story-metadata__volume-line-skeleton--title' />
+              <SkeletonBlock className='story-metadata__volume-line-skeleton story-metadata__volume-line-skeleton--meta' />
+            </span>
+          </span>
+          <SkeletonBlock className='story-metadata__volume-toggle-skeleton' />
+        </div>
+      </div>
+    ));
+
   return (
     <div className='story-metadata'>
       <div className='story-metadata__layout'>
         <div className='story-metadata__main'>
           <section className='story-metadata__frame'>
-            {loadingStory && (
-              <p className='story-metadata__muted'>
-                Đang tải thông tin truyện...
-              </p>
+            {loadingStory && !story && (
+              <div className='story-metadata__card story-metadata__card--skeleton' aria-hidden='true'>
+                <aside className='story-metadata__cover-col'>
+                  <SkeletonBlock className='story-metadata__cover-skeleton' />
+                  <SkeletonBlock className='story-metadata__side-btn-skeleton' />
+                  <SkeletonBlock className='story-metadata__side-btn-skeleton' />
+                  <SkeletonBlock className='story-metadata__side-btn-skeleton story-metadata__side-btn-skeleton--ghost' />
+                </aside>
+
+                <article className='story-metadata__content'>
+                  <SkeletonBlock className='story-metadata__title-skeleton' />
+                  <div className='story-metadata__meta story-metadata__meta--skeleton'>
+                    {Array.from({ length: 4 }, (_, index) => (
+                      <div
+                        key={`meta-skeleton-${index}`}
+                        className='story-metadata__meta-line story-metadata__meta-line--skeleton'
+                      >
+                        <SkeletonBlock className='story-metadata__meta-icon-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-label-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-value-skeleton' />
+                      </div>
+                    ))}
+                  </div>
+                  <div className='story-metadata__tags story-metadata__tags--skeleton'>
+                    <SkeletonBlock className='story-metadata__tag-skeleton' />
+                    <SkeletonBlock className='story-metadata__tag-skeleton' />
+                    <SkeletonBlock className='story-metadata__tag-skeleton story-metadata__tag-skeleton--wide' />
+                  </div>
+                  <div className='story-metadata__rows'>
+                    {Array.from({ length: 3 }, (_, index) => (
+                      <div
+                        key={`row-skeleton-${index}`}
+                        className='story-metadata__meta-line story-metadata__meta-line--skeleton'
+                      >
+                        <SkeletonBlock className='story-metadata__meta-icon-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-label-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-value-skeleton story-metadata__meta-value-skeleton--short' />
+                      </div>
+                    ))}
+                  </div>
+                  <div className='story-metadata__summary-header'>
+                    <span>Nội dung</span>
+                  </div>
+                  <div className='story-metadata__summary'>
+                    <div className='story-metadata__summary-text story-metadata__summary-text--skeleton'>
+                      <SkeletonBlock className='story-metadata__summary-line-skeleton' />
+                      <SkeletonBlock className='story-metadata__summary-line-skeleton' />
+                      <SkeletonBlock className='story-metadata__summary-line-skeleton story-metadata__summary-line-skeleton--short' />
+                    </div>
+                  </div>
+                  <div className='story-metadata__actions-row story-metadata__actions-row--skeleton'>
+                    <div className='story-metadata__actions'>
+                      <SkeletonBlock className='story-metadata__action-btn-skeleton' />
+                      <SkeletonBlock className='story-metadata__action-btn-skeleton' />
+                      <SkeletonBlock className='story-metadata__action-btn-skeleton story-metadata__action-btn-skeleton--ghost' />
+                    </div>
+                    <SkeletonBlock className='story-metadata__notify-skeleton' />
+                  </div>
+                </article>
+              </div>
             )}
 
             {story && (
@@ -1540,8 +1752,23 @@ const StoryMetadata = () => {
               <Link to={`/stories/${storyId}/reviews`}>Xem trang đánh giá</Link>
             </div>
 
-            {loadingReviews && (
-              <p className='story-metadata__muted'>Đang tải review...</p>
+            {loadingReviews && !latestReview && (
+              <article
+                className='story-metadata__latest-review-card story-metadata__latest-review-card--skeleton'
+                aria-hidden='true'
+              >
+                <div className='story-metadata__latest-review-head'>
+                  <SkeletonBlock className='story-metadata__review-name-skeleton' />
+                  <SkeletonBlock className='story-metadata__review-stars-skeleton' />
+                </div>
+                <SkeletonBlock className='story-metadata__review-line-skeleton' />
+                <SkeletonBlock className='story-metadata__review-line-skeleton' />
+                <SkeletonBlock className='story-metadata__review-line-skeleton story-metadata__review-line-skeleton--short' />
+                <div className='story-metadata__latest-review-footer'>
+                  <SkeletonBlock className='story-metadata__review-footer-skeleton' />
+                  <SkeletonBlock className='story-metadata__review-footer-skeleton story-metadata__review-footer-skeleton--link' />
+                </div>
+              </article>
             )}
 
             {!loadingReviews && !latestReview && (
@@ -1571,7 +1798,22 @@ const StoryMetadata = () => {
                     ))}
                   </div>
                 </div>
-                <p>{latestReviewShort}</p>
+                {latestReviewVisible ? (
+                  <p>{latestReviewShort}</p>
+                ) : (
+                  <div className='story-metadata__content-mask-wrap'>
+                    <p className='story-metadata__content-mask'>
+                      Đánh giá này có chứa spoiler.
+                    </p>
+                    <button
+                      type='button'
+                      className='story-metadata__reveal-btn'
+                      onClick={() => setLatestReviewRevealed(true)}
+                    >
+                      Hiện đánh giá
+                    </button>
+                  </div>
+                )}
                 <div className='story-metadata__latest-review-footer'>
                   <span>
                     {formatRelativeTime(
@@ -1579,7 +1821,9 @@ const StoryMetadata = () => {
                     )}
                   </span>
                   <Link to={`/stories/${storyId}/reviews`}>
-                    {latestReviewIsLong ? 'Xem thêm' : 'Xem tất cả'}
+                    {latestReviewVisible && latestReviewIsLong
+                      ? 'Xem thêm'
+                      : 'Xem tất cả'}
                   </Link>
                 </div>
               </article>
@@ -1588,9 +1832,7 @@ const StoryMetadata = () => {
 
           <section className='story-metadata__volume-section'>
             <h2>Danh sách Tập & Chương</h2>
-            {loadingVolumes && (
-              <p className='story-metadata__muted'>Đang tải danh sách tập...</p>
-            )}
+            {loadingVolumes && volumes.length === 0 && renderVolumeSkeletons()}
             {!loadingVolumes && volumes.length === 0 && (
               <div className='story-metadata__empty'>Chưa có volume nào.</div>
             )}
@@ -1681,12 +1923,20 @@ const StoryMetadata = () => {
               className='story-metadata__comment-form'
               onSubmit={handleCreateComment}
             >
-              <textarea
-                value={commentContent}
-                onChange={(event) => setCommentContent(event.target.value)}
-                placeholder='Nhập bình luận của bạn...'
-                maxLength={4000}
+            <textarea
+              value={commentContent}
+              onChange={(event) => setCommentContent(event.target.value)}
+              placeholder='Nhập bình luận của bạn...'
+              maxLength={4000}
+            />
+            <label className='story-metadata__spoiler-toggle'>
+              <input
+                type='checkbox'
+                checked={commentHasSpoiler}
+                onChange={(event) => setCommentHasSpoiler(event.target.checked)}
               />
+              <span>Chứa spoil</span>
+            </label>
 
               <div className='story-metadata__comment-form-footer'>
                 <span>{commentContent.trim().length} ký tự</span>
@@ -1697,7 +1947,9 @@ const StoryMetadata = () => {
             </form>
 
             {loadingComments && comments.length === 0 && (
-              <p className='story-metadata__muted'>Đang tải bình luận...</p>
+              <div className='story-metadata__comment-list'>
+                {renderCommentSkeletons()}
+              </div>
             )}
 
             {!loadingComments && comments.length === 0 && (
@@ -1776,8 +2028,19 @@ const StoryMetadata = () => {
         <aside className='story-metadata__sidebar'>
           <section className='story-metadata__sidebar-card'>
             <h3>Thông tin thêm</h3>
-            {loadingSidebar ? (
-              <p className='story-metadata__muted'>Đang tải thông tin...</p>
+            {loadingSidebar && !sidebar ? (
+              <div className='story-metadata__sidebar-info story-metadata__sidebar-info--skeleton' aria-hidden='true'>
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div
+                    key={`sidebar-info-skeleton-${index}`}
+                    className='story-metadata__sidebar-info-row'
+                  >
+                    <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--label' />
+                    <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--value' />
+                  </div>
+                ))}
+                <SkeletonBlock className='story-metadata__sidebar-rating-skeleton' />
+              </div>
             ) : (
               <>
                 <div className='story-metadata__sidebar-info'>
@@ -1794,8 +2057,19 @@ const StoryMetadata = () => {
                     <strong>{followerText}</strong>
                   </div>
                   <div className='story-metadata__sidebar-info-row'>
-                    <span>Xếp hạng tuần</span>
-                    <strong>{weeklyRankText}</strong>
+                    <span>Xếp hạng toàn thời gian</span>
+                    <strong className='story-metadata__rank-value'>
+                      {allTimeRankMedal && (
+                        <span
+                          className={`story-metadata__rank-medal ${allTimeRankMedal.className}`}
+                          aria-label={allTimeRankMedal.label}
+                          title={allTimeRankMedal.label}
+                        >
+                          {allTimeRankMedal.icon}
+                        </span>
+                      )}
+                      <span>{allTimeRankText}</span>
+                    </strong>
                   </div>
                   <div className='story-metadata__sidebar-info-row'>
                     <span>Đánh giá</span>
@@ -1809,11 +2083,17 @@ const StoryMetadata = () => {
 
           <section className='story-metadata__sidebar-card'>
             <h3>Truyện tương tự</h3>
-            {similarStories.length === 0 && (
+            {loadingSidebar && !sidebar && (
+              <div className='story-metadata__sidebar-list'>
+                {renderSidebarSkeletonItems()}
+              </div>
+            )}
+            {!loadingSidebar && similarStories.length === 0 && (
               <p className='story-metadata__muted'>Chưa có truyện tương tự.</p>
             )}
             <div className='story-metadata__sidebar-list'>
-              {similarStories.map((item) => (
+              {!loadingSidebar &&
+                similarStories.map((item) => (
                 <Link
                   key={`similar-${item.storyId}`}
                   className='story-metadata__sidebar-item'
@@ -1832,19 +2112,25 @@ const StoryMetadata = () => {
                     {renderSidebarItemRating(item)}
                   </div>
                 </Link>
-              ))}
+                ))}
             </div>
           </section>
 
           <section className='story-metadata__sidebar-card'>
             <h3>Cùng tác giả</h3>
-            {sameAuthorStories.length === 0 && (
+            {loadingSidebar && !sidebar && (
+              <div className='story-metadata__sidebar-list'>
+                {renderSidebarSkeletonItems()}
+              </div>
+            )}
+            {!loadingSidebar && sameAuthorStories.length === 0 && (
               <p className='story-metadata__muted'>
                 Chưa có truyện cùng tác giả.
               </p>
             )}
             <div className='story-metadata__sidebar-list'>
-              {sameAuthorStories.map((item) => (
+              {!loadingSidebar &&
+                sameAuthorStories.map((item) => (
                 <Link
                   key={`author-${item.storyId}`}
                   className='story-metadata__sidebar-item'
@@ -1866,7 +2152,7 @@ const StoryMetadata = () => {
                     </span>
                   </div>
                 </Link>
-              ))}
+                ))}
             </div>
           </section>
         </aside>

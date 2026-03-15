@@ -4,6 +4,7 @@ import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
+import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -103,6 +104,7 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             left join s.originalAuthorUser oau
             where s.status = :status
               and (:query is null or lower(s.title) like lower(concat('%', :query, '%')))
+              and (:kind is null or s.kind = :kind)
               and (
                     :authorName is null
                     or lower(coalesce(s.author.authorPenName, s.author.username, '')) like lower(concat('%', :authorName, '%'))
@@ -117,6 +119,7 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     List<StoryEntity> findPublishedStoriesWithAdvancedFilters(
             @Param("status") StoryStatus status,
             @Param("query") String query,
+            @Param("kind") StoryKind kind,
             @Param("authorName") String authorName,
             @Param("completionStatus") StoryCompletionStatus completionStatus,
             @Param("tagIds") List<Long> tagIds,

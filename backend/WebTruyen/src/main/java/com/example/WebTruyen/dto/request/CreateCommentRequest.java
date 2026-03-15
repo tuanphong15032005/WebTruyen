@@ -2,5 +2,6 @@ package com.example.WebTruyen.dto.request;
 
 public record CreateCommentRequest(
         String content,
-        Long parentCommentId
+        Long parentCommentId,
+        Boolean spoiler
 ) {}
