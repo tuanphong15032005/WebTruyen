@@ -239,8 +239,10 @@ public class StoryService {
             String sort,
             String q,
             String author,
+            String kind,
             String completionStatus,
-            List<Long> tagIds
+            List<Long> tagIds,
+            List<Long> excludeTagIds
     ) {
         // Parse sort parameter, default to createdAt desc (newest first)
         String sortField = "createdAt";
@@ -258,14 +260,17 @@ public class StoryService {
         
         String normalizedQuery = trimToNull(q);
         String normalizedAuthor = trimToNull(author);
+        StoryKind kindFilter = parseKindForSearch(kind);
         StoryCompletionStatus completionStatusFilter = parseCompletionStatusForSearch(completionStatus);
         List<Long> normalizedTagIds = normalizeIds(tagIds);
+        Set<Long> excludedTagIdSet = new HashSet<>(normalizeIds(excludeTagIds));
         List<Long> queryTagIds = normalizedTagIds.isEmpty() ? List.of(-1L) : normalizedTagIds;
         long tagCount = normalizedTagIds.size();
 
         List<StoryEntity> stories = storyRepository.findPublishedStoriesWithAdvancedFilters(
                 StoryStatus.published,
                 null,
+                kindFilter,
                 normalizedAuthor,
                 completionStatusFilter,
                 queryTagIds,
@@ -275,6 +280,16 @@ public class StoryService {
         if (normalizedQuery != null) {
             stories = stories.stream()
                     .filter(story -> matchesSearchQuery(story.getTitle(), normalizedQuery))
+                    .toList();
+        }
+
+        if (!excludedTagIdSet.isEmpty()) {
+            stories = stories.stream()
+                    .filter(story -> story.getStoryTags().stream()
+                            .map(StoryTagEntity::getTag)
+                            .filter(Objects::nonNull)
+                            .map(TagEntity::getId)
+                            .noneMatch(excludedTagIdSet::contains))
                     .toList();
         }
 
@@ -1019,6 +1034,17 @@ public class StoryService {
         }
         try {
             return StoryCompletionStatus.valueOf(raw.trim().toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private StoryKind parseKindForSearch(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return StoryKind.valueOf(raw.trim().toLowerCase());
         } catch (IllegalArgumentException ex) {
             return null;
         }
