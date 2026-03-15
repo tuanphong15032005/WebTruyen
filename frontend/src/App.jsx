@@ -38,6 +38,9 @@ import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import Report from './pages/Reader/report';
+import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
+import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
+import StoryRankingPage from './pages/Ranking/StoryRankingPage';
 
 import './App.css';
 
@@ -95,6 +98,9 @@ function App() {
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
+        <Route path='/ranking/authors' element={<AuthorRankingPage />} />
+        <Route path='/stories/recent' element={<RecentlyUpdatedStoriesPage />} />
+        <Route path='/ranking/stories' element={<StoryRankingPage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/verify' element={<VerifyCode />} />
