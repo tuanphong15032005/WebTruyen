@@ -9,7 +9,7 @@ function MainLayout({ children }) {
   const isHomePage = location.pathname === '/';
   const isReadingPage = /^\/stories\/[^/]+\/chapters\/[^/]+$/.test(
     location.pathname,
-  );
+  ) || location.pathname === '/reader' || /^\/bookmarks\/story\/[^/]+$/.test(location.pathname);
   const isAuthPage = [
     '/login',
     '/register',
