@@ -42,7 +42,6 @@ const CreateChapter = () => {
   const [saving, setSaving] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [chapterId, setChapterId] = useState(editChapterId || '');
-  const [segmentIds, setSegmentIds] = useState([]);
   const [savedHtml, setSavedHtml] = useState('');
   const [editorReady, setEditorReady] = useState(false);
   const [draftStatusText, setDraftStatusText] = useState('');
@@ -228,6 +227,82 @@ const CreateChapter = () => {
     [],
   );
 
+  const normalizeDraftSnapshotForCompare = useCallback(
+    (snapshot) => {
+      if (!snapshot || typeof snapshot !== 'object') {
+        return {
+          title: '',
+          isFree: true,
+          priceCoin: null,
+          status: 'draft',
+          contentHtml: '',
+        };
+      }
+
+      const nextIsFree =
+        typeof snapshot.isFree === 'boolean' ? snapshot.isFree : true;
+      const rawPrice =
+        snapshot.priceCoin === null || snapshot.priceCoin === undefined
+          ? null
+          : Number(snapshot.priceCoin);
+
+      return {
+        title: normalizeCompareText(snapshot.title),
+        isFree: nextIsFree,
+        priceCoin:
+          nextIsFree || Number.isNaN(rawPrice) ? null : Number(rawPrice),
+        status:
+          typeof snapshot.status === 'string' && snapshot.status.trim()
+            ? snapshot.status.toLowerCase()
+            : 'draft',
+        contentHtml: normalizeCompareHtml(snapshot.contentHtml),
+      };
+    },
+    [normalizeCompareHtml, normalizeCompareText],
+  );
+
+  const getBaselineSnapshotForCompare = useCallback(
+    () =>
+      normalizeDraftSnapshotForCompare(
+        initialChapterSnapshot || {
+          title: '',
+          isFree: true,
+          priceCoin: null,
+          status: 'draft',
+          contentHtml: '',
+        },
+      ),
+    [initialChapterSnapshot, normalizeDraftSnapshotForCompare],
+  );
+
+  const hasUnsavedDraftChanges = useCallback(() => {
+    const quill = quillRef.current?.getEditor();
+    const baseline = getBaselineSnapshotForCompare();
+    const current = normalizeDraftSnapshotForCompare({
+      title,
+      isFree,
+      priceCoin: isFree ? null : priceCoin,
+      status,
+      contentHtml: quill?.root?.innerHTML || content || '',
+    });
+
+    return (
+      baseline.title !== current.title ||
+      baseline.isFree !== current.isFree ||
+      baseline.priceCoin !== current.priceCoin ||
+      baseline.status !== current.status ||
+      baseline.contentHtml !== current.contentHtml
+    );
+  }, [
+    content,
+    getBaselineSnapshotForCompare,
+    isFree,
+    normalizeDraftSnapshotForCompare,
+    priceCoin,
+    status,
+    title,
+  ]);
+
   const restoreInitialChapterSnapshot = useCallback(() => {
     if (!initialChapterSnapshot) return;
     applyingDraftRef.current = true;
@@ -352,6 +427,40 @@ const CreateChapter = () => {
         }
       }
 
+      const baseline = getBaselineSnapshotForCompare();
+      const isEquivalentToBaseline = (candidate) => {
+        if (!candidate?.snapshot) return false;
+        const normalizedCandidate = normalizeDraftSnapshotForCompare(
+          candidate.snapshot,
+        );
+
+        return (
+          normalizedCandidate.title === baseline.title &&
+          normalizedCandidate.isFree === baseline.isFree &&
+          normalizedCandidate.priceCoin === baseline.priceCoin &&
+          normalizedCandidate.status === baseline.status &&
+          normalizedCandidate.contentHtml === baseline.contentHtml
+        );
+      };
+
+      if (localCandidate && isEquivalentToBaseline(localCandidate)) {
+        clearLocalDraft(targetChapterId);
+        localCandidate = null;
+      }
+
+      if (serverCandidate && isEquivalentToBaseline(serverCandidate)) {
+        try {
+          await storyService.deleteChapterDraft(
+            storyId,
+            volumeId,
+            targetChapterId,
+          );
+        } catch {
+          // ignore stale server draft cleanup errors
+        }
+        serverCandidate = null;
+      }
+
       const candidate = [serverCandidate, localCandidate]
         .filter(Boolean)
         .sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
@@ -374,8 +483,11 @@ const CreateChapter = () => {
     },
     [
       applyDraftSnapshot,
+      clearLocalDraft,
       formatTime,
+      getBaselineSnapshotForCompare,
       getDraftKey,
+      normalizeDraftSnapshotForCompare,
       parseDraftSnapshot,
       storyId,
       volumeId,
@@ -649,8 +761,8 @@ const CreateChapter = () => {
     ) {
       return;
     }
-    dirtyRef.current = true;
-  }, [title, isFree, priceCoin, status, content]);
+    dirtyRef.current = hasUnsavedDraftChanges();
+  }, [title, isFree, priceCoin, status, content, hasUnsavedDraftChanges]);
 
   useEffect(() => {
     if (!editorReady) return;
@@ -810,8 +922,15 @@ const CreateChapter = () => {
         : await storyService.createChapter(storyId, volumeId, payload);
       const data = response || {};
       const persistedChapterId = data.chapterId || targetChapterId || '';
+      const persistedSnapshot = {
+        title: title.trim(),
+        isFree,
+        priceCoin: isFree ? null : Number(priceCoin),
+        status: finalStatus,
+        approvalStatus,
+        contentHtml,
+      };
       setChapterId(persistedChapterId);
-      setSegmentIds(data.segmentIds || []);
       hasManualSavedRef.current = true;
       dirtyRef.current = false;
       clearLocalDraft(persistedChapterId);
@@ -822,10 +941,21 @@ const CreateChapter = () => {
             volumeId,
             persistedChapterId,
           );
-        } catch {
-          // ignore cleanup errors
+        } catch (deleteError) {
+          try {
+            await storyService.saveChapterDraft(
+              storyId,
+              volumeId,
+              persistedChapterId,
+              { draftContent: '' },
+            );
+          } catch {
+            console.error('deleteChapterDraft cleanup error', deleteError);
+          }
         }
       }
+      setInitialChapterSnapshot(persistedSnapshot);
+      setSavedHtml(contentHtml);
       setDraftStatusText('');
       notify(
         isEditing ? 'Cập nhật chapter thành công' : 'Lưu chapter thành công',
@@ -847,19 +977,6 @@ const CreateChapter = () => {
       );
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleViewChapter = async () => {
-    if (!chapterId) return;
-    try {
-      const response = await storyService.getChapterContent(storyId, chapterId);
-      const data = response || {};
-      setSavedHtml(data.fullHtml || '');
-      notify('Đã tải nội dung chapter', 'success');
-    } catch (error) {
-      console.error('getChapterContent error', error);
-      notify('Không tải được nội dung chapter', 'error');
     }
   };
 
@@ -951,24 +1068,6 @@ const CreateChapter = () => {
           )}
         </div>
       </div>
-
-      {segmentIds.length > 0 && (
-        <div className='card'>
-          <h3>Danh sách Segment ID</h3>
-          <div className='segment-ids'>
-            {segmentIds.map((id) => (
-              <span key={id} className='chip'>
-                {id}
-              </span>
-            ))}
-          </div>
-          <div className='form-actions'>
-            <Button type='button' variant='ghost' onClick={handleViewChapter}>
-              Xem Chapter
-            </Button>
-          </div>
-        </div>
-      )}
 
       <ConfirmActionModal
         isOpen={showApprovalResetModal}
