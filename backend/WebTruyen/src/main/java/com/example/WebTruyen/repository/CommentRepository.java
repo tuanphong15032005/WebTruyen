@@ -22,6 +22,7 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
     Page<CommentEntity> findByChapter_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Long chapterId, Pageable pageable);
 
     Page<CommentEntity> findByStory_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Integer storyId, Pageable pageable);
+    Page<CommentEntity> findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(Integer storyId, Pageable pageable);
     List<CommentEntity> findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(Integer storyId);
 
     List<CommentEntity> findByRootComment_IdInAndParentCommentIsNotNullAndIsHiddenFalseOrderByCreatedAtAsc(List<Long> rootCommentIds);

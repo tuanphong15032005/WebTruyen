@@ -85,6 +85,34 @@
   line-height: 1.75;
 }
 
+.library-album-page__badge-skeleton {
+  width: 172px;
+  height: 34px;
+  border-radius: 999px;
+}
+
+.library-album-page__hero-copy-skeleton {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.library-album-page__title-skeleton {
+  width: min(100%, 32rem);
+  height: 3rem;
+  border-radius: 18px;
+}
+
+.library-album-page__line-skeleton {
+  width: min(100%, 46rem);
+  height: 15px;
+  border-radius: 999px;
+}
+
+.library-album-page__line-skeleton--short {
+  width: min(100%, 32rem);
+}
+
 .library-album-page__content {
   padding: 0;
   border: 0;
@@ -171,6 +199,29 @@
 .library-album-page__sort-direction svg {
   flex: 0 0 auto;
   display: block;
+}
+
+.library-album-page__toolbar--skeleton,
+.library-album-page__sort--skeleton {
+  pointer-events: none;
+}
+
+.library-album-page__sort-label-skeleton {
+  width: 92px;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.library-album-page__sort-input-skeleton {
+  width: 220px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.library-album-page__sort-button-skeleton {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
 }
 
 .library-album-page__back-home {

@@ -92,7 +92,7 @@ public class CommentService {
         int safeSize = normalizeSize(size);
 
         Page<CommentEntity> dataPage = commentRepository
-                .findByStory_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(
+                .findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(
                         targetStoryId,
                         PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"))
                 );
@@ -128,6 +128,7 @@ public class CommentService {
                 .parentComment(parentComment)
                 .rootComment(rootComment)
                 .content(content)
+                .spoiler(Boolean.TRUE.equals(req.spoiler()))
                 .depth(depth)
                 .isHidden(false)
                 .createdAt(LocalDateTime.now())
@@ -155,6 +156,7 @@ public class CommentService {
         }
 
         comment.setContent(normalizeContent(req));
+        comment.setSpoiler(Boolean.TRUE.equals(req.spoiler()));
         return toResponse(commentRepository.save(comment), List.of());
     }
 
@@ -241,6 +243,7 @@ public class CommentService {
                 .parentComment(parentComment)
                 .rootComment(rootComment)
                 .content(content)
+                .spoiler(Boolean.TRUE.equals(req.spoiler()))
                 .depth(depth)
                 .isHidden(false)
                 .createdAt(LocalDateTime.now())
@@ -268,6 +271,7 @@ public class CommentService {
         }
 
         comment.setContent(normalizeContent(req));
+        comment.setSpoiler(Boolean.TRUE.equals(req.spoiler()));
         return toResponse(commentRepository.save(comment), List.of());
     }
 
@@ -582,7 +586,7 @@ public class CommentService {
         List<Long> rootIds = rootComments.stream().map(CommentEntity::getId).toList();
         List<CommentEntity> replyEntities = rootIds.isEmpty()
                 ? Collections.emptyList()
-                : commentRepository.findByRootComment_IdInAndParentCommentIsNotNullAndIsHiddenFalseOrderByCreatedAtAsc(rootIds);
+                : commentRepository.findByRootComment_IdInAndParentCommentIsNotNullOrderByCreatedAtAsc(rootIds);
 
         Map<Long, List<CommentEntity>> repliesByRootId = new HashMap<>();
         for (CommentEntity reply : replyEntities) {
@@ -610,6 +614,8 @@ public class CommentService {
 
     private CommentResponse toResponse(CommentEntity comment, List<CommentEntity> replies) {
         UserEntity user = comment.getUser();
+        CommentEntity parentComment = comment.getParentComment();
+        UserEntity parentUser = parentComment != null ? parentComment.getUser() : null;
         List<CommentResponse> replyResponses = replies.stream()
                 .map(reply -> toResponse(reply, List.of()))
                 .toList();
@@ -620,8 +626,12 @@ public class CommentService {
                 user != null ? user.getUsername() : "Unknown",
                 user != null ? user.getAvatarUrl() : null,
                 comment.getContent(),
+                Boolean.TRUE.equals(comment.getIsHidden()),
+                comment.isSpoiler(),
                 comment.getCreatedAt(),
-                comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                parentComment != null ? parentComment.getId() : null,
+                parentUser != null ? parentUser.getId() : null,
+                parentUser != null ? parentUser.getUsername() : null,
                 comment.getDepth(),
                 replyResponses
         );
