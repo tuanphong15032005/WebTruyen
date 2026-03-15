@@ -368,14 +368,12 @@ public class WalletService {
 
         // Lấy rule rút tiền hiện tại cho Coin B
         var ruleOpt = withdrawRuleRepository.findFirstByCoinAndActiveIsTrueOrderByIdDesc("B");
-        long minWithdraw = 1L;
-        Long maxWithdraw = null;
+        long minWithdraw;
         long feeCoinB;
 
         if (ruleOpt.isPresent()) {
             var rule = ruleOpt.get();
             minWithdraw = rule.getMinWithdrawCoinB();
-            maxWithdraw = rule.getMaxWithdrawCoinB();
 
             BigDecimal feeValue = rule.getFeeValue();
             switch (rule.getFeeType()) {
@@ -401,9 +399,6 @@ public class WalletService {
 
         if (amountB < minWithdraw) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền rút phải lớn hơn 10000 Kim cương B");
-        }
-        if (maxWithdraw != null && amountB > maxWithdraw) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền rút vượt quá giới hạn tối đa");
         }
 
         if (wallet.getBalanceCoinB() < amountB) {
