@@ -145,7 +145,6 @@ const DailyMissionManagement = () => {
     }
   };
 
-
   const openEditModal = (mission) => {
     setEditingMission(mission);
     setFormData({
@@ -204,26 +203,6 @@ const DailyMissionManagement = () => {
     } catch (error) {
       console.error('Error updating template:', error);
       alert(error.response?.data?.error || 'Không thể cập nhật template. Vui lòng thử lại.');
-    }
-  };
-
-  const handleResetTemplates = async () => {
-    if (!window.confirm(
-      '⚠️ Lưu ý quan trọng:\n\n' +
-      'Reset templates sẽ chỉ có hiệu lực từ NGÀY MAI.\n' +
-      'Nhiệm vụ của HÔM NAY sẽ giữ nguyên như cũ.\n\n' +
-      'Bạn có chắc chắn muốn reset tất cả templates về mặc định?'
-    )) {
-      return;
-    }
-
-    try {
-      const response = await dailyMissionAdminApi.resetTemplatesToDefaults();
-      alert(response.message || '✅ Templates đã được reset về mặc định. Thay đổi sẽ áp dụng từ ngày mai.');
-      loadTemplates();
-    } catch (error) {
-      console.error('Error resetting templates:', error);
-      alert(error.response?.data?.error || 'Không thể reset templates. Vui lòng thử lại.');
     }
   };
 
@@ -420,18 +399,6 @@ const DailyMissionManagement = () => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-lg font-semibold text-gray-900">Templates Nhiệm vụ</h2>
-              <button
-                onClick={handleResetTemplates}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
-              >
-                Reset về mặc định
-              </button>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-sm text-blue-800">
-                <strong>⚠️ Lưu ý quan trọng:</strong> Mọi thay đổi ở Templates sẽ chỉ có hiệu lực từ <strong>NGÀY MAI</strong>. 
-                Nhiệm vụ của <strong>HÔM NAY</strong> sẽ giữ nguyên như cũ để đảm bảo công bằng cho người dùng.
-              </p>
             </div>
           </div>
           
@@ -533,21 +500,25 @@ const DailyMissionManagement = () => {
                 </div>
               )}
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mã nhiệm vụ</label>
-                <select
-                  value={formData.missionCode}
-                  onChange={(e) => setFormData({ ...formData, missionCode: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={!!editingMission}
-                >
-                  {missionCodeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!editingTemplate && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mã nhiệm vụ</label>
+                  <select
+                    value={formData.missionCode}
+                    onChange={(e) => setFormData({ ...formData, missionCode: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!!editingMission}
+                  >
+                    {missionCodeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {/* Mission code field removed for template editing to prevent duplication */}
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>

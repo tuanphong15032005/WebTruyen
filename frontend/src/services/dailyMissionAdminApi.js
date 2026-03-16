@@ -179,17 +179,6 @@ const dailyMissionAdminApi = {
       throw new Error(errorMessage);
     }
   },
-
-  // Reset all templates to default values
-  resetTemplatesToDefaults: async () => {
-    try {
-      await api.post(`/admin/daily-missions/templates/reset`);
-    } catch (error) {
-      console.error('Error resetting templates:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to reset templates';
-      throw new Error(errorMessage);
-    }
-  },
 };
 
 export default dailyMissionAdminApi;

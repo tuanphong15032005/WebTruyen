@@ -81,14 +81,6 @@ public class DailyMissionAdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // Reset all templates to default values
-    @PostMapping("/templates/reset")
-    public ResponseEntity<Void> resetTemplatesToDefaults() {
-        log.info("Admin resetting all templates to default values");
-        dailyMissionAdminService.resetTemplatesToDefaults();
-        return ResponseEntity.noContent().build();
-    }
-
     // Get missions by specific date
     @GetMapping("/date/{date}")
     public ResponseEntity<List<DailyMissionEntity>> getMissionsByDate(
