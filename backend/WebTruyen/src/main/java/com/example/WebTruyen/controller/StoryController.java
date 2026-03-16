@@ -141,8 +141,10 @@ public class StoryController {
             @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort,
             @RequestParam(required = false) String q, //keyword 
             @RequestParam(required = false) String author,
+            @RequestParam(required = false) String kind,
             @RequestParam(required = false) String completionStatus,
-            @RequestParam(required = false) String tagIds
+            @RequestParam(required = false) String tagIds,
+            @RequestParam(required = false) String excludeTagIds
     ) {
         return storyService.getPublishedStories(
                 page,
@@ -150,8 +152,10 @@ public class StoryController {
                 sort,
                 q,
                 author,
+                kind,
                 completionStatus,
-                parseTagIdsCsv(tagIds)
+                parseTagIdsCsv(tagIds),
+                parseTagIdsCsv(excludeTagIds)
         );
     }
 

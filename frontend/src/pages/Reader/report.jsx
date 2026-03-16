@@ -7,7 +7,6 @@ const Report = () => {
   const { storyId } = useParams();
   return <div>Đây là trang Report</div>;
 };
-
 export default Report;
 
 /* 

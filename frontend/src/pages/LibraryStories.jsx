@@ -10,7 +10,7 @@ import {
   Folder,
   Heart,
 } from 'lucide-react';
-import LoadingSpinner from '../components/LoadingSpinner';
+import SkeletonBlock from '../components/SkeletonBlock';
 import libraryAlbumService from '../services/libraryAlbumService';
 import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
@@ -260,6 +260,47 @@ function LibraryStories() {
     setActiveTab(nextTab);
   };
 
+  const renderStorySkeletonGrid = (count = MIN_STORY_GRID_ITEMS) => (
+    <div className='library-cover-grid' aria-hidden='true'>
+      {Array.from({ length: count }, (_, index) => (
+        <article
+          key={`library-story-skeleton-${index}`}
+          className='library-cover-card library-cover-card--skeleton'
+        >
+          <div className='library-cover-card__media'>
+            <SkeletonBlock className='library-cover-card__placeholder library-cover-card__placeholder--skeleton' />
+            <div className='library-cover-card__overlay'>
+              <SkeletonBlock className='library-cover-card__line-skeleton library-cover-card__line-skeleton--title' />
+              <SkeletonBlock className='library-cover-card__line-skeleton' />
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+
+  const renderAlbumSkeletonGrid = (count = 6) => (
+    <div className='library-album-grid' aria-hidden='true'>
+      {Array.from({ length: count }, (_, index) => (
+        <article
+          key={`library-album-skeleton-${index}`}
+          className='library-album-card library-album-card--skeleton'
+        >
+          <div className='library-album-card__mosaic'>
+            <SkeletonBlock className='library-album-card__tile library-album-card__tile--primary' />
+            <SkeletonBlock className='library-album-card__tile' />
+            <SkeletonBlock className='library-album-card__tile' />
+          </div>
+          <div className='library-album-card__body'>
+            <SkeletonBlock className='library-album-card__line-skeleton library-album-card__line-skeleton--title' />
+            <SkeletonBlock className='library-album-card__line-skeleton' />
+            <SkeletonBlock className='library-album-card__line-skeleton library-album-card__line-skeleton--short' />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+
   return (
     <section className='library-shell'>
       <div className='library-shell__hero'>
@@ -325,8 +366,23 @@ function LibraryStories() {
       <div className='library-shell__band'>
         <div className='library-page library-page--content'>
           {loading && (
-            <div className='library-page__loading'>
-              <LoadingSpinner size={84} label='Đang tải thư viện của bạn...' />
+            <div className='library-panel library-panel--skeleton' aria-hidden='true'>
+              <div className='library-count library-count--skeleton'>
+                <SkeletonBlock className='library-count__value-skeleton' />
+                <SkeletonBlock className='library-count__label-skeleton' />
+              </div>
+              {visibleTab === 'album'
+                ? renderAlbumSkeletonGrid()
+                : renderStorySkeletonGrid()}
+              <nav className='library-pagination library-pagination--skeleton'>
+                <SkeletonBlock className='library-pagination__arrow-skeleton' />
+                <div className='library-pagination__pages'>
+                  <SkeletonBlock className='library-pagination__page-skeleton active' />
+                  <SkeletonBlock className='library-pagination__page-skeleton' />
+                  <SkeletonBlock className='library-pagination__page-skeleton' />
+                </div>
+                <SkeletonBlock className='library-pagination__arrow-skeleton' />
+              </nav>
             </div>
           )}
 

@@ -7,7 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import LoadingSpinner from '../components/LoadingSpinner';
+import SkeletonBlock from '../components/SkeletonBlock';
 import libraryAlbumService from '../services/libraryAlbumService';
 import useNotify from '../hooks/useNotify';
 import '../styles/library-stories.css';
@@ -184,6 +184,25 @@ function LibraryAlbumDetail() {
     setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
   };
 
+  const renderAlbumStorySkeletonGrid = (count = MIN_STORY_GRID_ITEMS) => (
+    <div className='library-cover-grid' aria-hidden='true'>
+      {Array.from({ length: count }, (_, index) => (
+        <article
+          key={`library-album-story-skeleton-${index}`}
+          className='library-cover-card library-cover-card--skeleton'
+        >
+          <div className='library-cover-card__media'>
+            <SkeletonBlock className='library-cover-card__placeholder library-cover-card__placeholder--skeleton' />
+            <div className='library-cover-card__overlay'>
+              <SkeletonBlock className='library-cover-card__line-skeleton library-cover-card__line-skeleton--title' />
+              <SkeletonBlock className='library-cover-card__line-skeleton' />
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+
   return (
     <section className='library-album-shell'>
       <div className='library-album-shell__hero'>
@@ -199,26 +218,44 @@ function LibraryAlbumDetail() {
                 <ArrowLeft size={28} />
               </button>
 
-              {album?.visibility && (
-                <span
-                  className={`library-album-page__badge ${
-                    album.visibility === 'public'
-                      ? 'library-album-page__badge--public'
-                      : 'library-album-page__badge--private'
-                  }`}
-                >
-                  {album.visibility === 'public'
-                    ? 'Bộ sưu tập công khai'
-                    : 'Bộ sưu tập riêng tư'}
-                </span>
+              {loading && !album ? (
+                <SkeletonBlock className='library-album-page__badge-skeleton' />
+              ) : (
+                album?.visibility && (
+                  <span
+                    className={`library-album-page__badge ${
+                      album.visibility === 'public'
+                        ? 'library-album-page__badge--public'
+                        : 'library-album-page__badge--private'
+                    }`}
+                  >
+                    {album.visibility === 'public'
+                      ? 'Bộ sưu tập công khai'
+                      : 'Bộ sưu tập riêng tư'}
+                  </span>
+                )
               )}
             </div>
 
-            <h1>{album?.name || 'Bộ sưu tập'}</h1>
-            <p>
-              {album?.description?.trim() ||
-                'Chưa có mô tả cho bộ sưu tập này. Bạn có thể cập nhật mô tả để người đọc hiểu rõ hơn nội dung đã lưu.'}
-            </p>
+            {loading && !album ? (
+              <div
+                className='library-album-page__hero-copy-skeleton'
+                aria-hidden='true'
+              >
+                <SkeletonBlock className='library-album-page__title-skeleton' />
+                <SkeletonBlock className='library-album-page__line-skeleton' />
+                <SkeletonBlock className='library-album-page__line-skeleton' />
+                <SkeletonBlock className='library-album-page__line-skeleton library-album-page__line-skeleton--short' />
+              </div>
+            ) : (
+              <>
+                <h1>{album?.name || 'Bộ sưu tập'}</h1>
+                <p>
+                  {album?.description?.trim() ||
+                    'Chưa có mô tả cho bộ sưu tập này. Bạn có thể cập nhật mô tả để người đọc hiểu rõ hơn nội dung đã lưu.'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -227,8 +264,30 @@ function LibraryAlbumDetail() {
         <div className='library-album-page library-album-page--content-wrap'>
           <div className='library-album-page__content'>
             {loading && (
-              <div className='library-page__loading'>
-                <LoadingSpinner size={84} label='Đang tải bộ sưu tập...' />
+              <div className='library-panel library-panel--skeleton' aria-hidden='true'>
+                <div className='library-album-page__toolbar library-album-page__toolbar--skeleton'>
+                  <div className='library-count library-count--skeleton'>
+                    <SkeletonBlock className='library-count__value-skeleton' />
+                    <SkeletonBlock className='library-count__label-skeleton' />
+                  </div>
+                  <div className='library-album-page__sort library-album-page__sort--skeleton'>
+                    <SkeletonBlock className='library-album-page__sort-label-skeleton' />
+                    <div className='library-album-page__sort-controls'>
+                      <SkeletonBlock className='library-album-page__sort-input-skeleton' />
+                      <SkeletonBlock className='library-album-page__sort-button-skeleton' />
+                    </div>
+                  </div>
+                </div>
+                {renderAlbumStorySkeletonGrid()}
+                <nav className='library-pagination library-pagination--skeleton'>
+                  <SkeletonBlock className='library-pagination__arrow-skeleton' />
+                  <div className='library-pagination__pages'>
+                    <SkeletonBlock className='library-pagination__page-skeleton active' />
+                    <SkeletonBlock className='library-pagination__page-skeleton' />
+                    <SkeletonBlock className='library-pagination__page-skeleton' />
+                  </div>
+                  <SkeletonBlock className='library-pagination__arrow-skeleton' />
+                </nav>
               </div>
             )}
 
