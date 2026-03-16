@@ -28,7 +28,7 @@ const ReportChapterPage = () => {
     'Vi phạm bản quyền / reup trái phép',
     'Vi phạm thuần phong mỹ tục',
     'Nội dung bạo lực hoặc kích động',
-    'Nội dung xúc phạm, thù địch hoặc ',
+    'Nội dung xúc phạm, thù địch',
     'Nội dung chống phá CHXHCN Việt Nam ',
     'Vấn đề khác',
   ];
