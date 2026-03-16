@@ -1,5 +1,11 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 
@@ -53,7 +59,6 @@ import { getStoredUser, hasAnyRole } from './utils/helpers';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
 import StoryRankingPage from './pages/Ranking/StoryRankingPage';
-import Report from './pages/Reader/report';
 import RankingPage from './pages/Ranking/RankingPage';
 
 import './App.css';
@@ -70,7 +75,6 @@ function RoleProtectedRoute({ allowedRoles, children }) {
 
   return children;
 }
-
 
 function RouteScrollManager() {
   const location = useLocation();
@@ -105,6 +109,17 @@ function RouteScrollManager() {
 
   return null;
 }
+
+function StoryReportRoute() {
+  const { storyId } = useParams();
+
+  if (!storyId) {
+    return <Navigate to='/' replace />;
+  }
+
+  return <Navigate to={`/report-story?storyId=${encodeURIComponent(storyId)}`} replace />;
+}
+
 function App() {
   return (
     <MainLayout>
@@ -112,9 +127,19 @@ function App() {
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
-        <Route path='/ranking/authors' element={<AuthorRankingPage />} />
-        <Route path='/stories/recent' element={<RecentlyUpdatedStoriesPage />} />
-        <Route path='/ranking/stories' element={<StoryRankingPage />} />
+        <Route path='/ranking' element={<RankingPage />} />
+        <Route
+          path='/ranking/authors'
+          element={<Navigate to='/ranking?view=authors' replace />}
+        />
+        <Route
+          path='/stories/recent'
+          element={<Navigate to='/ranking?view=recent' replace />}
+        />
+        <Route
+          path='/ranking/stories'
+          element={<Navigate to='/ranking?view=stories' replace />}
+        />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/verify' element={<VerifyCode />} />
@@ -123,7 +148,7 @@ function App() {
         <Route path='/payment/vnpay-return' element={<VNPayReturnHandler />} />
         <Route path='/payment/success' element={<PaymentSuccessPage />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
-        <Route path='/stories/:storyId/report' element={<Report />} />
+        <Route path='/stories/:storyId/report' element={<StoryReportRoute />} />
         <Route
           path='/wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}
@@ -151,10 +176,16 @@ function App() {
         <Route path='/library' element={<LibraryStories />} />
 
         <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
-        <Route path='/bookmarks/story/:storyId' element={<BookmarkDetailPage />} />
+        <Route
+          path='/bookmarks/story/:storyId'
+          element={<BookmarkDetailPage />}
+        />
         <Route path='/reading-history' element={<ReadingHistoryPage />} />
 
-        <Route path='/library/albums/:albumId' element={<LibraryAlbumDetail />} />
+        <Route
+          path='/library/albums/:albumId'
+          element={<LibraryAlbumDetail />}
+        />
 
         <Route path='/author/create-story' element={<CreateStory />} />
         <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
@@ -168,10 +199,7 @@ function App() {
         <Route path='/report' element={<ReportChapterPage />} />
         <Route path='/report-story' element={<ReportStoryPage />} />
         <Route path='/report-comment' element={<ReportCommentPage />} />
-        <Route
-          path='/reader'
-          element={<ChapterPage />}
-        />
+        <Route path='/reader' element={<ChapterPage />} />
         <Route
           path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}
