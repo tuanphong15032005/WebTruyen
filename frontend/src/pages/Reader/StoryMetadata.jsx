@@ -512,6 +512,20 @@ const StoryMetadata = () => {
     [story],
   );
 
+  const chapterText = useMemo(() => {
+    const totalChapters = (Array.isArray(volumes) ? volumes : []).reduce(
+      (sum, volume) => {
+        const chapters = Array.isArray(volume?.chapters) ? volume.chapters : null;
+        if (chapters) {
+          return sum + chapters.length;
+        }
+        return sum + Number(volume?.chapterCount || 0);
+      },
+      0,
+    );
+    return formatNumber(totalChapters);
+  }, [volumes]);
+
   const sidebarRatingText = useMemo(() => {
     const ratingCount = Number(sidebar?.ratingCount || 0);
     if (!ratingCount) return 'Chưa có đánh giá';
@@ -1683,6 +1697,16 @@ const StoryMetadata = () => {
                       iconClass='story-metadata__icon--words'
                       label='Số từ:'
                       value={wordText}
+                    />
+                    <MetaLine
+                      icon={
+                        <svg viewBox='0 0 24 24'>
+                          <path d='M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a2.5 2.5 0 0 0-2.5-2.5h-11A2.5 2.5 0 0 0 4 18.5zm2.5-.5a1 1 0 0 0-1 1v10.2c.32-.14.66-.2 1-.2h10V5zM18 17.2V19a.5.5 0 0 0 1 0v-3.26a2.48 2.48 0 0 0-1 .46z' />
+                        </svg>
+                      }
+                      iconClass='story-metadata__icon--chapters'
+                      label='Số chương:'
+                      value={chapterText}
                     />
                   </div>
 
