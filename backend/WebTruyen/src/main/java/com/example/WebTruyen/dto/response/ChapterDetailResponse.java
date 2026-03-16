@@ -17,7 +17,10 @@ import java.util.List;
 public class ChapterDetailResponse {
     private Long id;
     private Long storyId;
+    private String storyTitle;
     private Long volumeId;
+    private String volumeTitle;
+    private Integer volumeNumber;
     private String title;
     private Boolean free;
     private Boolean unlocked;

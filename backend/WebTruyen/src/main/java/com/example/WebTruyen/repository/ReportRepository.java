@@ -1,11 +1,10 @@
 package com.example.WebTruyen.repository;
 
 import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
+import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-//<<<<<<< HEAD
-//public interface ReportRepository extends JpaRepository<ReportEntity, Long> {
-//=======
 import java.util.List;
 
 public interface ReportRepository extends JpaRepository<ReportEntity, Long> {
@@ -21,5 +20,8 @@ public interface ReportRepository extends JpaRepository<ReportEntity, Long> {
     long deleteByChapter_Id(Long chapterId);
 
     long deleteByComment_Id(Long commentId);
-//>>>>>>> origin/minhfinal1
+
+    // Chapter report specific methods
+    boolean existsByReporterAndChapterAndCreatedAtAfter(UserEntity reporter, ChapterEntity chapter, java.time.LocalDateTime since);
+    long countByReporterAndCreatedAtAfter(UserEntity reporter, java.time.LocalDateTime since);
 }

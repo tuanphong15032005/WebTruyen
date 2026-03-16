@@ -36,6 +36,9 @@ import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
 import RefundRequestPage from './pages/Reader/RefundRequestPage';
 import ChapterPage from './pages/ChapterPage';
+import ReportChapterPage from './pages/report/ReportChapterPage';
+import ReportStoryPage from './pages/report/ReportStoryPage';
+import ReportCommentPage from './pages/report/ReportCommentPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
 import CommentManagement from './pages/Author/CommentManagement';
@@ -47,6 +50,9 @@ import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
+import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
+import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
+import StoryRankingPage from './pages/Ranking/StoryRankingPage';
 import Report from './pages/Reader/report';
 import RankingPage from './pages/Ranking/RankingPage';
 
@@ -106,19 +112,9 @@ function App() {
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
-        <Route path='/ranking' element={<RankingPage />} />
-        <Route
-          path='/ranking/authors'
-          element={<Navigate to='/ranking?view=authors' replace />}
-        />
-        <Route
-          path='/stories/recent'
-          element={<Navigate to='/ranking?view=recent' replace />}
-        />
-        <Route
-          path='/ranking/stories'
-          element={<Navigate to='/ranking?view=stories' replace />}
-        />
+        <Route path='/ranking/authors' element={<AuthorRankingPage />} />
+        <Route path='/stories/recent' element={<RecentlyUpdatedStoriesPage />} />
+        <Route path='/ranking/stories' element={<StoryRankingPage />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/verify' element={<VerifyCode />} />
@@ -169,6 +165,9 @@ function App() {
           path='/stories/:storyId/chapters/:chapterId'
           element={<ChapterPage />}
         />
+        <Route path='/report' element={<ReportChapterPage />} />
+        <Route path='/report-story' element={<ReportStoryPage />} />
+        <Route path='/report-comment' element={<ReportCommentPage />} />
         <Route
           path='/reader'
           element={<ChapterPage />}
