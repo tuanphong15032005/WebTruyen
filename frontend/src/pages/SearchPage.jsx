@@ -44,6 +44,7 @@ const SORT_OPTIONS = [
   { value: 'saved', label: 'Lượt lưu', defaultDirection: 'desc' },
   { value: 'rating', label: 'Rating', defaultDirection: 'desc' },
   { value: 'publishTime', label: 'Thời gian đăng tải', defaultDirection: 'desc' },
+  { value: 'title', label: 'A-Z', defaultDirection: 'asc' },
 ];
 
 const DEFAULT_SORT_BY = 'auto';
@@ -73,6 +74,7 @@ const SORT_LABELS = {
   saved: 'L\u01b0\u1ee3t l\u01b0u',
   rating: 'Rating',
   publishTime: 'Th\u1eddi gian \u0111\u0103ng t\u1ea3i',
+  title: 'A-Z',
 };
 
 const parseTagIdsCsv = (value) =>
@@ -125,6 +127,9 @@ const getChapterFilterRange = (target) => {
 };
 
 const getSortValue = (story, sortBy) => {
+  if (sortBy === 'title') {
+    return String(story?.title || '').trim();
+  }
   if (sortBy === 'saved') return Number(story?.savedCount || 0);
   if (sortBy === 'rating') return Number(story?.ratingAvg || 0);
   if (sortBy === 'publishTime') {
@@ -167,6 +172,47 @@ const getSearchRelevance = (story, query) => {
   return 4;
 };
 
+const getStoryTitleSortMeta = (story) => {
+  const rawTitle = String(story?.title || '').trim();
+  const startsWithSpecial =
+    rawTitle.length > 0 && !/^[\p{L}\p{N}]/u.test(rawTitle);
+  const normalizedTitle = rawTitle.replace(/^[^\p{L}\p{N}]+/u, '').trim() || rawTitle;
+
+  return {
+    rawTitle,
+    normalizedTitle,
+    startsWithSpecial,
+  };
+};
+
+const compareStoryTitles = (left, right, sortDirection = 'asc') => {
+  const leftMeta = getStoryTitleSortMeta(left);
+  const rightMeta = getStoryTitleSortMeta(right);
+
+  if (leftMeta.startsWithSpecial !== rightMeta.startsWithSpecial) {
+    return leftMeta.startsWithSpecial ? 1 : -1;
+  }
+
+  const directionFactor = sortDirection === 'desc' ? -1 : 1;
+  const normalizedCompare = leftMeta.normalizedTitle.localeCompare(
+    rightMeta.normalizedTitle,
+    'vi',
+    {
+      sensitivity: 'base',
+      numeric: true,
+    },
+  );
+
+  if (normalizedCompare !== 0) {
+    return directionFactor * normalizedCompare;
+  }
+
+  return directionFactor * leftMeta.rawTitle.localeCompare(rightMeta.rawTitle, 'vi', {
+    sensitivity: 'base',
+    numeric: true,
+  });
+};
+
 const sortStories = (list, sortBy, sortDirection, query) => {
   const safeList = Array.isArray(list) ? [...list] : [];
   const directionFactor = sortDirection === 'asc' ? 1 : -1;
@@ -184,7 +230,12 @@ const sortStories = (list, sortBy, sortDirection, query) => {
     const leftValue = getSortValue(left, sortBy);
     const rightValue = getSortValue(right, sortBy);
 
-    if (leftValue !== rightValue) {
+    if (sortBy === 'title') {
+      const titleCompare = compareStoryTitles(left, right, sortDirection);
+      if (titleCompare !== 0) {
+        return titleCompare;
+      }
+    } else if (leftValue !== rightValue) {
       return directionFactor * (leftValue - rightValue);
     }
 
@@ -194,7 +245,7 @@ const sortStories = (list, sortBy, sortDirection, query) => {
       return rightCreatedAt - leftCreatedAt;
     }
 
-    return String(left?.title || '').localeCompare(String(right?.title || ''), 'vi');
+    return compareStoryTitles(left, right);
   });
 
   return safeList;

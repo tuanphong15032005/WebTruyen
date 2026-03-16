@@ -1,7 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import ContentModeration from './ContentModeration';
+import ViolationReportManagement from './ViolationReportManagement';
+import DailyMissionManagement from './DailyMissionManagement';
+import AchievementManagementPage from './AchievementManagementPage';
 import '../../styles/admin-dashboard.css';
 
 function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('moderation');
+
   return (
     <div className='admin-dashboard'>
       <aside className='admin-dashboard__sidebar'>
@@ -46,10 +53,31 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>💳</span>
             Quản lý chi trả và hoàn tiền
           </NavLink>
+          </button>
+          <button
+            type='button'
+            className={`admin-dashboard__nav-item ${activeTab === 'daily-missions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('daily-missions')}
+          >
+            <span className='admin-dashboard__nav-icon'>🎯</span>
+            Quản lý Nhiệm vụ hàng ngày
+          </button>
+          <button
+            type='button'
+            className={`admin-dashboard__nav-item ${activeTab === 'achievements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('achievements')}
+          >
+            <span className='admin-dashboard__nav-icon'>🏆</span>
+            Quản lý Thành tựu
+          </button>
         </nav>
       </aside>
       <main className='admin-dashboard__main'>
         <Outlet />
+        {activeTab === 'moderation' ? <ContentModeration /> :
+         activeTab === 'reports' ? <ViolationReportManagement /> :
+         activeTab === 'daily-missions' ? <DailyMissionManagement /> :
+         <AchievementManagementPage />}
       </main>
     </div>
   );

@@ -8,7 +8,6 @@ import {
   Gem,
   Search,
   Star,
-  Trophy,
 } from 'lucide-react';
 
 import { WalletContext } from '../context/WalletContext.jsx';
@@ -377,7 +376,6 @@ function Header() {
               {showDropdown && (
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
-                  <Link to='/achievements'>Thành tích</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
                   {hasAnyRole(['READER'], user) && (
                     <Link to='/reader/refund-request'>Yêu cầu hoàn tiền</Link>

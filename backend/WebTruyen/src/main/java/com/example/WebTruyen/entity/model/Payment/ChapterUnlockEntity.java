@@ -44,6 +44,12 @@ public class ChapterUnlockEntity {
     @Column(name = "coin_cost", nullable = false)
     private Long coinCost;
 
+    @Column(name = "hold_until")
+    private LocalDateTime holdUntil;
+
+    @Column(name = "settled_at")
+    private LocalDateTime settledAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

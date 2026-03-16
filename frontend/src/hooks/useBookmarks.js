@@ -47,10 +47,10 @@ const useBookmarks = (chapterId) => {
 
   /**
    * Toggle bookmark cho mot segment.
-   * @param {{ segmentId: number, text: string, positionPercent?: number }} options
+   * @param {{ segmentId: number, text: string, positionPercent?: number, isFavorite?: boolean }} options
    */
   const toggleBookmark = useCallback(
-    async ({ segmentId, text, positionPercent }) => {
+    async ({ segmentId, text, positionPercent, isFavorite }) => {
       const normalizedSegmentId = Number(segmentId);
       if (!chapterId || !normalizedSegmentId) {
         throw new Error('Không xác định được segment để bookmark');
@@ -70,7 +70,7 @@ const useBookmarks = (chapterId) => {
         chapterId,
         segmentId: normalizedSegmentId,
         positionPercent,
-        isFavorite: false,
+        isFavorite: isFavorite ?? true, // Default to true for bookmarks to show in list
       });
 
       const normalizedCreated = {

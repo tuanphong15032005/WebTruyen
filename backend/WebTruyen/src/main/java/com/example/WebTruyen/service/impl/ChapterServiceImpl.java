@@ -229,7 +229,9 @@ public class ChapterServiceImpl implements ChapterService {
         // Check if chapter is unlocked for the user
         boolean isUnlocked = chapter.isFree();
         if (!isUnlocked && userId != null) {
-            isUnlocked = chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
+            Long authorId = chapter.getVolume().getStory().getAuthor().getId();
+            isUnlocked = userId.equals(authorId)
+                    || chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
         }
 
         List<ChapterSegmentEntity> segments =
@@ -801,7 +803,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
         //record + lưu lịch sử đọc mới nhất cho user
         ReadingHistoryEntity history = readingHistoryRepository
-                .findById_UserIdAndId_StoryId(userId, storyId)
+                .findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()
                         .id(new ReadingHistoryId(userId, storyId))
                         .user(user)
@@ -840,7 +842,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         ReadingHistoryEntity history = readingHistoryRepository
-                .findById_UserIdAndId_StoryId(userId, storyId)
+                .findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()
                         .id(new ReadingHistoryId(userId, storyId))
                         .user(user)
