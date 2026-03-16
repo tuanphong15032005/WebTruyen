@@ -58,6 +58,10 @@ public class WalletService {
     @Autowired
     @Lazy
     private SimpleDailyTaskService simpleDailyTaskService;
+    
+    @Autowired
+    @Lazy
+    private DailyTaskOrchestrator dailyTaskOrchestrator;
 
     public WalletResponse getWallet(Long userId) {
         WalletEntity wallet = walletRepository.findById(userId)
@@ -207,6 +211,16 @@ public class WalletService {
                 .build();
         
         chapterUnlockRepository.save(unlock);
+        
+        // Track chapter unlock for daily task using orchestrator
+        try {
+            log.info("Tracking chapter unlock for daily task - user: {}, chapter: {}", userId, chapterId);
+            dailyTaskOrchestrator.trackUserActivity(userId, DailyTaskOrchestrator.ActivityType.UNLOCK_CHAPTER);
+            log.info("Successfully tracked chapter unlock for daily task");
+        } catch (Exception e) {
+            // Don't fail the unlock process if daily task tracking fails
+            log.warn("Failed to track chapter unlock for daily task - user: {}, chapter: {}, error: {}", userId, chapterId, e.getMessage());
+        }
         
         // Create ledger entries for the transaction
         if (deductFromA > 0) {

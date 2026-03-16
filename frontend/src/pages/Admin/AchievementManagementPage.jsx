@@ -259,29 +259,33 @@ const AchievementManagementPage = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="w-full overflow-x-hidden">
+        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-full">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
+    <div className="w-full overflow-x-hidden">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-full">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý Thành tựu</h1>
-            <p className="text-gray-600">Quản lý hệ thống thành tựu và phần thưởng</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Quản lý Thành tựu</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Quản lý hệ thống thành tựu và phần thưởng</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
           >
-            <Plus size={20} />
-            Tạo Thành tựu
+            <Plus size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Tạo Thành tựu</span>
+            <span className="sm:hidden">Tạo</span>
           </button>
           </div>
         </div>
@@ -289,44 +293,44 @@ const AchievementManagementPage = () => {
 
       {/* Statistics Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Tổng thành tựu</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.totalAchievements}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.totalAchievements}</p>
               </div>
-              <Trophy className="text-blue-600" size={24} />
+              <Trophy className="text-blue-600 sm:w-6 sm:h-6" size={20} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Đang hoạt động</p>
-                <p className="text-2xl font-bold text-green-600">{stats.activeAchievements}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.activeAchievements}</p>
               </div>
-              <Target className="text-green-600" size={24} />
+              <Target className="text-green-600 sm:w-6 sm:h-6" size={20} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Không hoạt động</p>
-                <p className="text-2xl font-bold text-gray-600">{stats.inactiveAchievements || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-600">{stats.inactiveAchievements || 0}</p>
               </div>
-              <BarChart3 className="text-gray-600" size={24} />
+              <BarChart3 className="text-gray-600 sm:w-6 sm:h-6" size={20} />
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Achievements List */}
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-gray-800">Danh sách Thành tựu</h2>
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-4 sm:p-6 border-b">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">Danh sách Thành tựu</h2>
           </div>
-          <div className="p-4 border-b">
+          <div className="p-3 sm:p-4 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -334,19 +338,19 @@ const AchievementManagementPage = () => {
                 placeholder="Tìm kiếm theo tên, code, category hoặc mô tả..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
           </div>
-          <div className="divide-y">
+          <div className="divide-y max-h-96 overflow-y-auto">
             {filteredAchievements && filteredAchievements.length > 0 ? (
               filteredAchievements.map((achievement) => (
-                <div key={achievement.id} className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-800">{achievement.name}</h3>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
+                <div key={achievement.id} className="p-3 sm:p-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{achievement.name}</h3>
+                        <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${
                           achievement.isActive 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-gray-100 text-gray-800'
@@ -354,37 +358,37 @@ const AchievementManagementPage = () => {
                           {achievement.isActive ? 'Hoạt động' : 'Không hoạt động'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{achievement.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">Code: {achievement.code} | Category: {achievement.category}</p>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{achievement.description}</p>
+                      <p className="text-xs text-gray-500 mt-1 truncate">Code: {achievement.code} | Category: {achievement.category}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleSelectAchievement(achievement)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded"
                         title="Xem tiers"
                       >
-                        <Settings size={16} />
+                        <Settings size={14} className="sm:w-4 sm:h-4" />
                       </button>
                       <button
                         onClick={() => openEditAchievement(achievement)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded"
                         title="Sửa"
                       >
-                        <Edit size={16} />
+                        <Edit size={14} className="sm:w-4 sm:h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteAchievement(achievement.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded"
                         title="Xóa"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-6 sm:p-8 text-center text-gray-500">
                 <Trophy size={48} className="mx-auto mb-4 text-gray-300" />
                 <p>{searchTerm ? 'Không tìm thấy thành tựu nào phù hợp' : 'Chưa có thành tựu nào'}</p>
               </div>
@@ -393,34 +397,34 @@ const AchievementManagementPage = () => {
         </div>
 
         {/* Tiers Management */}
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-6 border-b">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-4 sm:p-6 border-b">
+            <div className="flex justify-between items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 truncate">
                 {selectedAchievement ? `Tiers: ${selectedAchievement.name}` : 'Chọn thành tựu để xem tiers'}
               </h2>
               {selectedAchievement && (
                 <button
                   onClick={() => setShowTierModal(true)}
-                  className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm"
+                  className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm flex-shrink-0"
                 >
                   <Plus size={16} />
-                  Thêm Tier
+                  <span className="hidden sm:inline">Thêm Tier</span>
                 </button>
               )}
             </div>
           </div>
           {selectedAchievement ? (
-            <div className="divide-y">
+            <div className="divide-y max-h-96 overflow-y-auto">
               {tiers && tiers.length > 0 ? (
                 tiers.map((tier) => (
-                  <div key={tier.id} className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-800">Level {tier.tierLevel}</span>
-                          <h4 className="font-medium text-gray-800">{tier.name}</h4>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
+                  <div key={tier.id} className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-gray-800 text-sm sm:text-base">Level {tier.tierLevel}</span>
+                          <h4 className="font-medium text-gray-800 text-sm sm:text-base truncate">{tier.name}</h4>
+                          <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${
                             tier.isActive 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-gray-100 text-gray-800'
@@ -428,40 +432,40 @@ const AchievementManagementPage = () => {
                             {tier.isActive ? 'Hoạt động' : 'Không hoạt động'}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{tier.description}</p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{tier.description}</p>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-2 text-sm text-gray-500 flex-wrap">
                           <span>Yêu cầu: {tier.requirement}</span>
                           <span>Thưởng: {tier.rewardCoin} coin {tier.rewardCoinType}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           onClick={() => openEditTier(tier)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded"
                           title="Sửa"
                         >
-                          <Edit size={16} />
+                          <Edit size={14} className="sm:w-4 sm:h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteTier(tier.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded"
                           title="Xóa"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} className="sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-6 sm:p-8 text-center text-gray-500">
                   <BarChart3 size={48} className="mx-auto mb-4 text-gray-300" />
                   <p>Chưa có tier nào cho thành tựu này</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-6 sm:p-8 text-center text-gray-500">
               <Trophy size={48} className="mx-auto mb-4 text-gray-300" />
               <p>Chọn một thành tựu để quản lý tiers</p>
             </div>
@@ -666,6 +670,7 @@ const AchievementManagementPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

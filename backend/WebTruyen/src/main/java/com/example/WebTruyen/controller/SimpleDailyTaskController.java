@@ -379,4 +379,24 @@ public ResponseEntity<?> fixTaskCompletion(
         }
     }
 
+    /**
+     * Create daily missions for today (debug endpoint)
+     */
+    @PostMapping("/create-today")
+    public ResponseEntity<?> createTodayMissions() {
+        try {
+            simpleDailyTaskService.createDailyMissionsForDate(java.time.LocalDate.now());
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Daily missions created for today"
+            ));
+        } catch (Exception e) {
+            log.error("Error creating today's missions", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
     }

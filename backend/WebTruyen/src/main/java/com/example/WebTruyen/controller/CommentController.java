@@ -6,6 +6,8 @@ import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.TieredAchievementIntegrationService;
 import com.example.WebTruyen.service.CommentService;
 import com.example.WebTruyen.service.ChapterService;
+import com.example.WebTruyen.service.SimpleDailyTaskService;
+import com.example.WebTruyen.service.DailyTaskOrchestrator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,8 @@ public class CommentController {
     private final CommentService commentService;
     private final ChapterService chapterService;
     private final TieredAchievementIntegrationService achievementIntegrationService;
+    private final SimpleDailyTaskService simpleDailyTaskService;
+    private final DailyTaskOrchestrator dailyTaskOrchestrator;
     
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null || userPrincipal.getUser() == null) {
@@ -57,6 +61,15 @@ public class CommentController {
         );
         
         log.info("Comment created successfully with ID: {} for user: {}", comment.getId(), user.getId());
+        
+        // Track comment creation for daily task using orchestrator
+        try {
+            log.info("Tracking comment creation for daily task - user: {}, comment: {}", user.getId(), comment.getId());
+            dailyTaskOrchestrator.trackUserActivity(user.getId(), DailyTaskOrchestrator.ActivityType.MAKE_COMMENT);
+            log.info("Successfully tracked comment creation for daily task");
+        } catch (Exception e) {
+            log.warn("Failed to track comment creation for daily task - user: {}, error: {}", user.getId(), e.getMessage());
+        }
         
         // Trigger achievement event for comment creation
         try {

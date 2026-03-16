@@ -98,7 +98,7 @@
 .admin-dashboard__main {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: auto;
   background: #f1f5f9;
   padding: 20px 24px;
@@ -141,6 +141,7 @@
   }
 
   .admin-dashboard__main {
-    padding: 16px;
+    padding: 16px 12px;
+    overflow-x: hidden;
   }
 }
