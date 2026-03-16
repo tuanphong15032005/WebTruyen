@@ -23,7 +23,7 @@ function DocsLayout() {
         </main>
         
         {/* Table of Contents - 260px width, sticky */}
-        <aside className="w-64 fixed right-0 top-16 h-[calc(100vh-4rem-250px)] overflow-y-auto border-l border-gray-200 bg-white z-10">
+        <aside className="w-64 fixed right-0 top-16 h-[calc(100vh-4rem-100px)] overflow-y-auto border-l border-gray-200 bg-white z-10">
           <DocsToc />
         </aside>
       </div>

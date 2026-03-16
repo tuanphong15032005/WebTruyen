@@ -44,7 +44,7 @@ function DocsToc() {
     if (!pageBlocks || pageBlocks.length === 0) return [];
     
     const sections = pageBlocks.map((block, index) => ({
-      id: block.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+      id: block.code || block.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
       title: block.title,
       level: 2, // All blocks are h2 level
       index: index,
