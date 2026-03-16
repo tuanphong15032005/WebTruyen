@@ -1,0 +1,236 @@
+.reader-refund {
+  padding: 24px;
+  max-width: 1240px;
+  margin: 0 auto;
+  background: #f1f5f9;
+  min-height: 100%;
+  border-radius: 12px;
+}
+
+.reader-refund__header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 26px;
+}
+
+.reader-refund__header p {
+  margin-top: 8px;
+  color: #475569;
+  max-width: 760px;
+}
+
+.reader-refund__grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.reader-refund__card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.reader-refund__card h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.reader-refund__form {
+  display: grid;
+  gap: 10px;
+}
+
+.reader-refund__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.reader-refund__form input,
+.reader-refund__form select,
+.reader-refund__form textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+}
+
+.reader-refund__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.reader-refund__meta span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.reader-refund__meta strong {
+  display: block;
+  margin-top: 2px;
+  color: #0f172a;
+}
+
+.reader-refund__terms {
+  margin-top: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.reader-refund__terms h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.reader-refund__terms ul {
+  margin: 8px 0;
+  padding-left: 18px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.reader-refund__terms-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500 !important;
+}
+
+.reader-refund__field-error {
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.reader-refund__alert {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.reader-refund__alert.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.reader-refund__alert.success {
+  border: 1px solid #bbf7d0;
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.reader-refund__form button {
+  margin-top: 4px;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(to right, #0ea5e9, #6366f1);
+  cursor: pointer;
+}
+
+.reader-refund__form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.reader-refund__empty {
+  margin: 0;
+  color: #64748b;
+}
+
+.reader-refund__table-wrap {
+  overflow: auto;
+}
+
+.reader-refund table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.reader-refund th,
+.reader-refund td {
+  padding: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  font-size: 13px;
+  vertical-align: top;
+}
+
+.reader-refund thead th {
+  white-space: nowrap;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.reader-refund__status {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reader-refund__status.pending {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.reader-refund__status.approved {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.reader-refund__status.rejected,
+.reader-refund__status.cancelled {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.reader-refund__status.paid {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.reader-refund__bank-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reader-refund__bank-info small {
+  color: #64748b;
+}
+
+@media (max-width: 800px) {
+  .reader-refund__meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

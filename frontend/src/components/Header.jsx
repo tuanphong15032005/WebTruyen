@@ -377,6 +377,9 @@ function Header() {
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
+                  {hasAnyRole(['READER'], user) && (
+                    <Link to='/reader/refund-request'>Yêu cầu hoàn tiền</Link>
+                  )}
 
                   {hasAnyRole(['AUTHOR'], user) && (
                     <>
@@ -384,13 +387,12 @@ function Header() {
                       <Link to='/author/performance-analytics'>
                         Báo cáo hiệu suất truyện
                       </Link>
+                      <Link to='/author/withdrawal-request'>Yêu cầu rút tiền</Link>
                     </>
                   )}
 
                   {hasAnyRole(['ADMIN', 'MOD'], user) && (
-                    <>
                       <Link to='/admin/dashboard'>Dashboard quản trị</Link>
-                    </>
                   )}
 
                   <button type='button' onClick={handleLogout}>

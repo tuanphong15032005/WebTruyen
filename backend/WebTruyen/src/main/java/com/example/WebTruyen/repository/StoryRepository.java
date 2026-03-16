@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -123,6 +125,20 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             @Param("tagIds") List<Long> tagIds,
             @Param("tagCount") long tagCount
     );
+
+    /** Top truyện công khai xếp theo số lượt theo dõi (library_entries) giảm dần */
+    @Query(value = """
+            SELECT s.id FROM stories s
+            LEFT JOIN library_entries le ON le.story_id = s.id
+            WHERE s.status = 'published'
+            GROUP BY s.id
+            ORDER BY COUNT(le.id) DESC
+            """, nativeQuery = true)
+    List<Integer> findTopPublishedStoryIdsOrderByLibraryCount(Pageable pageable);
+
+    /** Danh sách author_id phân biệt của truyện đã xuất bản */
+    @Query("SELECT DISTINCT s.author.id FROM StoryEntity s WHERE s.status = :status AND s.author.id IS NOT NULL")
+    List<Long> findDistinctAuthorIdsByStatus(@Param("status") StoryStatus status);
 //=======
     
     long countByAuthor_Id(Long authorId);

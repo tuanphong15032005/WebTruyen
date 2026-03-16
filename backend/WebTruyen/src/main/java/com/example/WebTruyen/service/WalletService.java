@@ -1,10 +1,33 @@
 package com.example.WebTruyen.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.example.WebTruyen.dto.response.AdminFinanceRequestResponse;
+import com.example.WebTruyen.dto.response.RefundEligibleTransactionResponse;
+import com.example.WebTruyen.dto.response.RefundRequestHistoryResponse;
 import com.example.WebTruyen.dto.response.WalletResponse;
-import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.dto.response.WithdrawRequestHistoryResponse;
 import com.example.WebTruyen.entity.enums.CoinType;
 import com.example.WebTruyen.entity.enums.LedgerReason;
 import com.example.WebTruyen.entity.enums.NotificationKind;
+import com.example.WebTruyen.entity.enums.WithdrawStatus;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.NotificationEntity;
@@ -13,6 +36,7 @@ import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
 import com.example.WebTruyen.entity.model.Payment.ChapterUnlockEntity;
 import com.example.WebTruyen.entity.model.Payment.DonationEntity;
 import com.example.WebTruyen.entity.model.Payment.LedgerEntryEntity;
+import com.example.WebTruyen.entity.model.Payment.WithdrawRequestEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
 import com.example.WebTruyen.repository.DonationRepository;
@@ -20,23 +44,11 @@ import com.example.WebTruyen.repository.LedgerEntryRepository;
 import com.example.WebTruyen.repository.NotificationRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import com.example.WebTruyen.repository.WithdrawRequestRepository;
+import com.example.WebTruyen.repository.WithdrawRuleRepository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @Slf4j
 @Service
@@ -67,12 +79,18 @@ public class WalletService {
     private DonationRepository donationRepository;
 
     @Autowired
+    private WithdrawRequestRepository withdrawRequestRepository;
+
+    @Autowired
+    private WithdrawRuleRepository withdrawRuleRepository;
+
+    @Autowired
     private NotificationRepository notificationRepository;
 
     @Autowired
     @Lazy
     private SimpleDailyTaskService simpleDailyTaskService;
-    
+
     @Autowired
     @Lazy
     private DailyTaskOrchestrator dailyTaskOrchestrator;
@@ -241,7 +259,7 @@ public class WalletService {
         Long remainingPrice = actualChapterPrice - deductFromA;
         Long deductFromB = remainingPrice;
         LocalDateTime now = LocalDateTime.now();
-        
+
         // Update wallet balances
         Long newBalanceB = currentBalanceB - deductFromB;
         Long newBalanceA = currentBalanceA - deductFromA;
@@ -261,7 +279,7 @@ public class WalletService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         LocalDateTime holdUntil = now.plusSeconds(CHAPTER_PURCHASE_HOLD_SECONDS);
-        
+
         ChapterUnlockEntity unlock = ChapterUnlockEntity.builder()
                 .user(user)
                 .chapter(chapter)
@@ -273,7 +291,7 @@ public class WalletService {
                 .build();
         
         ChapterUnlockEntity savedUnlock = chapterUnlockRepository.save(unlock);
-        
+
         // Track chapter unlock for daily task using orchestrator
         try {
             log.info("Tracking chapter unlock for daily task - user: {}, chapter: {}", userId, chapterId);
@@ -346,10 +364,6 @@ public class WalletService {
             log.warn("Failed to auto-track MAKE_DONATION daily task for donor: {}", fromUserId, e);
         }
 
-        // Add coins to author
-        UserEntity authorUser = userRepository.findById(toUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
-        
         // Directly update author wallet without triggering daily task (receiving donation shouldn't complete "make donation" task)
         WalletEntity authorWallet = getOrCreateWalletEntity(toUserId);
         Long newAuthorBalance = authorWallet.getBalanceCoinB() + coinBAmount;
@@ -368,7 +382,7 @@ public class WalletService {
                 .build();
         
         DonationEntity savedDonation = donationRepository.save(donation);
-        
+
         // Create ledger entries with message in description
         String donateOutDescription = "Donate to " + toUser.getUsername();
         if (message != null && !message.trim().isEmpty()) {
@@ -397,6 +411,521 @@ public class WalletService {
         response.put("message", "Donation successful!");
         
         return response;
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Tạo yêu cầu rút tiền Coin B: kiểm tra số dư, tính phí, khóa coin và tạo request chờ duyệt - V2 - branch: minhfinal2]
+    @Transactional
+    public com.example.WebTruyen.entity.model.Payment.WithdrawRequestEntity withdrawCreateRequest(
+            Long userId,
+            Long amountB,
+            String bankAccountNumber,
+            String accountHolderName,
+            String bankName
+    ) {
+        final long minimumRequiredAmount = 10000L;
+        if (amountB == null || amountB <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền rút không hợp lệ");
+        }
+        if (bankAccountNumber == null || bankAccountNumber.trim().isEmpty()
+                || accountHolderName == null || accountHolderName.trim().isEmpty()
+                || bankName == null || bankName.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin tài khoản ngân hàng không đầy đủ");
+        }
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        WalletEntity wallet = getOrCreateWalletEntity(userId);
+
+        // Lấy rule rút tiền hiện tại cho Coin B
+        var ruleOpt = withdrawRuleRepository.findFirstByCoinAndActiveIsTrueOrderByIdDesc("B");
+        long minWithdraw;
+        long feeCoinB;
+
+        if (ruleOpt.isPresent()) {
+            var rule = ruleOpt.get();
+            minWithdraw = rule.getMinWithdrawCoinB();
+
+            BigDecimal feeValue = rule.getFeeValue();
+            switch (rule.getFeeType()) {
+                case PERCENT -> {
+                    BigDecimal amount = BigDecimal.valueOf(amountB);
+                    feeCoinB = amount.multiply(feeValue)
+                            .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP)
+                            .longValue();
+                }
+                case FIXED -> feeCoinB = feeValue.longValue();
+                default -> feeCoinB = 0L;
+            }
+        } else {
+            // Fallback: phí 5%
+            minWithdraw = 1L;
+            BigDecimal amount = BigDecimal.valueOf(amountB);
+            feeCoinB = amount.multiply(BigDecimal.valueOf(5))
+                    .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP)
+                    .longValue();
+        }
+
+        minWithdraw = Math.max(minWithdraw, minimumRequiredAmount);
+
+        if (amountB < minWithdraw) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền rút phải lớn hơn 10000 Kim cương B");
+        }
+
+        if (wallet.getBalanceCoinB() < amountB) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số dư Coin B không đủ để rút");
+        }
+
+        long netCoinB = amountB - feeCoinB;
+        if (netCoinB <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền thực nhận phải lớn hơn 0");
+        }
+
+        // Trừ Coin B trong ví
+        long newBalanceB = wallet.getBalanceCoinB() - amountB;
+        wallet.setBalanceCoinB(newBalanceB);
+        wallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+
+        // Ghi lịch sử rút tiền
+        createLedgerEntry(userId, CoinType.B, -amountB, LedgerReason.WITHDRAW,
+                "WITHDRAW_REQUEST", "Yêu cầu rút Coin B");
+
+        String paymentDetails = String.format(
+                "requestType=WITHDRAW;bankAccountNumber=%s;accountHolderName=%s;bankName=%s",
+                bankAccountNumber, accountHolderName, bankName
+        );
+
+        com.example.WebTruyen.entity.model.Payment.WithdrawRequestEntity entity =
+                com.example.WebTruyen.entity.model.Payment.WithdrawRequestEntity.builder()
+                        .user(user)
+                        .coinBAmount(amountB)
+                        .feeCoinB(feeCoinB)
+                        .netCoinB(netCoinB)
+                        .paymentMethodDetails(paymentDetails)
+                        .status(com.example.WebTruyen.entity.enums.WithdrawStatus.REQUESTED)
+                        .requestedAt(LocalDateTime.now())
+                        .build();
+
+        return withdrawRequestRepository.save(entity);
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Lấy lịch sử yêu cầu rút tiền của tác giả theo thời gian mới nhất - V2 - branch: minhfinal2]
+    public List<WithdrawRequestHistoryResponse> withdrawGetUserRequests(Long userId) {
+        return withdrawRequestRepository.findByUserIdOrderByRequestedAtDesc(userId)
+                .stream()
+                .map(this::mapWithdrawRequestHistory)
+                .toList();
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Lấy danh sách giao dịch đủ điều kiện hoàn tiền và tính hạn mức hoàn theo số dư hiện tại - V2 - branch: minhfinal2]
+    public List<RefundEligibleTransactionResponse> refundGetEligibleTransactions(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        WalletEntity wallet = getOrCreateWalletEntity(userId);
+        Long balanceCoinB = wallet.getBalanceCoinB();
+        long currentCoinB = balanceCoinB == null ? 0L : balanceCoinB.longValue();
+
+        return ledgerEntryRepository.findByUserOrderByCreatedAtDesc(user)
+                .stream()
+                .filter(entry -> entry.getCoin() == CoinType.B)
+                .filter(this::isRefundEligibleEntry)
+                .map(entry -> mapRefundEligibleEntry(entry, currentCoinB))
+                .filter(item -> {
+                    Long maxRefundAmount = item.getMaxRefundAmount();
+                    return maxRefundAmount != null && maxRefundAmount > 0;
+                })
+                .toList();
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Tạo yêu cầu hoàn tiền: kiểm tra giao dịch hợp lệ, khóa coin và lưu thông tin ngân hàng nhận hoàn - V2 - branch: minhfinal2]
+    @Transactional
+    public WithdrawRequestEntity refundCreateRequest(
+            Long userId,
+            Long transactionId,
+            Long refundAmount,
+            String refundReason,
+            String bankAccountNumber,
+            String accountHolderName,
+            String bankName
+    ) {
+        if (transactionId == null || transactionId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giao dịch hoàn tiền không hợp lệ");
+        }
+        if (refundAmount == null || refundAmount <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền hoàn không hợp lệ");
+        }
+        if (refundReason == null || refundReason.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vui lòng nhập lý do hoàn tiền");
+        }
+        if (bankAccountNumber == null || bankAccountNumber.trim().isEmpty()
+                || accountHolderName == null || accountHolderName.trim().isEmpty()
+                || bankName == null || bankName.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin nhận hoàn tiền không đầy đủ");
+        }
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        LedgerEntryEntity selectedTransaction = ledgerEntryRepository.findByIdAndUserId(transactionId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch đã chọn"));
+
+        if (selectedTransaction.getCoin() != CoinType.B || !isRefundEligibleEntry(selectedTransaction)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giao dịch này không hỗ trợ yêu cầu hoàn tiền");
+        }
+
+        long originalAmount = Math.abs(Optional.ofNullable(selectedTransaction.getDelta()).orElse(0L));
+        if (originalAmount <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền giao dịch gốc không hợp lệ");
+        }
+
+        WalletEntity wallet = getOrCreateWalletEntity(userId);
+        Long balanceCoinB = wallet.getBalanceCoinB();
+        long currentCoinB = balanceCoinB == null ? 0L : balanceCoinB.longValue();
+        long maxRefundAmount = Math.min(originalAmount, currentCoinB);
+        if (maxRefundAmount <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số dư kim cương hiện tại không đủ để tạo yêu cầu hoàn tiền");
+        }
+        if (refundAmount > maxRefundAmount) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Số tiền hoàn tối đa cho giao dịch này là " + maxRefundAmount + " Kim cương");
+        }
+
+        String transactionMarker = "requestType=REFUND;transactionId=" + transactionId + ";";
+        List<WithdrawRequestEntity> existingRequests = withdrawRequestRepository
+                .findByUserIdAndPaymentMarkerOrderByRequestedAtDesc(userId, transactionMarker);
+        boolean hasOpenRequest = existingRequests.stream()
+                .anyMatch(req -> req.getStatus() != null
+                        && req.getStatus() != com.example.WebTruyen.entity.enums.WithdrawStatus.REJECTED
+                        && req.getStatus() != com.example.WebTruyen.entity.enums.WithdrawStatus.CANCELLED);
+        if (hasOpenRequest) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Giao dịch này đã có yêu cầu hoàn tiền trước đó");
+        }
+
+        long newBalanceB = currentCoinB - refundAmount;
+        wallet.setBalanceCoinB(newBalanceB);
+        wallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+
+        createLedgerEntry(userId, CoinType.B, -refundAmount, LedgerReason.WITHDRAW,
+                "REFUND_REQUEST", "Tạm giữ kim cương cho yêu cầu hoàn tiền");
+
+        String paymentDetails = String.format(
+                "requestType=REFUND;coinLocked=true;transactionId=%d;transactionType=%s;originalAmount=%d;refundAmount=%d;refundReason=%s;bankAccountNumber=%s;accountHolderName=%s;bankName=%s",
+                transactionId,
+                resolveTransactionTypeLabel(selectedTransaction),
+                originalAmount,
+                refundAmount,
+                sanitizePaymentDetailValue(refundReason),
+                sanitizePaymentDetailValue(bankAccountNumber),
+                sanitizePaymentDetailValue(accountHolderName),
+                sanitizePaymentDetailValue(bankName)
+        );
+
+        WithdrawRequestEntity entity = WithdrawRequestEntity.builder()
+                .user(user)
+                .coinBAmount(refundAmount)
+                .feeCoinB(0L)
+                .netCoinB(refundAmount)
+                .paymentMethodDetails(paymentDetails)
+                .status(com.example.WebTruyen.entity.enums.WithdrawStatus.REQUESTED)
+                .requestedAt(LocalDateTime.now())
+                .build();
+
+        return withdrawRequestRepository.save(entity);
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Lấy lịch sử yêu cầu hoàn tiền của người dùng theo marker requestType=REFUND - V2 - branch: minhfinal2]
+    public List<RefundRequestHistoryResponse> refundGetUserRequests(Long userId) {
+        String marker = "requestType=REFUND;";
+        return withdrawRequestRepository.findByUserIdAndPaymentMarkerOrderByRequestedAtDesc(userId, marker)
+                .stream()
+                .map(this::mapRefundRequestHistory)
+                .toList();
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Màn hình tài chính admin: lọc danh sách yêu cầu rút/hoàn theo loại và trạng thái - V2 - branch: minhfinal2]
+    public List<AdminFinanceRequestResponse> financeAdminGetRequests(String requestType, WithdrawStatus status) {
+        return withdrawRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "requestedAt"))
+                .stream()
+                .filter(req -> {
+                    if (requestType == null || requestType.isBlank() || "ALL".equalsIgnoreCase(requestType)) {
+                        return true;
+                    }
+                    return requestType.equalsIgnoreCase(resolveRequestType(req));
+                })
+                .filter(req -> status == null || status == req.getStatus())
+                .map(this::mapAdminFinanceRequest)
+                .toList();
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Admin duyệt yêu cầu tài chính và lưu audit (adminName/adminNote/adminActionAt) - V2 - branch: minhfinal2]
+    @Transactional
+    public WithdrawRequestEntity financeAdminApproveRequest(Long adminId, Long requestId, String note) {
+        WithdrawRequestEntity request = findFinanceRequest(requestId);
+        if (request.getStatus() != WithdrawStatus.REQUESTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ yêu cầu đang chờ duyệt mới có thể duyệt");
+        }
+
+        UserEntity admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin not found"));
+
+        request.setStatus(WithdrawStatus.APPROVED);
+        request.setAdmin(admin);
+        request.setPaymentMethodDetails(appendAdminAuditDetails(request.getPaymentMethodDetails(), admin.getUsername(), note));
+        return withdrawRequestRepository.save(request);
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Admin từ chối yêu cầu: hoàn lại Coin B đã tạm giữ cho người dùng rồi cập nhật trạng thái - V2 - branch: minhfinal2]
+    @Transactional
+    public WithdrawRequestEntity financeAdminRejectRequest(Long adminId, Long requestId, String note) {
+        WithdrawRequestEntity request = findFinanceRequest(requestId);
+        if (request.getStatus() != WithdrawStatus.REQUESTED && request.getStatus() != WithdrawStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ yêu cầu đang xử lý mới có thể từ chối");
+        }
+
+        UserEntity admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin not found"));
+
+        refundCoinBToUser(request.getUser().getId(), request.getCoinBAmount());
+
+        request.setStatus(WithdrawStatus.REJECTED);
+        request.setAdmin(admin);
+        request.setPaymentMethodDetails(appendAdminAuditDetails(request.getPaymentMethodDetails(), admin.getUsername(), note));
+        return withdrawRequestRepository.save(request);
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Admin đánh dấu hoàn tất chi trả/hoàn tiền và ghi nhận thời điểm paidAt - V2 - branch: minhfinal2]
+    @Transactional
+    public WithdrawRequestEntity financeAdminMarkCompleted(Long adminId, Long requestId, String note) {
+        WithdrawRequestEntity request = findFinanceRequest(requestId);
+        if (request.getStatus() != WithdrawStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ yêu cầu đã duyệt mới có thể đánh dấu hoàn tất");
+        }
+
+        UserEntity admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin not found"));
+
+        request.setStatus(WithdrawStatus.PAID);
+        request.setPaidAt(LocalDateTime.now());
+        request.setAdmin(admin);
+        request.setPaymentMethodDetails(appendAdminAuditDetails(request.getPaymentMethodDetails(), admin.getUsername(), note));
+        return withdrawRequestRepository.save(request);
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Map dữ liệu lịch sử rút tiền cho frontend tác giả (amount/fee/net/status/time) - V2 - branch: minhfinal2]
+    private WithdrawRequestHistoryResponse mapWithdrawRequestHistory(WithdrawRequestEntity entity) {
+        return WithdrawRequestHistoryResponse.builder()
+                .id(entity.getId())
+                .coinBAmount(entity.getCoinBAmount())
+                .feeCoinB(entity.getFeeCoinB())
+                .netCoinB(entity.getNetCoinB())
+                .status(entity.getStatus())
+                .requestedAt(entity.getRequestedAt())
+                .paidAt(entity.getPaidAt())
+                .build();
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Map dữ liệu chi tiết yêu cầu tài chính cho admin, tách nhánh WITHDRAW và REFUND - V2 - branch: minhfinal2]
+    private AdminFinanceRequestResponse mapAdminFinanceRequest(WithdrawRequestEntity entity) {
+        String details = entity.getPaymentMethodDetails() == null ? "" : entity.getPaymentMethodDetails();
+        String requestType = resolveRequestType(entity);
+        boolean isRefund = "REFUND".equalsIgnoreCase(requestType);
+
+        String senderName = resolveSenderDisplayName(entity.getUser());
+        String relatedReference = isRefund
+                ? String.format("GD #%d - %s",
+                parseLongDetail(details, "transactionId"),
+                parseStringDetail(details, "transactionType"))
+                : "Doanh thu kim cương của tác giả";
+
+        String requestReason = isRefund
+                ? parseStringDetail(details, "refundReason")
+                : parseStringDetail(details, "adminNote");
+
+        return AdminFinanceRequestResponse.builder()
+                .id(entity.getId())
+                .requestType(requestType)
+                .senderId(entity.getUser() != null ? entity.getUser().getId() : null)
+                .senderName(senderName)
+                .amountCoinB(entity.getCoinBAmount())
+                .relatedReference(relatedReference)
+                .bankAccountNumber(parseStringDetail(details, "bankAccountNumber"))
+                .accountHolderName(parseStringDetail(details, "accountHolderName"))
+                .bankName(parseStringDetail(details, "bankName"))
+                .requestReason(requestReason)
+                .status(entity.getStatus())
+                .requestedAt(entity.getRequestedAt())
+                .paidAt(entity.getPaidAt())
+                .adminName(entity.getAdmin() != null ? entity.getAdmin().getUsername() : "")
+                .build();
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Map giao dịch đủ điều kiện hoàn với maxRefundAmount = min(originalAmount, currentCoinB) - V2 - branch: minhfinal2]
+    private RefundEligibleTransactionResponse mapRefundEligibleEntry(LedgerEntryEntity entry, long currentCoinB) {
+        long originalAmount = Math.abs(Optional.ofNullable(entry.getDelta()).orElse(0L));
+        long maxRefundAmount = Math.min(originalAmount, currentCoinB);
+        return RefundEligibleTransactionResponse.builder()
+                .transactionId(entry.getId())
+                .transactionType(resolveTransactionTypeLabel(entry))
+                .originalAmount(originalAmount)
+                .maxRefundAmount(maxRefundAmount)
+                .description(resolveTransactionDescription(entry))
+                .createdAt(entry.getCreatedAt())
+                .build();
+    }
+
+    private boolean isRefundEligibleEntry(LedgerEntryEntity entry) {
+        if (entry == null || entry.getReason() == null || entry.getDelta() == null) {
+            return false;
+        }
+        return switch (entry.getReason()) {
+            case TOPUP -> entry.getDelta() > 0;
+            case SPEND_CHAPTER, DONATE -> entry.getDelta() < 0;
+            default -> false;
+        };
+    }
+
+    private String resolveTransactionTypeLabel(LedgerEntryEntity entry) {
+        if (entry == null || entry.getReason() == null) {
+            return "Thanh toán khác";
+        }
+        return switch (entry.getReason()) {
+            case TOPUP -> "Nạp Coin";
+            case SPEND_CHAPTER -> "Mua chương";
+            case DONATE -> "Donate";
+            default -> "Thanh toán khác";
+        };
+    }
+
+    private String resolveTransactionDescription(LedgerEntryEntity entry) {
+        String refType = entry.getRefType() == null ? "" : entry.getRefType();
+        return switch (entry.getReason()) {
+            case TOPUP -> "Nạp kim cương vào ví";
+            case SPEND_CHAPTER -> "Thanh toán mở khóa chương truyện";
+            case DONATE -> "Ủng hộ tác giả";
+            default -> "Giao dịch " + refType;
+        };
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Map lịch sử yêu cầu hoàn tiền từ paymentMethodDetails cho trang người dùng - V2 - branch: minhfinal2]
+    private RefundRequestHistoryResponse mapRefundRequestHistory(WithdrawRequestEntity entity) {
+        String details = entity.getPaymentMethodDetails() == null ? "" : entity.getPaymentMethodDetails();
+        return RefundRequestHistoryResponse.builder()
+                .id(entity.getId())
+                .transactionId(parseLongDetail(details, "transactionId"))
+                .transactionType(parseStringDetail(details, "transactionType"))
+                .originalAmount(parseLongDetail(details, "originalAmount"))
+                .refundAmount(parseLongDetail(details, "refundAmount"))
+                .refundReason(parseStringDetail(details, "refundReason"))
+                .bankAccountNumber(parseStringDetail(details, "bankAccountNumber"))
+                .accountHolderName(parseStringDetail(details, "accountHolderName"))
+                .bankName(parseStringDetail(details, "bankName"))
+                .status(entity.getStatus())
+                .requestedAt(entity.getRequestedAt())
+                .paidAt(entity.getPaidAt())
+                .build();
+    }
+
+    private String parseStringDetail(String details, String key) {
+        String marker = key + "=";
+        int start = details.indexOf(marker);
+        if (start < 0) {
+            return "";
+        }
+        int valueStart = start + marker.length();
+        int end = details.indexOf(';', valueStart);
+        if (end < 0) {
+            end = details.length();
+        }
+        return details.substring(valueStart, end);
+    }
+
+    private Long parseLongDetail(String details, String key) {
+        String value = parseStringDetail(details, key);
+        if (value.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException ex) {
+            return 0L;
+        }
+    }
+
+    private String sanitizePaymentDetailValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replace(";", ",");
+    }
+
+    private WithdrawRequestEntity findFinanceRequest(Long requestId) {
+        return withdrawRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu tài chính"));
+    }
+
+    // MinhHQ – ngày 16/03/2026
+    // [Hoàn Coin B về ví khi yêu cầu bị từ chối và ghi ledger ADJUST để đối soát - V2 - branch: minhfinal2]
+    private void refundCoinBToUser(Long userId, Long amount) {
+        long refundAmount = amount == null ? 0L : amount;
+        if (refundAmount <= 0) {
+            return;
+        }
+        WalletEntity wallet = getOrCreateWalletEntity(userId);
+        long currentCoinB = wallet.getBalanceCoinB() == null ? 0L : wallet.getBalanceCoinB();
+        wallet.setBalanceCoinB(currentCoinB + refundAmount);
+        wallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+
+        createLedgerEntry(userId, CoinType.B, refundAmount, LedgerReason.ADJUST,
+                "REQUEST_REJECT_REFUND", "Hoàn lại kim cương khi admin từ chối yêu cầu");
+    }
+
+    private String resolveRequestType(WithdrawRequestEntity entity) {
+        String details = entity.getPaymentMethodDetails() == null ? "" : entity.getPaymentMethodDetails();
+        String requestType = parseStringDetail(details, "requestType");
+        if (requestType != null && !requestType.isBlank()) {
+            return requestType.trim().toUpperCase();
+        }
+        return "WITHDRAW";
+    }
+
+    private String resolveSenderDisplayName(UserEntity user) {
+        if (user == null) {
+            return "Không rõ";
+        }
+        if (user.getAuthorPenName() != null && !user.getAuthorPenName().isBlank()) {
+            return user.getAuthorPenName();
+        }
+        if (user.getDisplayName() != null && !user.getDisplayName().isBlank()) {
+            return user.getDisplayName();
+        }
+        return user.getUsername();
+    }
+
+    private String appendAdminAuditDetails(String details, String adminName, String note) {
+        String base = details == null ? "" : details;
+        String safeAdminName = sanitizePaymentDetailValue(adminName);
+        String safeNote = sanitizePaymentDetailValue(note);
+        return base
+                + ";adminName=" + safeAdminName
+                + ";adminNote=" + safeNote
+                + ";adminActionAt=" + LocalDateTime.now();
     }
 
     private void settleChapterUnlockRevenue(ChapterUnlockEntity unlock, LocalDateTime settledAt) {
@@ -475,14 +1004,14 @@ public class WalletService {
         notificationRepository.save(notification);
     }
 
-    private void createDonationLedgerEntry(Long userId, CoinType coinType, Long delta, 
+    private void createDonationLedgerEntry(Long userId, CoinType coinType, Long delta,
                                          String refType, Long refId, String description) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
         // Use different refTypes for debit and credit to avoid unique constraint violation
         String finalRefType = delta < 0 ? "DONATION_OUT" : "DONATION_IN";
-        
+
         // Generate a unique idempotency key using timestamp and random component
         String idempotencyKey = String.format("D%d_%d_%s_%d", userId, refId, coinType.name().charAt(0), System.currentTimeMillis() % 1000000);
         
@@ -499,12 +1028,12 @@ public class WalletService {
                         .idempotencyKey(idempotencyKey)
                         .createdAt(LocalDateTime.now())
                         .build();
-                
+
                 ledgerEntryRepository.save(entry);
             }
         } catch (DataIntegrityViolationException e) {
             // Log the error but don't fail the donation
-            log.warn("Ledger entry already exists for donation {} - user {} - coin {}: {}", 
+            log.warn("Ledger entry already exists for donation {} - user {} - coin {}: {}",
                     refId, userId, coinType, e.getMessage());
         }
     }
@@ -514,14 +1043,14 @@ public class WalletService {
         createLedgerEntry(userId, coinType, delta, reason, refType, description, null);
     }
 
-    private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
+    private void createLedgerEntry(Long userId, CoinType coinType, Long delta,
                                   LedgerReason reason, String refType, String description, String idempotencyKey) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
         // Use provided idempotency key or generate default one
-        String finalIdempotencyKey = idempotencyKey != null ? idempotencyKey : 
-            String.format("%s%d_%c_%d", refType.substring(0, Math.min(5, refType.length())), 
+        String finalIdempotencyKey = idempotencyKey != null ? idempotencyKey :
+            String.format("%s%d_%c_%d", refType.substring(0, Math.min(5, refType.length())),
                           userId, coinType.name().charAt(0), System.currentTimeMillis() % 1000000);
         
         // Create ledger entry for all transaction types

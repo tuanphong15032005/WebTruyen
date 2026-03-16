@@ -160,7 +160,7 @@ function PerformanceAnalytics() {
                 <strong>{overall.totalCoinEarned ?? 0}</strong>
               </article>
               <article className='author-analytics__kpi'>
-                <span>Tổng follower</span>
+                <span>Tổng số người theo dõi</span>
                 <strong>{overall.totalFollowers ?? 0}</strong>
               </article>
             </div>

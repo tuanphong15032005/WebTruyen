@@ -216,6 +216,9 @@ public class SimpleDailyTaskService {
         checkAndCreateNewDayMissions(today);
         log.info("Using date: {}", today);
         
+        // Ensure daily missions exist for today
+        ensureDailyMissionsExist(today);
+        
         // Find the mission
         DailyMissionEntity mission = dailyMissionRepository.findByDateAndMissionCode(today, missionCode)
                 .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode + " for date: " + today));

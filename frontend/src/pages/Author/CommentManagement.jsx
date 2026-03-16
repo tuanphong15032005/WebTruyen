@@ -24,6 +24,13 @@ const statusClassName = (status) => {
   return 'normal';
 };
 
+const statusLabelVi = (status) => {
+  const key = String(status || '').toLowerCase();
+  if (key === 'hidden') return 'Đã ẩn';
+  if (key === 'reported') return 'Đã bị báo cáo';
+  return 'Bình thường';
+};
+
 // Searchable select: options = [{value, label}], value, onChange, placeholder, disabled, ariaLabel
 const SearchableSelect = ({
   options = [],
@@ -336,14 +343,41 @@ const CommentManagement = () => {
     }
   };
 
+  const handleToggleVisibility = async (comment) => {
+    const commentId = comment?.id;
+    if (!commentId) return;
+    const isHidden = String(comment?.status || '').toLowerCase() === 'hidden';
+    try {
+      setActingCommentId(commentId);
+      if (isHidden) {
+        await storyService.unhideAuthorComment(commentId);
+        notify('Đã hiện bình luận', 'success');
+      } else {
+        await storyService.hideAuthorComment(commentId);
+        notify('Đã ẩn bình luận', 'success');
+      }
+      await fetchComments();
+    } catch (error) {
+      console.error('toggleAuthorCommentVisibility error', error);
+      if (isUnauthorized(error)) {
+        notify('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
+        navigate('/login', { replace: true, state: { from: '/author/comments' } });
+        return;
+      }
+      notify('Không thể cập nhật trạng thái bình luận', 'error');
+    } finally {
+      setActingCommentId(null);
+    }
+  };
+
   // Flatten reply tree: [{reply, parentDisplayName}] theo thời gian (Facebook-style flat list).
   const flattenRepliesWithParent = (replies, parentName = '') => {
     const result = [];
     const walk = (list, parent) => {
       if (!Array.isArray(list)) return;
       list.forEach((r) => {
-        result.push({ reply: r, parentDisplayName: parent || 'Reader' });
-        walk(r.replies || [], r.displayName || 'Reader');
+        result.push({ reply: r, parentDisplayName: parent || 'Độc giả' });
+        walk(r.replies || [], r.displayName || 'Độc giả');
       });
     };
     walk(replies, parentName);
@@ -356,7 +390,8 @@ const CommentManagement = () => {
     const flatReplies = !isReply ? flattenRepliesWithParent(replies, comment.displayName) : [];
     const actualReplying = replyForId === comment.id;
     const isActing = actingCommentId === comment.id;
-    const statusLabel = comment.status === 'Normal' ? 'Normal' : comment.status === 'Reported' ? 'Reported' : comment.status === 'Hidden' ? 'Hidden' : (comment.status || 'Normal');
+    const isHidden = String(comment?.status || '').toLowerCase() === 'hidden';
+    const statusLabel = statusLabelVi(comment.status);
 
     return (
       <article
@@ -377,11 +412,14 @@ const CommentManagement = () => {
             {replyToName && (
               <span className='author-comments__reply-to'>Trả lời {replyToName}</span>
             )}
-            <strong className='author-comments__name'>{comment.displayName || 'Reader'}</strong>
+            <strong className='author-comments__name'>{comment.displayName || 'Độc giả'}</strong>
             <time className='author-comments__time' dateTime={comment.postedTime || ''}>
               {formatDateTime(comment.postedTime)}
             </time>
-            <span className={`author-comments__status author-comments__status--${statusClassName(comment.status)}`} title='Comment status'>
+            <span
+              className={`author-comments__status author-comments__status--${statusClassName(comment.status)}`}
+              title='Trạng thái bình luận'
+            >
               {statusLabel}
             </span>
           </div>
@@ -393,16 +431,25 @@ const CommentManagement = () => {
               type='button'
               className='author-comments__btn author-comments__btn--reply'
               onClick={() => setReplyForId((prev) => (prev === comment.id ? null : comment.id))}
-              aria-label='Reply to this comment'
+              aria-label='Phan hoi binh luan nay'
             >
               Phản hồi
+            </button>
+            <button
+              type='button'
+              className='author-comments__btn author-comments__btn--toggle'
+              onClick={() => handleToggleVisibility(comment)}
+              disabled={isActing}
+              aria-label={isHidden ? 'Hiện bình luận' : 'Ẩn bình luận'}
+            >
+              {isActing ? '…' : isHidden ? 'Hiện' : 'Ẩn'}
             </button>
             <button
               type='button'
               className='author-comments__btn author-comments__btn--delete'
               onClick={() => handleDelete(comment.id)}
               disabled={isActing}
-              aria-label='Delete comment'
+              aria-label='Xóa bình luận'
             >
               {isActing ? '…' : 'Xóa'}
             </button>
@@ -415,7 +462,7 @@ const CommentManagement = () => {
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder='Viết phản hồi…'
                 maxLength={4000}
-                aria-label='Reply text'
+                aria-label='Nội dung phản hồi'
               />
               <div className='author-comments__reply-footer'>
                 <span>{replyContent.trim().length} / 4000</span>
@@ -447,17 +494,18 @@ const CommentManagement = () => {
   };
 
   return (
-    <div className='author-comments' role='region' aria-label='Comment Management'>
+    <div className='author-comments' role='region' aria-label='Quản lý bình luận'>
       {/* Mô tả màn hình theo spec: Authors access the Comment Management screen to manage and respond to reader comments. */}
       <header className='author-comments__header'>
-        <h1 className='author-comments__title'>Comment Management</h1>
+        <h1 className='author-comments__title'>Quản lý bình luận</h1>
         <p className='author-comments__desc'>
-          Manage and respond to reader comments on each story chapter. View, reply, and moderate comments that violate community guidelines.
+          Quản lý và phản hồi bình luận của độc giả theo từng truyện hoặc chương. Bạn có thể trả lời,
+          ẩn/hiện và xóa các bình luận không phù hợp.
         </p>
       </header>
 
       {/* Field 1: Story selector (searchable) | Field 2: Chapter selector (searchable) */}
-      <section className='author-comments__filters' aria-label='Filters'>
+      <section className='author-comments__filters' aria-label='Bộ lọc'>
         <label className='author-comments__filter-group'>
           <span className='author-comments__label'>Truyện</span>
           <SearchableSelect
@@ -534,7 +582,7 @@ const CommentManagement = () => {
               value={filterYear}
               onChange={(e) => setFilterYear(Number(e.target.value))}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+              {Array.from({ length: 1 }, (_, i) => new Date().getFullYear() - i).map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
@@ -543,7 +591,7 @@ const CommentManagement = () => {
       </section>
 
       {/* Field 3: Comment list (list / thread view) — Display comments in threaded format (comment – reply). */}
-      <section className='author-comments__list-section' aria-label='Comment list'>
+      <section className='author-comments__list-section' aria-label='Danh sách bình luận'>
         <h2 className='author-comments__list-title'>Bình luận</h2>
         <div className='author-comments__list' role='list'>
           {loadingComments && <p className='author-comments__empty'>Đang tải bình luận...</p>}

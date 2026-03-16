@@ -316,6 +316,17 @@
   border-color: #f87171;
 }
 
+.author-comments__btn--toggle {
+  background: #fff;
+  color: #1f2937;
+  border-color: #d1d5db;
+}
+
+.author-comments__btn--toggle:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
 .author-comments__btn--submit {
   background: #6366f1;
   color: #fff;
