@@ -53,7 +53,6 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>💳</span>
             Quản lý chi trả và hoàn tiền
           </NavLink>
-          </button>
           <button
             type='button'
             className={`admin-dashboard__nav-item ${activeTab === 'daily-missions' ? 'active' : ''}`}

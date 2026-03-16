@@ -23,10 +23,11 @@ import com.example.WebTruyen.dto.response.AdminFinanceRequestResponse;
 import com.example.WebTruyen.dto.response.RefundEligibleTransactionResponse;
 import com.example.WebTruyen.dto.response.RefundRequestHistoryResponse;
 import com.example.WebTruyen.dto.response.WalletResponse;
-import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.dto.response.WithdrawRequestHistoryResponse;
 import com.example.WebTruyen.entity.enums.CoinType;
 import com.example.WebTruyen.entity.enums.LedgerReason;
 import com.example.WebTruyen.entity.enums.NotificationKind;
+import com.example.WebTruyen.entity.enums.WithdrawStatus;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.NotificationEntity;
@@ -40,28 +41,14 @@ import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
 import com.example.WebTruyen.repository.DonationRepository;
 import com.example.WebTruyen.repository.LedgerEntryRepository;
+import com.example.WebTruyen.repository.NotificationRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.WalletRepository;
 import com.example.WebTruyen.repository.WithdrawRequestRepository;
 import com.example.WebTruyen.repository.WithdrawRuleRepository;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -128,6 +115,7 @@ public class WalletService {
                 .user(user)
                 .balanceCoinA(0L)
                 .balanceCoinB(0L)
+                .pendingCoinB(0L)
                 .reservedCoinB(0L)
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -376,10 +364,6 @@ public class WalletService {
             log.warn("Failed to auto-track MAKE_DONATION daily task for donor: {}", fromUserId, e);
         }
 
-        // Add coins to author
-        UserEntity authorUser = userRepository.findById(toUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
-        
         // Directly update author wallet without triggering daily task (receiving donation shouldn't complete "make donation" task)
         WalletEntity authorWallet = getOrCreateWalletEntity(toUserId);
         Long newAuthorBalance = authorWallet.getBalanceCoinB() + coinBAmount;
