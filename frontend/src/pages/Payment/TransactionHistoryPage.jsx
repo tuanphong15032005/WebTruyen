@@ -17,6 +17,13 @@ export default function CoinTransactionHistoryPage() {
     const [showFilters, setShowFilters] = useState(false)
     const [dateError, setDateError] = useState('')
     
+    // Transaction detail modal state
+    const [selectedTransaction, setSelectedTransaction] = useState(null)
+    const [showDetailModal, setShowDetailModal] = useState(false)
+    
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('')
+    
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
@@ -46,6 +53,9 @@ export default function CoinTransactionHistoryPage() {
                     console.log('description:', transaction.description)
                     console.log('ref_type:', transaction.ref_type)
                     console.log('ref_id:', transaction.ref_id)
+                    console.log('donationMessage:', transaction.donationMessage)
+                    console.log('fromUserName:', transaction.fromUserName)
+                    console.log('toUserName:', transaction.toUserName)
                     console.log('Full transaction:', transaction)
                     console.log('========================')
                     
@@ -105,7 +115,10 @@ export default function CoinTransactionHistoryPage() {
                         status: 'completed', // All ledger entries are completed
                         description: transaction.description,
                         paymentMethod: paymentMethod,
-                        reason: transaction.reason // Keep original reason for debugging
+                        reason: transaction.reason, // Keep original reason for debugging
+                        donationMessage: transaction.donationMessage, // Add donation message field
+                        fromUserName: transaction.fromUserName, // Add sender name
+                        toUserName: transaction.toUserName // Add receiver name
                     }
                 })
 
@@ -125,6 +138,17 @@ export default function CoinTransactionHistoryPage() {
     // Apply filters
     useEffect(() => {
         let filtered = [...transactions]
+        
+        // Apply search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase()
+            filtered = filtered.filter(t => 
+                t.description?.toLowerCase().includes(query) ||
+                getCategoryText(t.category).toLowerCase().includes(query) ||
+                t.paymentMethod?.toLowerCase().includes(query) ||
+                t.id.toString().includes(query)
+            )
+        }
         
         // Validate date range
         if (startDate && endDate) {
@@ -159,13 +183,14 @@ export default function CoinTransactionHistoryPage() {
         
         setFilteredTransactions(filtered)
         setCurrentPage(1) // Reset to first page when filters change
-    }, [transactions, startDate, endDate, category])
+    }, [transactions, startDate, endDate, category, searchQuery])
     
     // Reset filters
     const resetFilters = () => {
         setStartDate('')
         setEndDate('')
         setCategory('all')
+        setSearchQuery('')
         setDateError('')
         setCurrentPage(1)
     }
@@ -227,19 +252,18 @@ export default function CoinTransactionHistoryPage() {
         if (transaction.category === 'donate_received') {
             const desc = transaction.description || ''
             
-            // Check if backend sends detailed donation info
-            const senderName = (
-                transaction.from_username || 
-                transaction.from_display_name ||
-                transaction.fromUserName ||
-                transaction.from_user_name
-            )
+            // Debug: Check what data we have
+            console.log('=== DONATE_RECEIVED DEBUG ===')
+            console.log('fromUserName:', transaction.fromUserName)
+            console.log('toUserName:', transaction.toUserName)
+            console.log('donationMessage:', transaction.donationMessage)
+            console.log('description:', desc)
+            console.log('===============================')
             
-            const message = (
-                transaction.donation_message ||
-                transaction.message ||
-                transaction.note
-            )
+            // Check if backend sends detailed donation info
+            const senderName = transaction.fromUserName
+            
+            const message = transaction.donationMessage
             
             // If we have detailed info, show it
             if (senderName && message) {
@@ -266,19 +290,18 @@ export default function CoinTransactionHistoryPage() {
         if (transaction.category === 'donate_given') {
             const desc = transaction.description || ''
             
-            // Check if backend sends detailed donation info
-            const authorName = (
-                transaction.to_username || 
-                transaction.to_display_name ||
-                transaction.toUserName ||
-                transaction.to_user_name
-            )
+            // Debug: Check what data we have
+            console.log('=== DONATE_GIVEN DEBUG ===')
+            console.log('fromUserName:', transaction.fromUserName)
+            console.log('toUserName:', transaction.toUserName)
+            console.log('donationMessage:', transaction.donationMessage)
+            console.log('description:', desc)
+            console.log('============================')
             
-            const message = (
-                transaction.donation_message ||
-                transaction.message ||
-                transaction.note
-            )
+            // Check if backend sends detailed donation info
+            const authorName = transaction.toUserName
+            
+            const message = transaction.donationMessage
             
             // If we have detailed info, show it
             if (authorName && message) {
@@ -389,17 +412,58 @@ export default function CoinTransactionHistoryPage() {
     const getCoinColor = (type) => {
         return type === 'deposit' ? 'text-green-500' : 'text-red-500'
     }
+    
+    // Handle transaction click to show details
+    const handleTransactionClick = (transaction) => {
+        setSelectedTransaction(transaction)
+        setShowDetailModal(true)
+    }
+    
+    // Export transactions to CSV
+    const exportToCSV = () => {
+        const headers = ['ID', 'Ngày', 'Loại', 'Số coin', 'Mô tả', 'Lời nhắn', 'Phương thức', 'Trạng thái']
+        const csvData = filteredTransactions.map(t => {
+            const message = (t.category === 'donate_given' || t.category === 'donate_received') 
+                ? (t.donationMessage || '')
+                : ''
+            return [
+                t.id,
+                formatDate(t.date),
+                getCategoryText(t.category),
+                `${t.coin > 0 ? '+' : ''}${t.coin}`,
+                formatTransactionDescription(t),
+                `"${message}"`,
+                t.paymentMethod || '',
+                getStatusText(t.status)
+            ]
+        })
+        
+        const csvContent = [
+            headers.join(','),
+            ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n')
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `transaction_history_${new Date().toISOString().split('T')[0]}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
 
     if (loading) {
         return (
-            <div className="w-full max-w-4xl mx-auto px-4 py-8">
+            <div className="w-full max-w-7xl mx-auto px-4 py-8">
                 <div className="text-center">Loading...</div>
             </div>
         )
     }
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-4 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 py-8">
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold">Lịch sử giao dịch Coin</h1>
                 <div className="flex gap-2">
@@ -409,6 +473,14 @@ export default function CoinTransactionHistoryPage() {
                         onClick={() => setShowFilters(!showFilters)}
                     >
                         {showFilters ? 'Ẩn bộ lọc' : 'Bộ lọc'}
+                    </button>
+                    <button
+                        type="button"
+                        className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]"
+                        onClick={exportToCSV}
+                        disabled={filteredTransactions.length === 0}
+                    >
+                        Export CSV
                     </button>
                     <button
                         type="button"
@@ -425,7 +497,21 @@ export default function CoinTransactionHistoryPage() {
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 mb-6">
                     <h3 className="text-lg font-semibold mb-4">Bộ lọc giao dịch</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        {/* Search */}
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tìm kiếm
+                            </label>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Tìm theo mô tả, ID, loại giao dịch..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        
                         {/* Start Date */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -457,7 +543,9 @@ export default function CoinTransactionHistoryPage() {
                                 }`}
                             />
                         </div>
-                        
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         {/* Category */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -477,6 +565,51 @@ export default function CoinTransactionHistoryPage() {
                                 <option value="reward">Nhận thưởng</option>
                                 <option value="other">Khác</option>
                             </select>
+                        </div>
+                        
+                        {/* Quick Filters */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Lọc nhanh
+                            </label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCategory('all')
+                                        setStartDate('')
+                                        setEndDate('')
+                                        setSearchQuery('')
+                                    }}
+                                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Tất cả
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCategory('topup')
+                                        setStartDate('')
+                                        setEndDate('')
+                                        setSearchQuery('')
+                                    }}
+                                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Nạp tiền
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCategory('reward')
+                                        setStartDate('')
+                                        setEndDate('')
+                                        setSearchQuery('')
+                                    }}
+                                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Nhận thưởng
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -535,48 +668,97 @@ export default function CoinTransactionHistoryPage() {
                     </button>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {currentTransactions.map((transaction) => (
-                        <div
-                            key={transaction.id}
-                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-[var(--primary)]/20 flex items-center justify-center">
-                                        <span className="text-2xl">{getCoinIcon(transaction.coinType)}</span>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-lg">
-                                            <span className={getCoinColor(transaction.type)}>
-                                                {transaction.coin > 0 ? '+' : ''}{transaction.coin.toLocaleString('vi-VN')} {getCoinIcon(transaction.coinType)}
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                    {/* Compact Table View - Full width without horizontal scroll */}
+                    <div className="w-full">
+                        <table className="w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                                        Thời gian
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                                        Số coin
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                                        Loại
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider flex-1">
+                                        Mô tả
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                                        Lời nhắn
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {currentTransactions.map((transaction) => (
+                                    <tr
+                                        key={transaction.id}
+                                        onClick={() => handleTransactionClick(transaction)}
+                                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                    >
+                                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 w-32">
+                                            <div className="text-xs text-gray-500">
+                                                {new Date(transaction.date).toLocaleDateString('vi-VN')}
+                                            </div>
+                                            <div className="text-xs">
+                                                {new Date(transaction.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                        </td>
+                                        <td className="px-2 py-2 whitespace-nowrap text-sm w-24">
+                                            <div className={`font-medium ${getCoinColor(transaction.type)}`}>
+                                                {transaction.coin > 0 ? '+' : ''}{transaction.coin.toLocaleString('vi-VN')}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                {getCoinIcon(transaction.coinType)}
+                                            </div>
+                                        </td>
+                                        <td className="px-2 py-2 whitespace-nowrap text-sm w-28">
+                                            <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                                {getCategoryText(transaction.category)}
                                             </span>
-                                        </div>
-                                        <div className="text-sm opacity-80">
-                                            {formatDate(transaction.date)}
-                                        </div>
-                                        <div className="text-xs opacity-60">
-                                            {formatTransactionDescription(transaction)}
-                                            {transaction.paymentMethod && ` • ${transaction.paymentMethod}`}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    {transaction.amount > 0 ? (
-                                        <div className="font-semibold text-lg">
-                                            {formatVnd(transaction.amount)}
-                                        </div>
-                                    ) : null}
-                                    <div className="text-xs opacity-60">
-                                        {getCategoryText(transaction.category)}
-                                    </div>
-                                    <div className={`text-sm font-medium ${getStatusColor(transaction.status)}`}>
-                                        {getStatusText(transaction.status)}
-                                    </div>
-                                </div>
+                                        </td>
+                                        <td className="px-2 py-2 text-sm text-gray-900 flex-1">
+                                            <div className="truncate">
+                                                {formatTransactionDescription(transaction)}
+                                            </div>
+                                            {transaction.paymentMethod && (
+                                                <div className="text-xs text-gray-500">
+                                                    {transaction.paymentMethod}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-2 py-2 text-sm text-gray-900 w-48">
+                                            {(transaction.category === 'donate_given' || transaction.category === 'donate_received') ? (
+                                                <div className="truncate">
+                                                    {(() => {
+                                                        const message = transaction.donationMessage
+                                                        if (message && message.trim()) {
+                                                            return (
+                                                                <div className="text-xs italic text-gray-600 bg-gray-50 px-1 py-1 rounded truncate" title={message}>
+                                                            "{message}"
+                                                        </div>
+                                                    )
+                                                        }
+                                                        return <span className="text-xs text-gray-400">Không có lời nhắn</span>
+                                                    })()}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">-</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        
+                        {currentTransactions.length === 0 && (
+                            <div className="p-8 text-center text-gray-500">
+                                Không có giao dịch nào phù hợp với bộ lọc đã chọn.
                             </div>
-                        </div>
-                    ))}
+                        )}
+                    </div>
                 </div>
             )}
             
@@ -641,6 +823,141 @@ export default function CoinTransactionHistoryPage() {
                     </div>
                 </div>
             )}
+            
+            {/* Transaction Detail Modal */}
+            {showDetailModal && selectedTransaction && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-xl font-semibold text-gray-900">
+                                    Chi tiết giao dịch #{selectedTransaction.id}
+                                </h3>
+                                <button
+                                    onClick={() => setShowDetailModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {/* Transaction Amount */}
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-600">Số coin</span>
+                                        <span className={`text-2xl font-bold ${getCoinColor(selectedTransaction.type)}`}>
+                                            {selectedTransaction.coin > 0 ? '+' : ''}{selectedTransaction.coin.toLocaleString('vi-VN')} {getCoinIcon(selectedTransaction.coinType)}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Transaction Info */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm text-gray-600">Mã giao dịch</label>
+                                        <p className="font-medium">#{selectedTransaction.id}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-gray-600">Loại giao dịch</label>
+                                        <p className="font-medium">{getCategoryText(selectedTransaction.category)}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-gray-600">Thời gian</label>
+                                        <p className="font-medium">{formatDate(selectedTransaction.date)}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-gray-600">Trạng thái</label>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                            selectedTransaction.status === 'completed' 
+                                                ? 'bg-green-100 text-green-800'
+                                                : selectedTransaction.status === 'pending'
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {getStatusText(selectedTransaction.status)}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Description */}
+                                <div>
+                                    <label className="text-sm text-gray-600">Mô tả chi tiết</label>
+                                    <p className="font-medium bg-gray-50 p-3 rounded-lg">
+                                        {formatTransactionDescription(selectedTransaction)}
+                                    </p>
+                                </div>
+                                
+                                {/* Donation Message */}
+                                {(selectedTransaction.category === 'donate_given' || selectedTransaction.category === 'donate_received') && (
+                                    <div>
+                                        <label className="text-sm text-gray-600">Lời nhắn donate</label>
+                                        <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                                            {(() => {
+                                                const message = selectedTransaction.donationMessage
+                                                if (message && message.trim()) {
+                                                    return (
+                                                        <div>
+                                                            <p className="font-medium text-blue-800 italic">"{message}"</p>
+                                                            <div className="mt-2 text-xs text-blue-600">
+                                                                {selectedTransaction.category === 'donate_given' 
+                                                                    ? '🎁 Lời nhắn của bạn cho tác giả'
+                                                                    : '💌 Lời nhắn từ người ủng hộ'
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                }
+                                                return (
+                                                    <div className="text-gray-500 italic">
+                                                        Không có lời nhắn nào được gửi kèm
+                                                    </div>
+                                                )
+                                            })()}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Additional Info */}
+                                {selectedTransaction.paymentMethod && (
+                                    <div>
+                                        <label className="text-sm text-gray-600">Phương thức thanh toán</label>
+                                        <p className="font-medium">{selectedTransaction.paymentMethod}</p>
+                                    </div>
+                                )}
+                                
+                                {selectedTransaction.amount > 0 && (
+                                    <div>
+                                        <label className="text-sm text-gray-600">Giá trị VND</label>
+                                        <p className="font-medium text-lg">{formatVnd(selectedTransaction.amount)}</p>
+                                    </div>
+                                )}
+                                
+                                {/* Technical Details */}
+                                <div className="border-t pt-4">
+                                    <h4 className="font-medium text-sm text-gray-600 mb-2">Thông tin kỹ thuật</h4>
+                                    <div className="bg-gray-50 p-3 rounded-lg text-xs space-y-1">
+                                        <div><span className="font-medium">Reason:</span> {selectedTransaction.reason}</div>
+                                        <div><span className="font-medium">Coin Type:</span> {selectedTransaction.coinType}</div>
+                                        <div><span className="font-medium">Transaction Type:</span> {selectedTransaction.type}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6 flex justify-end">
+                                <button
+                                    onClick={() => setShowDetailModal(false)}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="mt-8 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
                 <h3 className="font-semibold mb-2">💡 Mẹo nhỏ</h3>
@@ -649,7 +966,9 @@ export default function CoinTransactionHistoryPage() {
                     <li>• 🪙 Xu là đơn vị tiền tệ miễn phí, nhận được từ nhiệm vụ và thành tích, dùng để mua chương</li>
                     <li>• Dấu <span className="text-green-500">+</span> là khoản cộng vào tài khoản</li>
                     <li>• Dấu <span className="text-red-500">-</span> là khoản trừ khỏi tài khoản</li>
-                    <li>• Các giao dịch được xử lý tự động và an toàn</li>
+                    <li>• Click vào một dòng giao dịch để xem chi tiết</li>
+                    <li>• 💌 Lời nhắn donate được hiển thị riêng trong cột "Lời nhắn"</li>
+                    <li>• Sử dụng bộ lọc và tìm kiếm để tìm giao dịch nhanh chóng</li>
                 </ul>
             </div>
         </div>

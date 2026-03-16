@@ -10,8 +10,10 @@ import com.example.WebTruyen.entity.enums.LedgerReason;
 import com.example.WebTruyen.entity.enums.PaymentOrderStatus;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.WalletEntity;
+import com.example.WebTruyen.entity.model.Payment.DonationEntity;
 import com.example.WebTruyen.entity.model.Payment.LedgerEntryEntity;
 import com.example.WebTruyen.entity.model.Payment.PaymentOrderEntity;
+import com.example.WebTruyen.repository.DonationRepository;
 import com.example.WebTruyen.repository.LedgerEntryRepository;
 import com.example.WebTruyen.repository.PaymentOrderRepository;
 import com.example.WebTruyen.repository.UserRepository;
@@ -25,6 +27,8 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -50,6 +54,12 @@ public class PaymentService {
 
     @Autowired
     private LedgerEntryRepository ledgerEntryRepository;
+
+    @Autowired
+    private DonationRepository donationRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     public CreatePaymentOrderResponse createPaymentOrder(Long userId, CreatePaymentOrderRequest request) {
         if (request.getAmountVnd() == null || request.getAmountVnd() <= 0) {
@@ -149,16 +159,54 @@ public class PaymentService {
         List<LedgerEntryEntity> ledgerEntries = ledgerEntryRepository.findByUserOrderByCreatedAtDesc(user);
 
         return ledgerEntries.stream()
-                .map(entry -> new TransactionHistoryResponse(
-                        entry.getId(),
-                        entry.getCoin(),
-                        entry.getDelta(),
-                        entry.getBalanceAfter(),
-                        entry.getReason(),
-                        entry.getRefType(),
-                        entry.getRefId(),
-                        entry.getCreatedAt()
-                ))
+                .map(entry -> {
+                    String donationMessage = null;
+                    String fromUserName = null;
+                    String toUserName = null;
+                    
+                    // If this is a donation transaction, try to get the message and user info
+                    if (entry.getReason() == LedgerReason.DONATE && entry.getRefId() != null &&
+                        (entry.getRefType().equals("DONATION") || 
+                         entry.getRefType().equals("DONATION_OUT") || 
+                         entry.getRefType().equals("DONATION_IN"))) {
+                        try {
+                            // Use JOIN FETCH to avoid LazyInitializationException
+                            TypedQuery<DonationEntity> query = entityManager.createQuery(
+                                "SELECT d FROM DonationEntity d " +
+                                "LEFT JOIN FETCH d.fromUser " +
+                                "LEFT JOIN FETCH d.toUser " +
+                                "WHERE d.id = :donationId", DonationEntity.class);
+                            query.setParameter("donationId", entry.getRefId());
+                            DonationEntity donation = query.getResultStream().findFirst().orElse(null);
+                            
+                            if (donation != null) {
+                                donationMessage = donation.getMessage();
+                                fromUserName = donation.getFromUser().getUsername();
+                                toUserName = donation.getToUser().getUsername();
+                                log.info("Donation details - refId: {}, from: {}, to: {}, message: {}", 
+                                        entry.getRefId(), fromUserName, toUserName, donationMessage);
+                            } else {
+                                log.warn("Donation not found for refId: {}", entry.getRefId());
+                            }
+                        } catch (Exception e) {
+                            log.warn("Failed to fetch donation details for refId: {}", entry.getRefId(), e);
+                        }
+                    }
+                    
+                    return new TransactionHistoryResponse(
+                            entry.getId(),
+                            entry.getCoin(),
+                            entry.getDelta(),
+                            entry.getBalanceAfter(),
+                            entry.getReason(),
+                            entry.getRefType(),
+                            entry.getRefId(),
+                            entry.getCreatedAt(),
+                            donationMessage,
+                            fromUserName,
+                            toUserName
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
