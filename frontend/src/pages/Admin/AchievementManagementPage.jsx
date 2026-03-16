@@ -28,6 +28,7 @@ const AchievementManagementPage = () => {
   const [editingAchievement, setEditingAchievement] = useState(null);
   const [editingTier, setEditingTier] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState(null); // 'active', 'inactive', or null
   const { notify } = useNotify();
 
   // Form states
@@ -249,12 +250,18 @@ const AchievementManagementPage = () => {
 
   const filteredAchievements = achievements.filter(achievement => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       achievement.name.toLowerCase().includes(searchLower) ||
       achievement.code.toLowerCase().includes(searchLower) ||
       achievement.category.toLowerCase().includes(searchLower) ||
       achievement.description.toLowerCase().includes(searchLower)
     );
+    
+    const matchesActiveFilter = activeFilter === null || 
+      (activeFilter === 'active' && achievement.isActive) ||
+      (activeFilter === 'inactive' && !achievement.isActive);
+    
+    return matchesSearch && matchesActiveFilter;
   });
 
   if (loading) {
@@ -331,7 +338,7 @@ const AchievementManagementPage = () => {
             <h2 className="text-lg sm:text-xl font-bold text-gray-800">Danh sách Thành tựu</h2>
           </div>
           <div className="p-3 sm:p-4 border-b">
-            <div className="relative">
+            <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
@@ -340,6 +347,28 @@ const AchievementManagementPage = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveFilter(activeFilter === 'active' ? null : 'active')}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  activeFilter === 'active'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Hoạt động
+              </button>
+              <button
+                onClick={() => setActiveFilter(activeFilter === 'inactive' ? null : 'inactive')}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  activeFilter === 'inactive'
+                    ? 'bg-gray-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Không hoạt động
+              </button>
             </div>
           </div>
           <div className="divide-y max-h-96 overflow-y-auto">
