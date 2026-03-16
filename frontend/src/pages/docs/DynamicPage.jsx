@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { sitePageService } from '../../services/sitePageService';
+import { getAllTerms } from '../../api/termApi';
 import { Home } from 'lucide-react';
 import PolicyNavigation from '../../components/docs/PolicyNavigation';
 import DocsToc from '../../components/docs/DocsToc';
@@ -15,8 +16,19 @@ function DynamicPage({ code }) {
       try {
         setLoading(true);
         console.log('DynamicPage - fetching page with code:', code);
-        const pageData = await sitePageService.getPageByCode(code);
-        console.log('DynamicPage - received pageData:', pageData);
+        
+        let pageData;
+        
+        // Use terms API for author-rules
+        if (code === 'author-rules') {
+          console.log('DynamicPage - using terms API for author-rules');
+          pageData = await getAllTerms();
+          console.log('DynamicPage - received terms data:', pageData);
+        } else {
+          pageData = await sitePageService.getPageByCode(code);
+          console.log('DynamicPage - received pageData:', pageData);
+        }
+        
         console.log('DynamicPage - pageData type:', typeof pageData);
         console.log('DynamicPage - is pageData array?', Array.isArray(pageData));
         
@@ -79,7 +91,9 @@ function DynamicPage({ code }) {
     );
   }
 
-  const pageTitle = page[0]?.title || 'Trang thông tin';
+  const pageTitle = code === 'author-rules' 
+    ? 'Quy định đăng truyện' 
+    : (page[0]?.title || 'Trang thông tin');
   const lastUpdated = page[0]?.updatedAt;
   
   console.log('DynamicPage - pageTitle:', pageTitle);
@@ -111,10 +125,28 @@ function DynamicPage({ code }) {
       {/* Content - Render all blocks */}
       <div className="page-content">
         {page.map((block, index) => {
-          const sectionId = block.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+          const sectionId = block.code || block.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+          
+          // Remove title from content if it exists to avoid duplication
+          let cleanContent = block.content;
+          if (block.title) {
+            // Create a regex to match the title in various HTML formats
+            const titleRegex = new RegExp(
+              `<h[1-6][^>]*>${block.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}<\\/h[1-6]>`,
+              'gi'
+            );
+            cleanContent = block.content.replace(titleRegex, '');
+          }
+          
           return (
-            <div key={index} id={sectionId}>
-              <div dangerouslySetInnerHTML={{ __html: block.content }} />
+            <div key={index} id={sectionId} className="mb-8">
+              {/* Show title for each section */}
+              {block.title && (
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  {block.title}
+                </h2>
+              )}
+              <div dangerouslySetInnerHTML={{ __html: cleanContent }} />
             </div>
           );
         })}

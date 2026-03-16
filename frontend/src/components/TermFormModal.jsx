@@ -24,16 +24,33 @@ const TermFormModal = ({ isOpen, onClose, mode, termCode, onSuccess }) => {
     }
   }, [isOpen, mode, termCode]);
 
+  // Debug formData changes
+  useEffect(() => {
+    console.log('FormData changed:', formData);
+  }, [formData]);
+
   const fetchTermDetail = async () => {
     try {
       setLoading(true);
       const response = await getTermDetail(termCode);
-      // The response is already the object, not nested in response.data
-      setFormData({
-        code: response.code || '',
-        title: response.title || '',
-        content: response.content || ''
-      });
+      console.log('API Response for term detail:', response);
+      
+      // Handle different possible response structures
+      let termData = response;
+      
+      // If response is nested in a data property
+      if (response && typeof response === 'object' && response.data) {
+        termData = response.data;
+      }
+      
+      // Extract form data with fallbacks
+      const formData = {
+        code: termData?.code || '',
+        title: termData?.title || termData?.['tiêu đề'] || termData?.tieuDe || '',
+        content: termData?.content || termData?.['nội dung'] || termData?.noiDung || ''
+      };
+      console.log('Setting form data:', formData);
+      setFormData(formData);
     } catch (error) {
       console.error('Error fetching term detail:', error);
       notify('Không thể tải thông tin term', 'error');
@@ -45,6 +62,8 @@ const TermFormModal = ({ isOpen, onClose, mode, termCode, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('Form data before submission:', formData);
+    
     if (!formData.code.trim() || !formData.title.trim() || !formData.content.trim()) {
       notify('Vui lòng điền đầy đủ thông tin', 'error');
       return;
@@ -54,13 +73,16 @@ const TermFormModal = ({ isOpen, onClose, mode, termCode, onSuccess }) => {
       setLoading(true);
       
       if (mode === 'create') {
+        console.log('Creating term with data:', formData);
         await createTerm(formData);
         notify('Tạo term thành công', 'success');
       } else {
-        await updateTerm(termCode, {
+        const updateData = {
           title: formData.title,
           content: formData.content
-        });
+        };
+        console.log('Updating term with data:', updateData);
+        await updateTerm(termCode, updateData);
         notify('Cập nhật term thành công', 'success');
       }
       
@@ -89,6 +111,7 @@ const TermFormModal = ({ isOpen, onClose, mode, termCode, onSuccess }) => {
   };
 
   const handleInputChange = (field, value) => {
+    console.log(`Updating ${field} to:`, value);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -116,7 +139,10 @@ const TermFormModal = ({ isOpen, onClose, mode, termCode, onSuccess }) => {
               type="text"
               id="code"
               value={formData.code}
-              onChange={(e) => handleInputChange('code', e.target.value)}
+              onChange={(e) => {
+                console.log('Code input changed:', e.target.value);
+                handleInputChange('code', e.target.value);
+              }}
               placeholder="Nhập term code"
               disabled={mode === 'edit'}
               required
@@ -132,7 +158,10 @@ const TermFormModal = ({ isOpen, onClose, mode, termCode, onSuccess }) => {
               type="text"
               id="title"
               value={formData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
+              onChange={(e) => {
+                console.log('Title input changed:', e.target.value);
+                handleInputChange('title', e.target.value);
+              }}
               placeholder="Nhập tiêu đề"
               required
             />
