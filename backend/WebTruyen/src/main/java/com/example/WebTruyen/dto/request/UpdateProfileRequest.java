@@ -11,6 +11,8 @@ public class UpdateProfileRequest {
 
     private String avatarUrl;
 
+    private String coverUrl;
+
 
     private String settingsJson;
 }
