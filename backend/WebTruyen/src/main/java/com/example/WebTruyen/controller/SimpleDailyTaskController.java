@@ -2,8 +2,10 @@ package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.SimpleDailyTaskService;
+import com.example.WebTruyen.service.DailyTaskOrchestrator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,12 @@ public class SimpleDailyTaskController {
     @Autowired
     private SimpleDailyTaskService simpleDailyTaskService;
 
+    @Autowired
+    private CacheManager cacheManager;
+
+    @Autowired
+    private DailyTaskOrchestrator dailyTaskOrchestrator;
+
     /**
      * Get daily tasks for the authenticated user
      */
@@ -29,6 +37,12 @@ public class SimpleDailyTaskController {
         try {
             if (userPrincipal == null || userPrincipal.getUser() == null) {
                 return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
+            
+            // Clear cache for this user to get fresh data
+            if (cacheManager.getCache("userDailyTasks") != null) {
+                cacheManager.getCache("userDailyTasks").evict(userPrincipal.getUser().getId());
+                log.info("Cleared cache for user: {}", userPrincipal.getUser().getId());
             }
             
             Long userId = userPrincipal.getUser().getId();
@@ -392,6 +406,51 @@ public ResponseEntity<?> fixTaskCompletion(
             ));
         } catch (Exception e) {
             log.error("Error creating today's missions", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Test endpoint to simulate activity tracking
+     */
+    @PostMapping("/test-activity/{activityType}")
+    public ResponseEntity<?> testActivity(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String activityType) {
+        try {
+            if (userPrincipal == null || userPrincipal.getUser() == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
+            
+            Long userId = userPrincipal.getUser().getId();
+            log.info("TEST: Simulating activity - userId: {}, activityType: {}", userId, activityType);
+            
+            // Clear cache first
+            if (cacheManager.getCache("userDailyTasks") != null) {
+                cacheManager.getCache("userDailyTasks").evict(userId);
+            }
+            
+            // Track activity using orchestrator
+            DailyTaskOrchestrator.ActivityType activity;
+            try {
+                activity = DailyTaskOrchestrator.ActivityType.valueOf(activityType.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "error", "Invalid activity type: " + activityType
+                ));
+            }
+            
+            dailyTaskOrchestrator.trackUserActivity(userId, activity);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Test activity simulated: " + activityType
+            ));
+        } catch (Exception e) {
+            log.error("Error testing activity", e);
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "error", e.getMessage()
