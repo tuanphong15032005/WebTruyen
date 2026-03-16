@@ -49,6 +49,8 @@ import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
+import DailyMissionManagement from './pages/Admin/DailyMissionManagement';
+import AuthorApplicationManagementPage from './pages/Admin/AuthorApplicationManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
@@ -210,6 +212,9 @@ function App() {
           <Route path='reports' element={<ViolationReportManagement />} />
           <Route path='achievements' element={<AchievementManagementPage />} />
           <Route path='finance' element={<FinanceManagementPage />} />
+          <Route path='daily-missions' element={<DailyMissionManagement />} />
+          <Route path='achievement-management' element={<AchievementManagementPage />} />
+          <Route path='author-applications' element={<AuthorApplicationManagementPage />} />
         </Route>
         <Route
           path='/admin/content-moderation'

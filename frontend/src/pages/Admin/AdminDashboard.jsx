@@ -1,15 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { useState } from 'react';
-import ContentModeration from './ContentModeration';
-import ViolationReportManagement from './ViolationReportManagement';
-import DailyMissionManagement from './DailyMissionManagement';
-import AchievementManagementPage from './AchievementManagementPage';
-import AuthorApplicationManagementPage from './AuthorApplicationManagementPage';
 import '../../styles/admin-dashboard.css';
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('moderation');
-
   return (
     <div className='admin-dashboard'>
       <aside className='admin-dashboard__sidebar'>
@@ -36,15 +28,15 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>⚠️</span>
             Quản lý Báo cáo vi phạm
           </NavLink>
-          <NavLink
-            to='achievements'
-            className={({ isActive }) =>
-              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
-            }
-          >
-            <span className='admin-dashboard__nav-icon'>🏆</span>
-            Quản lý thành tích
-          </NavLink>
+{/*           <NavLink */}
+{/*             to='achievements' */}
+{/*             className={({ isActive }) => */}
+{/*               `admin-dashboard__nav-item ${isActive ? 'active' : ''}` */}
+{/*             } */}
+{/*           > */}
+{/*             <span className='admin-dashboard__nav-icon'>🏆</span> */}
+{/*             Quản lý thành tích */}
+{/*           </NavLink> */}
           <NavLink
             to='finance'
             className={({ isActive }) =>
@@ -54,46 +46,37 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>💳</span>
             Quản lý chi trả và hoàn tiền
           </NavLink>
-          <button
-            type='button'
-            className={`admin-dashboard__nav-item ${activeTab === 'daily-missions' ? 'active' : ''}`}
-            onClick={() => setActiveTab('daily-missions')}
+          <NavLink
+            to='daily-missions'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
           >
             <span className='admin-dashboard__nav-icon'>🎯</span>
             Quản lý Nhiệm vụ hàng ngày
-          </button>
-          <button
-            type='button'
-            className={`admin-dashboard__nav-item ${activeTab === 'achievements' ? 'active' : ''}`}
-            onClick={() => setActiveTab('achievements')}
+          </NavLink>
+          <NavLink
+            to='achievement-management'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
           >
             <span className='admin-dashboard__nav-icon'>🏆</span>
             Quản lý Thành tựu
-          </button>
-          <button
-            type='button'
-            className={`admin-dashboard__nav-item ${activeTab === 'author-applications' ? 'active' : ''}`}
-            onClick={() => setActiveTab('author-applications')}
+          </NavLink>
+          <NavLink
+            to='author-applications'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
           >
             <span className='admin-dashboard__nav-icon'>✍️</span>
             Quản lý Đơn tác giả
-          </button>
+          </NavLink>
         </nav>
       </aside>
       <main className='admin-dashboard__main'>
-
-        {activeTab === 'moderation' ? <ContentModeration /> : 
-         activeTab === 'reports' ? <ViolationReportManagement /> : 
-         activeTab === 'daily-missions' ? <DailyMissionManagement /> : 
-         activeTab === 'achievements' ? <AchievementManagementPage /> :
-         <AuthorApplicationManagementPage />}
-// =======
-//         <Outlet />
-//         {activeTab === 'moderation' ? <ContentModeration /> :
-//          activeTab === 'reports' ? <ViolationReportManagement /> :
-//          activeTab === 'daily-missions' ? <DailyMissionManagement /> :
-//          <AchievementManagementPage />}
-// >>>>>>> main
+        <Outlet />
       </main>
     </div>
   );
