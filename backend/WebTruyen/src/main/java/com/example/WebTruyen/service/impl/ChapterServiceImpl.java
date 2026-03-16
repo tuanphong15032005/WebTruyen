@@ -4,16 +4,20 @@ import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
 import com.example.WebTruyen.entity.keys.ReadingHistoryId;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
+import com.example.WebTruyen.entity.model.Content.DraftEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
+import com.example.WebTruyen.repository.BookmarkRepository;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
+import com.example.WebTruyen.repository.DraftRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
@@ -41,11 +45,14 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ChapterServiceImpl implements ChapterService {
+    private static final int MIN_APPROVAL_WORD_COUNT = 800;
+
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
@@ -53,7 +60,9 @@ public class ChapterServiceImpl implements ChapterService {
     private final StorageService storageService;
     private final ChapterUnlockRepository chapterUnlockRepository;
     private final ReadingHistoryRepository readingHistoryRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final UserRepository userRepository;
+    private final DraftRepository draftRepository;
     private static final Set<String> SEGMENT_BLOCK_TAGS = Set.of(
             "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "li", "div"
     );
@@ -132,18 +141,64 @@ public class ChapterServiceImpl implements ChapterService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner.");
         }
 
-        chapter.setTitle(req.getTitle());
-        chapter.setFree(req.getIsFree());
-        chapter.setPriceCoin(req.getPriceCoin());
-        chapter.setStatus(parseStatus(req.getStatus(), chapter.getStatus()));
+        String previousTitle = normalizeCompareText(chapter.getTitle());
+        Long previousPriceCoin = chapter.getPriceCoin();
+        String previousContentHtml = buildChapterFullHtml(chapterId);
+        String previousContentSignature = buildContentSignature(previousContentHtml);
+        ChapterApprovalStatus currentApprovalStatus = chapter.getApprovalStatus();
+        ChapterStatus previousStatus = chapter.getStatus() == null ? ChapterStatus.draft : chapter.getStatus();
+
+        boolean nextIsFree = req.getIsFree() == null ? chapter.isFree() : req.getIsFree();
+        Long nextPriceCoin = nextIsFree ? null : req.getPriceCoin();
+        if (!nextIsFree && nextPriceCoin == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "priceCoin required for paid chapter");
+        }
+
+        String nextTitle = req.getTitle() == null ? "" : req.getTitle();
+        String nextContentHtml = req.getContentHtml();
+
+        boolean hasApprovalSensitiveChange =
+                !Objects.equals(previousTitle, normalizeCompareText(nextTitle))
+                        || !Objects.equals(previousPriceCoin, nextPriceCoin)
+                        || !Objects.equals(previousContentSignature, buildContentSignature(nextContentHtml));
+        boolean hasContentChange =
+                !Objects.equals(previousContentSignature, buildContentSignature(nextContentHtml));
+
+        ChapterApprovalStatus effectiveApprovalStatus = hasApprovalSensitiveChange
+                && currentApprovalStatus != ChapterApprovalStatus.rejected
+                ? null
+                : currentApprovalStatus;
+
+        ChapterStatus nextStatus = parseStatus(req.getStatus(), chapter.getStatus());
+        if (hasApprovalSensitiveChange && previousStatus == ChapterStatus.published) {
+            nextStatus = ChapterStatus.draft;
+        }
+        if (previousStatus == ChapterStatus.draft
+                && nextStatus == ChapterStatus.published
+                && effectiveApprovalStatus != ChapterApprovalStatus.approved) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Chapter must be approved before publishing"
+            );
+        }
+
+        chapter.setTitle(nextTitle);
+        chapter.setFree(nextIsFree);
+        chapter.setPriceCoin(nextPriceCoin);
+        chapter.setStatus(nextStatus);
+        if (hasApprovalSensitiveChange && currentApprovalStatus != ChapterApprovalStatus.rejected) {
+            chapter.setApprovalStatus(null);
+        }
         chapter.setLastUpdateAt(LocalDateTime.now());
 
         chapterRepository.save(chapter);
 
-        chapterSegmentRepository.deleteByChapter_Id(chapterId);
-        chapterSegmentRepository.flush();
-
-        processAndSaveContent(chapter, req.getContentHtml());
+        if (hasContentChange) {
+            clearSegmentReferences(chapterId);
+            chapterSegmentRepository.deleteByChapter_Id(chapterId);
+            chapterSegmentRepository.flush();
+            processAndSaveContent(chapter, req.getContentHtml());
+        }
 
         List<ChapterSegmentEntity> segs =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapter.getId());
@@ -154,6 +209,11 @@ public class ChapterServiceImpl implements ChapterService {
         resp.setSegmentCount(segs.size());
 
         return resp;
+    }
+
+    private void clearSegmentReferences(Long chapterId) {
+        readingHistoryRepository.clearLastSegmentByLastChapterId(chapterId);
+        bookmarkRepository.deleteAllByChapterId(chapterId);
     }
 
     // ============================================================
@@ -169,7 +229,9 @@ public class ChapterServiceImpl implements ChapterService {
         // Check if chapter is unlocked for the user
         boolean isUnlocked = chapter.isFree();
         if (!isUnlocked && userId != null) {
-            isUnlocked = chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
+            Long authorId = chapter.getVolume().getStory().getAuthor().getId();
+            isUnlocked = userId.equals(authorId)
+                    || chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
         }
 
         List<ChapterSegmentEntity> segments =
@@ -274,6 +336,61 @@ public class ChapterServiceImpl implements ChapterService {
     public ChapterEntity getChapterById(Long chapterId) {
         return chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found."));
+    }
+
+    private ChapterEntity requireOwnedChapter(
+            Long storyId,
+            Long volumeId,
+            Long chapterId,
+            Long authorId
+    ) {
+        if (authorId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        ChapterEntity chapter = chapterRepository.findByIdAndVolume_Id(chapterId, volumeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found."));
+        Long actualStoryId = chapter.getVolume() != null && chapter.getVolume().getStory() != null
+                ? chapter.getVolume().getStory().getId()
+                : null;
+        if (!Objects.equals(actualStoryId, storyId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chapter does not belong to story");
+        }
+        Long actualAuthorId = chapter.getVolume() != null
+                && chapter.getVolume().getStory() != null
+                && chapter.getVolume().getStory().getAuthor() != null
+                ? chapter.getVolume().getStory().getAuthor().getId()
+                : null;
+        if (!Objects.equals(actualAuthorId, authorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner.");
+        }
+        return chapter;
+    }
+
+    private String buildChapterFullHtml(Long chapterId) {
+        List<ChapterSegmentEntity> segments = chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapterId);
+        StringBuilder fullHtml = new StringBuilder();
+        for (ChapterSegmentEntity segment : segments) {
+            fullHtml.append(segment.getSegmentText() == null ? "" : segment.getSegmentText()).append("\n");
+        }
+        return fullHtml.toString();
+    }
+
+    private String normalizeCompareText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String buildContentSignature(String html) {
+        if (html == null) {
+            return "";
+        }
+        Document doc = Jsoup.parseBodyFragment(html);
+        String normalizedText = doc.text().replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
+        Elements images = doc.select("img");
+        String normalizedImages = IntStream.range(0, images.size())
+                .mapToObj(index -> images.get(index).attr("src").trim())
+                .filter(src -> !src.isEmpty())
+                .collect(Collectors.joining("|"));
+        return normalizedText + "||" + normalizedImages;
     }
 
     private ChapterStatus parseStatus(String raw, ChapterStatus fallback) {
@@ -510,8 +627,130 @@ public class ChapterServiceImpl implements ChapterService {
         result.put("fullHtml", fullHtml.toString());
         result.put("sequenceIndex", chapter.getSequenceIndex());
         result.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
+        result.put("approvalStatus", chapter.getApprovalStatus() != null ? chapter.getApprovalStatus().toString() : null);
         
         return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getChapterDraft(
+            Long storyId,
+            Long volumeId,
+            Long chapterId,
+            Long authorId
+    ) {
+        requireOwnedChapter(storyId, volumeId, chapterId, authorId);
+        DraftEntity draft = draftRepository.findById(chapterId).orElse(null);
+        if (draft == null || draft.getContent() == null || draft.getContent().isBlank()) {
+            return Map.of("hasDraft", false);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("hasDraft", true);
+        result.put("content", draft.getContent());
+        result.put(
+                "updatedAt",
+                draft.getCreatedAt() != null ? draft.getCreatedAt().toString() : null
+        );
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> saveChapterDraft(
+            Long storyId,
+            Long volumeId,
+            Long chapterId,
+            Long authorId,
+            String draftContent
+    ) {
+        ChapterEntity chapter = requireOwnedChapter(storyId, volumeId, chapterId, authorId);
+        String normalized = draftContent == null ? "" : draftContent;
+
+        if (normalized.isBlank()) {
+            draftRepository.findById(chapterId).ifPresent(draftRepository::delete);
+            return Map.of("hasDraft", false);
+        }
+
+        DraftEntity draft = draftRepository.findById(chapterId)
+                .orElseGet(() -> DraftEntity.builder().chapter(chapter).build());
+        draft.setContent(normalized);
+        draft.setCreatedAt(LocalDateTime.now());
+        DraftEntity saved = draftRepository.save(draft);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("hasDraft", true);
+        result.put(
+                "updatedAt",
+                saved.getCreatedAt() != null ? saved.getCreatedAt().toString() : LocalDateTime.now().toString()
+        );
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public void deleteChapterDraft(
+            Long storyId,
+            Long volumeId,
+            Long chapterId,
+            Long authorId
+    ) {
+        requireOwnedChapter(storyId, volumeId, chapterId, authorId);
+        draftRepository.findById(chapterId).ifPresent(draftRepository::delete);
+    }
+
+    @Override
+    @Transactional
+    public ChapterApprovalStatus submitChapterForApproval(Long chapterId, Long authorId) {
+        if (authorId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        ChapterEntity chapter = chapterRepository.findByIdAndVolume_Story_Author_Id(chapterId, authorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+
+        if (chapter.getApprovalStatus() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Chapter already submitted for review");
+        }
+
+        int wordCount = countChapterWordCount(chapterId);
+        if (wordCount < MIN_APPROVAL_WORD_COUNT) {
+            int missingWords = MIN_APPROVAL_WORD_COUNT - wordCount;
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Độ dài chương đang dưới mức tối thiểu 800 từ, bạn còn thiếu " + missingWords + " từ"
+            );
+        }
+
+        chapter.setApprovalStatus(ChapterApprovalStatus.pending);
+        chapter.setLastUpdateAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+        return chapter.getApprovalStatus();
+    }
+
+    private int countChapterWordCount(Long chapterId) {
+        List<ChapterSegmentEntity> segments = chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapterId);
+        int totalWords = 0;
+        for (ChapterSegmentEntity segment : segments) {
+            if (segment == null || segment.getSegmentText() == null) {
+                continue;
+            }
+            String text = Jsoup.parse(segment.getSegmentText()).text();
+            totalWords += countWords(text);
+        }
+        return totalWords;
+    }
+
+    private int countWords(String text) {
+        if (text == null) {
+            return 0;
+        }
+        String normalized = text.replace('\u00A0', ' ').trim();
+        if (normalized.isEmpty()) {
+            return 0;
+        }
+        return normalized.split("\\s+").length;
     }
 //<<<<<<< HEAD
 
@@ -540,7 +779,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional
-    public void recordChapterView(Long chapterId, Long userId) {
+    public void recordChapterView(Long chapterId, Long userId, Long segmentId) {
         ChapterEntity chapter = getChapterById(chapterId);
         StoryEntity story = chapter.getVolume().getStory();
         Long storyId = story != null ? story.getId() : null;
@@ -558,15 +797,62 @@ public class ChapterServiceImpl implements ChapterService {
         if (user == null) {
             return;
         }
+        ChapterSegmentEntity lastSegment = null;
+        if (segmentId != null) {
+            lastSegment = chapterSegmentRepository.findById(segmentId)
+                    .filter(segment -> segment.getChapter() != null
+                            && Objects.equals(segment.getChapter().getId(), chapter.getId()))
+                    .orElse(null);
+        }
         //record + lưu lịch sử đọc mới nhất cho user
         ReadingHistoryEntity history = readingHistoryRepository
-                .findById_UserIdAndId_StoryId(userId, storyId)
+                .findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()
                         .id(new ReadingHistoryId(userId, storyId))
                         .user(user)
                         .story(story)
                         .build());
         history.setLastChapter(chapter);
+        history.setLastSegment(lastSegment);
+        readingHistoryRepository.save(history);
+    }
+
+    @Override
+    @Transactional
+    public void updateReadingProgress(Long chapterId, Long userId, Long segmentId) {
+        if (userId == null) {
+            return;
+        }
+
+        ChapterEntity chapter = getChapterById(chapterId);
+        StoryEntity story = chapter.getVolume().getStory();
+        Long storyId = story != null ? story.getId() : null;
+        if (storyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Story not found for chapter");
+        }
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return;
+        }
+
+        ChapterSegmentEntity lastSegment = null;
+        if (segmentId != null) {
+            lastSegment = chapterSegmentRepository.findById(segmentId)
+                    .filter(segment -> segment.getChapter() != null
+                            && Objects.equals(segment.getChapter().getId(), chapter.getId()))
+                    .orElse(null);
+        }
+
+        ReadingHistoryEntity history = readingHistoryRepository
+                .findByUserIdAndStoryId(userId, storyId)
+                .orElseGet(() -> ReadingHistoryEntity.builder()
+                        .id(new ReadingHistoryId(userId, storyId))
+                        .user(user)
+                        .story(story)
+                        .build());
+        history.setLastChapter(chapter);
+        history.setLastSegment(lastSegment);
         readingHistoryRepository.save(history);
     }
 //=======

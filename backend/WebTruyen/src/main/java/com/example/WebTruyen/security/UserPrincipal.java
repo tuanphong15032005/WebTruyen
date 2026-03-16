@@ -1,13 +1,12 @@
 package com.example.WebTruyen.security;
 
-import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 
 public class UserPrincipal implements UserDetails {
     private UserEntity user;

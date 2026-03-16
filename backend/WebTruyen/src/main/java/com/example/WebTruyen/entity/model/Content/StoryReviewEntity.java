@@ -43,6 +43,9 @@ public class StoryReviewEntity {
     @Lob
     private String content;
 
+    @Column(name = "is_spoiler", nullable = false)
+    private boolean spoiler;
+
     @Column(name = "is_anonymous", nullable = false)
     private boolean anonymous;
 

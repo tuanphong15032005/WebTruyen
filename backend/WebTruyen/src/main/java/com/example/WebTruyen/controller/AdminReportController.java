@@ -1,10 +1,8 @@
 package com.example.WebTruyen.controller;
 
-import com.example.WebTruyen.dto.response.AdminViolationReportResponse;
-import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
-import com.example.WebTruyen.security.UserPrincipal;
-import com.example.WebTruyen.service.ReportModerationService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +13,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Map;
+import com.example.WebTruyen.dto.response.AdminViolationReportResponse;
+import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.security.UserPrincipal;
+import com.example.WebTruyen.service.ReportModerationService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/admin/reports")
@@ -57,6 +59,15 @@ public class AdminReportController {
     ) {
         reportModerationService.removeReportedContent(requireUser(userPrincipal), reportId);
         return Map.of("message", "Reported content removed");
+    }
+
+    @PostMapping("/{reportId}/restore")
+    public Map<String, String> restoreStory(
+            @PathVariable Long reportId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        reportModerationService.restoreStoryForReport(requireUser(userPrincipal), reportId);
+        return Map.of("message", "Story restored");
     }
 
     @PostMapping("/{reportId}/warn-ban")

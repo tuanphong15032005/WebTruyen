@@ -1,5 +1,6 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.dto.response.AuthorOverallPerformanceResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryPerformanceResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
@@ -38,6 +39,14 @@ public class AuthorAnalyticsController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return authorAnalyticsService.getStoryPerformance(currentUser.getId(), storyId);
+    }
+
+    @GetMapping("/overview")
+    public AuthorOverallPerformanceResponse getOverallPerformance(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return authorAnalyticsService.getOverallPerformance(currentUser.getId());
     }
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {

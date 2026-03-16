@@ -54,7 +54,15 @@ function DailyTasksPage() {
         const task = tasksData.tasks.find(t => t.id === missionId);
         const rewardAmount = task ? task.rewardCoin : 10;
         showNotification(`Nhận thành công ${rewardAmount} coin!`, 'success');
-        await fetchDailyTasks(); // Refresh tasks
+        
+        // Force refresh to clear cache and get updated data
+        const refreshResult = await simpleDailyTaskService.forceRefresh();
+        if (refreshResult.success && refreshResult.data) {
+          setTasksData(refreshResult.data);
+        } else {
+          await fetchDailyTasks(); // Fallback
+        }
+        
         await refreshWallet(); // Refresh wallet balance in header
       } else {
         showNotification(result.message || 'Không thể nhận thưởng', 'error');
@@ -76,7 +84,15 @@ function DailyTasksPage() {
           `Nhận thành công ${result.claimedTasks} nhiệm vụ và ${result.totalCoins} coin!`, 
           'success'
         );
-        await fetchDailyTasks(); // Refresh tasks
+        
+        // Force refresh to clear cache and get updated data
+        const refreshResult = await simpleDailyTaskService.forceRefresh();
+        if (refreshResult.success && refreshResult.data) {
+          setTasksData(refreshResult.data);
+        } else {
+          await fetchDailyTasks(); // Fallback
+        }
+        
         await refreshWallet(); // Refresh wallet balance in header
       } else {
         showNotification(result.message || 'Không có nhiệm vụ nào để nhận', 'error');
@@ -90,9 +106,22 @@ function DailyTasksPage() {
   const handleTrackLogin = async () => {
     try {
       const result = await simpleDailyTaskService.trackLogin();
+      console.log('Track login result:', result);
       showNotification('Đã hoàn thành nhiệm vụ đăng nhập!', 'success');
-      await fetchDailyTasks(); // Refresh data
+      
+      // Force refresh to clear cache and get updated data
+      const refreshResult = await simpleDailyTaskService.forceRefresh();
+      console.log('Force refresh result:', refreshResult);
+      
+      // Update tasks data with fresh data
+      if (refreshResult.success && refreshResult.data) {
+        setTasksData(refreshResult.data);
+      } else {
+        // Fallback to regular fetch
+        await fetchDailyTasks();
+      }
     } catch (error) {
+      console.error('Track login error:', error);
       showNotification(error.message, 'error');
     }
   };

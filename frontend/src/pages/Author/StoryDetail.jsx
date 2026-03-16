@@ -6,6 +6,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import Button from '../../components/Button';
+import SkeletonBlock from '../../components/SkeletonBlock';
 import CreateVolume from './CreateVolume';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -26,7 +27,12 @@ const KIND_LABELS = {
 const STORY_STATUS_LABELS = {
   draft: 'Nháp',
   published: 'Công khai',
-  archived: 'Lưu trữ',
+};
+
+const STORY_APPROVAL_LABELS = {
+  pending: 'Đang chờ duyệt',
+  approved: 'duyệt thành công, giờ có thể đăng công khai',
+  rejected: 'Bị từ chối duyệt',
 };
 
 const CHAPTER_STATUS_LABELS = {
@@ -34,6 +40,13 @@ const CHAPTER_STATUS_LABELS = {
   published: 'Công khai',
   archived: 'Lưu trữ',
 };
+
+const CHAPTER_APPROVAL_LABELS = {
+  pending: 'Đang chờ duyệt',
+  approved: 'duyệt thành công, giờ có thể đăng công khai',
+};
+
+const VOLUMES_PAGE_SIZE = 3;
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
@@ -80,15 +93,20 @@ const StoryDetail = () => {
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
   const [savingVolumeId, setSavingVolumeId] = useState(null);
   const [uploadingVolumeCoverId, setUploadingVolumeCoverId] = useState(null);
-  const [expandedSummary, setExpandedSummary] = useState(false);
+  const [submittingApprovalStory, setSubmittingApprovalStory] = useState(false);
+  const [submittingApprovalChapterId, setSubmittingApprovalChapterId] =
+    useState(null);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'volumes' ? 'volumes' : 'info',
   );
   const tabsRef = React.useRef(null);
   const infoTabRef = React.useRef(null);
   const volumesTabRef = React.useRef(null);
+  const infoPanelRef = React.useRef(null);
   const volumeCoverInputRefs = React.useRef({});
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
+  const [detailPanelHeight, setDetailPanelHeight] = useState(0);
+  const [volumePage, setVolumePage] = useState(1);
 
   const fetchStory = useCallback(async () => {
     try {
@@ -143,6 +161,16 @@ const StoryDetail = () => {
       return next;
     });
   }, [searchParams]);
+
+  useEffect(() => {
+    const volumeId = searchParams.get('volumeId');
+    if (!volumeId || volumes.length === 0) return;
+    const targetIndex = volumes.findIndex(
+      (volume) => String(volume.id || volume.volumeId) === String(volumeId),
+    );
+    if (targetIndex < 0) return;
+    setVolumePage(Math.floor(targetIndex / VOLUMES_PAGE_SIZE) + 1);
+  }, [searchParams, volumes]);
 
   const categoryTag = useMemo(() => {
     const tags = Array.isArray(story?.tags) ? story.tags : [];
@@ -208,8 +236,24 @@ const StoryDetail = () => {
     () => htmlToText(story?.summaryHtml || story?.summary || ''),
     [story],
   );
-
-  const canExpandSummary = summaryText.length > 260;
+  const storyApprovalStatusKey = String(story?.approvalStatus || '').toLowerCase();
+  const hasStoryApprovalStatusValue =
+    story?.approvalStatus != null && String(story.approvalStatus).trim() !== '';
+  const storyApprovalStatusLabel =
+    STORY_APPROVAL_LABELS[storyApprovalStatusKey] ||
+    (hasStoryApprovalStatusValue ? String(story.approvalStatus) : '');
+  const storyApprovalBadgeClass = STORY_APPROVAL_LABELS[storyApprovalStatusKey]
+    ? `story-detail__approval-badge--${storyApprovalStatusKey}`
+    : 'story-detail__approval-badge--pending';
+  const showStoryApprovalStatus =
+    Boolean(storyApprovalStatusLabel) &&
+    !(
+      storyApprovalStatusKey === 'approved' &&
+      String(story?.status || '').toLowerCase() === 'published'
+    );
+  const canSubmitStoryApproval =
+    !hasStoryApprovalStatusValue &&
+    String(story?.status || '').toLowerCase() === 'draft';
 
   const toggleVolume = (volumeId) => {
     setExpandedVolumes((prev) => {
@@ -314,6 +358,72 @@ const StoryDetail = () => {
     }
   };
 
+  const handleSubmitChapterApproval = async (volumeId, chapterId) => {
+    try {
+      setSubmittingApprovalChapterId(String(chapterId));
+      const response = await storyService.submitChapterApproval(chapterId);
+      const nextApprovalStatus = String(
+        response?.approvalStatus || 'pending',
+      ).toLowerCase();
+
+      setVolumes((prev) =>
+        prev.map((volume) => {
+          const currentVolumeId = String(volume.id || volume.volumeId);
+          if (currentVolumeId !== String(volumeId)) {
+            return volume;
+          }
+          const chapterList = Array.isArray(volume.chapters)
+            ? volume.chapters
+            : [];
+          return {
+            ...volume,
+            chapters: chapterList.map((chapter) =>
+              String(chapter.id) === String(chapterId)
+                ? { ...chapter, approvalStatus: nextApprovalStatus }
+                : chapter,
+            ),
+          };
+        }),
+      );
+
+      notify('chương của bạn đã được gửi đi duyệt', 'success');
+    } catch (error) {
+      console.error('submitChapterApproval error', error);
+      const message =
+        typeof error?.message === 'string' && error.message.trim()
+          ? error.message.trim()
+          : 'gửi duyệt thất bại';
+      notify(message, 'error');
+    } finally {
+      setSubmittingApprovalChapterId(null);
+    }
+  };
+
+  const handleSubmitStoryApproval = async () => {
+    try {
+      setSubmittingApprovalStory(true);
+      const response = await storyService.submitStoryApproval(storyId);
+      const nextApprovalStatus = String(
+        response?.approvalStatus || 'pending',
+      ).toLowerCase();
+
+      setStory((prev) =>
+        prev ? { ...prev, approvalStatus: nextApprovalStatus } : prev,
+      );
+      notify('Gửi duyệt truyện thành công', 'success');
+    } catch (error) {
+      console.error('submitStoryApproval error', error);
+      const message =
+        error?.response?.data?.message ||
+        (typeof error?.message === 'string' && error.message.trim()
+          ? error.message.trim()
+          : 'gửi duyệt truyện thất bại');
+      notify(message, 'error');
+    } finally {
+      setSubmittingApprovalStory(false);
+    }
+  };
+
   const handleViewMetadata = () => {
     const isPublished =
       String(story?.status || '').toLowerCase() === 'published';
@@ -345,10 +455,88 @@ const StoryDetail = () => {
     };
   }, [updateTabIndicator]);
 
+  useEffect(() => {
+    document.documentElement.classList.add('story-detail-scroll-enabled');
+    document.body.classList.add('story-detail-scroll-enabled');
+
+    return () => {
+      document.documentElement.classList.remove('story-detail-scroll-enabled');
+      document.body.classList.remove('story-detail-scroll-enabled');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!infoPanelRef.current) return undefined;
+
+    const updateHeight = () => {
+      const nextHeight = infoPanelRef.current?.offsetHeight || 0;
+      if (nextHeight > 0) {
+        setDetailPanelHeight(nextHeight);
+      }
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(() => updateHeight());
+    observer.observe(infoPanelRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [story, loadingStory]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PAGE_SIZE));
+    setVolumePage((prev) => Math.min(prev, totalPages));
+  }, [volumes.length]);
+
+  const pagedVolumes = useMemo(() => {
+    const startIndex = (volumePage - 1) * VOLUMES_PAGE_SIZE;
+    return volumes.slice(startIndex, startIndex + VOLUMES_PAGE_SIZE);
+  }, [volumePage, volumes]);
+
+  const totalVolumePages = useMemo(
+    () => Math.max(1, Math.ceil(volumes.length / VOLUMES_PAGE_SIZE)),
+    [volumes.length],
+  );
+
+  const detailPanelStyle = useMemo(() => {
+    if (!detailPanelHeight) {
+      return undefined;
+    }
+
+    return {
+      minHeight: `${detailPanelHeight}px`,
+    };
+  }, [detailPanelHeight]);
+
+  const renderVolumeSkeletons = (count = VOLUMES_PAGE_SIZE) =>
+    Array.from({ length: count }, (_, index) => (
+      <div
+        key={`story-detail-volume-skeleton-${index}`}
+        className='story-detail__volume story-detail__volume--skeleton'
+        aria-hidden='true'
+      >
+        <div className='story-detail__volume-header'>
+          <div className='story-detail__volume-cover-wrap'>
+            <SkeletonBlock className='story-detail__volume-cover-skeleton' />
+          </div>
+          <div className='story-detail__volume-meta story-detail__volume-meta--skeleton'>
+            <SkeletonBlock className='story-detail__volume-line-skeleton story-detail__volume-line-skeleton--title' />
+            <SkeletonBlock className='story-detail__volume-line-skeleton story-detail__volume-line-skeleton--meta' />
+            <div className='story-detail__volume-actions'>
+              <SkeletonBlock className='story-detail__volume-btn-skeleton' />
+              <SkeletonBlock className='story-detail__volume-btn-skeleton' />
+            </div>
+          </div>
+          <SkeletonBlock className='story-detail__volume-link-skeleton' />
+        </div>
+      </div>
+    ));
+
   return (
     <div className='story-detail'>
       <div className='story-detail__top'>
-        <h2>Chi tiết truyện</h2>
+        <h2 className='story-detail__title'>Chi tiết truyện</h2>
         {activeTab === 'volumes' && (
           <Button type='button' onClick={() => setShowCreateVolume((s) => !s)}>
             {showCreateVolume ? 'Đóng' : 'Tạo tập mới'}
@@ -381,14 +569,68 @@ const StoryDetail = () => {
           }}
         />
       </div>
-
       {activeTab === 'info' && (
         <div className='story-detail__info'>
-          {loadingStory && (
-            <p className='story-detail__muted'>Đang tải dữ liệu...</p>
+          {loadingStory && !story && (
+            <div
+              className='story-detail__card story-detail__frame story-detail__card--skeleton'
+              aria-hidden='true'
+            >
+              <div className='story-detail__cover'>
+                <SkeletonBlock className='story-detail__cover-skeleton' />
+                <SkeletonBlock className='story-detail__button-skeleton' />
+                <SkeletonBlock className='story-detail__button-skeleton story-detail__button-skeleton--alt' />
+              </div>
+
+              <div className='story-detail__content'>
+                <SkeletonBlock className='story-detail__title-skeleton' />
+                <div className='story-detail__meta-list'>
+                  {Array.from({ length: 4 }, (_, index) => (
+                    <div
+                      key={`story-detail-meta-skeleton-${index}`}
+                      className='story-detail__meta-item story-detail__meta-item--skeleton'
+                    >
+                      <SkeletonBlock className='story-detail__meta-icon-skeleton' />
+                      <SkeletonBlock className='story-detail__meta-label-skeleton' />
+                      <SkeletonBlock className='story-detail__meta-value-skeleton' />
+                    </div>
+                  ))}
+                </div>
+                <div className='story-detail__tags story-detail__tags--skeleton'>
+                  <SkeletonBlock className='story-detail__tag-skeleton' />
+                  <SkeletonBlock className='story-detail__tag-skeleton' />
+                  <SkeletonBlock className='story-detail__tag-skeleton story-detail__tag-skeleton--wide' />
+                </div>
+                <div className='story-detail__rows'>
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <div
+                      key={`story-detail-row-skeleton-${index}`}
+                      className='story-detail__row story-detail__row--skeleton'
+                    >
+                      <SkeletonBlock className='story-detail__row-icon-skeleton' />
+                      <SkeletonBlock className='story-detail__row-label-skeleton' />
+                      <SkeletonBlock className='story-detail__row-value-skeleton' />
+                    </div>
+                  ))}
+                </div>
+                <div className='story-detail__summary-header'>
+                  <div className='story-detail__summary-header-info'>
+                    <span className='story-detail__label'>Nội dung</span>
+                  </div>
+                </div>
+                <div className='story-detail__summary-box story-detail__summary-box--skeleton'>
+                  <SkeletonBlock className='story-detail__summary-line-skeleton' />
+                  <SkeletonBlock className='story-detail__summary-line-skeleton' />
+                  <SkeletonBlock className='story-detail__summary-line-skeleton story-detail__summary-line-skeleton--short' />
+                </div>
+              </div>
+            </div>
           )}
           {story && (
-            <div className='story-detail__card story-detail__frame'>
+            <div
+              ref={infoPanelRef}
+              className='story-detail__card story-detail__frame'
+            >
               <div className='story-detail__cover'>
                 {story.coverUrl ? (
                   <img src={story.coverUrl} alt={story.title} />
@@ -416,18 +658,6 @@ const StoryDetail = () => {
                     <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
                   </svg>
                   Xem truyện
-                </Button>
-                <Button
-                  type='button'
-                  className='story-detail__view'
-                  onClick={() =>
-                    navigate(`/author/comments?storyId=${storyId}`)
-                  }
-                >
-                  <svg viewBox='0 0 24 24' aria-hidden='true'>
-                    <path d='M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7l-5 5V6a2 2 0 0 1 2-2zm4 5h8v2H8zm0 4h5v2H8z' />
-                  </svg>
-                  Quản lý bình luận
                 </Button>
               </div>
 
@@ -569,27 +799,41 @@ const StoryDetail = () => {
                 </div>
 
                 <div className='story-detail__summary-header'>
-                  <span className='story-detail__label'>Nội dung</span>
-                  <span className='story-detail__muted'>
-                    ( Cập nhật: {formatDateTime(story.lastUpdatedAt)} )
-                  </span>
+                  <div className='story-detail__summary-header-info'>
+                    <span className='story-detail__label'>Nội dung</span>
+                    <span className='story-detail__muted'>
+                      ( Cập nhật: {formatDateTime(story.lastUpdatedAt)} )
+                    </span>
+                  </div>
+                  {(canSubmitStoryApproval || showStoryApprovalStatus) && (
+                    <div className='story-detail__summary-approval'>
+                      {canSubmitStoryApproval && (
+                        <button
+                          type='button'
+                          className='story-detail__chapter-submit story-detail__story-submit-inline'
+                          onClick={handleSubmitStoryApproval}
+                          disabled={submittingApprovalStory || !story}
+                        >
+                          {submittingApprovalStory ? 'Đang gửi...' : 'Gửi duyệt'}
+                        </button>
+                      )}
+                      {showStoryApprovalStatus && (
+                        <div className='story-detail__story-approval'>
+                          <span
+                            className={`story-detail__approval-badge ${storyApprovalBadgeClass}`}
+                          >
+                            <span className='story-detail__approval-dot' />
+                            {storyApprovalStatusLabel}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div
-                  className={`story-detail__summary-box ${expandedSummary ? 'expanded' : ''}`}
-                >
+                <div className='story-detail__summary-box'>
                   {summaryText || 'Chưa có tóm tắt.'}
                 </div>
-
-                {canExpandSummary && (
-                  <button
-                    type='button'
-                    className='story-detail__expand'
-                    onClick={() => setExpandedSummary((prev) => !prev)}
-                  >
-                    {expandedSummary ? 'Thu gọn' : 'Xem thêm'}
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -597,7 +841,7 @@ const StoryDetail = () => {
       )}
 
       {activeTab === 'volumes' && (
-        <div className='story-detail__volumes'>
+        <div className='story-detail__volumes story-detail__panel' style={detailPanelStyle}>
           {showCreateVolume && (
             <CreateVolume
               storyId={storyId}
@@ -616,15 +860,29 @@ const StoryDetail = () => {
             />
           )}
 
-          {loadingVolumes && (
-            <p className='story-detail__muted'>Đang tải danh sách volume...</p>
+          {loadingVolumes && volumes.length === 0 && (
+            <div className='story-detail__panel-fill story-detail__panel-fill--skeleton'>
+              <div className='story-detail__volumes-list'>
+                {renderVolumeSkeletons()}
+              </div>
+              <div className='story-detail__pagination story-detail__pagination--skeleton'>
+                <SkeletonBlock className='story-detail__pagination-btn-skeleton' />
+                <SkeletonBlock className='story-detail__pagination-text-skeleton' />
+                <SkeletonBlock className='story-detail__pagination-btn-skeleton' />
+              </div>
+            </div>
           )}
 
           {!loadingVolumes && volumes.length === 0 && (
-            <div className='story-detail__empty'>Chưa có volume nào.</div>
+            <div className='story-detail__empty story-detail__panel-fill'>
+              Chưa có volume nào.
+            </div>
           )}
 
-          {volumes.map((volume) => {
+          {!loadingVolumes && volumes.length > 0 && (
+            <>
+              <div className='story-detail__volumes-list'>
+                {pagedVolumes.map((volume) => {
             const id = String(volume.id || volume.volumeId);
             const isOpen = expandedVolumes.has(id);
             const coverUrl = String(volume?.coverUrl || '').trim();
@@ -633,8 +891,8 @@ const StoryDetail = () => {
                   (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
                 )
               : [];
-            return (
-              <div key={id} className='story-detail__volume'>
+                  return (
+                    <div key={id} className='story-detail__volume'>
                 <div className='story-detail__volume-header'>
                   <div className='story-detail__volume-cover-wrap'>
                     {coverUrl ? (
@@ -755,45 +1013,120 @@ const StoryDetail = () => {
                     {chapters.length === 0 && (
                       <p className='story-detail__muted'>Chưa có chương nào.</p>
                     )}
-                    {chapters.map((chapter) => (
-                      <div key={chapter.id} className='story-detail__chapter'>
-                        <div>
-                          <span>
-                            {chapter.sequenceIndex
-                              ? `Chương ${chapter.sequenceIndex}: `
-                              : ''}
-                            {chapter.title}
-                          </span>
-                          <div className='story-detail__chapter-status'>
-                            Trạng thái:{' '}
-                            {CHAPTER_STATUS_LABELS[
-                              String(chapter.status || '').toLowerCase()
-                            ] || 'Nháp'}
-                          </div>
-                          {chapter.lastUpdateAt && (
-                            <div className='story-detail__muted'>
-                              Cập nhật:{' '}
-                              {new Date(
-                                chapter.lastUpdateAt,
-                              ).toLocaleDateString()}
+                    {chapters.map((chapter) => {
+                      const approvalStatusKey = String(
+                        chapter.approvalStatus || '',
+                      ).toLowerCase();
+                      const hasApprovalStatusValue =
+                        chapter.approvalStatus != null &&
+                        String(chapter.approvalStatus).trim() !== '';
+                      const chapterStatusKey = String(
+                        chapter.status || '',
+                      ).toLowerCase();
+                      const showApprovalStatus =
+                        Boolean(CHAPTER_APPROVAL_LABELS[approvalStatusKey]) &&
+                        !(
+                          approvalStatusKey === 'approved' &&
+                          chapterStatusKey === 'published'
+                        );
+                      const isSubmittingApproval =
+                        submittingApprovalChapterId === String(chapter.id);
+
+                      return (
+                        <div key={chapter.id} className='story-detail__chapter'>
+                          <div>
+                            <span>
+                              {chapter.sequenceIndex
+                                ? `Chương ${chapter.sequenceIndex}: `
+                                : ''}
+                              {chapter.title}
+                            </span>
+                            <div className='story-detail__chapter-status'>
+                              Trạng thái:{' '}
+                              {CHAPTER_STATUS_LABELS[
+                                chapterStatusKey
+                              ] || 'Nháp'}
                             </div>
-                          )}
+                            {showApprovalStatus && (
+                              <div className='story-detail__chapter-approval'>
+                                <span
+                                  className={`story-detail__approval-badge story-detail__approval-badge--${approvalStatusKey}`}
+                                >
+                                  <span className='story-detail__approval-dot' />
+                                  {CHAPTER_APPROVAL_LABELS[approvalStatusKey]}
+                                </span>
+                              </div>
+                            )}
+                            {chapter.lastUpdateAt && (
+                              <div className='story-detail__muted'>
+                                Cập nhật:{' '}
+                                {new Date(
+                                  chapter.lastUpdateAt,
+                                ).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                          <div className='story-detail__chapter-actions'>
+                            {!hasApprovalStatusValue && (
+                              <button
+                                type='button'
+                                className='story-detail__chapter-submit'
+                                onClick={() =>
+                                  handleSubmitChapterApproval(id, chapter.id)
+                                }
+                                disabled={isSubmittingApproval}
+                              >
+                                {isSubmittingApproval
+                                  ? 'Đang gửi...'
+                                  : 'Gửi duyệt'}
+                              </button>
+                            )}
+                            <Link
+                              className='story-detail__chapter-edit'
+                              to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
+                            >
+                              Sửa chương
+                            </Link>
+                          </div>
                         </div>
-                        <div className='story-detail__chapter-actions'>
-                          <Link
-                            className='story-detail__chapter-edit'
-                            to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
-                          >
-                            Sửa chương
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            );
-          })}
+                  );
+                })}
+              </div>
+
+              {totalVolumePages > 1 && (
+                <div className='story-detail__pagination'>
+                  <button
+                    type='button'
+                    className='story-detail__pagination-btn'
+                    onClick={() => setVolumePage((prev) => Math.max(1, prev - 1))}
+                    disabled={volumePage === 1}
+                  >
+                    Trước
+                  </button>
+                  <span className='story-detail__pagination-text'>
+                    Trang {volumePage}/{totalVolumePages}
+                  </span>
+                  <button
+                    type='button'
+                    className='story-detail__pagination-btn'
+                    onClick={() =>
+                      setVolumePage((prev) =>
+                        Math.min(totalVolumePages, prev + 1),
+                      )
+                    }
+                    disabled={volumePage === totalVolumePages}
+                  >
+                    Sau
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

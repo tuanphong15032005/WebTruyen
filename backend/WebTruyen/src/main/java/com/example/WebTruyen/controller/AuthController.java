@@ -11,6 +11,8 @@ import com.example.WebTruyen.repository.UserRoleRepository;
 import com.example.WebTruyen.security.JwtTokenProvider;
 import com.example.WebTruyen.service.AuthService;
 import com.example.WebTruyen.service.AccountLockedException;
+import com.example.WebTruyen.service.TieredAchievementIntegrationService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
+@Slf4j
 public class AuthController {
 
     @Autowired
@@ -31,6 +34,9 @@ public class AuthController {
 
     @Autowired
     private UserRoleRepository userRoleRepository;
+
+    @Autowired
+    private TieredAchievementIntegrationService achievementIntegrationService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -53,7 +59,8 @@ public class AuthController {
                         .filter(role -> role != null && role.getCode() != null && !role.getCode().isBlank())
                         .map(role -> role.getCode().trim().toUpperCase())
                         .distinct()
-                        .toList()
+                        .toList(),
+                user.getAvatarUrl()
             );
 
             return ResponseEntity.ok(response);
@@ -70,12 +77,20 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody com.example.WebTruyen.dto.request.RegisterRequest request) {
         try {
-            authService.registerUser(
+            UserEntity newUser = authService.registerUser(
                 request.getUsername(),
                 request.getEmail(),
                 request.getPassword(),
                 request.getDisplayName()
             );
+
+            // Initialize achievement progress for new user
+            try {
+                achievementIntegrationService.initializeProgressForNewUser(newUser.getId());
+                log.info("Initialized achievement progress for new user: {}", newUser.getId());
+            } catch (Exception e) {
+                log.warn("Failed to initialize achievement progress for user {}: {}", newUser.getId(), e.getMessage());
+            }
 
             authService.sendOtp(request.getEmail());
 

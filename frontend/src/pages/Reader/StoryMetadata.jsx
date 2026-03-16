@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import SkeletonBlock from '../../components/SkeletonBlock';
+import StoryLibraryModal from '../../components/StoryLibraryModal';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
 import '../../styles/story-metadata.css';
@@ -11,7 +13,7 @@ const COMPLETION_LABELS = {
 };
 
 const KIND_LABELS = {
-  original: 'Truyện gốc',
+  original: 'Truyện sáng tác',
   translated: 'Truyện dịch',
   ai: 'Truyện AI',
 };
@@ -92,6 +94,31 @@ const formatRatingValue = (value) => {
   return raw.toFixed(2).replace('.', ',');
 };
 
+const getRankMedal = (rank) => {
+  if (rank === 1) {
+    return {
+      icon: '🥇',
+      label: 'Huy chương vàng',
+      className: 'story-metadata__rank-medal--gold',
+    };
+  }
+  if (rank === 2) {
+    return {
+      icon: '🥈',
+      label: 'Huy chương bạc',
+      className: 'story-metadata__rank-medal--silver',
+    };
+  }
+  if (rank === 3) {
+    return {
+      icon: '🥉',
+      label: 'Huy chương đồng',
+      className: 'story-metadata__rank-medal--bronze',
+    };
+  }
+  return null;
+};
+
 const toEpoch = (value) => {
   const time = new Date(value || 0).getTime();
   return Number.isFinite(time) ? time : 0;
@@ -144,7 +171,7 @@ const MetaLine = ({
     {typeof onValueClick === 'function' ? (
       <button
         type='button'
-        className={`story-metadata__meta-value ${valueClass}`.trim()}
+        className={`story-metadata__meta-value story-metadata__meta-value--button ${valueClass}`.trim()}
         onClick={onValueClick}
         style={{
           background: 'none',
@@ -175,30 +202,39 @@ const StoryMetadata = () => {
   const [comments, setComments] = useState([]);
   const [sidebar, setSidebar] = useState(null);
 
-  const [loadingStory, setLoadingStory] = useState(false);
-  const [loadingVolumes, setLoadingVolumes] = useState(false);
-  const [loadingReviews, setLoadingReviews] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [loadingSidebar, setLoadingSidebar] = useState(false);
+  const [loadingStory, setLoadingStory] = useState(true);
+  const [loadingVolumes, setLoadingVolumes] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [loadingComments, setLoadingComments] = useState(true);
+  const [loadingSidebar, setLoadingSidebar] = useState(true);
+  const [loadingResumePoint, setLoadingResumePoint] = useState(false);
 
-  const [expandedSummary, setExpandedSummary] = useState(false);
   const [expandedVolumes, setExpandedVolumes] = useState(() => new Set());
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [librarySaved, setLibrarySaved] = useState(false);
-  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
+  const [favoriteSaved, setFavoriteSaved] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [resumePoint, setResumePoint] = useState(null);
 
   const [commentContent, setCommentContent] = useState('');
+  const [commentHasSpoiler, setCommentHasSpoiler] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [replyForId, setReplyForId] = useState(null);
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyContent, setReplyContent] = useState('');
+  const [replyHasSpoiler, setReplyHasSpoiler] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
   const [savingComment, setSavingComment] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
+  const [editingHasSpoiler, setEditingHasSpoiler] = useState(false);
   const [submittingReportForId, setSubmittingReportForId] = useState(null);
   const [visibleRepliesByRoot, setVisibleRepliesByRoot] = useState({});
+  const [revealedSpoilerComments, setRevealedSpoilerComments] = useState({});
+  const [latestReviewRevealed, setLatestReviewRevealed] = useState(false);
+
   const [commentsPage, setCommentsPage] = useState(0);
   const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [commentsTotal, setCommentsTotal] = useState(0);
@@ -336,11 +372,37 @@ const StoryMetadata = () => {
       const response = await storyService.getLibraryStatus(storyId);
       logFlowSuccess(response);
       setLibrarySaved(Boolean(response?.saved));
+      setFavoriteSaved(Boolean(response?.favorite));
     } catch (error) {
       logFlowError(error);
       setLibrarySaved(false);
+      setFavoriteSaved(false);
     }
   }, [storyId]);
+
+  const fetchResumePoint = useCallback(async () => {
+    if (!currentUser) {
+      setResumePoint(null);
+      return;
+    }
+
+    try {
+      setLoadingResumePoint(true);
+      logFlowStart('METADATA_FETCH_RESUME_POINT_FLOW', {
+        endpoint: `/stories/${storyId}/resume-point`,
+        method: 'GET',
+        payload: { storyId },
+      });
+      const response = await storyService.getStoryResumePoint(storyId);
+      logFlowSuccess(response);
+      setResumePoint(response || null);
+    } catch (error) {
+      logFlowError(error);
+      setResumePoint(null);
+    } finally {
+      setLoadingResumePoint(false);
+    }
+  }, [currentUser, storyId]);
 
   useEffect(() => {
     fetchStory();
@@ -349,7 +411,9 @@ const StoryMetadata = () => {
     fetchSidebar();
     fetchNotifyStatus();
     fetchLibraryStatus();
+    fetchResumePoint();
   }, [
+    fetchResumePoint,
     fetchSidebar,
     fetchLibraryStatus,
     fetchNotifyStatus,
@@ -460,20 +524,30 @@ const StoryMetadata = () => {
     [sidebar],
   );
 
-  const weeklyRankText = useMemo(() => {
-    const rank = Number(sidebar?.weeklyRank || 0);
+  const allTimeRank = useMemo(
+    () => Number(sidebar?.weeklyRank || 0),
+    [sidebar],
+  );
+
+  const allTimeRankText = useMemo(() => {
+    const rank = allTimeRank;
     if (!rank) return 'Chưa xếp hạng';
     return `#${rank}`;
-  }, [sidebar]);
+  }, [allTimeRank]);
+
+  const allTimeRankMedal = useMemo(() => getRankMedal(allTimeRank), [allTimeRank]);
 
   const similarStories = useMemo(
-    () => (Array.isArray(sidebar?.similarStories) ? sidebar.similarStories : []),
+    () =>
+      Array.isArray(sidebar?.similarStories) ? sidebar.similarStories : [],
     [sidebar],
   );
 
   const sameAuthorStories = useMemo(
     () =>
-      Array.isArray(sidebar?.sameAuthorStories) ? sidebar.sameAuthorStories : [],
+      Array.isArray(sidebar?.sameAuthorStories)
+        ? sidebar.sameAuthorStories
+        : [],
     [sidebar],
   );
 
@@ -488,13 +562,15 @@ const StoryMetadata = () => {
     [story],
   );
 
-  const canExpandSummary = summaryText.length > 300;
   const latestReviewContent = latestReview ? latestReview.content || '' : '';
   const latestReviewShort = truncateText(
     latestReviewContent,
     REVIEW_PREVIEW_LENGTH,
   );
   const latestReviewIsLong = latestReviewContent.length > REVIEW_PREVIEW_LENGTH;
+  const latestReviewIsSpoiler = Boolean(latestReview?.spoiler);
+  const latestReviewVisible =
+    Boolean(latestReview) && (!latestReviewIsSpoiler || latestReviewRevealed);
 
   const readableChapterCandidates = useMemo(() => {
     const volumeList = Array.isArray(volumes) ? volumes : [];
@@ -517,7 +593,9 @@ const StoryMetadata = () => {
     });
 
     return sortedVolumes.flatMap((volume, volumeOrder) => {
-      const chapterList = Array.isArray(volume?.chapters) ? volume.chapters : [];
+      const chapterList = Array.isArray(volume?.chapters)
+        ? volume.chapters
+        : [];
       const sortedChapters = [...chapterList].sort((a, b) => {
         const chapterSeqDiff =
           toSafeNumber(a?.sequenceIndex, Number.MAX_SAFE_INTEGER) -
@@ -582,7 +660,11 @@ const StoryMetadata = () => {
     const ratingCount = Number(item?.ratingCount || 0);
     const ratingValue = Number(item?.ratingAvg || 0);
     if (!ratingCount || ratingValue <= 0) {
-      return <span className='story-metadata__sidebar-item-empty'>Chưa có đánh giá</span>;
+      return (
+        <span className='story-metadata__sidebar-item-empty'>
+          Chưa có đánh giá
+        </span>
+      );
     }
 
     const ratingText = formatRatingValue(ratingValue) || '0,00';
@@ -639,7 +721,7 @@ const StoryMetadata = () => {
   };
 
   const goToReaderChapter = useCallback(
-    (targetChapterId) => {
+    (targetChapterId, targetSegmentId = null) => {
       // Hieuson - thêm log ở console side, ngày 3/1/2026.
       console.group('[METADATA_GO_TO_READER_CHAPTER_FLOW]');
       console.log('Step 1 - log entry');
@@ -653,7 +735,10 @@ const StoryMetadata = () => {
       });
       if (!targetChapterId) {
         console.log('Step 3 - log API response');
-        console.log('response', { success: false, reason: 'No readable chapter' });
+        console.log('response', {
+          success: false,
+          reason: 'No readable chapter',
+        });
         console.groupEnd();
         notify('Truyện chưa có chương để đọc', 'info');
         return;
@@ -661,10 +746,12 @@ const StoryMetadata = () => {
       console.log('Step 3 - log API response');
       console.log('response', {
         success: true,
-        navigateTo: `/stories/${storyId}/chapters/${targetChapterId}`,
+        navigateTo: `/stories/${storyId}/chapters/${targetChapterId}${targetSegmentId ? `?segmentId=${targetSegmentId}` : ''}`,
       });
       console.groupEnd();
-      navigate(`/stories/${storyId}/chapters/${targetChapterId}`);
+      navigate(
+        `/stories/${storyId}/chapters/${targetChapterId}${targetSegmentId ? `?segmentId=${targetSegmentId}` : ''}`,
+      );
     },
     [navigate, notify, storyId],
   );
@@ -677,7 +764,9 @@ const StoryMetadata = () => {
     console.log('Step 2 - log payload');
     console.log('payload', { firstReadableChapterId });
     console.log('Step 3 - log API response');
-    console.log('response', { targetChapterId: firstReadableChapterId || null });
+    console.log('response', {
+      targetChapterId: firstReadableChapterId || null,
+    });
     console.groupEnd();
     goToReaderChapter(firstReadableChapterId);
   }, [firstReadableChapterId, goToReaderChapter]);
@@ -690,10 +779,49 @@ const StoryMetadata = () => {
     console.log('Step 2 - log payload');
     console.log('payload', { latestReadableChapterId });
     console.log('Step 3 - log API response');
-    console.log('response', { targetChapterId: latestReadableChapterId || null });
+    console.log('response', {
+      targetChapterId: latestReadableChapterId || null,
+    });
     console.groupEnd();
     goToReaderChapter(latestReadableChapterId);
   }, [goToReaderChapter, latestReadableChapterId]);
+
+  const handleContinueReading = useCallback(() => {
+    const chapterId = Number(resumePoint?.chapterId || 0);
+    const segmentId = Number(resumePoint?.segmentId || 0);
+    if (!chapterId || !segmentId) {
+      notify('Chưa có vị trí đọc gần nhất để tiếp tục', 'info');
+      return;
+    }
+
+    console.group('[METADATA_CONTINUE_READING_FLOW]');
+    console.log('Step 1 - log entry');
+    console.log('METADATA_CONTINUE_READING_FLOW triggered');
+    console.log('Step 2 - log payload');
+    console.log('payload', { chapterId, segmentId, storyId });
+    console.log('Step 3 - log API response');
+    console.log('response', {
+      targetChapterId: chapterId,
+      targetSegmentId: segmentId,
+    });
+    console.groupEnd();
+
+    goToReaderChapter(chapterId, segmentId);
+  }, [goToReaderChapter, notify, resumePoint, storyId]);
+
+  const handleShareToFacebook = useCallback(() => {
+    const shareUrl = window.location.href;
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    const shareWindow = window.open('', '_blank');
+
+    if (shareWindow) {
+      shareWindow.opener = null;
+      shareWindow.location.href = facebookShareUrl;
+      return;
+    }
+
+    notify('Trình duyệt đang chặn tab mới. Hãy cho phép popup để chia sẻ.', 'info');
+  }, [notify]);
 
   const normalizeCommentNode = useCallback(
     (comment) => ({
@@ -719,8 +847,10 @@ const StoryMetadata = () => {
       setSubmittingComment(true);
       await storyService.createStoryComment(storyId, {
         content: commentContent.trim(),
+        spoiler: commentHasSpoiler,
       });
       setCommentContent('');
+      setCommentHasSpoiler(false);
       notify('Đã đăng bình luận', 'success');
       await fetchCommentsPage(0, false);
     } catch (error) {
@@ -731,45 +861,73 @@ const StoryMetadata = () => {
     }
   };
 
+  const handleLibraryDialogSaved = useCallback(
+    (response) => {
+      const saved = Boolean(response?.saved);
+      const favorite = Boolean(response?.favorite);
+      const followerDelta = Number(saved) - Number(librarySaved);
+      setLibrarySaved(saved);
+      setFavoriteSaved(favorite);
+      setSidebar((prev) => {
+        if (!prev || followerDelta === 0) return prev;
+        const currentFollowers = Number(prev.followerCount || 0);
+        const nextFollowers = Math.max(0, currentFollowers + followerDelta);
+        return {
+          ...prev,
+          followerCount: nextFollowers,
+        };
+      });
+    },
+    [librarySaved],
+  );
+
   const handleToggleLibrary = async () => {
     if (!currentUser) {
       notify('Bạn cần đăng nhập để lưu truyện vào thư viện', 'info');
       navigate('/login');
       return;
     }
+    setShowLibraryModal(true);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!currentUser) {
+      notify('Bạn cần đăng nhập để thêm truyện vào yêu thích', 'info');
+      navigate('/login');
+      return;
+    }
+
     try {
-      setLibraryLoading(true);
-      logFlowStart('METADATA_TOGGLE_LIBRARY_FLOW', {
-        endpoint: `/stories/${storyId}/library/toggle`,
+      setFavoriteLoading(true);
+      logFlowStart('METADATA_TOGGLE_FAVORITE_FLOW', {
+        endpoint: `/stories/${storyId}/favorite/toggle`,
         method: 'POST',
         payload: { storyId },
       });
-      const response = await storyService.toggleLibraryStatus(storyId);
+      const response = await storyService.toggleFavoriteStatus(storyId);
       logFlowSuccess(response);
       const saved = Boolean(response?.saved);
+      const favorite = Boolean(response?.favorite);
+      const followerDelta = Number(saved) - Number(librarySaved);
+
       setLibrarySaved(saved);
+      setFavoriteSaved(favorite);
       setSidebar((prev) => {
-        if (!prev) return prev;
+        if (!prev || followerDelta === 0) return prev;
         const currentFollowers = Number(prev.followerCount || 0);
-        const nextFollowers = Math.max(
-          0,
-          currentFollowers + (saved ? 1 : -1),
-        );
         return {
           ...prev,
-          followerCount: nextFollowers,
+          followerCount: Math.max(0, currentFollowers + followerDelta),
         };
       });
-      notify(
-        saved ? 'Đã lưu vào thư viện' : 'Đã bỏ lưu khỏi thư viện',
-        'success',
-      );
+
+      notify(favorite ? 'Đã thêm vào yêu thích' : 'Đã bỏ khỏi yêu thích', 'success');
     } catch (error) {
       logFlowError(error);
-      console.error('toggle library error', error);
-      notify('Không thể cập nhật thư viện', 'error');
+      console.error('toggle favorite error', error);
+      notify('Không thể cập nhật trạng thái yêu thích', 'error');
     } finally {
-      setLibraryLoading(false);
+      setFavoriteLoading(false);
     }
   };
 
@@ -779,23 +937,25 @@ const StoryMetadata = () => {
   };
 
   const openReplyForm = (comment, rootId) => {
-    const mentionUsername =
-      Number(comment?.userId) !== currentUserId ? comment?.username : null;
+    const mentionUsername = comment?.username || null;
     setEditingCommentId(null);
     setEditingContent('');
     setReplyForId(comment.id);
     setReplyTarget({
       rootId: String(rootId || comment.id),
       parentCommentId: comment.id,
+      parentUserId: comment?.userId ?? null,
       mentionUsername,
     });
     setReplyContent('');
+    setReplyHasSpoiler(false);
   };
 
   const closeReplyForm = () => {
     setReplyForId(null);
     setReplyTarget(null);
     setReplyContent('');
+    setReplyHasSpoiler(false);
   };
 
   const updateCommentInTree = useCallback((nodes, targetId, updater) => {
@@ -863,11 +1023,18 @@ const StoryMetadata = () => {
       const response = await storyService.createStoryComment(storyId, {
         content: replyContent.trim(),
         parentCommentId: replyTarget.parentCommentId,
+        spoiler: replyHasSpoiler,
       });
 
       const createdReply = response;
       if (createdReply?.id) {
-        const normalizedReply = normalizeCommentNode(createdReply);
+        const normalizedReply = normalizeCommentNode({
+          ...createdReply,
+          parentUserId:
+            createdReply?.parentUserId ?? replyTarget?.parentUserId ?? null,
+          parentUsername:
+            createdReply?.parentUsername ?? replyTarget?.mentionUsername ?? null,
+        });
         const targetRootId = String(replyTarget.rootId);
         setComments((prev) =>
           prev.map((root) =>
@@ -905,11 +1072,13 @@ const StoryMetadata = () => {
     closeReplyForm();
     setEditingCommentId(comment.id);
     setEditingContent(comment.content || '');
+    setEditingHasSpoiler(Boolean(comment?.spoiler));
   };
 
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditingContent('');
+    setEditingHasSpoiler(false);
   };
 
   const handleSaveEdit = async (commentId) => {
@@ -921,11 +1090,13 @@ const StoryMetadata = () => {
       setSavingComment(true);
       await storyService.updateStoryComment(storyId, commentId, {
         content: editingContent.trim(),
+        spoiler: editingHasSpoiler,
       });
       setComments((prev) =>
         updateCommentInTree(prev, commentId, (node) => ({
           ...node,
           content: editingContent.trim(),
+          spoiler: editingHasSpoiler,
         })),
       );
       notify('Đã cập nhật bình luận', 'success');
@@ -968,17 +1139,30 @@ const StoryMetadata = () => {
     }
   };
 
-  const handleReportComment = async (commentId, commentContent, commentUsername) => {
+  const handleReportComment = async (commentId) => {
     if (!currentUser) {
       notify('Bạn cần đăng nhập để báo cáo bình luận', 'info');
       navigate('/login');
       return;
     }
 
-    // Navigate to comment report page with comment details
-    const encodedContent = encodeURIComponent(commentContent || '');
-    const encodedUsername = encodeURIComponent(commentUsername || '');
-    navigate(`/report-comment?commentId=${commentId}&storyId=${storyId}&content=${encodedContent}&username=${encodedUsername}`);
+    const reason = window.prompt('Nhập lý do báo cáo bình luận:');
+    if (!reason || !reason.trim()) {
+      return;
+    }
+
+    try {
+      setSubmittingReportForId(commentId);
+      await storyService.reportStoryComment(storyId, commentId, {
+        reason: reason.trim(),
+      });
+      notify('Đã gửi báo cáo bình luận', 'success');
+    } catch (error) {
+      console.error('report comment error', error);
+      notify('Không thể báo cáo bình luận', 'error');
+    } finally {
+      setSubmittingReportForId(null);
+    }
   };
 
   const handleLoadMoreReplies = (rootId, totalReplies) => {
@@ -1011,6 +1195,14 @@ const StoryMetadata = () => {
           placeholder='Nhập trả lời...'
           maxLength={4000}
         />
+        <label className='story-metadata__spoiler-toggle'>
+          <input
+            type='checkbox'
+            checked={replyHasSpoiler}
+            onChange={(event) => setReplyHasSpoiler(event.target.checked)}
+          />
+          <span>Chứa spoil</span>
+        </label>
         <div className='story-metadata__reply-form-footer'>
           <span>{replyContent.trim().length} ký tự</span>
           <div className='story-metadata__reply-form-buttons'>
@@ -1033,12 +1225,12 @@ const StoryMetadata = () => {
   const renderCommentItem = (comment, isReply = false, rootId = null) => {
     const commentRootId = String(rootId || comment.id);
     const isOwner = currentUserId === Number(comment.userId);
-    const mention =
-      isReply &&
-      comment.parentUsername &&
-      Number(comment.parentUserId) !== Number(comment.userId)
-        ? `@${comment.parentUsername} `
-        : '';
+    const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
+    const isHidden = Boolean(comment?.hidden);
+    const isSpoiler = Boolean(comment?.spoiler);
+    const spoilerRevealed = Boolean(
+      revealedSpoilerComments[String(comment.id)],
+    );
 
     const isEditing = editingCommentId === comment.id;
 
@@ -1062,8 +1254,8 @@ const StoryMetadata = () => {
         </div>
         <div className='story-metadata__comment-body'>
           <div className='story-metadata__comment-head'>
-{/*               //link đến portfolio */}
-            <strong 
+            {/*               //link đến portfolio */}
+            <strong
               className='cursor-pointer hover:text-blue-600 transition-colors'
               onClick={() => navigate(`/user/${comment.userId}`)}
             >
@@ -1079,6 +1271,16 @@ const StoryMetadata = () => {
                 onChange={(event) => setEditingContent(event.target.value)}
                 maxLength={4000}
               />
+              <label className='story-metadata__spoiler-toggle'>
+                <input
+                  type='checkbox'
+                  checked={editingHasSpoiler}
+                  onChange={(event) =>
+                    setEditingHasSpoiler(event.target.checked)
+                  }
+                />
+                <span>Chứa spoil</span>
+              </label>
               <div className='story-metadata__edit-actions'>
                 <button
                   type='button'
@@ -1097,15 +1299,41 @@ const StoryMetadata = () => {
               </div>
             </div>
           ) : (
-            <p>
-              {mention && (
-                <span className='story-metadata__mention'>{mention}</span>
+            <>
+              {isHidden ? (
+                <p className='story-metadata__content-mask story-metadata__content-mask--hidden'>
+                  Bình luận đã bị ẩn do vi phạm tiêu chuẩn cộng đồng.
+                </p>
+              ) : isSpoiler && !spoilerRevealed ? (
+                <div className='story-metadata__content-mask-wrap'>
+                  <p className='story-metadata__content-mask'>
+                    Bình luận này có chứa spoiler.
+                  </p>
+                  <button
+                    type='button'
+                    className='story-metadata__reveal-btn'
+                    onClick={() =>
+                      setRevealedSpoilerComments((prev) => ({
+                        ...prev,
+                        [String(comment.id)]: true,
+                      }))
+                    }
+                  >
+                    Hiện bình luận
+                  </button>
+                </div>
+              ) : (
+                <p>
+                  {mention && (
+                    <span className='story-metadata__mention'>{mention}</span>
+                  )}
+                  {comment.content}
+                </p>
               )}
-              {comment.content}
-            </p>
+            </>
           )}
 
-          {!isEditing && (
+          {!isEditing && !isHidden && (
             <div className='story-metadata__comment-actions'>
               <button
                 type='button'
@@ -1136,9 +1364,12 @@ const StoryMetadata = () => {
                 <button
                   type='button'
                   className='story-metadata__inline-action'
-                  onClick={() => handleReportComment(comment.id, comment.content, comment.username)}
+                  onClick={() => handleReportComment(comment.id)}
+                  disabled={submittingReportForId === comment.id}
                 >
-                  Báo cáo
+                  {submittingReportForId === comment.id
+                    ? 'Đang gửi...'
+                    : 'Báo cáo'}
                 </button>
               )}
             </div>
@@ -1150,241 +1381,369 @@ const StoryMetadata = () => {
     );
   };
 
+  const renderSidebarSkeletonItems = (count = 3) =>
+    Array.from({ length: count }, (_, index) => (
+      <div
+        key={`sidebar-skeleton-${index}`}
+        className='story-metadata__sidebar-item story-metadata__sidebar-item--skeleton'
+        aria-hidden='true'
+      >
+        <SkeletonBlock className='story-metadata__sidebar-item-cover-skeleton' />
+        <div className='story-metadata__sidebar-item-body story-metadata__sidebar-item-body--skeleton'>
+          <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--title' />
+          <SkeletonBlock className='story-metadata__sidebar-line-skeleton' />
+          <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--short' />
+        </div>
+      </div>
+    ));
+
+  const renderCommentSkeletons = (count = 3) =>
+    Array.from({ length: count }, (_, index) => (
+      <article
+        key={`comment-skeleton-${index}`}
+        className='story-metadata__comment story-metadata__comment--skeleton'
+        aria-hidden='true'
+      >
+        <SkeletonBlock className='story-metadata__comment-avatar-skeleton' />
+        <div className='story-metadata__comment-body'>
+          <div className='story-metadata__comment-head story-metadata__comment-head--skeleton'>
+            <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--name' />
+            <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--time' />
+          </div>
+          <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--content' />
+          <SkeletonBlock className='story-metadata__comment-line-skeleton story-metadata__comment-line-skeleton--content short' />
+        </div>
+      </article>
+    ));
+
+  const renderVolumeSkeletons = (count = 3) =>
+    Array.from({ length: count }, (_, index) => (
+      <div
+        key={`volume-skeleton-${index}`}
+        className='story-metadata__volume story-metadata__volume--skeleton'
+        aria-hidden='true'
+      >
+        <div className='story-metadata__volume-head'>
+          <span className='story-metadata__volume-head-main'>
+            <SkeletonBlock className='story-metadata__volume-cover-skeleton' />
+            <span className='story-metadata__volume-head-text story-metadata__volume-head-text--skeleton'>
+              <SkeletonBlock className='story-metadata__volume-line-skeleton story-metadata__volume-line-skeleton--title' />
+              <SkeletonBlock className='story-metadata__volume-line-skeleton story-metadata__volume-line-skeleton--meta' />
+            </span>
+          </span>
+          <SkeletonBlock className='story-metadata__volume-toggle-skeleton' />
+        </div>
+      </div>
+    ));
+
   return (
     <div className='story-metadata'>
       <div className='story-metadata__layout'>
         <div className='story-metadata__main'>
           <section className='story-metadata__frame'>
-          {loadingStory && (
-            <p className='story-metadata__muted'>
-              Đang tải thông tin truyện...
-            </p>
-          )}
+            {loadingStory && !story && (
+              <div className='story-metadata__card story-metadata__card--skeleton' aria-hidden='true'>
+                <aside className='story-metadata__cover-col'>
+                  <SkeletonBlock className='story-metadata__cover-skeleton' />
+                  <SkeletonBlock className='story-metadata__side-btn-skeleton' />
+                  <SkeletonBlock className='story-metadata__side-btn-skeleton' />
+                  <SkeletonBlock className='story-metadata__side-btn-skeleton story-metadata__side-btn-skeleton--ghost' />
+                </aside>
 
-          {story && (
-            <div className='story-metadata__card'>
-              <aside className='story-metadata__cover-col'>
-                {story.coverUrl ? (
-                  <img
-                    className='story-metadata__cover'
-                    src={story.coverUrl}
-                    alt={story.title}
-                  />
-                ) : (
-                  <div className='story-metadata__cover story-metadata__cover--empty'>
-                    Chưa có ảnh bìa
-                  </div>
-                )}
-
-                <button
-                  type='button'
-                  className={`story-metadata__side-btn ${librarySaved ? 'saved' : ''}`}
-                  onClick={handleToggleLibrary}
-                  disabled={libraryLoading}
-                >
-                  <svg viewBox='0 0 24 24' aria-hidden='true'>
-                    <path d='M6 3h12a2 2 0 0 1 2 2v16l-8-3.8L4 21V5a2 2 0 0 1 2-2z' />
-                  </svg>
-                  <span>
-                    {libraryLoading
-                      ? 'Đang xử lý...'
-                      : librarySaved
-                        ? 'Đã lưu'
-                        : 'Lưu vào thư viện'}
-                  </span>
-                </button>
-                <button
-                  type='button'
-                  className='story-metadata__side-btn ghost'
-                  onClick={() => {
-                    if (storyId) {
-                      navigate(`/report-story?storyId=${storyId}`);
-                    }
-                  }}
-                >
-                  <svg viewBox='0 0 24 24' aria-hidden='true'>
-                    <path d='M12 2 2 6v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V6L12 2zm0 6a1.6 1.6 0 1 1 0 3.2A1.6 1.6 0 0 1 12 8zm1.2 10h-2.4v-1.8h.9v-3.4h-.9V11h2.4v5.2h.9V18z' />
-                  </svg>
-                  <span>Báo cáo</span>
-                </button>
-              </aside>
-
-              <article className='story-metadata__content'>
-                <h1>{story.title}</h1>
-
-                <div className='story-metadata__meta'>
-                  {isTranslated && (
-                    <MetaLine
-                      icon={
-                        <svg viewBox='0 0 24 24'>
-                          <path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z' />
-                        </svg>
-                      }
-                      iconClass='story-metadata__icon--author'
-                      label='Tác giả gốc:'
-                      value={story.originalAuthorName || 'Chưa rõ'}
-                    />
-                  )}
-
-                  {!isTranslated && (
-                    <MetaLine
-                      icon={
-                        <svg viewBox='0 0 24 24'>
-                          <path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z' />
-                        </svg>
-                      }
-                      iconClass='story-metadata__icon--author'
-                      label='Tác giả:'
-                      value={story.authorPenName || 'Chưa có bút danh'}
-                      onValueClick={
-                        story?.authorId ? () => navigate(`/user/${story.authorId}`) : undefined
-                      }
-                    />
-                  )}
-
-                  {isTranslated && (
-                    <MetaLine
-                      icon={
-                        <svg viewBox='0 0 24 24'>
-                          <path d='M5 4h7v2H9.92a9.94 9.94 0 0 1-1.58 3c.76.9 1.67 1.69 2.66 2.3l-1 1.73a12.2 12.2 0 0 1-2.73-2.32A11.8 11.8 0 0 1 4.5 13L3 11.5A9.8 9.8 0 0 0 6.1 9 8.09 8.09 0 0 0 7.6 6H5zm10 2h2l4 14h-2l-1-3h-4l-1 3h-2zm.5 3.5-1.5 4.5h3z' />
-                        </svg>
-                      }
-                      iconClass='story-metadata__icon--translator'
-                      label='Người dịch:'
-                      value={translatorName}
-                      onValueClick={
-                        story?.authorId ? () => navigate(`/user/${story.authorId}`) : undefined
-                      }
-                    />
-                  )}
-
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 3h7v4h-7z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--kind'
-                    label='Loại truyện:'
-                    value={kindLabel}
-                  />
-
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M4 7a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--category'
-                    label='Danh mục:'
-                    value={categoryTag?.name || 'Chưa chọn'}
-                    valueClass='story-metadata__category-chip'
-                  />
-                </div>
-
-                {extraTags.length > 0 && (
-                  <div className='story-metadata__tags'>
-                    {extraTags.map((tag) => (
-                      <span key={tag.id} className='story-metadata__tag'>
-                        {tag.name}
-                      </span>
+                <article className='story-metadata__content'>
+                  <SkeletonBlock className='story-metadata__title-skeleton' />
+                  <div className='story-metadata__meta story-metadata__meta--skeleton'>
+                    {Array.from({ length: 4 }, (_, index) => (
+                      <div
+                        key={`meta-skeleton-${index}`}
+                        className='story-metadata__meta-line story-metadata__meta-line--skeleton'
+                      >
+                        <SkeletonBlock className='story-metadata__meta-icon-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-label-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-value-skeleton' />
+                      </div>
                     ))}
                   </div>
-                )}
+                  <div className='story-metadata__tags story-metadata__tags--skeleton'>
+                    <SkeletonBlock className='story-metadata__tag-skeleton' />
+                    <SkeletonBlock className='story-metadata__tag-skeleton' />
+                    <SkeletonBlock className='story-metadata__tag-skeleton story-metadata__tag-skeleton--wide' />
+                  </div>
+                  <div className='story-metadata__rows'>
+                    {Array.from({ length: 3 }, (_, index) => (
+                      <div
+                        key={`row-skeleton-${index}`}
+                        className='story-metadata__meta-line story-metadata__meta-line--skeleton'
+                      >
+                        <SkeletonBlock className='story-metadata__meta-icon-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-label-skeleton' />
+                        <SkeletonBlock className='story-metadata__meta-value-skeleton story-metadata__meta-value-skeleton--short' />
+                      </div>
+                    ))}
+                  </div>
+                  <div className='story-metadata__summary-header'>
+                    <span>Nội dung</span>
+                  </div>
+                  <div className='story-metadata__summary'>
+                    <div className='story-metadata__summary-text story-metadata__summary-text--skeleton'>
+                      <SkeletonBlock className='story-metadata__summary-line-skeleton' />
+                      <SkeletonBlock className='story-metadata__summary-line-skeleton' />
+                      <SkeletonBlock className='story-metadata__summary-line-skeleton story-metadata__summary-line-skeleton--short' />
+                    </div>
+                  </div>
+                  <div className='story-metadata__actions-row story-metadata__actions-row--skeleton'>
+                    <div className='story-metadata__actions'>
+                      <SkeletonBlock className='story-metadata__action-btn-skeleton' />
+                      <SkeletonBlock className='story-metadata__action-btn-skeleton' />
+                      <SkeletonBlock className='story-metadata__action-btn-skeleton story-metadata__action-btn-skeleton--ghost' />
+                    </div>
+                    <SkeletonBlock className='story-metadata__notify-skeleton' />
+                  </div>
+                </article>
+              </div>
+            )}
 
-                <div className='story-metadata__rows'>
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--views'
-                    label='Lượt xem:'
-                    value={readerText}
-                  />
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm4.3 6.7-5.1 5.1-2.5-2.5-1.4 1.4 3.9 3.9 6.5-6.5-1.4-1.4z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--status'
-                    label='Trạng thái:'
-                    value={completionLabel}
-                    valueClass='story-metadata__status'
-                  />
-                  <MetaLine
-                    icon={
-                      <svg viewBox='0 0 24 24'>
-                        <path d='M7 3h8a2 2 0 0 1 2 2v14H7a3 3 0 0 0-3 3V5a2 2 0 0 1 2-2zm10 16V5a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H7a1 1 0 0 1 1-1h9z' />
-                      </svg>
-                    }
-                    iconClass='story-metadata__icon--words'
-                    label='Số từ:'
-                    value={wordText}
-                  />
-                </div>
-
-                <div className='story-metadata__summary-header'>
-                  <span>Nội dung</span>
-                </div>
-
-                <div
-                  className={`story-metadata__summary ${expandedSummary ? 'expanded' : ''}`}
+            {story && (
+              <>
+                <button
+                  type='button'
+                  className={`story-metadata__favorite-toggle ${favoriteSaved ? 'is-active' : ''}`}
+                  onClick={handleToggleFavorite}
+                  disabled={favoriteLoading}
+                  aria-label={favoriteSaved ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                  title={favoriteSaved ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
                 >
-                  {summaryText || 'Chưa có tóm tắt.'}
-                </div>
+                  <svg viewBox='0 0 24 24' aria-hidden='true'>
+                    <path d='M12 21.35 10.55 20C5.4 15.24 2 12.09 2 8.25 2 5.1 4.42 2.75 7.5 2.75c1.74 0 3.41.81 4.5 2.09a5.9 5.9 0 0 1 4.5-2.09C19.58 2.75 22 5.1 22 8.25c0 3.84-3.4 6.99-8.55 11.76L12 21.35z' />
+                  </svg>
+                </button>
+                <div className='story-metadata__card'>
+                <aside className='story-metadata__cover-col'>
+                  {story.coverUrl ? (
+                    <img
+                      className='story-metadata__cover'
+                      src={story.coverUrl}
+                      alt={story.title}
+                    />
+                  ) : (
+                    <div className='story-metadata__cover story-metadata__cover--empty'>
+                      Chưa có ảnh bìa
+                    </div>
+                  )}
 
-                {canExpandSummary && (
                   <button
                     type='button'
-                    className='story-metadata__summary-toggle'
-                    onClick={() => setExpandedSummary((prev) => !prev)}
+                    className={`story-metadata__side-btn ${librarySaved ? 'saved' : ''}`}
+                    onClick={handleToggleLibrary}
                   >
-                    {expandedSummary ? 'Thu gọn' : 'Xem thêm'}
-                  </button>
-                )}
-
-                <div className='story-metadata__actions-row'>
-                  <div className='story-metadata__actions'>
-                    <button
-                      type='button'
-                      className='story-metadata__action-btn'
-                      onClick={handleReadFromStart}
-                      disabled={loadingVolumes || !firstReadableChapterId}
-                    >
-                      Đọc từ đầu
-                    </button>
-                    <button
-                      type='button'
-                      className='story-metadata__action-btn ghost'
-                      onClick={handleReadLatest}
-                      disabled={loadingVolumes || !latestReadableChapterId}
-                    >
-                      Đọc mới nhất
-                    </button>
-                  </div>
-                  <div className='story-metadata__notify-wrap'>
-                    <span className='story-metadata__notify-text'>
-                      Bật thông báo:
+                    <svg viewBox='0 0 24 24' aria-hidden='true'>
+                      <path d='M6 3h12a2 2 0 0 1 2 2v16l-8-3.8L4 21V5a2 2 0 0 1 2-2z' />
+                    </svg>
+                    <span>
+                      {librarySaved ? 'Đã lưu' : 'Lưu vào thư viện'}
                     </span>
-                    <button
-                      type='button'
-                      className={`story-metadata__notify-switch ${notifyEnabled ? 'is-enabled' : ''}`}
-                      onClick={handleToggleNotify}
-                      disabled={notifyLoading}
-                      aria-label='Bật/tắt thông báo'
-                    >
-                      <span className='story-metadata__notify-switch-knob'>
-                        {notifyEnabled ? 'V' : 'X'}
-                      </span>
-                    </button>
+                  </button>
+                  <button
+                    type='button'
+                    className='story-metadata__side-btn share'
+                    onClick={handleShareToFacebook}
+                  >
+                    <svg viewBox='0 0 24 24' aria-hidden='true'>
+                      <path d='M14 9h3V5h-3c-2.76 0-5 2.24-5 5v2H6v4h3v5h4v-5h3.11l.89-4H13v-2c0-.55.45-1 1-1z' />
+                    </svg>
+                    <span>Chia sẻ</span>
+                  </button>
+                  <button
+                    type='button'
+                    className='story-metadata__side-btn ghost'
+                    onClick={() => navigate(`/stories/${storyId}/report`)}
+                  >
+                    <svg viewBox='0 0 24 24' aria-hidden='true'>
+                      <path d='M12 2 2 6v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V6L12 2zm0 6a1.6 1.6 0 1 1 0 3.2A1.6 1.6 0 0 1 12 8zm1.2 10h-2.4v-1.8h.9v-3.4h-.9V11h2.4v5.2h.9V18z' />
+                    </svg>
+                    <span>Báo cáo</span>
+                  </button>
+                </aside>
+
+                <article className='story-metadata__content'>
+                  <h1>{story.title}</h1>
+
+                  <div className='story-metadata__meta'>
+                    {isTranslated && (
+                      <MetaLine
+                        icon={
+                          <svg viewBox='0 0 24 24'>
+                            <path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z' />
+                          </svg>
+                        }
+                        iconClass='story-metadata__icon--author'
+                        label='Tác giả gốc:'
+                        value={story.originalAuthorName || 'Chưa rõ'}
+                      />
+                    )}
+
+                    {!isTranslated && (
+                      <MetaLine
+                        icon={
+                          <svg viewBox='0 0 24 24'>
+                            <path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z' />
+                          </svg>
+                        }
+                        iconClass='story-metadata__icon--author'
+                        label='Tác giả:'
+                        value={story.authorPenName || 'Chưa có bút danh'}
+                        onValueClick={
+                          story?.authorId
+                            ? () => navigate(`/user/${story.authorId}`)
+                            : undefined
+                        }
+                      />
+                    )}
+
+                    {isTranslated && (
+                      <MetaLine
+                        icon={
+                          <svg viewBox='0 0 24 24'>
+                            <path d='M5 4h7v2H9.92a9.94 9.94 0 0 1-1.58 3c.76.9 1.67 1.69 2.66 2.3l-1 1.73a12.2 12.2 0 0 1-2.73-2.32A11.8 11.8 0 0 1 4.5 13L3 11.5A9.8 9.8 0 0 0 6.1 9 8.09 8.09 0 0 0 7.6 6H5zm10 2h2l4 14h-2l-1-3h-4l-1 3h-2zm.5 3.5-1.5 4.5h3z' />
+                          </svg>
+                        }
+                        iconClass='story-metadata__icon--translator'
+                        label='Người dịch:'
+                        value={translatorName}
+                        onValueClick={
+                          story?.authorId
+                            ? () => navigate(`/user/${story.authorId}`)
+                            : undefined
+                        }
+                      />
+                    )}
+
+                    <MetaLine
+                      icon={
+                        <svg viewBox='0 0 24 24'>
+                          <path d='M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 3h7v4h-7z' />
+                        </svg>
+                      }
+                      iconClass='story-metadata__icon--kind'
+                      label='Loại truyện:'
+                      value={kindLabel}
+                    />
+
+                    <MetaLine
+                      icon={
+                        <svg viewBox='0 0 24 24'>
+                          <path d='M4 7a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z' />
+                        </svg>
+                      }
+                      iconClass='story-metadata__icon--category'
+                      label='Danh mục:'
+                      value={categoryTag?.name || 'Chưa chọn'}
+                      valueClass='story-metadata__category-chip'
+                    />
                   </div>
+
+                  {extraTags.length > 0 && (
+                    <div className='story-metadata__tags'>
+                      {extraTags.map((tag) => (
+                        <span key={tag.id} className='story-metadata__tag'>
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className='story-metadata__rows'>
+                    <MetaLine
+                      icon={
+                        <svg viewBox='0 0 24 24'>
+                          <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
+                        </svg>
+                      }
+                      iconClass='story-metadata__icon--views'
+                      label='Lượt xem:'
+                      value={readerText}
+                    />
+                    <MetaLine
+                      icon={
+                        <svg viewBox='0 0 24 24'>
+                          <path d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm4.3 6.7-5.1 5.1-2.5-2.5-1.4 1.4 3.9 3.9 6.5-6.5-1.4-1.4z' />
+                        </svg>
+                      }
+                      iconClass='story-metadata__icon--status'
+                      label='Trạng thái:'
+                      value={completionLabel}
+                      valueClass='story-metadata__status'
+                    />
+                    <MetaLine
+                      icon={
+                        <svg viewBox='0 0 24 24'>
+                          <path d='M7 3h8a2 2 0 0 1 2 2v14H7a3 3 0 0 0-3 3V5a2 2 0 0 1 2-2zm10 16V5a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H7a1 1 0 0 1 1-1h9z' />
+                        </svg>
+                      }
+                      iconClass='story-metadata__icon--words'
+                      label='Số từ:'
+                      value={wordText}
+                    />
+                  </div>
+
+                  <div className='story-metadata__summary-header'>
+                    <span>Nội dung</span>
+                  </div>
+
+                  <div className='story-metadata__summary'>
+                    <p className='story-metadata__summary-text'>
+                      {summaryText || 'Chưa có tóm tắt.'}
+                    </p>
+                  </div>
+
+                  <div className='story-metadata__actions-row'>
+                    <div className='story-metadata__actions'>
+                      {resumePoint?.chapterId && resumePoint?.segmentId && (
+                        <button
+                          type='button'
+                          className='story-metadata__action-btn continue'
+                          onClick={handleContinueReading}
+                          disabled={loadingResumePoint}
+                        >
+                          Đọc tiếp
+                        </button>
+                      )}
+                      <button
+                        type='button'
+                        className='story-metadata__action-btn'
+                        onClick={handleReadFromStart}
+                        disabled={loadingVolumes || !firstReadableChapterId}
+                      >
+                        Đọc từ đầu
+                      </button>
+                      <button
+                        type='button'
+                        className='story-metadata__action-btn ghost'
+                        onClick={handleReadLatest}
+                        disabled={loadingVolumes || !latestReadableChapterId}
+                      >
+                        Đọc mới nhất
+                      </button>
+                    </div>
+                    <div className='story-metadata__notify-wrap'>
+                      <span className='story-metadata__notify-text'>
+                        Bật thông báo:
+                      </span>
+                      <button
+                        type='button'
+                        className={`story-metadata__notify-switch ${notifyEnabled ? 'is-enabled' : ''}`}
+                        onClick={handleToggleNotify}
+                        disabled={notifyLoading}
+                        aria-label='Bật/tắt thông báo'
+                      >
+                        <span className='story-metadata__notify-switch-knob' />
+                      </button>
+                    </div>
+                  </div>
+                </article>
                 </div>
-              </article>
-            </div>
-          )}
+              </>
+            )}
           </section>
 
           <section className='story-metadata__review-preview'>
@@ -1393,232 +1752,275 @@ const StoryMetadata = () => {
               <Link to={`/stories/${storyId}/reviews`}>Xem trang đánh giá</Link>
             </div>
 
-          {loadingReviews && (
-            <p className='story-metadata__muted'>Đang tải review...</p>
-          )}
-
-          {!loadingReviews && !latestReview && (
-            <div className='story-metadata__empty-review'>
-              Chưa có review nào.
-              <Link to={`/stories/${storyId}/reviews`}> Viết review</Link>
-            </div>
-          )}
-
-          {latestReview && (
-            <article className='story-metadata__latest-review-card'>
-              <div className='story-metadata__latest-review-head'>
-                <strong 
-                  className='cursor-pointer hover:text-blue-600 transition-colors'
-                  onClick={() => navigate(`/user/${latestReview.userId}`)}
-                >
-                  {latestReview.username || 'Ẩn danh'}
-                </strong>
-                <div className='story-metadata__latest-review-stars'>
-                  {STAR_VALUES.map((star) => (
-                    <span
-                      key={`${latestReview.id}-${star}`}
-                      className={latestReview.rating >= star ? 'active' : ''}
-                    >
-                      ★
-                    </span>
-                  ))}
+            {loadingReviews && !latestReview && (
+              <article
+                className='story-metadata__latest-review-card story-metadata__latest-review-card--skeleton'
+                aria-hidden='true'
+              >
+                <div className='story-metadata__latest-review-head'>
+                  <SkeletonBlock className='story-metadata__review-name-skeleton' />
+                  <SkeletonBlock className='story-metadata__review-stars-skeleton' />
                 </div>
+                <SkeletonBlock className='story-metadata__review-line-skeleton' />
+                <SkeletonBlock className='story-metadata__review-line-skeleton' />
+                <SkeletonBlock className='story-metadata__review-line-skeleton story-metadata__review-line-skeleton--short' />
+                <div className='story-metadata__latest-review-footer'>
+                  <SkeletonBlock className='story-metadata__review-footer-skeleton' />
+                  <SkeletonBlock className='story-metadata__review-footer-skeleton story-metadata__review-footer-skeleton--link' />
+                </div>
+              </article>
+            )}
+
+            {!loadingReviews && !latestReview && (
+              <div className='story-metadata__empty-review'>
+                Chưa có review nào.
+                <Link to={`/stories/${storyId}/reviews`}> Viết review</Link>
               </div>
-              <p>{latestReviewShort}</p>
-              <div className='story-metadata__latest-review-footer'>
-                <span>
-                  {formatRelativeTime(
-                    latestReview.updatedAt || latestReview.createdAt,
-                  )}
-                </span>
-                <Link to={`/stories/${storyId}/reviews`}>
-                  {latestReviewIsLong ? 'Xem thêm' : 'Xem tất cả'}
-                </Link>
-              </div>
-            </article>
-          )}
-          </section>
+            )}
 
-        <section className='story-metadata__volume-section'>
-          <h2>Danh sách Tập & Chương</h2>
-          {loadingVolumes && (
-            <p className='story-metadata__muted'>Đang tải danh sách tập...</p>
-          )}
-          {!loadingVolumes && volumes.length === 0 && (
-            <div className='story-metadata__empty'>Chưa có volume nào.</div>
-          )}
-
-          {volumes.map((volume) => {
-            const id = String(volume.id || volume.volumeId);
-            const isOpen = expandedVolumes.has(id);
-            const volumeCoverUrl = String(volume?.coverUrl || '').trim();
-            const chapters = Array.isArray(volume.chapters)
-              ? [...volume.chapters].sort(
-                  (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
-                )
-              : [];
-
-            return (
-              <div key={id} className='story-metadata__volume'>
-                <button
-                  type='button'
-                  className='story-metadata__volume-head'
-                  onClick={() => handleToggleVolume(id)}
-                >
-                  <span className='story-metadata__volume-head-main'>
-                    {volumeCoverUrl ? (
-                      <img
-                        className='story-metadata__volume-cover'
-                        src={volumeCoverUrl}
-                        alt={volume.title || `Tap ${volume.sequenceIndex || ''}`}
-                      />
-                    ) : (
-                      <span className='story-metadata__volume-cover-empty'>
-                        No cover
-                      </span>
-                    )}
-                    <span className='story-metadata__volume-head-text'>
-                      {volume.title || `Tập ${volume.sequenceIndex || ''}`}
-                    <small>
-                      {volume.chapterCount ?? chapters.length} chương
-                    </small>
-                    </span>
-                  </span>
-                  <span>{isOpen ? '▾' : '▸'}</span>
-                </button>
-
-                {isOpen && (
-                  <div className='story-metadata__chapter-list'>
-                    {chapters.length === 0 && (
-                      <p className='story-metadata__muted'>
-                        Chưa có chương nào.
-                      </p>
-                    )}
-                    {chapters.map((chapter) => (
-                      <Link
-                        key={chapter.id || chapter.chapterId}
-                        className='story-metadata__chapter-row'
-                        to={`/stories/${storyId}/chapters/${chapter.id || chapter.chapterId}`}
+            {latestReview && (
+              <article className='story-metadata__latest-review-card'>
+                <div className='story-metadata__latest-review-head'>
+                  <strong
+                    className='cursor-pointer hover:text-blue-600 transition-colors'
+                    onClick={() => navigate(`/user/${latestReview.userId}`)}
+                  >
+                    {latestReview.username || 'Ẩn danh'}
+                  </strong>
+                  <div className='story-metadata__latest-review-stars'>
+                    {STAR_VALUES.map((star) => (
+                      <span
+                        key={`${latestReview.id}-${star}`}
+                        className={latestReview.rating >= star ? 'active' : ''}
                       >
-                        <span>
-                          {chapter.sequenceIndex
-                            ? `Chương ${chapter.sequenceIndex}: `
-                            : ''}
-                          {chapter.title}
-                        </span>
-                        <span className='story-metadata__chapter-date'>
-                          {chapter.lastUpdateAt
-                            ? new Date(chapter.lastUpdateAt).toLocaleDateString(
-                                'vi-VN',
-                              )
-                            : 'Chưa cập nhật'}
-                        </span>
-                      </Link>
+                        ★
+                      </span>
                     ))}
                   </div>
+                </div>
+                {latestReviewVisible ? (
+                  <p>{latestReviewShort}</p>
+                ) : (
+                  <div className='story-metadata__content-mask-wrap'>
+                    <p className='story-metadata__content-mask'>
+                      Đánh giá này có chứa spoiler.
+                    </p>
+                    <button
+                      type='button'
+                      className='story-metadata__reveal-btn'
+                      onClick={() => setLatestReviewRevealed(true)}
+                    >
+                      Hiện đánh giá
+                    </button>
+                  </div>
                 )}
-              </div>
-            );
-          })}
-        </section>
+                <div className='story-metadata__latest-review-footer'>
+                  <span>
+                    {formatRelativeTime(
+                      latestReview.updatedAt || latestReview.createdAt,
+                    )}
+                  </span>
+                  <Link to={`/stories/${storyId}/reviews`}>
+                    {latestReviewVisible && latestReviewIsLong
+                      ? 'Xem thêm'
+                      : 'Xem tất cả'}
+                  </Link>
+                </div>
+              </article>
+            )}
+          </section>
+
+          <section className='story-metadata__volume-section'>
+            <h2>Danh sách Tập & Chương</h2>
+            {loadingVolumes && volumes.length === 0 && renderVolumeSkeletons()}
+            {!loadingVolumes && volumes.length === 0 && (
+              <div className='story-metadata__empty'>Chưa có volume nào.</div>
+            )}
+
+            {volumes.map((volume) => {
+              const id = String(volume.id || volume.volumeId);
+              const isOpen = expandedVolumes.has(id);
+              const volumeCoverUrl = String(volume?.coverUrl || '').trim();
+              const chapters = Array.isArray(volume.chapters)
+                ? [...volume.chapters].sort(
+                    (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
+                  )
+                : [];
+
+              return (
+                <div key={id} className='story-metadata__volume'>
+                  <button
+                    type='button'
+                    className='story-metadata__volume-head'
+                    onClick={() => handleToggleVolume(id)}
+                  >
+                    <span className='story-metadata__volume-head-main'>
+                      {volumeCoverUrl ? (
+                        <img
+                          className='story-metadata__volume-cover'
+                          src={volumeCoverUrl}
+                          alt={
+                            volume.title || `Tap ${volume.sequenceIndex || ''}`
+                          }
+                        />
+                      ) : (
+                        <span className='story-metadata__volume-cover-empty'>
+                          No cover
+                        </span>
+                      )}
+                      <span className='story-metadata__volume-head-text'>
+                        {volume.title || `Tập ${volume.sequenceIndex || ''}`}
+                        <small>
+                          {volume.chapterCount ?? chapters.length} chương
+                        </small>
+                      </span>
+                    </span>
+                    <span>{isOpen ? '▾' : '▸'}</span>
+                  </button>
+
+                  {isOpen && (
+                    <div className='story-metadata__chapter-list'>
+                      {chapters.length === 0 && (
+                        <p className='story-metadata__muted'>
+                          Chưa có chương nào.
+                        </p>
+                      )}
+                      {chapters.map((chapter) => (
+                        <Link
+                          key={chapter.id || chapter.chapterId}
+                          className='story-metadata__chapter-row'
+                          to={`/stories/${storyId}/chapters/${chapter.id || chapter.chapterId}`}
+                        >
+                          <span>
+                            {chapter.sequenceIndex
+                              ? `Chương ${chapter.sequenceIndex}: `
+                              : ''}
+                            {chapter.title}
+                          </span>
+                          <span className='story-metadata__chapter-date'>
+                            {chapter.lastUpdateAt
+                              ? new Date(
+                                  chapter.lastUpdateAt,
+                                ).toLocaleDateString('vi-VN')
+                              : 'Chưa cập nhật'}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
 
           <section
             className='story-metadata__comments-section'
             ref={commentsAnchorRef}
           >
-          <h3>Tổng bình luận ({commentsTotal})</h3>
+            <h3>Tổng bình luận ({commentsTotal})</h3>
 
-          <form
-            className='story-metadata__comment-form'
-            onSubmit={handleCreateComment}
-          >
+            <form
+              className='story-metadata__comment-form'
+              onSubmit={handleCreateComment}
+            >
             <textarea
               value={commentContent}
               onChange={(event) => setCommentContent(event.target.value)}
               placeholder='Nhập bình luận của bạn...'
               maxLength={4000}
             />
+            <label className='story-metadata__spoiler-toggle'>
+              <input
+                type='checkbox'
+                checked={commentHasSpoiler}
+                onChange={(event) => setCommentHasSpoiler(event.target.checked)}
+              />
+              <span>Chứa spoil</span>
+            </label>
 
-            <div className='story-metadata__comment-form-footer'>
-              <span>{commentContent.trim().length} ký tự</span>
-              <button type='submit' disabled={submittingComment}>
-                {submittingComment ? 'Đang đăng...' : 'Đăng bình luận'}
+              <div className='story-metadata__comment-form-footer'>
+                <span>{commentContent.trim().length} ký tự</span>
+                <button type='submit' disabled={submittingComment}>
+                  {submittingComment ? 'Đang đăng...' : 'Đăng bình luận'}
+                </button>
+              </div>
+            </form>
+
+            {loadingComments && comments.length === 0 && (
+              <div className='story-metadata__comment-list'>
+                {renderCommentSkeletons()}
+              </div>
+            )}
+
+            {!loadingComments && comments.length === 0 && (
+              <div className='story-metadata__empty-review'>
+                Chưa có bình luận nào.
+              </div>
+            )}
+
+            <div className='story-metadata__comment-list'>
+              {comments.map((comment) => {
+                const rootId = String(comment.id);
+                const replies = Array.isArray(comment.replies)
+                  ? comment.replies
+                  : [];
+                const visibleReplyCount =
+                  visibleRepliesByRoot[rootId] ?? Math.min(2, replies.length);
+                const displayedReplies = replies.slice(0, visibleReplyCount);
+                const hasMoreReplies = replies.length > visibleReplyCount;
+
+                return (
+                  <div key={comment.id} className='story-metadata__thread'>
+                    {renderCommentItem(comment, false, rootId)}
+                    {displayedReplies.length > 0 && (
+                      <div className='story-metadata__reply-list'>
+                        {displayedReplies.map((reply) =>
+                          renderCommentItem(reply, true, rootId),
+                        )}
+                      </div>
+                    )}
+
+                    {(hasMoreReplies || visibleReplyCount > 2) && (
+                      <div className='story-metadata__reply-load-row'>
+                        {hasMoreReplies && (
+                          <button
+                            type='button'
+                            className='story-metadata__reply-load-btn'
+                            onClick={() =>
+                              handleLoadMoreReplies(rootId, replies.length)
+                            }
+                          >
+                            Xem{' '}
+                            {Math.min(2, replies.length - visibleReplyCount)}{' '}
+                            trả lời
+                          </button>
+                        )}
+                        {visibleReplyCount > 2 && (
+                          <button
+                            type='button'
+                            className='story-metadata__reply-load-btn ghost'
+                            onClick={() => handleCollapseReplies(rootId)}
+                          >
+                            Thu gọn trả lời
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {commentsHasMore && (
+              <button
+                type='button'
+                className='story-metadata__load-more-comments'
+                onClick={handleLoadMoreComments}
+                disabled={loadingComments}
+              >
+                {loadingComments ? 'Đang tải...' : 'Xem Thêm Bình Luận →'}
               </button>
-            </div>
-          </form>
-
-          {loadingComments && comments.length === 0 && (
-            <p className='story-metadata__muted'>Đang tải bình luận...</p>
-          )}
-
-          {!loadingComments && comments.length === 0 && (
-            <div className='story-metadata__empty-review'>
-              Chưa có bình luận nào.
-            </div>
-          )}
-
-          <div className='story-metadata__comment-list'>
-            {comments.map((comment) => {
-              const rootId = String(comment.id);
-              const replies = Array.isArray(comment.replies)
-                ? comment.replies
-                : [];
-              const visibleReplyCount =
-                visibleRepliesByRoot[rootId] ?? Math.min(2, replies.length);
-              const displayedReplies = replies.slice(0, visibleReplyCount);
-              const hasMoreReplies = replies.length > visibleReplyCount;
-
-              return (
-                <div key={comment.id} className='story-metadata__thread'>
-                  {renderCommentItem(comment, false, rootId)}
-                  {displayedReplies.length > 0 && (
-                    <div className='story-metadata__reply-list'>
-                      {displayedReplies.map((reply) =>
-                        renderCommentItem(reply, true, rootId),
-                      )}
-                    </div>
-                  )}
-
-                  {(hasMoreReplies || visibleReplyCount > 2) && (
-                    <div className='story-metadata__reply-load-row'>
-                      {hasMoreReplies && (
-                        <button
-                          type='button'
-                          className='story-metadata__reply-load-btn'
-                          onClick={() =>
-                            handleLoadMoreReplies(rootId, replies.length)
-                          }
-                        >
-                          Xem {Math.min(2, replies.length - visibleReplyCount)}{' '}
-                          trả lời
-                        </button>
-                      )}
-                      {visibleReplyCount > 2 && (
-                        <button
-                          type='button'
-                          className='story-metadata__reply-load-btn ghost'
-                          onClick={() => handleCollapseReplies(rootId)}
-                        >
-                          Thu gọn trả lời
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {commentsHasMore && (
-            <button
-              type='button'
-              className='story-metadata__load-more-comments'
-              onClick={handleLoadMoreComments}
-              disabled={loadingComments}
-            >
-              {loadingComments ? 'Đang tải...' : 'Xem Thêm Bình Luận →'}
-            </button>
-          )}
+            )}
           </section>
         </div>
 
@@ -1626,8 +2028,19 @@ const StoryMetadata = () => {
         <aside className='story-metadata__sidebar'>
           <section className='story-metadata__sidebar-card'>
             <h3>Thông tin thêm</h3>
-            {loadingSidebar ? (
-              <p className='story-metadata__muted'>Đang tải thông tin...</p>
+            {loadingSidebar && !sidebar ? (
+              <div className='story-metadata__sidebar-info story-metadata__sidebar-info--skeleton' aria-hidden='true'>
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div
+                    key={`sidebar-info-skeleton-${index}`}
+                    className='story-metadata__sidebar-info-row'
+                  >
+                    <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--label' />
+                    <SkeletonBlock className='story-metadata__sidebar-line-skeleton story-metadata__sidebar-line-skeleton--value' />
+                  </div>
+                ))}
+                <SkeletonBlock className='story-metadata__sidebar-rating-skeleton' />
+              </div>
             ) : (
               <>
                 <div className='story-metadata__sidebar-info'>
@@ -1644,8 +2057,19 @@ const StoryMetadata = () => {
                     <strong>{followerText}</strong>
                   </div>
                   <div className='story-metadata__sidebar-info-row'>
-                    <span>Xếp hạng tuần</span>
-                    <strong>{weeklyRankText}</strong>
+                    <span>Xếp hạng toàn thời gian</span>
+                    <strong className='story-metadata__rank-value'>
+                      {allTimeRankMedal && (
+                        <span
+                          className={`story-metadata__rank-medal ${allTimeRankMedal.className}`}
+                          aria-label={allTimeRankMedal.label}
+                          title={allTimeRankMedal.label}
+                        >
+                          {allTimeRankMedal.icon}
+                        </span>
+                      )}
+                      <span>{allTimeRankText}</span>
+                    </strong>
                   </div>
                   <div className='story-metadata__sidebar-info-row'>
                     <span>Đánh giá</span>
@@ -1659,11 +2083,17 @@ const StoryMetadata = () => {
 
           <section className='story-metadata__sidebar-card'>
             <h3>Truyện tương tự</h3>
-            {similarStories.length === 0 && (
+            {loadingSidebar && !sidebar && (
+              <div className='story-metadata__sidebar-list'>
+                {renderSidebarSkeletonItems()}
+              </div>
+            )}
+            {!loadingSidebar && similarStories.length === 0 && (
               <p className='story-metadata__muted'>Chưa có truyện tương tự.</p>
             )}
             <div className='story-metadata__sidebar-list'>
-              {similarStories.map((item) => (
+              {!loadingSidebar &&
+                similarStories.map((item) => (
                 <Link
                   key={`similar-${item.storyId}`}
                   className='story-metadata__sidebar-item'
@@ -1682,17 +2112,25 @@ const StoryMetadata = () => {
                     {renderSidebarItemRating(item)}
                   </div>
                 </Link>
-              ))}
+                ))}
             </div>
           </section>
 
           <section className='story-metadata__sidebar-card'>
             <h3>Cùng tác giả</h3>
-            {sameAuthorStories.length === 0 && (
-              <p className='story-metadata__muted'>Chưa có truyện cùng tác giả.</p>
+            {loadingSidebar && !sidebar && (
+              <div className='story-metadata__sidebar-list'>
+                {renderSidebarSkeletonItems()}
+              </div>
+            )}
+            {!loadingSidebar && sameAuthorStories.length === 0 && (
+              <p className='story-metadata__muted'>
+                Chưa có truyện cùng tác giả.
+              </p>
             )}
             <div className='story-metadata__sidebar-list'>
-              {sameAuthorStories.map((item) => (
+              {!loadingSidebar &&
+                sameAuthorStories.map((item) => (
                 <Link
                   key={`author-${item.storyId}`}
                   className='story-metadata__sidebar-item'
@@ -1714,14 +2152,20 @@ const StoryMetadata = () => {
                     </span>
                   </div>
                 </Link>
-              ))}
+                ))}
             </div>
           </section>
         </aside>
       </div>
+      <StoryLibraryModal
+        isOpen={showLibraryModal}
+        story={story}
+        onClose={() => setShowLibraryModal(false)}
+        onSaved={handleLibraryDialogSaved}
+        notify={notify}
+      />
     </div>
   );
 };
 
 export default StoryMetadata;
-

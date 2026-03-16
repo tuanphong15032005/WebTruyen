@@ -8,6 +8,7 @@ public class UserPortfolioResponse {
     private String username;
     private String displayName;
     private String avatarUrl;
+    private String coverUrl;
     private String authorPenName;  // Added for ISSUE 2
     private String joinDate;
     private String bio;

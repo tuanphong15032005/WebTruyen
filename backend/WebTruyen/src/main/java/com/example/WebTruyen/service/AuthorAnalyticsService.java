@@ -1,6 +1,7 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.response.AuthorChapterPerformanceResponse;
+import com.example.WebTruyen.dto.response.AuthorOverallPerformanceResponse;
 import com.example.WebTruyen.dto.response.AuthorPerformancePointResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryPerformanceResponse;
@@ -99,6 +100,28 @@ public class AuthorAnalyticsService {
                 coinRevenueOverTime,
                 followerGrowthOverTime,
                 chapterPerformance
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public AuthorOverallPerformanceResponse getOverallPerformance(Long authorId) {
+        List<StoryEntity> stories = storyRepository.findByAuthor_IdOrderByCreatedAtDesc(authorId);
+        long storyCount = stories.size();
+        long totalViews = 0L;
+        long totalFollowers = 0L;
+        long totalCoinEarned = 0L;
+
+        for (StoryEntity story : stories) {
+            totalViews += story.getViewCount();
+            totalFollowers += followStoryRepository.countByStory_Id(story.getId());
+            totalCoinEarned += coalesceLong(chapterUnlockRepository.sumCoinCostByStoryId(story.getId()));
+        }
+
+        return new AuthorOverallPerformanceResponse(
+                storyCount,
+                totalViews,
+                totalCoinEarned,
+                totalFollowers
         );
     }
 

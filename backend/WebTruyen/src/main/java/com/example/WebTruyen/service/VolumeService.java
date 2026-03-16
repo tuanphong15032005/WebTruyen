@@ -163,7 +163,8 @@ public class VolumeService {
                             c.getTitle(),
                             c.getSequenceIndex(),
                             c.getLastUpdateAt(),
-                            c.getStatus() != null ? c.getStatus().name() : null
+                            c.getStatus() != null ? c.getStatus().name() : null,
+                            c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null
                     ))
                     .toList();
             result.add(new VolumeSummaryResponse(
@@ -199,7 +200,8 @@ public class VolumeService {
                             c.getTitle(),
                             c.getSequenceIndex(),
                             c.getLastUpdateAt(),
-                            c.getStatus().name()
+                            c.getStatus().name(),
+                            c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null
                     ))
                     .toList();
             result.add(new VolumeSummaryResponse(
