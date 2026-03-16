@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { sitePageService } from '../../services/sitePageService';
-import { getAllTerms } from '../../api/termApi';
+import { getAllTerms, getTermDetail } from '../../api/termApi';
 import { Home } from 'lucide-react';
 import PolicyNavigation from '../../components/docs/PolicyNavigation';
 import DocsToc from '../../components/docs/DocsToc';
@@ -22,8 +22,10 @@ function DynamicPage({ code }) {
         // Use terms API for author-rules
         if (code === 'author-rules') {
           console.log('DynamicPage - using terms API for author-rules');
-          pageData = await getAllTerms();
-          console.log('DynamicPage - received terms data:', pageData);
+          const allTerms = await getAllTerms();
+          // Filter only terms with code starting with 'author-rules'
+          pageData = allTerms.filter(term => term.code && term.code.startsWith('author-rules'));
+          console.log('DynamicPage - filtered author-rules data:', pageData);
         } else {
           pageData = await sitePageService.getPageByCode(code);
           console.log('DynamicPage - received pageData:', pageData);
@@ -32,8 +34,24 @@ function DynamicPage({ code }) {
         console.log('DynamicPage - pageData type:', typeof pageData);
         console.log('DynamicPage - is pageData array?', Array.isArray(pageData));
         
-        // Set the array of blocks for this page
-        setPage(pageData);
+        // Set the page data
+        if (code === 'author-rules') {
+          // Check if pageData exists and has content
+          if (!pageData || pageData.length === 0) {
+            throw new Error('No author rules data found');
+          }
+          // Sort by code to maintain order (author-rules1, author-rules2, etc.)
+          pageData.sort((a, b) => {
+            const extractNumber = (code) => {
+              const match = code.match(/author-rules(\d+)/);
+              return match ? parseInt(match[1]) : 0;
+            };
+            return extractNumber(a.code) - extractNumber(b.code);
+          });
+          setPage(pageData);
+        } else {
+          setPage(pageData);
+        }
         
         // Debug: Log order of received data
         console.log('=== DEBUG: Page order received ===');
@@ -45,7 +63,14 @@ function DynamicPage({ code }) {
         localStorage.setItem('currentPageBlocks', JSON.stringify(pageData));
       } catch (err) {
         console.error('DynamicPage - error:', err);
-        setError('Không tìm thấy trang này');
+        console.error('DynamicPage - error response:', err.response);
+        console.error('DynamicPage - error status:', err.response?.status);
+        
+        if (code === 'author-rules') {
+          setError('Không tìm thấy quy định đăng truyện. Vui lòng liên hệ quản trị viên.');
+        } else {
+          setError('Không tìm thấy trang này');
+        }
       } finally {
         setLoading(false);
       }
