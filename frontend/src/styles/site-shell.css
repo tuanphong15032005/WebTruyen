@@ -125,6 +125,7 @@
   font-size: 0.875rem;
   opacity: 0.8;
   margin-top: 2px;
+  color: white !important;
 }
 
 .daily-tasks-content {
@@ -201,6 +202,10 @@
   margin: 0 0 4px 0;
 }
 
+.task-item.completed .task-title {
+  color: white;
+}
+
 .task-description {
   font-size: 0.875rem;
   color: #64748b;
@@ -255,6 +260,12 @@
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid #fbbf24;
+}
+
+.task-item.completed .reward-amount {
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .reward-status {
