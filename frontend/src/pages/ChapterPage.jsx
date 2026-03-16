@@ -539,19 +539,13 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     }
   };
 
-  const handleReportComment = async (commentId) => {
+  const handleReportComment = async (commentId, commentContent, commentUsername) => {
     if (!requireLogin()) return;
-    const reason = window.prompt('Nhập lý do báo cáo bình luận:');
-    if (!reason || !reason.trim()) return;
-    try {
-      setSubmittingReportForId(commentId);
-      await reportComment(commentId, reason.trim());
-      notify('Đã gửi báo cáo bình luận', 'success');
-    } catch (err) {
-      notify(getErrorMessage(err, 'Không thể báo cáo bình luận'), 'error');
-    } finally {
-      setSubmittingReportForId(null);
-    }
+    
+    // Navigate to comment report page with comment details
+    const encodedContent = encodeURIComponent(commentContent || '');
+    const encodedUsername = encodeURIComponent(commentUsername || '');
+    navigate(`/report-comment?commentId=${commentId}&storyId=${storyId}&chapterId=${chapterId}&content=${encodedContent}&username=${encodedUsername}`);
   };
 
   const handleLoadMoreReplies = (rootId, totalReplies) => {
@@ -707,12 +701,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                 <button
                   type='button'
                   className='story-metadata__inline-action'
-                  onClick={() => handleReportComment(comment.id)}
-                  disabled={submittingReportForId === comment.id}
+                  onClick={() => handleReportComment(comment.id, comment.content, comment.username)}
                 >
-                  {submittingReportForId === comment.id
-                    ? 'Đang gửi...'
-                    : 'Báo cáo'}
+                  Báo cáo
                 </button>
               )}
             </div>

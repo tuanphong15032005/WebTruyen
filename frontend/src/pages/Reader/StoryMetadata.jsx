@@ -968,30 +968,17 @@ const StoryMetadata = () => {
     }
   };
 
-  const handleReportComment = async (commentId) => {
+  const handleReportComment = async (commentId, commentContent, commentUsername) => {
     if (!currentUser) {
       notify('Bạn cần đăng nhập để báo cáo bình luận', 'info');
       navigate('/login');
       return;
     }
 
-    const reason = window.prompt('Nhập lý do báo cáo bình luận:');
-    if (!reason || !reason.trim()) {
-      return;
-    }
-
-    try {
-      setSubmittingReportForId(commentId);
-      await storyService.reportStoryComment(storyId, commentId, {
-        reason: reason.trim(),
-      });
-      notify('Đã gửi báo cáo bình luận', 'success');
-    } catch (error) {
-      console.error('report comment error', error);
-      notify('Không thể báo cáo bình luận', 'error');
-    } finally {
-      setSubmittingReportForId(null);
-    }
+    // Navigate to comment report page with comment details
+    const encodedContent = encodeURIComponent(commentContent || '');
+    const encodedUsername = encodeURIComponent(commentUsername || '');
+    navigate(`/report-comment?commentId=${commentId}&storyId=${storyId}&content=${encodedContent}&username=${encodedUsername}`);
   };
 
   const handleLoadMoreReplies = (rootId, totalReplies) => {
@@ -1149,12 +1136,9 @@ const StoryMetadata = () => {
                 <button
                   type='button'
                   className='story-metadata__inline-action'
-                  onClick={() => handleReportComment(comment.id)}
-                  disabled={submittingReportForId === comment.id}
+                  onClick={() => handleReportComment(comment.id, comment.content, comment.username)}
                 >
-                  {submittingReportForId === comment.id
-                    ? 'Đang gửi...'
-                    : 'Báo cáo'}
+                  Báo cáo
                 </button>
               )}
             </div>
@@ -1212,6 +1196,11 @@ const StoryMetadata = () => {
                 <button
                   type='button'
                   className='story-metadata__side-btn ghost'
+                  onClick={() => {
+                    if (storyId) {
+                      navigate(`/report-story?storyId=${storyId}`);
+                    }
+                  }}
                 >
                   <svg viewBox='0 0 24 24' aria-hidden='true'>
                     <path d='M12 2 2 6v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V6L12 2zm0 6a1.6 1.6 0 1 1 0 3.2A1.6 1.6 0 0 1 12 8zm1.2 10h-2.4v-1.8h.9v-3.4h-.9V11h2.4v5.2h.9V18z' />

@@ -3,10 +3,12 @@ package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.request.CreateReportRequest;
 import com.example.WebTruyen.dto.response.ReportResponse;
 import com.example.WebTruyen.entity.model.CommentAndMod.ReportEntity;
+import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
+import com.example.WebTruyen.repository.CommentRepository;
 import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
@@ -25,18 +27,11 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
+    private final CommentRepository commentRepository;
     private final UserRepository userRepository;
 
     @Transactional
     public ReportResponse createReport(CreateReportRequest request, UserEntity reporter) {
-        // Validate story exists
-        StoryEntity story = storyRepository.findById(request.getStoryId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
-
-        // Validate chapter exists
-        ChapterEntity chapter = chapterRepository.findById(request.getChapterId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
-
         // Validate reason is not empty
         if (request.getReason() == null || request.getReason().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason is required");
@@ -45,6 +40,41 @@ public class ReportService {
         // Validate description length
         if (request.getDescription() != null && request.getDescription().length() > 1000) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Description must be less than 1000 characters");
+        }
+
+        // Validate that exactly one target is provided
+        int targetCount = 0;
+        if (request.getChapterId() != null) targetCount++;
+        if (request.getStoryId() != null) targetCount++;
+        if (request.getCommentId() != null) targetCount++;
+        
+        if (targetCount != 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exactly one target (chapterId, storyId, or commentId) must be provided");
+        }
+
+        // Create report entity based on target
+        ReportEntity.ReportTargetKind targetKind;
+        StoryEntity story = null;
+        ChapterEntity chapter = null;
+        CommentEntity comment = null;
+        
+        if (request.getChapterId() != null) {
+            // Chapter report
+            chapter = chapterRepository.findById(request.getChapterId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+            targetKind = ReportEntity.ReportTargetKind.chapter;
+        } else if (request.getStoryId() != null) {
+            // Story report
+            story = storyRepository.findById(request.getStoryId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+            targetKind = ReportEntity.ReportTargetKind.story;
+        } else if (request.getCommentId() != null) {
+            // Comment report
+            comment = commentRepository.findById(request.getCommentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+            targetKind = ReportEntity.ReportTargetKind.comment;
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one target (chapterId, storyId, or commentId) must be provided");
         }
 
         // Anti-spam: Check if user already reported this chapter within 24h
@@ -72,9 +102,10 @@ public class ReportService {
         // Create report entity
         ReportEntity report = ReportEntity.builder()
                 .reporter(reporter)
-                .targetKind(ReportEntity.ReportTargetKind.chapter)
-                .story(null) // For chapter reports, story must be null due to constraint
+                .targetKind(targetKind)
+                .story(story)
                 .chapter(chapter)
+                .comment(comment)
                 .reason(request.getReason().trim())
                 .details(request.getDescription() != null ? request.getDescription().trim() : null)
                 .status(ReportEntity.ReportStatus.open)

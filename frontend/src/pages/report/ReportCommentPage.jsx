@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, MessageSquare } from 'lucide-react';
 import { reportApi } from '../../api/reportApi';
 import useNotify from '../../hooks/useNotify';
-import api from '../../services/api';
 
-const ReportChapterPage = () => {
+const ReportCommentPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useNotify();
 
-  const storyId = searchParams.get('storyId');
-  const chapterId = searchParams.get('chapterId');
+  const commentId = searchParams.get('commentId');
+  const commentContent = searchParams.get('content') || 'Nội dung bình luận';
+  const commentUsername = searchParams.get('username') || 'Người dùng';
 
-  const [chapterInfo, setChapterInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -30,31 +28,18 @@ const ReportChapterPage = () => {
     'Nội dung bạo lực hoặc kích động',
     'Nội dung xúc phạm, thù địch hoặc ',
     'Nội dung chống phá CHXHCN Việt Nam ',
+    'Spam hoặc quảng cáo',
+    'Troll hoặc gây gổ',
     'Vấn đề khác',
   ];
 
   useEffect(() => {
-    if (!storyId || !chapterId) {
-      notify('Thiếu thông tin storyId hoặc chapterId', 'error');
+    if (!commentId) {
+      notify('Thiếu thông tin commentId', 'error');
       navigate(-1);
       return;
     }
-
-    fetchChapterInfo();
-  }, [storyId, chapterId]);
-
-  const fetchChapterInfo = async () => {
-    try {
-      const response = await api.get(`/chapters/${chapterId}`);
-      setChapterInfo(response);
-    } catch (error) {
-      console.error('Error fetching chapter info:', error);
-      notify('Không thể tải thông tin chương', 'error');
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [commentId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -80,7 +65,7 @@ const ReportChapterPage = () => {
     setSubmitting(true);
     try {
       await reportApi.submitReport({
-        chapterId: parseInt(chapterId),
+        commentId: parseInt(commentId),
         reason: formData.reason,
         description: formData.description || null,
       });
@@ -99,22 +84,6 @@ const ReportChapterPage = () => {
   const handleCancel = () => {
     navigate(-1);
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Đang tải...</div>
-      </div>
-    );
-  }
-
-  if (!chapterInfo) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600">Không thể tải thông tin chương</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -140,20 +109,27 @@ const ReportChapterPage = () => {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Báo cáo nội dung
+              Báo cáo bình luận
             </h1>
             <p className="text-gray-600">
-              Nếu bạn phát hiện nội dung vi phạm quy định của Trạm Đọc, vui lòng gửi báo cáo để chúng tôi kiểm tra.
+              Nếu bạn phát hiện bình luận vi phạm quy định của Trạm Đọc, vui lòng gửi báo cáo để chúng tôi kiểm tra.
             </p>
           </div>
 
           {/* Content being reported */}
           <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Báo cáo cho:</h3>
-            <div className="text-gray-900">
-              <div className="font-medium">{chapterInfo.storyTitle || 'Unknown Story'}</div>
-              <div className="text-sm text-gray-600">
-                Tập {chapterInfo.volumeNumber || chapterInfo.volumeId} – Chapter {chapterInfo.sequenceIndex || chapterInfo.id} – {chapterInfo.title || 'Untitled'}
+            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <MessageSquare size={16} className="mr-2" />
+              Bình luận bị báo cáo:
+            </h3>
+            <div className="bg-white p-3 rounded border border-gray-200">
+              <div className="flex items-center mb-2">
+                <div className="font-medium text-blue-600">
+                  {commentUsername}
+                </div>
+              </div>
+              <div className="text-gray-900">
+                {commentContent}
               </div>
             </div>
           </div>
@@ -225,4 +201,4 @@ const ReportChapterPage = () => {
   );
 };
 
-export default ReportChapterPage;
+export default ReportCommentPage;

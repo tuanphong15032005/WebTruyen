@@ -5,15 +5,14 @@ import { reportApi } from '../../api/reportApi';
 import useNotify from '../../hooks/useNotify';
 import api from '../../services/api';
 
-const ReportChapterPage = () => {
+const ReportStoryPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useNotify();
 
   const storyId = searchParams.get('storyId');
-  const chapterId = searchParams.get('chapterId');
 
-  const [chapterInfo, setChapterInfo] = useState(null);
+  const [storyInfo, setStoryInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,22 +33,22 @@ const ReportChapterPage = () => {
   ];
 
   useEffect(() => {
-    if (!storyId || !chapterId) {
-      notify('Thiếu thông tin storyId hoặc chapterId', 'error');
+    if (!storyId) {
+      notify('Thiếu thông tin storyId', 'error');
       navigate(-1);
       return;
     }
 
-    fetchChapterInfo();
-  }, [storyId, chapterId]);
+    fetchStoryInfo();
+  }, [storyId]);
 
-  const fetchChapterInfo = async () => {
+  const fetchStoryInfo = async () => {
     try {
-      const response = await api.get(`/chapters/${chapterId}`);
-      setChapterInfo(response);
+      const response = await api.get(`/public/stories/${storyId}`);
+      setStoryInfo(response);
     } catch (error) {
-      console.error('Error fetching chapter info:', error);
-      notify('Không thể tải thông tin chương', 'error');
+      console.error('Error fetching story info:', error);
+      notify('Không thể tải thông tin truyện', 'error');
       navigate(-1);
     } finally {
       setLoading(false);
@@ -80,7 +79,7 @@ const ReportChapterPage = () => {
     setSubmitting(true);
     try {
       await reportApi.submitReport({
-        chapterId: parseInt(chapterId),
+        storyId: parseInt(storyId),
         reason: formData.reason,
         description: formData.description || null,
       });
@@ -108,10 +107,10 @@ const ReportChapterPage = () => {
     );
   }
 
-  if (!chapterInfo) {
+  if (!storyInfo) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600">Không thể tải thông tin chương</div>
+        <div className="text-red-600">Không thể tải thông tin truyện</div>
       </div>
     );
   }
@@ -151,9 +150,9 @@ const ReportChapterPage = () => {
           <div className="mb-8 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Báo cáo cho:</h3>
             <div className="text-gray-900">
-              <div className="font-medium">{chapterInfo.storyTitle || 'Unknown Story'}</div>
+              <div className="font-medium">{storyInfo.title || 'Unknown Story'}</div>
               <div className="text-sm text-gray-600">
-                Tập {chapterInfo.volumeNumber || chapterInfo.volumeId} – Chapter {chapterInfo.sequenceIndex || chapterInfo.id} – {chapterInfo.title || 'Untitled'}
+                Tác giả: {storyInfo.authorPenName || storyInfo.translatorPenName || 'Chưa có bút danh'}
               </div>
             </div>
           </div>
@@ -225,4 +224,4 @@ const ReportChapterPage = () => {
   );
 };
 
-export default ReportChapterPage;
+export default ReportStoryPage;

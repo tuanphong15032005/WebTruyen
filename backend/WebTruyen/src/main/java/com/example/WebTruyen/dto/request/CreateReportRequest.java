@@ -9,11 +9,12 @@ import jakarta.validation.constraints.Size;
 @Data
 public class CreateReportRequest {
 
-    @NotNull(message = "Story ID is required")
-    private Integer storyId;
-
-    @NotNull(message = "Chapter ID is required")
+    // Report target - only one should be provided
     private Long chapterId;
+    
+    private Integer storyId;
+    
+    private Long commentId;
 
     @NotBlank(message = "Reason is required")
     @Size(max = 200, message = "Reason must be less than 200 characters")

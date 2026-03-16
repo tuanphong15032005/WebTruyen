@@ -26,6 +26,8 @@ import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
 import ChapterPage from './pages/ChapterPage';
 import ReportChapterPage from './pages/report/ReportChapterPage';
+import ReportStoryPage from './pages/report/ReportStoryPage';
+import ReportCommentPage from './pages/report/ReportCommentPage';
 import AuthorDashboard from './pages/Author/AuthorDashboard';
 import CreateChapter from './pages/Author/CreateChapter';
 
@@ -120,6 +122,8 @@ function App() {
           element={<ChapterPage />}
         />
         <Route path='/report' element={<ReportChapterPage />} />
+        <Route path='/report-story' element={<ReportStoryPage />} />
+        <Route path='/report-comment' element={<ReportCommentPage />} />
         <Route
           path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}
