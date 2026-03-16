@@ -1,5 +1,7 @@
 package com.example.WebTruyen.entity.model.SocialLibrary;
 
+import com.example.WebTruyen.entity.converter.LibraryAlbumVisibilityConverter;
+import com.example.WebTruyen.entity.enums.LibraryAlbumVisibility;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -40,6 +42,10 @@ public class LibraryAlbumEntity {
     @Column(length = 1000)
     private String description;
 
+    @Convert(converter = LibraryAlbumVisibilityConverter.class)
+    @Column(nullable = false, columnDefinition = "ENUM('private','public')")
+    private LibraryAlbumVisibility visibility;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -52,6 +58,7 @@ public class LibraryAlbumEntity {
 
     @PrePersist
     public void prePersist() {
+        if (visibility == null) visibility = LibraryAlbumVisibility.PRIVATE;
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (updatedAt == null) updatedAt = createdAt;
     }

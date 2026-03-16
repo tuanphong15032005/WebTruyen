@@ -14,6 +14,16 @@
   color: #4b5563;
 }
 
+.author-analytics__overall {
+  margin-top: 18px;
+}
+
+.author-analytics__overall h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: #111827;
+}
+
 .author-analytics__toolbar {
   margin-top: 18px;
   display: flex;
@@ -47,6 +57,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
   gap: 12px;
+}
+
+.author-analytics__kpi-grid--overall {
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
 }
 
 .author-analytics__kpi {

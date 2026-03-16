@@ -1,0 +1,245 @@
+package com.example.WebTruyen.controller.admin;
+
+import com.example.WebTruyen.entity.model.Gamification.DailyMissionEntity;
+import com.example.WebTruyen.service.DailyMissionAdminService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin/daily-missions")
+@RequiredArgsConstructor
+@Slf4j
+@PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
+public class DailyMissionAdminController {
+
+    private final DailyMissionAdminService dailyMissionAdminService;
+
+    // Get all missions with optional date filter
+    @GetMapping
+    public ResponseEntity<List<DailyMissionEntity>> getAllMissions(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        log.info("Admin requesting daily missions for date: {}", date);
+        List<DailyMissionEntity> missions = dailyMissionAdminService.getAllMissions(date);
+        return ResponseEntity.ok(missions);
+    }
+
+    // ============================================================
+    // Template Management Endpoints
+    // ============================================================
+
+    // Get all templates
+    @GetMapping("/templates")
+    public ResponseEntity<List<DailyMissionEntity>> getAllTemplates() {
+        log.info("Admin requesting all daily mission templates");
+        List<DailyMissionEntity> templates = dailyMissionAdminService.getTemplatesOrdered();
+        return ResponseEntity.ok(templates);
+    }
+
+    // Get template by mission code
+    @GetMapping("/templates/{missionCode}")
+    public ResponseEntity<DailyMissionEntity> getTemplateByCode(@PathVariable String missionCode) {
+        log.info("Admin requesting template for mission code: {}", missionCode);
+        DailyMissionEntity template = dailyMissionAdminService.getTemplateByCode(missionCode);
+        return ResponseEntity.ok(template);
+    }
+
+    // Update template
+    @PutMapping("/templates/{templateId}")
+    public ResponseEntity<DailyMissionEntity> updateTemplate(
+            @PathVariable Integer templateId,
+            @RequestBody @Valid DailyMissionEntity updateData) {
+        log.info("Admin updating template: {} with data: {}", templateId, updateData);
+        DailyMissionEntity updated = dailyMissionAdminService.updateTemplate(templateId, updateData);
+        return ResponseEntity.ok(updated);
+    }
+
+    // Create new template
+    @PostMapping("/templates")
+    public ResponseEntity<DailyMissionEntity> createTemplate(@RequestBody @Valid DailyMissionEntity template) {
+        log.info("Admin creating new template: {}", template.getMissionCode());
+        DailyMissionEntity created = dailyMissionAdminService.createTemplate(template);
+        return ResponseEntity.ok(created);
+    }
+
+    // Delete template
+    @DeleteMapping("/templates/{templateId}")
+    public ResponseEntity<Void> deleteTemplate(@PathVariable Integer templateId) {
+        log.info("Admin deleting template: {}", templateId);
+        dailyMissionAdminService.deleteTemplate(templateId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Get missions by specific date
+    @GetMapping("/date/{date}")
+    public ResponseEntity<List<DailyMissionEntity>> getMissionsByDate(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        log.info("Admin requesting missions for date: {}", date);
+        List<DailyMissionEntity> missions = dailyMissionAdminService.getMissionsByDate(date);
+        return ResponseEntity.ok(missions);
+    }
+
+    // Get missions by specific date with completion statistics
+    @GetMapping("/date/{date}/with-stats")
+    public ResponseEntity<?> getMissionsByDateWithStats(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        log.info("Admin requesting missions with stats for date: {}", date);
+        List<Map<String, Object>> missions = dailyMissionAdminService.getMissionsByDateWithStats(date);
+        return ResponseEntity.ok(missions);
+    }
+
+    // Get distinct dates that have missions
+    @GetMapping("/dates")
+    public ResponseEntity<List<LocalDate>> getAvailableDates() {
+        log.info("Admin requesting available mission dates");
+        List<LocalDate> dates = dailyMissionAdminService.getAvailableDates();
+        return ResponseEntity.ok(dates);
+    }
+
+    // Create new mission
+    @PostMapping
+    public ResponseEntity<?> createMission(@Valid @RequestBody DailyMissionCreateDto createDto) {
+        try {
+            log.info("Admin creating new daily mission: {}", createDto.getMissionCode());
+            DailyMissionEntity created = dailyMissionAdminService.createMission(createDto);
+            return ResponseEntity.ok(created);
+        } catch (RuntimeException e) {
+            log.error("Error creating mission: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Unexpected error creating mission", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Internal server error"));
+        }
+    }
+
+    // Update existing mission
+    @PutMapping("/{id}")
+    public ResponseEntity<DailyMissionEntity> updateMission(
+            @PathVariable Integer id,
+            @Valid @RequestBody DailyMissionUpdateDto updateDto) {
+        log.info("Admin updating daily mission with id: {}", id);
+        DailyMissionEntity updated = dailyMissionAdminService.updateMission(id, updateDto);
+        return ResponseEntity.ok(updated);
+    }
+
+    // Delete mission
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMission(@PathVariable Integer id) {
+        log.info("Admin deleting daily mission with id: {}", id);
+        dailyMissionAdminService.deleteMission(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Create missions for a specific date
+    @PostMapping("/generate/{date}")
+    public ResponseEntity<List<DailyMissionEntity>> generateMissionsForDate(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        log.info("Admin generating missions for date: {}", date);
+        List<DailyMissionEntity> missions = dailyMissionAdminService.generateMissionsForDate(date);
+        return ResponseEntity.ok(missions);
+    }
+
+    // Get mission statistics
+    @GetMapping("/stats")
+    public ResponseEntity<?> getMissionStats() {
+        log.info("Admin requesting daily mission statistics");
+        Map<String, Object> stats = dailyMissionAdminService.getMissionStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    // Copy missions from one date to another
+    @PostMapping("/copy/{fromDate}/{toDate}")
+    public ResponseEntity<?> copyMissionsToDate(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        log.info("Admin copying missions from {} to {}", fromDate, toDate);
+        Map<String, Object> result = dailyMissionAdminService.copyMissionsToDate(fromDate, toDate);
+        return ResponseEntity.ok(result);
+    }
+
+    // DTO classes
+    public static class DailyMissionCreateDto {
+        @NotNull(message = "Date is required")
+        private LocalDate date;
+        
+        @NotBlank(message = "Mission code is required")
+        private String missionCode;
+        
+        @NotBlank(message = "Description is required")
+        private String description;
+        
+        @NotBlank(message = "Target is required")
+        private String target;
+        
+        @NotNull(message = "Reward coin is required")
+        @Min(value = 1, message = "Reward coin must be at least 1")
+        private Long rewardCoin;
+        
+        @NotNull(message = "Reward coin type is required")
+        private DailyMissionEntity.CoinType rewardCoinType;
+
+        // Getters and setters
+        public LocalDate getDate() { return date; }
+        public void setDate(LocalDate date) { this.date = date; }
+        public String getMissionCode() { return missionCode; }
+        public void setMissionCode(String missionCode) { this.missionCode = missionCode; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getTarget() { return target; }
+        public void setTarget(String target) { this.target = target; }
+        public Long getRewardCoin() { return rewardCoin; }
+        public void setRewardCoin(Long rewardCoin) { this.rewardCoin = rewardCoin; }
+        public DailyMissionEntity.CoinType getRewardCoinType() { return rewardCoinType; }
+        public void setRewardCoinType(DailyMissionEntity.CoinType rewardCoinType) { this.rewardCoinType = rewardCoinType; }
+        
+        // Custom setter to handle string conversion
+        public void setRewardCoinType(String rewardCoinType) { 
+            if (rewardCoinType != null) {
+                this.rewardCoinType = DailyMissionEntity.CoinType.valueOf(rewardCoinType);
+            }
+        }
+    }
+
+    public static class DailyMissionUpdateDto {
+        @NotBlank(message = "Description is required")
+        private String description;
+        
+        @NotBlank(message = "Target is required")
+        private String target;
+        
+        @NotNull(message = "Reward coin is required")
+        @Min(value = 1, message = "Reward coin must be at least 1")
+        private Long rewardCoin;
+        
+        @NotNull(message = "Reward coin type is required")
+        private DailyMissionEntity.CoinType rewardCoinType;
+
+        // Getters and setters
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getTarget() { return target; }
+        public void setTarget(String target) { this.target = target; }
+        public Long getRewardCoin() { return rewardCoin; }
+        public void setRewardCoin(Long rewardCoin) { this.rewardCoin = rewardCoin; }
+        public DailyMissionEntity.CoinType getRewardCoinType() { return rewardCoinType; }
+        public void setRewardCoinType(DailyMissionEntity.CoinType rewardCoinType) { this.rewardCoinType = rewardCoinType; }
+        
+        // Custom setter to handle string conversion
+        public void setRewardCoinType(String rewardCoinType) { 
+            if (rewardCoinType != null) {
+                this.rewardCoinType = DailyMissionEntity.CoinType.valueOf(rewardCoinType);
+            }
+        }
+    }
+}

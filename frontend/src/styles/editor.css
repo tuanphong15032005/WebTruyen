@@ -7,6 +7,11 @@
   box-shadow: 0 8px 20px rgba(30, 72, 129, 0.08);
 }
 
+.editor-wrapper .quill {
+  display: flex;
+  flex-direction: column;
+}
+
 .ql-toolbar.ql-snow {
   border: none;
   border-bottom: 1px solid #d6e1f0;
@@ -16,24 +21,46 @@
 
 .ql-container.ql-snow {
   border: none;
-  min-height: 340px;
+  height: 420px;
   font-family: 'Be Vietnam Pro', 'Segoe UI', Tahoma, sans-serif;
   background: #ffffff;
   color: var(--text);
   width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .ql-editor {
-  min-height: 300px;
+  min-height: 100%;
   font-size: 1rem;
   line-height: 1.7;
   color: var(--text);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  overflow-y: auto;
 }
 
 .ql-editor img {
   max-width: 100%;
   height: auto;
+}
+
+.ql-editor p,
+.ql-editor li,
+.ql-editor blockquote,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor pre,
+.ql-editor a,
+.ql-editor span,
+.ql-editor strong,
+.ql-editor em {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ql-snow .ql-stroke {

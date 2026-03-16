@@ -15,11 +15,21 @@ import WalletTopupPage from './pages/Payment/WalletTopupPage';
 import PaymentConfirmationPage from './pages/Payment/PaymentConfirmationPage';
 import CoinTransactionHistoryPage from './pages/Payment/TransactionHistoryPage';
 import DonatePage from './pages/Payment/DonatePage';
+import PaymentSuccessPage from './pages/Payment/PaymentSuccessPage';
+import VNPayReturnHandler from './components/VNPayReturnHandler';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import DailyTasksPage from './pages/DailyTasksPage';
+import AchievementsPage from './pages/AchievementsPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
+
+import BookmarkStoriesPage from './pages/BookmarkStoriesPage';
+import BookmarkDetailPage from './pages/BookmarkDetailPage';
+import ReadingHistoryPage from './pages/ReadingHistoryPage';
+
+import LibraryAlbumDetail from './pages/LibraryAlbumDetail';
+
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
@@ -33,7 +43,9 @@ import PerformanceAnalytics from './pages/Author/PerformanceAnalytics';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
+import Report from './pages/Reader/report';
 
 import './App.css';
 
@@ -49,7 +61,7 @@ function RoleProtectedRoute({ allowedRoles, children }) {
 
   return children;
 }
-// >>>>>>> origin/minhfinal1
+
 
 function RouteScrollManager() {
   const location = useLocation();
@@ -67,6 +79,10 @@ function RouteScrollManager() {
 
   useEffect(() => {
     if (location.hash) return;
+    const hasResumeSegment =
+      /^\/stories\/[^/]+\/chapters\/[^/]+$/.test(location.pathname) &&
+      new URLSearchParams(location.search).has('segmentId');
+    if (hasResumeSegment) return;
 
     const mainContent = document.querySelector('main.main-content');
     if (mainContent) {
@@ -92,7 +108,10 @@ function App() {
         <Route path='/verify' element={<VerifyCode />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
+        <Route path='/payment/vnpay-return' element={<VNPayReturnHandler />} />
+        <Route path='/payment/success' element={<PaymentSuccessPage />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
+        <Route path='/stories/:storyId/report' element={<Report />} />
         <Route
           path='/wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}
@@ -103,19 +122,32 @@ function App() {
         />
         <Route path='/profile' element={<UserProfile />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
+        <Route path='/achievements' element={<AchievementsPage />} />
         <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route path='/authordashboard' element={<AuthorDashboard />} />
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
         <Route path='/library' element={<LibraryStories />} />
+
+        <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
+        <Route path='/bookmarks/story/:storyId' element={<BookmarkDetailPage />} />
+        <Route path='/reading-history' element={<ReadingHistoryPage />} />
+
+        <Route path='/library/albums/:albumId' element={<LibraryAlbumDetail />} />
+
         <Route path='/author/create-story' element={<CreateStory />} />
         <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
         <Route path='/author/stories/:storyId' element={<StoryDetail />} />
         <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
         <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
+
         <Route
           path='/stories/:storyId/chapters/:chapterId'
+          element={<ChapterPage />}
+        />
+        <Route
+          path='/reader'
           element={<ChapterPage />}
         />
         <Route
@@ -159,6 +191,14 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
               <ViolationReportManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/achievements'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <AchievementManagementPage />
             </RoleProtectedRoute>
           }
         />

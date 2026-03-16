@@ -19,6 +19,8 @@ import {
   Star,
   TrendingUp,
 } from 'lucide-react';
+import SkeletonBlock from '../components/SkeletonBlock';
+import ScrollTopButton from '../components/ScrollTopButton';
 import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
 import '../styles/home-dashboard.css';
@@ -32,6 +34,8 @@ const RECOMMEND_COUNT = 4; //đề xuất
 const SECTION_STORY_COUNT = 4; //Mỗi phần
 const HERO_TRANSITION_MS = 320;
 const HERO_SWIPE_THRESHOLD = 56;
+const HOME_SKELETON_RANK_COUNT = 5;
+const HOME_SKELETON_COMMENT_COUNT = 4;
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
@@ -56,9 +60,10 @@ const htmlToText = (html) => {
     .trim();
 };
 
-const getSummary = (story, max = 220) => {
-  const raw = htmlToText(story?.summaryHtml || '');
+const getSummary = (story, max = null) => {
+  const raw = htmlToText(story?.summaryHtml || story?.summary || '');
   if (!raw) return 'Truyện hiện chưa có tóm tắt.';
+  if (!Number.isFinite(max) || max <= 0) return raw;
   return raw.length > max ? `${raw.slice(0, max).trim()}...` : raw;
 };
 
@@ -239,6 +244,8 @@ function HomePage() {
   const [recommendTagName, setRecommendTagName] = useState('');
   const [communityComments, setCommunityComments] = useState([]);
   const [chapterMetaByStoryId, setChapterMetaByStoryId] = useState({});
+  const [shouldLoadOriginalCovers, setShouldLoadOriginalCovers] =
+    useState(false);
   const [heroPrevStory, setHeroPrevStory] = useState(null);
   const [heroPrevVisible, setHeroPrevVisible] = useState(false);
   const [heroSlideDirection, setHeroSlideDirection] = useState(1);
@@ -254,6 +261,7 @@ function HomePage() {
     swiped: false,
   });
   const activeHeroIndexRef = useRef(0);
+  const originalSectionRef = useRef(null);
 
   const activeHeroStory = heroStories[activeHeroIndex] || null;
 
@@ -274,6 +282,40 @@ function HomePage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (loading) return undefined;
+    if (shouldLoadOriginalCovers || originalStories.length === 0) {
+      return undefined;
+    }
+
+    const sectionElement = originalSectionRef.current;
+    if (!sectionElement) return undefined;
+
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setShouldLoadOriginalCovers(true);
+      return undefined;
+    }
+
+    const firstOriginalCard =
+      sectionElement.querySelector('.home-story-card') || sectionElement;
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        setShouldLoadOriginalCovers(true);
+        observer.disconnect();
+      },
+      {
+        root: null,
+        threshold: 0.01,
+        rootMargin: '0px',
+      },
+    );
+
+    observer.observe(firstOriginalCard);
+    return () => observer.disconnect();
+  }, [loading, originalStories.length, shouldLoadOriginalCovers]);
 
   useEffect(() => {
     // Hieuson - 24/2 + Náº¡p dá»¯ liá»‡u trang chá»§ gá»“m banner, cáº­p nháº­t, ranking, gá»£i Ã½ vÃ  pháº£n há»“i cá»™ng Ä‘á»“ng.
@@ -587,7 +629,11 @@ function HomePage() {
   };
 
   const renderStoryTiles = useCallback(
-    (stories) => {
+    (stories, options = {}) => {
+      const {
+        deferCoverLoading = false,
+        shouldLoadCovers = true,
+      } = options;
       if (!Array.isArray(stories) || stories.length === 0) {
         return (
           <p className='home-story-grid__empty'>Chưa có truyện để hiển thị.</p>
@@ -600,6 +646,9 @@ function HomePage() {
         const statusInfo = getStoryStatusInfo(story);
         const authorName =
           story.authorPenName || story.authorName || 'Chưa có bút danh';
+        const hasCover = Boolean(story.coverUrl);
+        const showCoverImage =
+          hasCover && (!deferCoverLoading || shouldLoadCovers);
 
         return (
           <article key={story.id} className='home-story-card'>
@@ -608,8 +657,17 @@ function HomePage() {
               className='home-story-card__link'
             >
               <div className='home-story-card__cover'>
-                {story.coverUrl ? (
-                  <img src={story.coverUrl} alt={story.title} />
+                {showCoverImage ? (
+                  <img
+                    src={story.coverUrl}
+                    alt={story.title}
+                    loading='lazy'
+                    decoding='async'
+                  />
+                ) : hasCover && deferCoverLoading ? (
+                  <div className='home-story-card__cover-empty home-story-card__cover-empty--lazy'>
+                    Đang tải ảnh...
+                  </div>
                 ) : (
                   <div className='home-story-card__cover-empty'>No cover</div>
                 )}
@@ -677,16 +735,75 @@ function HomePage() {
 
   const heroSlideClass = heroSlideDirection > 0 ? 'to-next' : 'to-prev';
 
+  const renderStorySkeletonCards = useCallback(
+    (count = SECTION_STORY_COUNT) =>
+      Array.from({ length: count }, (_, index) => (
+        <article key={`home-story-skeleton-${index}`} className='home-story-card home-story-card--skeleton'>
+          <SkeletonBlock className='home-story-card__cover-skeleton' />
+          <div className='home-story-card__body home-story-card__body--skeleton'>
+            <SkeletonBlock className='home-story-card__line home-story-card__line--title' />
+            <SkeletonBlock className='home-story-card__line home-story-card__line--meta' />
+            <SkeletonBlock className='home-story-card__line home-story-card__line--meta short' />
+            <div className='home-story-card__stats home-story-card__stats--skeleton'>
+              {Array.from({ length: 4 }, (_, statIndex) => (
+                <SkeletonBlock
+                  key={`home-story-skeleton-stat-${index}-${statIndex}`}
+                  className='home-story-card__pill-skeleton'
+                />
+              ))}
+            </div>
+            <SkeletonBlock className='home-story-card__status-skeleton' />
+          </div>
+        </article>
+      )),
+    [],
+  );
+
+  const renderRankingSkeletonItems = useCallback(
+    (count, className = 'home-ranking__story-skeleton') =>
+      Array.from({ length: count }, (_, index) => (
+        <li key={`${className}-${index}`}>
+          <SkeletonBlock className='home-ranking__index-skeleton' />
+          <div className={className}>
+            <SkeletonBlock className='home-ranking__line-skeleton home-ranking__line-skeleton--title' />
+            <SkeletonBlock className='home-ranking__line-skeleton home-ranking__line-skeleton--meta' />
+          </div>
+        </li>
+      )),
+    [],
+  );
+
   return (
     <div className='home-dashboard'>
       <div className='home-dashboard__container'>
-        {loading && (
-          <div className='home-dashboard__loading'>
-            Đang tải dữ liệu trang chủ...
-          </div>
-        )}
-
-        {!loading && activeHeroStory && (
+        {loading ? (
+          <section className='home-hero home-hero--skeleton' aria-hidden='true'>
+            <div className='home-hero__shade' aria-hidden='true' />
+            <div className='home-hero__content'>
+              <div className='home-hero__cover-wrap'>
+                <SkeletonBlock className='home-hero__cover-skeleton' />
+              </div>
+              <div className='home-hero__text home-hero__text--skeleton'>
+                <div className='home-hero__tags'>
+                  <SkeletonBlock className='home-hero__tag-skeleton' />
+                  <SkeletonBlock className='home-hero__tag-skeleton home-hero__tag-skeleton--wide' />
+                </div>
+                <SkeletonBlock className='home-hero__title-skeleton' />
+                <SkeletonBlock className='home-hero__title-skeleton home-hero__title-skeleton--short' />
+                <div className='home-hero__summary home-hero__summary--skeleton'>
+                  <SkeletonBlock className='home-hero__summary-line-skeleton' />
+                  <SkeletonBlock className='home-hero__summary-line-skeleton' />
+                  <SkeletonBlock className='home-hero__summary-line-skeleton home-hero__summary-line-skeleton--short' />
+                </div>
+                <div className='home-hero__actions'>
+                  <SkeletonBlock className='home-hero__action-skeleton' />
+                  <SkeletonBlock className='home-hero__action-skeleton home-hero__action-skeleton--ghost' />
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : (
+          activeHeroStory && (
           <section
             className={`home-hero ${heroDragging ? 'is-dragging' : ''}`}
             style={{
@@ -756,6 +873,7 @@ function HomePage() {
                 )}
               </div>
               <div className='home-hero__text'>
+                <h1>{activeHeroStory.title}</h1>
                 <div className='home-hero__tags'>
                   {heroTags.map((tag, index) => (
                     <span
@@ -766,8 +884,9 @@ function HomePage() {
                     </span>
                   ))}
                 </div>
-                <h1>{activeHeroStory.title}</h1>
-                <p>{getSummary(activeHeroStory)}</p>
+                <div className='home-hero__summary'>
+                  {getSummary(activeHeroStory)}
+                </div>
                 <div className='home-hero__actions'>
                   <button
                     type='button'
@@ -783,6 +902,7 @@ function HomePage() {
               </div>
             </div>
           </section>
+          )
         )}
         <div
           id='home-hero-sentinel'
@@ -790,7 +910,61 @@ function HomePage() {
           aria-hidden='true'
         />
 
-        {!loading && (
+        {loading ? (
+          <div className='home-main-grid home-main-grid--skeleton' aria-hidden='true'>
+            <div className='home-main-grid__left'>
+              {[
+                'Cập nhật gần đây',
+                'Gợi ý cho bạn',
+                'Sáng tác',
+                'Truyện dịch',
+                'Truyện AI',
+                'Truyện đã hoàn thành',
+              ].map((title) => (
+                <section key={title} className='home-section'>
+                  <div className='home-section__head'>
+                    <h2>{title}</h2>
+                  </div>
+                  <div className='home-story-grid'>
+                    {renderStorySkeletonCards()}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <aside className='home-main-grid__right'>
+              <section className='home-ranking'>
+                <div className='home-ranking__head'>
+                  <h2>Top lượt đọc</h2>
+                </div>
+                <ol className='home-ranking__list'>
+                  {renderRankingSkeletonItems(HOME_SKELETON_RANK_COUNT)}
+                </ol>
+              </section>
+
+              <section className='home-ranking'>
+                <div className='home-ranking__head'>
+                  <h2>Top lượt theo dõi</h2>
+                </div>
+                <ol className='home-ranking__list'>
+                  {renderRankingSkeletonItems(HOME_SKELETON_RANK_COUNT)}
+                </ol>
+              </section>
+
+              <section className='home-ranking home-ranking--comments'>
+                <div className='home-ranking__head'>
+                  <h2>Bình luận mới</h2>
+                </div>
+                <ol className='home-ranking__list'>
+                  {renderRankingSkeletonItems(
+                    HOME_SKELETON_COMMENT_COUNT,
+                    'home-ranking__comment-skeleton',
+                  )}
+                </ol>
+              </section>
+            </aside>
+          </div>
+        ) : (
           <div className='home-main-grid'>
             <div className='home-main-grid__left'>
               <section className='home-section'>
@@ -829,7 +1003,7 @@ function HomePage() {
                 </div>
               </section>
 
-              <section className='home-section'>
+              <section className='home-section' ref={originalSectionRef}>
                 <div className='home-section__head'>
                   <h2>
                     <PenTool
@@ -840,7 +1014,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(originalStories)}
+                  {renderStoryTiles(originalStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
 
@@ -855,7 +1032,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(translatedStories)}
+                  {renderStoryTiles(translatedStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
 
@@ -870,7 +1050,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(aiStories)}
+                  {renderStoryTiles(aiStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
 
@@ -885,7 +1068,10 @@ function HomePage() {
                   </h2>
                 </div>
                 <div className='home-story-grid'>
-                  {renderStoryTiles(completedStories)}
+                  {renderStoryTiles(completedStories, {
+                    deferCoverLoading: true,
+                    shouldLoadCovers: shouldLoadOriginalCovers,
+                  })}
                 </div>
               </section>
             </div>
@@ -1064,6 +1250,7 @@ function HomePage() {
         {/*         )} */}
         {/* >>>>>>> origin/portfolio */}
       </div>
+      <ScrollTopButton />
     </div>
   );
 }
