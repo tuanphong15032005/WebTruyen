@@ -11,6 +11,66 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [canApply, setCanApply] = useState(false);
+    const [daysUntilEligible, setDaysUntilEligible] = useState(0);
+    const [hasAuthorRole, setHasAuthorRole] = useState(false);
+    const [applicationStatus, setApplicationStatus] = useState(null);
+    const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+    const [isCheckingPenName, setIsCheckingPenName] = useState(false);
+    const [penNameValidated, setPenNameValidated] = useState(false);
+
+    useEffect(() => {
+        checkApplicationStatus();
+    }, []);
+
+    const checkApplicationStatus = async () => {
+        try {
+            setIsLoadingStatus(true);
+            const response = await api.get('/author-application/status');
+            setHasAuthorRole(response.hasAuthorRole);
+            setCanApply(response.canApply);
+            setDaysUntilEligible(response.daysUntilEligible || 0);
+            if (response.applicationStatus) {
+                setApplicationStatus({
+                    status: response.applicationStatus,
+                    submittedAt: response.submittedAt,
+                    rejectionReason: response.rejectionReason
+                });
+            }
+        } catch (error) {
+            console.error('Error checking application status:', error);
+        } finally {
+            setIsLoadingStatus(false);
+        }
+    };
+
+    const checkPenNameAvailability = async (penName) => {
+        if (!penName || penName.trim().length < 2) {
+            return;
+        }
+
+        setIsCheckingPenName(true);
+        try {
+            const response = await api.get(`/author-application/check-pen-name?penName=${encodeURIComponent(penName.trim())}`);
+            if (!response.available) {
+                setErrors(prev => ({
+                    ...prev,
+                    penName: 'Bút danh này đã tồn tại, vui lòng chọn bút danh khác'
+                }));
+                setPenNameValidated(false);
+            } else {
+                setErrors(prev => ({
+                    ...prev,
+                    penName: ''
+                }));
+                setPenNameValidated(true);
+            }
+        } catch (error) {
+            console.error('Error checking pen name:', error);
+        } finally {
+            setIsCheckingPenName(false);
+        }
+    };
 
     const validateForm = () => {
         const newErrors = {};
@@ -21,6 +81,9 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
             isValid = false;
         } else if (formData.penName.length < 2) {
             newErrors.penName = 'Bút danh phải có ít nhất 2 ký tự';
+            isValid = false;
+        } else if (!penNameValidated && formData.penName.trim().length >= 2) {
+            newErrors.penName = 'Vui lòng kiểm tra tính khả dụng của bút danh';
             isValid = false;
         }
 
@@ -58,6 +121,21 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 [name]: ''
             }));
         }
+
+        // Check pen name availability when user types pen name
+        if (name === 'penName') {
+            setPenNameValidated(false); // Reset validation when user types
+            // Debounce the check to avoid too many API calls
+            const timeoutId = setTimeout(() => {
+                checkPenNameAvailability(value);
+            }, 500);
+            
+            // Clear previous timeout
+            if (window.penNameCheckTimeout) {
+                clearTimeout(window.penNameCheckTimeout);
+            }
+            window.penNameCheckTimeout = timeoutId;
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -87,6 +165,9 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 motivation: ''
             });
             
+            // Refresh status
+            checkApplicationStatus();
+            
         } catch (error) {
             setMessage(error.message || 'Có lỗi xảy ra khi gửi đơn đăng ký');
         } finally {
@@ -101,25 +182,86 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 <p>Điền thông tin dưới đây để đăng ký trở thành tác giả và bắt đầu sáng tác truyện của bạn</p>
             </div>
 
-            {message && (
-                <div className={`message ${message.includes('thành công') ? 'success' : 'error'}`}>
-                    {message}
+            {isLoadingStatus ? (
+                <div className="loading-status">
+                    <p>Đang kiểm tra trạng thái...</p>
                 </div>
-            )}
+            ) : (
+                <>
+                    {hasAuthorRole ? (
+                        <div className="status-message success">
+                            <h3>🎉 Bạn đã là tác giả!</h3>
+                            <p>Bạn đã có quyền tác giả và có thể bắt đầu đăng truyện của mình.</p>
+                        </div>
+                    ) : applicationStatus ? (
+                        <div className={`status-message ${applicationStatus.status.toLowerCase()}`}>
+                            {applicationStatus.status === 'PENDING' ? (
+                                <>
+                                    <h3>⏳ Đơn đang chờ duyệt</h3>
+                                    <p>Đơn đăng ký của bạn đã được gửi vào ngày {new Date(applicationStatus.submittedAt).toLocaleDateString('vi-VN')} và đang chờ admin xét duyệt.</p>
+                                </>
+                            ) : applicationStatus.status === 'REJECTED' ? (
+                                <>
+                                    <h3>❌ Đơn bị từ chối</h3>
+                                    <p>Đơn đăng ký của bạn đã bị từ chối.</p>
+                                    {applicationStatus.rejectionReason && (
+                                        <div className="rejection-reason">
+                                            <strong>Lý do:</strong> {applicationStatus.rejectionReason}
+                                        </div>
+                                    )}
+                                    <button 
+                                        className="retry-btn"
+                                        onClick={() => {
+                                            setApplicationStatus(null);
+                                            checkApplicationStatus();
+                                        }}
+                                    >
+                                        Gửi lại đơn
+                                    </button>
+                                </>
+                            ) : null}
+                        </div>
+                    ) : !canApply ? (
+                        <div className="status-message warning">
+                            <h3>⏰ Chưa đủ điều kiện đăng ký</h3>
+                            <p>Bạn cần có tài khoản ít nhất 7 ngày để có thể đăng ký trở thành tác giả.</p>
+                            {daysUntilEligible > 0 && (
+                                <p>Vui lòng đợi thêm <strong>{daysUntilEligible} ngày</strong> nữa.</p>
+                            )}
+                        </div>
+                    ) : null}
 
-            <form onSubmit={handleSubmit} className="application-form">
+                    {message && (
+                        <div className={`message ${message.includes('thành công') ? 'success' : 'error'}`}>
+                            {message}
+                        </div>
+                    )}
+
+                    {canApply && !hasAuthorRole && !applicationStatus && (
+                        <form onSubmit={handleSubmit} className="application-form">
                 <div className="form-group">
                     <label htmlFor="penName">Bút danh *</label>
-                    <input
-                        type="text"
-                        id="penName"
-                        name="penName"
-                        value={formData.penName}
-                        onChange={handleInputChange}
-                        className={errors.penName ? 'error' : ''}
-                        placeholder="Nhập bút danh của bạn"
-                        disabled={isLoading}
-                    />
+                    <div className="input-with-indicator">
+                        <input
+                            type="text"
+                            id="penName"
+                            name="penName"
+                            value={formData.penName}
+                            onChange={handleInputChange}
+                            className={`${
+                                errors.penName ? 'error' : 
+                                penNameValidated ? 'success' : ''
+                            }`}
+                            placeholder="Nhập bút danh của bạn"
+                            disabled={isLoading}
+                        />
+                        {isCheckingPenName && (
+                            <span className="checking-indicator">⏳</span>
+                        )}
+                        {penNameValidated && !errors.penName && (
+                            <span className="valid-indicator">✓</span>
+                        )}
+                    </div>
                     {errors.penName && <span className="error-message">{errors.penName}</span>}
                 </div>
 
@@ -175,7 +317,10 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                         {isLoading ? 'Đang gửi...' : 'Gửi đơn đăng ký'}
                     </button>
                 </div>
-            </form>
+                        </form>
+                    )}
+                </>
+            )}
 
             <style jsx>{`
                 .author-application-form {
@@ -200,6 +345,65 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 .form-header p {
                     color: #666;
                     margin: 0;
+                }
+
+                .status-message {
+                    padding: 1.5rem;
+                    border-radius: 8px;
+                    margin-bottom: 1.5rem;
+                    text-align: center;
+                }
+
+                .status-message.success {
+                    background-color: #d4edda;
+                    color: #155724;
+                    border: 1px solid #c3e6cb;
+                }
+
+                .status-message.warning {
+                    background-color: #fff3cd;
+                    color: #856404;
+                    border: 1px solid #ffeaa7;
+                }
+
+                .status-message.pending {
+                    background-color: #d1ecf1;
+                    color: #0c5460;
+                    border: 1px solid #bee5eb;
+                }
+
+                .status-message.rejected {
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    border: 1px solid #f5c6cb;
+                }
+
+                .rejection-reason {
+                    background-color: rgba(0, 0, 0, 0.1);
+                    padding: 1rem;
+                    border-radius: 4px;
+                    margin: 1rem 0;
+                    text-align: left;
+                }
+
+                .retry-btn {
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    margin-top: 1rem;
+                }
+
+                .retry-btn:hover {
+                    background-color: #0056b3;
+                }
+
+                .loading-status {
+                    text-align: center;
+                    padding: 2rem;
+                    color: #666;
                 }
 
                 .message {
@@ -257,6 +461,36 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 .form-group input.error,
                 .form-group textarea.error {
                     border-color: #dc3545;
+                }
+
+                .form-group input.success {
+                    border-color: #28a745;
+                }
+
+                .input-with-indicator {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .input-with-indicator input {
+                    flex: 1;
+                    padding-right: 2.5rem;
+                }
+
+                .checking-indicator,
+                .valid-indicator {
+                    position: absolute;
+                    right: 0.75rem;
+                    font-size: 1.2rem;
+                }
+
+                .checking-indicator {
+                    color: #6c757d;
+                }
+
+                .valid-indicator {
+                    color: #28a745;
                 }
 
                 .error-message {

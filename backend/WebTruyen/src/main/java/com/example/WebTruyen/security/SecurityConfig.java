@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tags").permitAll()
                         .requestMatchers("/api/v1/tags").permitAll()
                         .requestMatchers("/api/achievements/debug/**").permitAll()
+                        .requestMatchers("/api/author-application/check-pen-name").permitAll()
                         // Tác giả quản lý bình luận (trả lời, ẩn, xóa) — yêu cầu đăng nhập
                         .requestMatchers("/api/author/**").authenticated()
                         //

@@ -10,12 +10,24 @@ const AuthorDashboard = () => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState(null);
+  const [canApply, setCanApply] = useState(false);
+  const [daysUntilEligible, setDaysUntilEligible] = useState(0);
 
   useEffect(() => {
     const checkUserRole = async () => {
       try {
         const response = await api.get('/author-application/status');
         setUserRole(response.hasAuthorRole ? 'author' : 'reader');
+        setCanApply(response.canApply);
+        setDaysUntilEligible(response.daysUntilEligible || 0);
+        if (response.applicationStatus) {
+          setApplicationStatus({
+            status: response.applicationStatus,
+            submittedAt: response.submittedAt,
+            rejectionReason: response.rejectionReason
+          });
+        }
       } catch (error) {
         console.error('Error checking user role:', error);
         setUserRole('reader'); // Default to reader if error
@@ -28,7 +40,7 @@ const AuthorDashboard = () => {
   }, []);
 
   const handleApplicationSuccess = (response) => {
-    setUserRole('author');
+    setApplicationStatus({ status: 'PENDING', submittedAt: new Date().toISOString() });
     setShowApplicationForm(false);
   };
 
@@ -46,28 +58,73 @@ const AuthorDashboard = () => {
       <div className='author-dashboard reader-view'>
         <div className='reader-content'>
           <h1>Trở thành tác giả</h1>
-          <div className='reader-info'>
-            <p>
-              Bạn hiện đang có vai trò người đọc. Để truy cập vào trang quản lý
-              của tác giả, bạn cần đăng ký trở thành tác giả.
-            </p>
-            <div className='benefits'>
-              <h3>Quyền lợi khi trở thành tác giả:</h3>
-              <ul>
-                <li>Tạo và đăng tải truyện của riêng bạn</li>
-                <li>Quản lý các chương và tập truyện</li>
-                <li>Tương tác với độc giả qua bình luận</li>
-                <li>Nhận donate từ độc giả</li>
-                <li>Xây dựng thương hiệu cá nhân</li>
-              </ul>
+          
+          {applicationStatus && (
+            <div className={`application-status ${applicationStatus.status.toLowerCase()}`}>
+              {applicationStatus.status === 'PENDING' ? (
+                <>
+                  <h3>⏳ Đơn đang chờ duyệt</h3>
+                  <p>Đơn đăng ký của bạn đã được gửi vào ngày {new Date(applicationStatus.submittedAt).toLocaleDateString('vi-VN')} và đang chờ admin xét duyệt.</p>
+                </>
+              ) : applicationStatus.status === 'REJECTED' ? (
+                <>
+                  <h3>❌ Đơn bị từ chối</h3>
+                  <p>Đơn đăng ký của bạn đã bị từ chối.</p>
+                  {applicationStatus.rejectionReason && (
+                    <div className='rejection-reason'>
+                      <strong>Lý do:</strong> {applicationStatus.rejectionReason}
+                    </div>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setApplicationStatus(null);
+                      window.location.reload();
+                    }}
+                    className='retry-btn'
+                  >
+                    Gửi lại đơn
+                  </Button>
+                </>
+              ) : null}
             </div>
-            <Button
-              onClick={() => setShowApplicationForm(true)}
-              className='apply-btn'
-            >
-              Đăng ký trở thành tác giả
-            </Button>
-          </div>
+          )}
+
+          {!applicationStatus && !canApply && (
+            <div className='eligibility-warning'>
+              <h3>⏰ Chưa đủ điều kiện đăng ký</h3>
+              <p>Bạn cần có tài khoản ít nhất 7 ngày để có thể đăng ký trở thành tác giả.</p>
+              {daysUntilEligible > 0 && (
+                <p>Vui lòng đợi thêm <strong>{daysUntilEligible} ngày</strong> nữa.</p>
+              )}
+            </div>
+          )}
+
+          {!applicationStatus && canApply && (
+            <>
+              <div className='reader-info'>
+                <p>
+                  Bạn hiện đang có vai trò người đọc. Để truy cập vào trang quản lý
+                  của tác giả, bạn cần đăng ký trở thành tác giả.
+                </p>
+                <div className='benefits'>
+                  <h3>Quyền lợi khi trở thành tác giả:</h3>
+                  <ul>
+                    <li>Tạo và đăng tải truyện của riêng bạn</li>
+                    <li>Quản lý các chương và tập truyện</li>
+                    <li>Tương tác với độc giả qua bình luận</li>
+                    <li>Nhận donate từ độc giả</li>
+                    <li>Xây dựng thương hiệu cá nhân</li>
+                  </ul>
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowApplicationForm(true)}
+                className='apply-btn'
+              >
+                Đăng ký trở thành tác giả
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );

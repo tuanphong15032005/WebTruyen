@@ -35,9 +35,21 @@ public class AuthorApplicationController {
             authorApplicationService.applyForAuthor(user.getId(), request);
             
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Author application submitted successfully!");
-            response.put("status", "approved"); // Auto-approved for simplicity
+            response.put("message", "Author application submitted successfully! Please wait for admin approval.");
+            response.put("status", "pending");
             
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/check-pen-name")
+    public ResponseEntity<?> checkPenNameAvailability(@RequestParam String penName) {
+        try {
+            boolean isAvailable = authorApplicationService.isPenNameAvailable(penName);
+            Map<String, Object> response = new HashMap<>();
+            response.put("available", isAvailable);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -51,10 +63,23 @@ public class AuthorApplicationController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
             
             boolean hasAuthorRole = authorApplicationService.hasAuthorRole(user.getId());
+            boolean canApply = authorApplicationService.canApplyForAuthor(user.getId());
+            long daysUntilEligible = authorApplicationService.getDaysUntilEligible(user.getId());
             
             Map<String, Object> response = new HashMap<>();
             response.put("hasAuthorRole", hasAuthorRole);
-            response.put("canApply", !hasAuthorRole);
+            response.put("canApply", canApply);
+            response.put("daysUntilEligible", daysUntilEligible);
+            
+            // Get application status if exists
+            if (!hasAuthorRole) {
+                var application = authorApplicationService.getApplicationByUserId(user.getId());
+                if (application != null) {
+                    response.put("applicationStatus", application.get("status"));
+                    response.put("submittedAt", application.get("submittedAt"));
+                    response.put("rejectionReason", application.get("rejectionReason"));
+                }
+            }
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {

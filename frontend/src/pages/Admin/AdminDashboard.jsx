@@ -3,6 +3,7 @@ import ContentModeration from './ContentModeration';
 import ViolationReportManagement from './ViolationReportManagement';
 import DailyMissionManagement from './DailyMissionManagement';
 import AchievementManagementPage from './AchievementManagementPage';
+import AuthorApplicationManagementPage from './AuthorApplicationManagementPage';
 import '../../styles/admin-dashboard.css';
 
 function AdminDashboard() {
@@ -48,13 +49,22 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>🏆</span>
             Quản lý Thành tựu
           </button>
+          <button
+            type='button'
+            className={`admin-dashboard__nav-item ${activeTab === 'author-applications' ? 'active' : ''}`}
+            onClick={() => setActiveTab('author-applications')}
+          >
+            <span className='admin-dashboard__nav-icon'>✍️</span>
+            Quản lý Đơn tác giả
+          </button>
         </nav>
       </aside>
       <main className='admin-dashboard__main'>
         {activeTab === 'moderation' ? <ContentModeration /> : 
          activeTab === 'reports' ? <ViolationReportManagement /> : 
          activeTab === 'daily-missions' ? <DailyMissionManagement /> : 
-         <AchievementManagementPage />}
+         activeTab === 'achievements' ? <AchievementManagementPage /> :
+         <AuthorApplicationManagementPage />}
       </main>
     </div>
   );
