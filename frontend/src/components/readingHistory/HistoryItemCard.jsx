@@ -72,9 +72,9 @@ const HistoryItemCard = ({ history, onContinueReading, onReread }) => {
             <button 
               className="action-btn reread-btn"
               onClick={onReread}
-              title="Start from beginning"
+              title="View story details"
             >
-              Reread
+              Details
             </button>
           </div>
         </div>

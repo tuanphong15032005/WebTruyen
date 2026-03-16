@@ -36,8 +36,7 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
     <div className="most-recent-story-card">
       <div className="card-content">
         <div className="left-content">
-          <div className="most-recent-badge">MOST RECENT</div>
-          <h2 className="story-title">{story.storyTitle}</h2>
+                    <h2 className="story-title">{story.storyTitle}</h2>
           <p className="last-read-info">
             Last read: <span className="chapter-highlight">
               Chapter {progressInfo.current}

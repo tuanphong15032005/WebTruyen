@@ -46,15 +46,23 @@ public class ReadingHistoryService {
     public ReadingHistoryResponse getReadingHistory(Long userId, int page, int size) {
         List<ReadingHistoryEntity> allHistories = readingHistoryRepository.findByUserIdOrderByStoryIdDesc(userId);
         
+        // Get most recent story to exclude it from the list
+        Optional<StoryEntity> mostRecentStory = allHistories.isEmpty() ? 
+            Optional.empty() : Optional.of(allHistories.get(0).getStory());
+        
+        // Exclude most recent story from the list
+        List<ReadingHistoryEntity> filteredHistories = mostRecentStory.isPresent() ? 
+            allHistories.stream()
+                .filter(history -> !history.getStory().getId().equals(mostRecentStory.get().getId()))
+                .toList() : allHistories;
+        
         // Simple pagination
         int start = page * size;
-        int end = Math.min(start + size, allHistories.size());
-        List<ReadingHistoryEntity> pageHistories = start < allHistories.size() ? 
-            allHistories.subList(start, end) : List.of();
+        int end = Math.min(start + size, filteredHistories.size());
+        List<ReadingHistoryEntity> pageHistories = start < filteredHistories.size() ? 
+            filteredHistories.subList(start, end) : List.of();
         
-        Page<ReadingHistoryEntity> historyPage = new PageImpl<>(pageHistories, PageRequest.of(page, size), allHistories.size());
-        
-        Optional<StoryEntity> mostRecentStory = getMostRecentStory(userId);
+        Page<ReadingHistoryEntity> historyPage = new PageImpl<>(pageHistories, PageRequest.of(page, size), filteredHistories.size());
         
         List<ReadingHistoryDetailResponse> histories = historyPage.getContent()
                 .stream()
@@ -62,7 +70,7 @@ public class ReadingHistoryService {
                 .toList();
 
         return new ReadingHistoryResponse(
-                mostRecentStory.map(this::toStoryResponse).orElse(null),
+                mostRecentStory.map(story -> toStoryResponse(story, userId)).orElse(null),
                 histories,
                 historyPage.getTotalElements(),
                 historyPage.getTotalPages(),
@@ -223,9 +231,15 @@ public class ReadingHistoryService {
         );
     }
 
-    private ReadingHistoryDetailResponse toStoryResponse(StoryEntity story) {
+    private ReadingHistoryDetailResponse toStoryResponse(StoryEntity story, Long userId) {
         // Lấy tổng số chapter của story
         long totalChapters = readingHistoryRepository.countTotalChaptersByStoryId(story.getId());
+        
+        // Lấy số chapter đã đọc cho story này
+        long chaptersRead = readingHistoryRepository.countDistinctChaptersByUserIdAndStoryId(userId, story.getId());
+        
+        // Tính phần trăm progress
+        double progressPercentage = totalChapters > 0 ? (double) chaptersRead / totalChapters * 100 : 0.0;
         
         // Xử lý cover: trả về ảnh mặc định nếu không có ảnh bìa
         String coverUrl = story.getCoverUrl();
@@ -242,9 +256,9 @@ public class ReadingHistoryService {
                 null,
                 null,
                 null,
-                0, // Chưa đọc chapter nào
+                (int) chaptersRead,
                 (int) totalChapters,
-                0.0 // Progress 0%
+                progressPercentage
         );
     }
 }

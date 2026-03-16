@@ -5,6 +5,7 @@ import MostRecentStoryCard from '../components/readingHistory/MostRecentStoryCar
 import HistoryToolbar from '../components/readingHistory/HistoryToolbar';
 import HistoryItemCard from '../components/readingHistory/HistoryItemCard';
 import LoadMoreSection from '../components/readingHistory/LoadMoreSection';
+import ConfirmDialog from '../components/ConfirmDialog';
 import './ReadingHistoryPage.css';
 
 const ReadingHistoryPage = () => {
@@ -15,6 +16,7 @@ const ReadingHistoryPage = () => {
   const [filter, setFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     loadReadingHistory();
@@ -46,37 +48,68 @@ const ReadingHistoryPage = () => {
     try {
       const response = await readingHistoryService.continueReading(storyId);
       if (response.chapterId) {
-        // Sử dụng format giống màn bookmark: /reader?storyId=...&chapterId=...&segmentId=...
-        const segmentParam = response.segmentId ? `&segmentId=${response.segmentId}` : '';
-        navigate(`/reader?storyId=${storyId}&chapterId=${response.chapterId}${segmentParam}`);
+        // Sử dụng format đúng route: /stories/{storyId}/chapters/{chapterId}?segmentId=...
+        const segmentParam = response.segmentId ? `?segmentId=${response.segmentId}` : '';
+        navigate(`/stories/${storyId}/chapters/${response.chapterId}${segmentParam}`);
       } else {
-        navigate(`/story/${storyId}`);
+        navigate(`/stories/${storyId}/metadata`);
       }
     } catch (error) {
       console.error('Error continuing reading:', error);
-      // Fallback to story page
-      navigate(`/story/${storyId}`);
+      // Fallback to story metadata page
+      navigate(`/stories/${storyId}/metadata`);
     }
   };
 
   const handleClearAllHistory = async () => {
-    if (window.confirm('Are you sure you want to clear all reading history? This action cannot be undone.')) {
-      try {
-        await readingHistoryService.clearHistory();
-        setHistoryData(null);
-      } catch (error) {
-        console.error('Error clearing history:', error);
-      }
+    setShowConfirmDialog(true);
+  };
+
+  const confirmClearHistory = async () => {
+    try {
+      await readingHistoryService.clearHistory();
+      // Reset và refresh lại dữ liệu
+      setHistoryData(null);
+      setCurrentPage(0);
+      // Load lại dữ liệu từ đầu
+      await loadReadingHistory();
+      setShowConfirmDialog(false);
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      setShowConfirmDialog(false);
     }
+  };
+
+  const cancelClearHistory = () => {
+    setShowConfirmDialog(false);
   };
 
   const handleLoadMore = () => {
     setCurrentPage(prev => prev + 1);
   };
 
-  const filteredHistories = historyData?.histories?.filter(history => 
-    history.storyTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredHistories = historyData?.histories?.filter(history => {
+    // Filter by search term
+    const matchesSearch = history.storyTitle?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filter by date
+    let matchesDate = true;
+    if (filter === 'today') {
+      const today = new Date();
+      const historyDate = new Date(history.lastReadAt);
+      
+      // Check if history is from today (same date)
+      matchesDate = today.toDateString() === historyDate.toDateString();
+    }
+    
+    return matchesSearch && matchesDate;
+  }) || [];
+
+  // Include featured story in search results if it matches
+  const allSearchResults = searchTerm ? [
+    ...(historyData?.mostRecent && historyData.mostRecent.storyTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ? [historyData.mostRecent] : []),
+    ...filteredHistories
+  ] : filteredHistories;
 
   if (loading && currentPage === 0) {
     return (
@@ -89,7 +122,7 @@ const ReadingHistoryPage = () => {
   return (
     <div className="reading-history-page">
       <div className="reading-history-container">
-        {/* Most Recent Story */}
+        {/* Featured Story */}
         {historyData?.mostRecent && (
           <MostRecentStoryCard 
             story={historyData.mostRecent}
@@ -109,13 +142,13 @@ const ReadingHistoryPage = () => {
 
         {/* History List */}
         <div className="history-list">
-          {filteredHistories.length > 0 ? (
-            filteredHistories.map((history, index) => (
+          {allSearchResults.length > 0 ? (
+            allSearchResults.map((history, index) => (
               <HistoryItemCard
                 key={`${history.storyId}-${index}`}
                 history={history}
                 onContinueReading={() => handleContinueReading(history.storyId)}
-                onReread={() => navigate(`/story/${history.storyId}`)}
+                onReread={() => navigate(`/stories/${history.storyId}/metadata`)}
               />
             ))
           ) : (
@@ -132,15 +165,26 @@ const ReadingHistoryPage = () => {
         </div>
 
         {/* Load More */}
-        {hasMore && filteredHistories.length > 0 && (
+        {hasMore && allSearchResults.length > 0 && (
           <LoadMoreSection
             onLoadMore={handleLoadMore}
             loading={loading}
-            currentCount={filteredHistories.length}
+            currentCount={allSearchResults.length}
             totalCount={historyData?.totalElements || 0}
           />
         )}
       </div>
+
+      {/* Custom Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        title="Xóa Lịch Sử Đọc"
+        message="Bạn có chắc chắn muốn xóa toàn bộ lịch sử đọc không? Hành động này không thể hoàn tác."
+        onConfirm={confirmClearHistory}
+        onCancel={cancelClearHistory}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
     </div>
   );
 };

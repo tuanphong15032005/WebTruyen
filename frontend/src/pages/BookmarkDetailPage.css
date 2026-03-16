@@ -6,10 +6,11 @@
 }
 
 /* Header Styles */
-.page-header {
+.bookmark-detail-page .page-header {
   background-color: #ffffff;
   border-bottom: 1px solid #e5e5e5;
-  padding: 50px 32px;
+  padding: 12px 32px;
+  margin-top: -60px;
   display: flex;
   justify-content: space-between;
   align-items: center;

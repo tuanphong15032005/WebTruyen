@@ -70,7 +70,7 @@ const useBookmarks = (chapterId) => {
         chapterId,
         segmentId: normalizedSegmentId,
         positionPercent,
-        isFavorite: isFavorite ?? false, // Default to false for auto bookmarks
+        isFavorite: isFavorite ?? true, // Default to true for bookmarks to show in list
       });
 
       const normalizedCreated = {

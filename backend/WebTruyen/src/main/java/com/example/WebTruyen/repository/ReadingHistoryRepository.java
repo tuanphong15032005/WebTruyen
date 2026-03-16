@@ -20,7 +20,7 @@ public interface ReadingHistoryRepository extends JpaRepository<ReadingHistoryEn
     
     @Query("SELECT rh FROM ReadingHistoryEntity rh WHERE rh.id.userId = :userId ORDER BY rh.id.storyId DESC")
     List<ReadingHistoryEntity> findByUserIdOrderByStoryIdDesc(@Param("userId") Long userId);
-    
+
     @Query("SELECT rh FROM ReadingHistoryEntity rh WHERE rh.id.userId = :userId AND rh.id.storyId = :storyId")
     Optional<ReadingHistoryEntity> findByUserIdAndStoryId(@Param("userId") Long userId, @Param("storyId") Long storyId);
     

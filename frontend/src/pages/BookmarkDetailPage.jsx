@@ -61,7 +61,7 @@ const BookmarkDetailPage = () => {
   };
 
   const handleContinueReading = (bookmark) => {
-    navigate(`/reader?storyId=${storyId}&chapterId=${bookmark.chapterId}&segmentId=${bookmark.segmentId}`);
+    navigate(`/stories/${storyId}/chapters/${bookmark.chapterId}${bookmark.segmentId ? `?segmentId=${bookmark.segmentId}` : ''}`);
   };
 
   const handleDeleteBookmark = async (bookmarkId) => {
