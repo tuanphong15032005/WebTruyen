@@ -1,21 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   User,
   MessageSquare,
   Library,
   Settings,
-  Target,
   Lock,
   Camera,
   Edit3,
   Save,
+  Trophy,
+  Bookmark,
+  CheckSquare,
 } from 'lucide-react';
 import { dailyCheckIn, getUserProfileById, uploadAvatar, uploadCover } from '../api/userApi';
 import './UserProfile.css';
 
 export default function UserProfile({ userData }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // State variables
   const [displayName, setDisplayName] = useState('');
@@ -38,6 +41,11 @@ export default function UserProfile({ userData }) {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverMessage, setCoverMessage] = useState('');
   const coverInputRef = useRef(null);
+
+  // Debug log
+  console.log('🔍 UserProfile component rendering');
+  console.log('🔍 existingCoverUrl:', existingCoverUrl);
+  console.log('🔍 coverInputRef:', coverInputRef);
 
   // Password change states
   const [oldPassword, setOldPassword] = useState('');
@@ -365,6 +373,80 @@ export default function UserProfile({ userData }) {
     setAvatarMessage('');
   };
 
+  const handleCoverChange = (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(selected.type)) {
+      setCoverMessage('Chỉ chấp nhận các định dạng: JPEG, PNG, GIF, WebP');
+      setTimeout(() => setCoverMessage(''), 3000);
+      return;
+    }
+
+    if (selected.size > maxSize) {
+      setCoverMessage('Kích thước file không được vượt quá 5MB');
+      setTimeout(() => setCoverMessage(''), 3000);
+      return;
+    }
+
+    setCoverFile(selected);
+    setCoverMessage('');
+  };
+
+  const handleCoverUpload = async () => {
+    if (!coverFile) return;
+
+    setUploadingCover(true);
+    setCoverMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('cover', coverFile);
+
+      const userId = profileData?.id || localStorage.getItem('userId') || 1;
+      const data = await uploadCover(userId, formData);
+      const newCoverUrl = data.coverUrl || data.url;
+
+      setProfileData((prev) => ({ ...prev, coverUrl: newCoverUrl }));
+      setExistingCoverUrl(newCoverUrl);
+
+      try {
+        const rawUser = localStorage.getItem('user');
+        if (rawUser) {
+          const parsedUser = JSON.parse(rawUser);
+          localStorage.setItem(
+            'user',
+            JSON.stringify({ ...parsedUser, coverUrl: newCoverUrl }),
+          );
+          window.dispatchEvent(new Event('user-updated'));
+        }
+      } catch (storageError) {
+        console.warn('Failed to sync cover to localStorage:', storageError);
+      }
+
+      setCoverFile(null);
+      setCoverPreviewUrl('');
+      setCoverMessage('Cập nhật ảnh bìa thành công!');
+      setTimeout(() => setCoverMessage(''), 3000);
+    } catch (error) {
+      console.error('Error uploading cover:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Tải ảnh bìa lên thất bại, vui lòng thử lại!';
+      setCoverMessage(errorMessage);
+      setTimeout(() => setCoverMessage(''), 3000);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleCancelCoverUpload = () => {
+    setCoverFile(null);
+    setCoverPreviewUrl('');
+    setCoverMessage('');
+  };
+
   const username = profileData?.username || '';
   const hasAvatar = Boolean(avatarPreviewUrl || existingAvatarUrl);
 
@@ -385,25 +467,43 @@ export default function UserProfile({ userData }) {
         <aside className="user-profile-sidebar">
           <ul className="sidebar-menu">
             <li>
-              <button className="sidebar-menu-item active">
+              <button className={`sidebar-menu-item ${location.pathname === '/profile' ? 'active' : ''}`}>
                 <User className="icon" />
                 Hồ sơ
               </button>
             </li>
             <li>
-              <button className="sidebar-menu-item" onClick={() => navigate('/authordashboard')}>
+              <button className={`sidebar-menu-item ${location.pathname === '/daily-tasks' ? 'active' : ''}`} onClick={() => navigate('/daily-tasks')}>
+                <CheckSquare className="icon" />
+                Nhiệm vụ hàng ngày
+              </button>
+            </li>
+            <li>
+              <button className={`sidebar-menu-item ${location.pathname === '/achievements' ? 'active' : ''}`} onClick={() => navigate('/achievements')}>
+                <Trophy className="icon" />
+                Thành tích
+              </button>
+            </li>
+            <li>
+              <button className={`sidebar-menu-item ${location.pathname === '/bookmarks' ? 'active' : ''}`} onClick={() => navigate('/bookmarks')}>
+                <Bookmark className="icon" />
+                Bookmark
+              </button>
+            </li>
+            <li>
+              <button className={`sidebar-menu-item ${location.pathname === '/authordashboard' ? 'active' : ''}`} onClick={() => navigate('/authordashboard')}>
                 <Edit3 className="icon" />
                 Khu vực tác giả
               </button>
             </li>
             <li>
-              <button className="sidebar-menu-item" onClick={() => navigate('/messages')}>
+              <button className={`sidebar-menu-item ${location.pathname === '/messages' ? 'active' : ''}`} onClick={() => navigate('/messages')}>
                 <MessageSquare className="icon" />
                 Tin nhắn
               </button>
             </li>
             <li>
-              <button className="sidebar-menu-item" onClick={() => navigate('/library')}>
+              <button className={`sidebar-menu-item ${location.pathname === '/library' ? 'active' : ''}`} onClick={() => navigate('/library')}>
                 <Library className="icon" />
                 Tủ truyện
               </button>
@@ -420,6 +520,27 @@ export default function UserProfile({ userData }) {
             ) : (
               <div className="profile-banner" />
             )}
+            {/* Cover Upload Button */}
+            <div className="cover-upload-container" style={{position: 'absolute', top: '16px', left: '16px', zIndex: 10}}>
+              <button 
+                className="cover-upload-btn"
+                onClick={() => coverInputRef.current?.click()}
+                title="Thay đổi ảnh bìa"
+                style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(0, 0, 0, 0.6)', color: 'white', border: 'none', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.3s ease', backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'}}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+              >
+                <Camera className="icon" style={{width: '16px', height: '16px'}} />
+                <span>Thay đổi ảnh bìa</span>
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverChange}
+                className="hidden"
+              />
+            </div>
           </div>
 
           {/* Profile Info Card */}
@@ -499,25 +620,42 @@ export default function UserProfile({ userData }) {
                 {avatarMessage}
               </div>
             )}
-          </div>
 
-          {/* Daily Missions */}
-          <div className="daily-missions-card">
-            <div className="daily-missions-header">
-              <div className="missions-icon-circle">
-                <Target className="icon" />
+            {/* Cover Upload Preview */}
+            {coverFile && (
+              <div style={{ marginTop: '16px' }}>
+                <div className="message info" style={{padding: '16px'}}>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                    <span style={{color: '#1e40af', fontWeight: '500'}}>Ảnh bìa mới đã chọn</span>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={handleCoverUpload}
+                        disabled={uploadingCover}
+                        className="btn-primary"
+                        style={{fontSize: '14px', padding: '8px 16px'}}
+                      >
+                        {uploadingCover ? 'Đang tải...' : 'Lưu ảnh bìa'}
+                      </button>
+                      <button
+                        onClick={handleCancelCoverUpload}
+                        disabled={uploadingCover}
+                        className="btn-primary"
+                        style={{backgroundColor: '#6b7280', fontSize: '14px', padding: '8px 16px'}}
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h3 className="daily-missions-title">Nhiệm vụ hằng ngày</h3>
-            </div>
-            <p className="daily-missions-description">
-              Hoàn thành nhiệm vụ mỗi ngày để nhận phần thưởng.
-            </p>
-            <button
-              onClick={() => navigate('/daily-tasks')}
-              className="daily-missions-button"
-            >
-              Xem nhiệm vụ
-            </button>
+            )}
+
+            {/* Cover Message */}
+            {coverMessage && (
+              <div className={`message ${coverMessage.includes('thành công') ? 'success' : 'error'}`}>
+                {coverMessage}
+              </div>
+            )}
           </div>
 
           {/* Settings & Security Grid */}
