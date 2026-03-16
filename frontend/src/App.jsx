@@ -60,6 +60,7 @@ import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
 import StoryRankingPage from './pages/Ranking/StoryRankingPage';
 import RankingPage from './pages/Ranking/RankingPage';
+import NotificationPage from './pages/NotificationPage';
 
 import './App.css';
 
@@ -158,6 +159,7 @@ function App() {
           element={<CoinTransactionHistoryPage />}
         />
         <Route path='/profile' element={<UserProfile />} />
+        <Route path='/notifications' element={<NotificationPage />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
         <Route path='/achievements' element={<AchievementsPage />} />
         <Route path='/user/:userId' element={<UserPortfolioPage />} />

@@ -1,0 +1,471 @@
+/* Notification Page Styles */
+.notification-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding-top: 72px;
+}
+
+.notification-page__container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.notification-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.notification-page__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notification-page__title h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.notification-page__unread-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.notification-page__mark-all-read {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-page__mark-all-read:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.notification-page__tabs {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.notification-page__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.notification-page__tab:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.notification-page__tab.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.notification-page__tab-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 8px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.notification-page__content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.notification-page__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  color: #64748b;
+}
+
+.notification-page__loading p {
+  margin-top: 16px;
+  font-size: 16px;
+}
+
+.notification-page__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  color: #ef4444;
+  text-align: center;
+}
+
+.notification-page__error button {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.notification-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  color: #64748b;
+  text-align: center;
+}
+
+.notification-page__empty h3 {
+  margin: 16px 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.notification-page__empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.notification-page__notification-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Notification Item Styles */
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.notification-item:hover {
+  background: #f8fafc;
+}
+
+.notification-item.unread {
+  background: #fef7f0;
+  border-left: 4px solid #f59e0b;
+}
+
+.notification-item__icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 16px;
+}
+
+.notification-item__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.notification-item__time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.notification-item__message {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.notification-item.unread .notification-item__message {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.notification-item__reference {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notification-item__ref-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #e2e8f0;
+  color: #64748b;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.notification-item__unread-indicator {
+  position: absolute;
+  top: 24px;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+}
+
+/* Transaction Styles */
+.notification-page__transaction-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-page__transaction-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+.notification-page__transaction-item:hover {
+  background: #f8fafc;
+}
+
+.notification-page__transaction-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-page__transaction-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-page__transaction-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 16px;
+}
+
+.notification-page__transaction-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.notification-page__transaction-amount {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.notification-page__transaction-amount.positive {
+  color: #16a34a;
+}
+
+.notification-page__transaction-amount.negative {
+  color: #dc2626;
+}
+
+.notification-page__transaction-description {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.notification-page__transaction-time {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Pagination */
+.notification-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 20px;
+}
+
+.notification-page__pagination-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-page__pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.notification-page__pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notification-page__pagination-info {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Auth Required */
+.notification-page__auth-required {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.notification-page__auth-required h2 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.notification-page__auth-required p {
+  margin: 0;
+  font-size: 16px;
+  color: #64748b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .notification-page__container {
+    padding: 16px 12px;
+  }
+  
+  .notification-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .notification-page__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .notification-page__tab {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .notification-item {
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .notification-item__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .notification-page__transaction-item {
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .notification-page__transaction-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .notification-page__pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

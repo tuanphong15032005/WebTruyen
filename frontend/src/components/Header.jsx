@@ -13,6 +13,7 @@ import {
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import storyService from '../services/storyService';
+import NotificationBell from './NotificationBell.jsx';
 import '../styles/site-shell.css';
 
 function Header() {
@@ -347,21 +348,25 @@ function Header() {
 
         <div className='site-header__actions'>
           {isLoggedIn && (
-            <div className='site-wallet'>
-              <button
-                type='button'
-                className='site-wallet__chip site-wallet__chip--gem'
-                onClick={() => navigate('/wallet/topup')}
-              >
-                <Gem size={14} />
-                {wallet.coinB}
-                <span className='site-wallet__plus'>+</span>
-              </button>
-              <span className='site-wallet__chip'>
-                <span className='site-wallet__coin-icon'>C</span>
-                {wallet.coinA}
-              </span>
-            </div>
+            <>
+              <NotificationBell />
+              
+              <div className='site-wallet'>
+                <button
+                  type='button'
+                  className='site-wallet__chip site-wallet__chip--gem'
+                  onClick={() => navigate('/wallet/topup')}
+                >
+                  <Gem size={14} />
+                  {wallet.coinB}
+                  <span className='site-wallet__plus'>+</span>
+                </button>
+                <span className='site-wallet__chip'>
+                  <span className='site-wallet__coin-icon'>C</span>
+                  {wallet.coinA}
+                </span>
+              </div>
+            </>
           )}
 
           {user ? (
