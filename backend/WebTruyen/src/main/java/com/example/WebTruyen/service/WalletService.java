@@ -343,6 +343,8 @@ public class WalletService {
         return response;
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Tạo yêu cầu rút tiền Coin B: kiểm tra số dư, tính phí, khóa coin và tạo request chờ duyệt - V2 - branch: minhfinal2]
     @Transactional
     public com.example.WebTruyen.entity.model.Payment.WithdrawRequestEntity withdrawCreateRequest(
             Long userId,
@@ -439,6 +441,8 @@ public class WalletService {
         return withdrawRequestRepository.save(entity);
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Lấy lịch sử yêu cầu rút tiền của tác giả theo thời gian mới nhất - V2 - branch: minhfinal2]
     public List<WithdrawRequestHistoryResponse> withdrawGetUserRequests(Long userId) {
         return withdrawRequestRepository.findByUserIdOrderByRequestedAtDesc(userId)
                 .stream()
@@ -446,6 +450,8 @@ public class WalletService {
                 .toList();
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Lấy danh sách giao dịch đủ điều kiện hoàn tiền và tính hạn mức hoàn theo số dư hiện tại - V2 - branch: minhfinal2]
     public List<RefundEligibleTransactionResponse> refundGetEligibleTransactions(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -466,6 +472,8 @@ public class WalletService {
                 .toList();
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Tạo yêu cầu hoàn tiền: kiểm tra giao dịch hợp lệ, khóa coin và lưu thông tin ngân hàng nhận hoàn - V2 - branch: minhfinal2]
     @Transactional
     public WithdrawRequestEntity refundCreateRequest(
             Long userId,
@@ -562,6 +570,8 @@ public class WalletService {
         return withdrawRequestRepository.save(entity);
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Lấy lịch sử yêu cầu hoàn tiền của người dùng theo marker requestType=REFUND - V2 - branch: minhfinal2]
     public List<RefundRequestHistoryResponse> refundGetUserRequests(Long userId) {
         String marker = "requestType=REFUND;";
         return withdrawRequestRepository.findByUserIdAndPaymentMarkerOrderByRequestedAtDesc(userId, marker)
@@ -570,6 +580,8 @@ public class WalletService {
                 .toList();
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Màn hình tài chính admin: lọc danh sách yêu cầu rút/hoàn theo loại và trạng thái - V2 - branch: minhfinal2]
     public List<AdminFinanceRequestResponse> financeAdminGetRequests(String requestType, WithdrawStatus status) {
         return withdrawRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "requestedAt"))
                 .stream()
@@ -584,6 +596,8 @@ public class WalletService {
                 .toList();
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Admin duyệt yêu cầu tài chính và lưu audit (adminName/adminNote/adminActionAt) - V2 - branch: minhfinal2]
     @Transactional
     public WithdrawRequestEntity financeAdminApproveRequest(Long adminId, Long requestId, String note) {
         WithdrawRequestEntity request = findFinanceRequest(requestId);
@@ -600,6 +614,8 @@ public class WalletService {
         return withdrawRequestRepository.save(request);
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Admin từ chối yêu cầu: hoàn lại Coin B đã tạm giữ cho người dùng rồi cập nhật trạng thái - V2 - branch: minhfinal2]
     @Transactional
     public WithdrawRequestEntity financeAdminRejectRequest(Long adminId, Long requestId, String note) {
         WithdrawRequestEntity request = findFinanceRequest(requestId);
@@ -618,6 +634,8 @@ public class WalletService {
         return withdrawRequestRepository.save(request);
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Admin đánh dấu hoàn tất chi trả/hoàn tiền và ghi nhận thời điểm paidAt - V2 - branch: minhfinal2]
     @Transactional
     public WithdrawRequestEntity financeAdminMarkCompleted(Long adminId, Long requestId, String note) {
         WithdrawRequestEntity request = findFinanceRequest(requestId);
@@ -635,6 +653,8 @@ public class WalletService {
         return withdrawRequestRepository.save(request);
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Map dữ liệu lịch sử rút tiền cho frontend tác giả (amount/fee/net/status/time) - V2 - branch: minhfinal2]
     private WithdrawRequestHistoryResponse mapWithdrawRequestHistory(WithdrawRequestEntity entity) {
         return WithdrawRequestHistoryResponse.builder()
                 .id(entity.getId())
@@ -647,6 +667,8 @@ public class WalletService {
                 .build();
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Map dữ liệu chi tiết yêu cầu tài chính cho admin, tách nhánh WITHDRAW và REFUND - V2 - branch: minhfinal2]
     private AdminFinanceRequestResponse mapAdminFinanceRequest(WithdrawRequestEntity entity) {
         String details = entity.getPaymentMethodDetails() == null ? "" : entity.getPaymentMethodDetails();
         String requestType = resolveRequestType(entity);
@@ -681,6 +703,8 @@ public class WalletService {
                 .build();
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Map giao dịch đủ điều kiện hoàn với maxRefundAmount = min(originalAmount, currentCoinB) - V2 - branch: minhfinal2]
     private RefundEligibleTransactionResponse mapRefundEligibleEntry(LedgerEntryEntity entry, long currentCoinB) {
         long originalAmount = Math.abs(Optional.ofNullable(entry.getDelta()).orElse(0L));
         long maxRefundAmount = Math.min(originalAmount, currentCoinB);
@@ -727,6 +751,8 @@ public class WalletService {
         };
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Map lịch sử yêu cầu hoàn tiền từ paymentMethodDetails cho trang người dùng - V2 - branch: minhfinal2]
     private RefundRequestHistoryResponse mapRefundRequestHistory(WithdrawRequestEntity entity) {
         String details = entity.getPaymentMethodDetails() == null ? "" : entity.getPaymentMethodDetails();
         return RefundRequestHistoryResponse.builder()
@@ -783,6 +809,8 @@ public class WalletService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu tài chính"));
     }
 
+    // Hieu Son – ngày 25/02/2026
+    // [Hoàn Coin B về ví khi yêu cầu bị từ chối và ghi ledger ADJUST để đối soát - V2 - branch: minhfinal2]
     private void refundCoinBToUser(Long userId, Long amount) {
         long refundAmount = amount == null ? 0L : amount;
         if (refundAmount <= 0) {
