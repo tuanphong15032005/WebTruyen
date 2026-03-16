@@ -57,6 +57,9 @@ public class TransactionHistoryResponse {
             case WITHDRAW:
                 return "Rút coin";
             case EARN:
+                if ("CHAPTER_SETTLEMENT".equals(refType)) {
+                    return "Nháº­n doanh thu chÆ°Æ¡ng";
+                }
                 return "Nhận thưởng";
             case REVIEW_REWARD:
                 return "Thưởng đánh giá";

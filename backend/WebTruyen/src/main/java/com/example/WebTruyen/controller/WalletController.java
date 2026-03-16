@@ -74,19 +74,14 @@ public class WalletController {
             return ResponseEntity.status(401).body("Unauthorized");
         }
 
-        Long chapterPrice = request.get("chapterPrice");
         Long chapterId = request.get("chapterId");
-        
-        if (chapterPrice == null || chapterPrice <= 0) {
-            return ResponseEntity.badRequest().body("Invalid chapter price");
-        }
         if (chapterId == null || chapterId <= 0) {
             return ResponseEntity.badRequest().body("Invalid chapter ID");
         }
 
         try {
             Long userId = userPrincipal.getUser().getId();
-            Map<String, Object> response = walletService.purchaseChapter(userId, chapterPrice, chapterId);
+            Map<String, Object> response = walletService.purchaseChapter(userId, chapterId);
             
             // Track chapter unlock for daily task
             try {

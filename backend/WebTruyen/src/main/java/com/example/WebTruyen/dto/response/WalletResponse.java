@@ -8,4 +8,5 @@ import lombok.Getter;
 public class WalletResponse {
     private Long coinA;
     private Long coinB;
+    private Long pendingCoinB;
 }

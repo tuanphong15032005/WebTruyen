@@ -229,7 +229,9 @@ public class ChapterServiceImpl implements ChapterService {
         // Check if chapter is unlocked for the user
         boolean isUnlocked = chapter.isFree();
         if (!isUnlocked && userId != null) {
-            isUnlocked = chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
+            Long authorId = chapter.getVolume().getStory().getAuthor().getId();
+            isUnlocked = userId.equals(authorId)
+                    || chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
         }
 
         List<ChapterSegmentEntity> segments =
