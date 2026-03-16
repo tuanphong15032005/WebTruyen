@@ -5,13 +5,16 @@ import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.request.CreateVolumeRequest;
+import com.example.WebTruyen.dto.request.UpdateStoryLibraryRequest;
 import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
 import com.example.WebTruyen.dto.response.CommentResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
 import com.example.WebTruyen.dto.response.CreateVolumeResponse;
 import com.example.WebTruyen.dto.response.HomeCommunityCommentResponse;
+import com.example.WebTruyen.dto.response.LibraryStoryResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
+import com.example.WebTruyen.dto.response.StoryLibraryDialogResponse;
 import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.StorySidebarResponse;
@@ -30,6 +33,7 @@ import com.example.WebTruyen.service.StoryReviewService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
 import com.example.WebTruyen.service.TieredAchievementIntegrationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -137,8 +141,10 @@ public class StoryController {
             @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort,
             @RequestParam(required = false) String q, //keyword 
             @RequestParam(required = false) String author,
+            @RequestParam(required = false) String kind,
             @RequestParam(required = false) String completionStatus,
-            @RequestParam(required = false) String tagIds
+            @RequestParam(required = false) String tagIds,
+            @RequestParam(required = false) String excludeTagIds
     ) {
         return storyService.getPublishedStories(
                 page,
@@ -146,8 +152,10 @@ public class StoryController {
                 sort,
                 q,
                 author,
+                kind,
                 completionStatus,
-                parseTagIdsCsv(tagIds)
+                parseTagIdsCsv(tagIds),
+                parseTagIdsCsv(excludeTagIds)
         );
     }
 
@@ -168,7 +176,7 @@ public class StoryController {
     }
 
     @GetMapping("/stories/library")
-    public java.util.List<StoryResponse> getLibraryStories(
+    public java.util.List<LibraryStoryResponse> getLibraryStories(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
@@ -201,8 +209,26 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
-        boolean saved = storyService.getLibraryStatus(currentUser, storyId);
-        return Map.of("saved", saved);
+        return storyService.getLibraryStatus(currentUser, storyId);
+    }
+
+    @GetMapping("/stories/{storyId}/library-dialog")
+    public StoryLibraryDialogResponse getStoryLibraryDialog(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getStoryLibraryDialog(currentUser, storyId);
+    }
+
+    @PutMapping("/stories/{storyId}/library-dialog")
+    public StoryLibraryDialogResponse updateStoryLibraryDialog(
+            @PathVariable Long storyId,
+            @Valid @RequestBody UpdateStoryLibraryRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.updateStoryLibraryDialog(currentUser, storyId, request);
     }
 
     @PostMapping("/stories/{storyId}/library/toggle")
@@ -211,8 +237,16 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        boolean saved = storyService.toggleLibraryStatus(currentUser, storyId);
-        return Map.of("saved", saved);
+        return storyService.toggleLibraryStatus(currentUser, storyId);
+    }
+
+    @PostMapping("/stories/{storyId}/favorite/toggle")
+    public Map<String, Boolean> toggleLibraryFavoriteStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.toggleLibraryFavoriteStatus(currentUser, storyId);
     }
 
     // C?p nh?t truy?n theo id
@@ -444,10 +478,14 @@ public class StoryController {
     public List<AuthorCommentResponse> getAuthorComments(
             @RequestParam Integer storyId,
             @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) java.time.Instant fromDate,
+            @RequestParam(required = false) java.time.Instant toDate,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId);
+        java.time.LocalDateTime from = fromDate != null ? fromDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        java.time.LocalDateTime to = toDate != null ? toDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId, from, to);
     }
 
     @PostMapping(value = "/author/comments/{parentCommentId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)

@@ -38,6 +38,8 @@ const StoryReviews = () => {
   const [hasMore, setHasMore] = useState(false);
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState('');
+  const [hasSpoiler, setHasSpoiler] = useState(false);
+  const [revealedReviews, setRevealedReviews] = useState({});
 
   const currentUser = useMemo(() => {
     const raw = localStorage.getItem('user');
@@ -107,10 +109,12 @@ const StoryReviews = () => {
       await storyService.upsertStoryReview(storyId, {
         rating,
         content: content.trim(),
+        spoiler: hasSpoiler,
       });
       notify('Đã gửi đánh giá', 'success');
       setContent('');
       setRating(0);
+      setHasSpoiler(false);
       await fetchReviewsPage(0, false);
     } catch (error) {
       console.error('submit review error', error);
@@ -176,6 +180,14 @@ const StoryReviews = () => {
               placeholder='Nhập đánh giá của bạn...'
               maxLength={2000}
             />
+            <label className='story-reviews__spoiler-toggle'>
+              <input
+                type='checkbox'
+                checked={hasSpoiler}
+                onChange={(event) => setHasSpoiler(event.target.checked)}
+              />
+              <span>Chứa spoil</span>
+            </label>
 
             <div className='story-reviews__form-footer'>
               <span>{content.trim().length} ký tự</span>
@@ -187,7 +199,11 @@ const StoryReviews = () => {
         )}
 
         <div className='story-reviews__list'>
-          {reviews.map((review) => (
+          {reviews.map((review) => {
+            const isSpoiler = Boolean(review?.spoiler);
+            const revealed = Boolean(revealedReviews[String(review.id)]);
+
+            return (
             <article key={review.id} className='story-reviews__item'>
               <div className='story-reviews__item-head'>
                 {review.avatarUrl ? (
@@ -214,9 +230,30 @@ const StoryReviews = () => {
                   </small>
                 </div>
               </div>
-              <p>{review.content}</p>
+              {isSpoiler && !revealed ? (
+                <div className='story-reviews__content-mask-wrap'>
+                  <p className='story-reviews__content-mask'>
+                    Đánh giá này có chứa spoiler.
+                  </p>
+                  <button
+                    type='button'
+                    className='story-reviews__reveal-btn'
+                    onClick={() =>
+                      setRevealedReviews((prev) => ({
+                        ...prev,
+                        [String(review.id)]: true,
+                      }))
+                    }
+                  >
+                    Hiện đánh giá
+                  </button>
+                </div>
+              ) : (
+                <p>{review.content}</p>
+              )}
             </article>
-          ))}
+            );
+          })}
         </div>
 
         {hasMore && (

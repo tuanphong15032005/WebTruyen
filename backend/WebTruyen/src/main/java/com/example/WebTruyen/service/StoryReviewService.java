@@ -75,6 +75,7 @@ public class StoryReviewService {
         review.setRating(req.rating());
         review.setTitle(normalizeText(req.title(), 255));
         review.setContent(normalizeText(req.content(), null));
+        review.setSpoiler(Boolean.TRUE.equals(req.spoiler()));
 
         StoryReviewEntity saved = storyReviewRepository.save(review);
         recalculateStoryRating(story);
@@ -136,6 +137,7 @@ public class StoryReviewService {
                 review.getRating(),
                 review.getTitle(),
                 review.getContent(),
+                review.isSpoiler(),
                 review.getCreatedAt(),
                 review.getUpdatedAt()
         );

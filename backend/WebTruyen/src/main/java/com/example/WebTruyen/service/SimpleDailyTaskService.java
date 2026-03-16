@@ -10,16 +10,19 @@ import com.example.WebTruyen.repository.UserDailyStatusRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +41,10 @@ public class SimpleDailyTaskService {
     @Autowired
     @Lazy
     private WalletService walletService;
+    
+    @Autowired
+    @Lazy
+    private DailyTaskOrchestrator dailyTaskOrchestrator;
 
     // Task codes
     private static final String TASK_LOGIN = "DAILY_LOGIN";
@@ -48,51 +55,74 @@ public class SimpleDailyTaskService {
     private static final String TASK_TOPUP = "MAKE_TOPUP";
 
     /**
-     * Get daily tasks summary for user
+     * Check if we need to create missions for a new day (for users who are online across midnight)
+     */
+    private void checkAndCreateNewDayMissions(LocalDate today) {
+        // Check if missions exist for today
+        List<DailyMissionEntity> existingMissions = dailyMissionRepository.findByDate(today);
+        
+        // Only create missions if we don't have enough (less than 6)
+        if (existingMissions.size() < 6) {
+            log.info("Found {} missions for {}, need 6 total. Creating additional missions", existingMissions.size(), today);
+            createDailyMissionsForDate(today);
+        } else {
+            log.info("Already have {} missions for {}, no need to create more", existingMissions.size(), today);
+        }
+    }
+
+    /**
+     * Auto-complete login mission for users who are online across midnight
+     * This should be called when checking tasks for users who were recently active
+     */
+    private void autoCompleteLoginMissionForActiveUser(Long userId, LocalDate today) {
+        autoCompleteLoginMissionForActiveUser(userId, today, false);
+    }
+    
+    private void autoCompleteLoginMissionForActiveUser(Long userId, LocalDate today, boolean fromUpdateProgress) {
+        try {
+            // Prevent recursive calls
+            if (fromUpdateProgress) {
+                return;
+            }
+            // Check if user was active yesterday (has any progress records)
+            LocalDate yesterday = today.minusDays(1);
+            List<UserDailyStatusEntity> yesterdayProgress = userDailyStatusRepository.findByUserIdAndDate(userId, yesterday);
+            
+            // Get user info to check last activity
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            
+            // Check if user was active in the last 24 hours (either yesterday progress OR recent user activity)
+            boolean wasRecentlyActive = !yesterdayProgress.isEmpty() || 
+                    (user.getUpdatedAt() != null && user.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(24)));
+            
+            if (wasRecentlyActive) {
+                // Check if user already has login mission progress for today
+                List<UserDailyStatusEntity> todayProgress = userDailyStatusRepository.findByUserIdAndDate(userId, today);
+                boolean hasLoginMissionToday = todayProgress.stream()
+                    .anyMatch(status -> {
+                        DailyMissionEntity mission = dailyMissionRepository.findById(status.getId().getDailyMissionId()).orElse(null);
+                        return mission != null && "DAILY_LOGIN".equals(mission.getMissionCode());
+                    });
+                
+                if (!hasLoginMissionToday) {
+                    // User was recently active and doesn't have login mission today, auto-complete it
+                    log.info("Auto-completing login mission for active user {} on {} (last activity: {})", 
+                            userId, today, user.getUpdatedAt());
+                    updateTaskProgressWithoutAutoComplete(userId, "DAILY_LOGIN", null);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error auto-completing login mission for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Get daily tasks summary for user (using orchestrator for optimization)
      */
     public Map<String, Object> getDailyTasksForUser(Long userId) {
-        LocalDate today = LocalDate.now();
-        
-        // Ensure daily missions exist for today
-        ensureDailyMissionsExist(today);
-        
-        // Get all missions for today
-        List<DailyMissionEntity> missions = dailyMissionRepository.findByDate(today);
-        
-        // Get user's progress for these missions
-        List<UserDailyStatusEntity> userStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
-        
-        // Create a map of missionId to user status for quick lookup
-        Map<Long, UserDailyStatusEntity> statusMap = userStatuses.stream()
-                .collect(Collectors.toMap(status -> status.getId().getDailyMissionId(), status -> status));
-        
-        // Build response
-        List<Map<String, Object>> taskResponses = missions.stream()
-                .map(mission -> buildTaskResponse(mission, statusMap.get(mission.getId().longValue())))
-                .collect(Collectors.toList());
-        
-        // Calculate summary
-        long completedTasks = taskResponses.stream()
-                .mapToLong(task -> (Boolean) task.get("completed") ? 1L : 0L)
-                .sum();
-        
-        long totalAvailableCoins = taskResponses.stream()
-                .filter(task -> !(Boolean) task.get("completed"))
-                .mapToLong(task -> (Long) task.get("rewardCoin"))
-                .sum();
-        
-        log.info("Daily tasks response for user {}: totalTasks={}, completedTasks={}, availableTasks={}, allTasksCompleted={}", 
-                userId, missions.size(), completedTasks, missions.size() - (int) completedTasks, completedTasks == missions.size());
-        
-        return Map.of(
-                "tasks", taskResponses,
-                "totalTasks", missions.size(),
-                "completedTasks", (int) completedTasks,
-                "availableTasks", missions.size() - (int) completedTasks,
-                "totalAvailableCoins", totalAvailableCoins,
-                "allTasksCompleted", completedTasks == missions.size(),
-                "date", today.toString()
-        );
+        log.info("Getting daily tasks for user: {} using orchestrator", userId);
+        return dailyTaskOrchestrator.getDailyTasksSummary(userId);
     }
 
     /**
@@ -140,13 +170,50 @@ public class SimpleDailyTaskService {
     }
 
     /**
+     * Update user's last activity time and auto-complete login mission if needed
+     */
+    private void updateUserLastActivity(Long userId) {
+        try {
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            log.debug("Updated last activity for user {}", userId);
+            
+            // Auto-complete login mission for active users
+            autoCompleteLoginMissionForActiveUser(userId, LocalDate.now());
+        } catch (Exception e) {
+            log.warn("Failed to update last activity for user {}: {}", userId, e.getMessage());
+        }
+    }
+    
+    private void updateUserLastActivityWithoutAutoComplete(Long userId) {
+        try {
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            log.debug("Updated last activity for user {} without auto-complete", userId);
+        } catch (Exception e) {
+            log.warn("Failed to update last activity for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /**
      * Update progress for a specific task
      */
     @Transactional
+    @CacheEvict(value = "userDailyTasks", key = "#userId")
     public Map<String, Object> updateTaskProgress(Long userId, String missionCode, Integer progressValue) {
         log.info("Updating task progress - userId: {}, missionCode: {}, progressValue: {}", userId, missionCode, progressValue);
         
+        // Update user's last activity time (without triggering auto-complete)
+        updateUserLastActivityWithoutAutoComplete(userId);
+        
         LocalDate today = LocalDate.now();
+        
+        // Check and create missions for new day if needed
+        checkAndCreateNewDayMissions(today);
         log.info("Using date: {}", today);
         
         // Find the mission
@@ -174,7 +241,81 @@ public class SimpleDailyTaskService {
             
             try {
                 // Insert using native query to avoid @MapsId type conversion problems
-                userDailyStatusRepository.insertUserDailyStatus(userId, mission.getId());
+                userDailyStatusRepository.insertUserDailyStatus(userId, mission.getId().longValue());
+                
+                // Now fetch the newly created entity
+                userStatus = userDailyStatusRepository
+                    .findByUserIdAndDailyMissionId(userId, mission.getId().longValue())
+                    .orElseThrow(() -> new RuntimeException("Failed to create user status"));
+                
+                log.info("Created new user status for mission {}", mission.getId());
+            } catch (Exception e) {
+                log.error("Failed to create user daily status", e);
+                throw new RuntimeException("Failed to track task progress", e);
+            }
+        }
+        
+        log.info("Current progress: {}", userStatus.getProgress());
+        
+        // Update progress based on task type
+        updateProgressForTaskType(userStatus, missionCode, progressValue);
+        
+        log.info("Updated progress: {}", userStatus.getProgress());
+        
+        // Check if task is completed
+        boolean wasCompleted = isTaskCompleted(userStatus, mission);
+        log.info("Task completed check: {} - target: {}, completed: {}", mission.getMissionCode(), mission.getTarget(), wasCompleted);
+        
+        if (wasCompleted) {
+            userStatus.setCompletedAt(LocalDateTime.now());
+            log.info("Marked task as completed at: {}", userStatus.getCompletedAt());
+        }
+        
+        userDailyStatusRepository.save(userStatus);
+        log.info("Saved user status");
+        
+        return buildTaskResponse(mission, userStatus);
+    }
+
+    /**
+     * Update progress for a specific task without triggering auto-complete
+     */
+    @Transactional
+    private Map<String, Object> updateTaskProgressWithoutAutoComplete(Long userId, String missionCode, Integer progressValue) {
+        log.info("Updating task progress without auto-complete - userId: {}, missionCode: {}, progressValue: {}", userId, missionCode, progressValue);
+        
+        LocalDate today = LocalDate.now();
+        
+        // Check and create missions for new day if needed
+        checkAndCreateNewDayMissions(today);
+        log.info("Using date: {}", today);
+        
+        // Find the mission
+        DailyMissionEntity mission = dailyMissionRepository.findByDateAndMissionCode(today, missionCode)
+                .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode + " for date: " + today));
+        
+        log.info("Found mission: {} - {} for date: {}", mission.getId(), mission.getMissionCode(), mission.getDate());
+        
+        // Find or create user status - use a different approach to avoid type issues
+        List<UserDailyStatusEntity> existingStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
+        log.info("Found {} existing statuses for user {} on date {}", existingStatuses.size(), userId, today);
+        
+        Optional<UserDailyStatusEntity> existingStatus = existingStatuses.stream()
+                .filter(status -> status.getDailyMission().getId().equals(mission.getId()))
+                .findFirst();
+        
+        UserDailyStatusEntity userStatus;
+        if (existingStatus.isPresent()) {
+            userStatus = existingStatus.get();
+            log.info("Found existing user status for mission {}", mission.getId());
+        } else {
+            // Use native query to insert directly, bypassing @MapsId issues
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            
+            try {
+                // Insert using native query to avoid @MapsId type conversion problems
+                userDailyStatusRepository.insertUserDailyStatus(userId, mission.getId().longValue());
                 
                 // Now fetch the newly created entity
                 userStatus = userDailyStatusRepository
@@ -217,8 +358,11 @@ public class SimpleDailyTaskService {
     public Map<String, Object> claimTaskReward(Long userId, Long missionId) {
         LocalDate today = LocalDate.now();
         
+        // Check and create missions for new day if needed
+        checkAndCreateNewDayMissions(today);
+        
         // Find the mission
-        DailyMissionEntity mission = dailyMissionRepository.findById(missionId.intValue())
+        DailyMissionEntity mission = dailyMissionRepository.findById(missionId.longValue())
                 .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionId));
         
         // Verify mission is for today
@@ -228,7 +372,7 @@ public class SimpleDailyTaskService {
         
         // Find user status
         UserDailyStatusEntity userStatus = userDailyStatusRepository
-                .findByUserIdAndDailyMissionId(userId, missionId)
+                .findByUserIdAndDailyMissionId(userId, missionId.longValue())
                 .orElseThrow(() -> new RuntimeException("User task status not found"));
         
         // Verify task is completed but not yet claimed
@@ -359,19 +503,64 @@ public class SimpleDailyTaskService {
         List<DailyMissionEntity> existingMissions = dailyMissionRepository.findByDate(date);
         log.info("Found {} existing missions for date: {}", existingMissions.size(), date);
         
-        if (existingMissions.isEmpty()) {
-            log.info("No missions found for date {}, creating new missions", date);
+        // Only create missions if we don't have enough (less than 6)
+        if (existingMissions.size() < 6) {
+            log.info("Only {} missions found for date {}, need 6 total. Creating additional missions", existingMissions.size(), date);
             createDailyMissionsForDate(date);
         } else {
-            log.info("Missions already exist for date: {}", date);
+            log.info("Already have {} missions for date {}, no need to create more", existingMissions.size(), date);
         }
     }
 
     /**
-     * Create daily missions for a specific date
+     * Create daily missions for a specific date from templates
      */
-    private void createDailyMissionsForDate(LocalDate date) {
-        DailyMissionEntity[] missions = {
+    public void createDailyMissionsForDate(LocalDate date) {
+        // Get existing missions for this date
+        List<DailyMissionEntity> existingMissions = dailyMissionRepository.findByDate(date);
+        
+        // Get existing mission codes to avoid duplicates
+        Set<String> existingMissionCodes = existingMissions.stream()
+                .map(DailyMissionEntity::getMissionCode)
+                .collect(Collectors.toSet());
+        
+        // Get templates from database
+        List<DailyMissionEntity> templates = dailyMissionRepository.findByDateIsNull();
+        
+        if (templates.isEmpty()) {
+            log.warn("No templates found in database! Using fallback hardcoded missions.");
+            createFallbackDailyMissionsForDate(date, existingMissionCodes);
+            return;
+        }
+        
+        log.info("Found {} templates for creating daily missions on date: {}", templates.size(), date);
+        
+        // Filter out templates that already exist for this date
+        List<DailyMissionEntity> newMissions = templates.stream()
+                .filter(template -> !existingMissionCodes.contains(template.getMissionCode()))
+                .map(template -> DailyMissionEntity.builder()
+                        .date(date)
+                        .missionCode(template.getMissionCode())
+                        .description(template.getDescription())
+                        .target(template.getTarget())
+                        .rewardCoin(template.getRewardCoin())
+                        .rewardCoinType(template.getRewardCoinType())
+                        .build())
+                .collect(Collectors.toList());
+        
+        if (!newMissions.isEmpty()) {
+            dailyMissionRepository.saveAll(newMissions);
+            log.info("Created {} new daily missions for date {} from templates", newMissions.size(), date);
+        } else {
+            log.info("No new missions to create for date {}, all mission types already exist", date);
+        }
+    }
+    
+    /**
+     * Fallback method using hardcoded missions (for backward compatibility)
+     */
+    private void createFallbackDailyMissionsForDate(LocalDate date, Set<String> existingMissionCodes) {
+        DailyMissionEntity[] allMissions = {
                 DailyMissionEntity.builder()
                         .date(date)
                         .missionCode(TASK_LOGIN)
@@ -427,8 +616,17 @@ public class SimpleDailyTaskService {
                         .build()
         };
         
-        dailyMissionRepository.saveAll(List.of(missions));
-        log.info("Created {} daily missions for date {}", missions.length, date);
+        // Filter out missions that already exist
+        List<DailyMissionEntity> newMissions = Arrays.stream(allMissions)
+                .filter(mission -> !existingMissionCodes.contains(mission.getMissionCode()))
+                .collect(Collectors.toList());
+        
+        if (!newMissions.isEmpty()) {
+            dailyMissionRepository.saveAll(newMissions);
+            log.info("Created {} fallback daily missions for date {}", newMissions.size(), date);
+        } else {
+            log.info("No new fallback missions to create for date {}, all mission types already exist", date);
+        }
     }
 
     /**
@@ -544,6 +742,14 @@ public class SimpleDailyTaskService {
         boolean completed = userStatus != null && userStatus.getCompletedAt() != null;
         boolean canClaim = completed && !progressMap.containsKey("claimed_at");
         
+        log.info("Task status for mission {}: userStatus={}, completedAt={}, completed={}, canClaim={}, progressMap={}", 
+                mission.getMissionCode(), 
+                userStatus != null ? "exists" : "null",
+                userStatus != null ? userStatus.getCompletedAt() : "null",
+                completed, 
+                canClaim, 
+                progressMap);
+        
         Map<String, Object> response = new HashMap<>();
         response.put("id", mission.getId());
         response.put("missionCode", mission.getMissionCode());
@@ -560,6 +766,13 @@ public class SimpleDailyTaskService {
         
         // Add progress tracking for specific tasks
         switch (mission.getMissionCode()) {
+            case TASK_LOGIN:
+                boolean loginCompleted = Boolean.TRUE.equals(progressMap.get("completed"));
+                response.put("currentProgress", loginCompleted ? 1 : 0);
+                response.put("targetProgress", 1);
+                response.put("progressText", loginCompleted ? "1/1" : "0/1");
+                break;
+                
             case TASK_READ_CHAPTERS:
                 int currentRead = (int) progressMap.getOrDefault("chapters_read", 0);
                 int targetRead = Integer.parseInt(mission.getTarget());
@@ -635,7 +848,12 @@ public class SimpleDailyTaskService {
                 map.put("chapters_unlocked", value);
             }
             if (progressJson.contains("completed")) {
-                map.put("completed", progressJson.contains("\"completed\":true"));
+                // More robust parsing for completed field
+                boolean completed = progressJson.contains("\"completed\":true") || 
+                                 progressJson.contains("\"completed\": true") ||
+                                 (progressJson.contains("completed") && progressJson.contains("true"));
+                map.put("completed", completed);
+                log.debug("Parsed completed field: {} from JSON: {}", completed, progressJson);
             }
             if (progressJson.contains("claimed_at")) {
                 map.put("claimed_at", "claimed");
@@ -696,11 +914,22 @@ public class SimpleDailyTaskService {
     }
 
     /**
+     * Debug method to build task response (public for testing)
+     */
+    public Map<String, Object> debugBuildTaskResponse(DailyMissionEntity mission, UserDailyStatusEntity userStatus) {
+        return buildTaskResponse(mission, userStatus);
+    }
+
+    /**
      * Check if a daily mission is available for today
      */
     public boolean isMissionAvailable(String missionCode) {
         try {
             LocalDate today = LocalDate.now();
+            
+            // Check and create missions for new day if needed
+            checkAndCreateNewDayMissions(today);
+            
             return dailyMissionRepository.findByDateAndMissionCode(today, missionCode).isPresent();
         } catch (Exception e) {
             log.warn("Error checking mission availability for {}: {}", missionCode, e.getMessage());

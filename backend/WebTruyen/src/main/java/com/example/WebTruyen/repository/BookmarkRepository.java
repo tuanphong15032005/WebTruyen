@@ -1,6 +1,7 @@
 package com.example.WebTruyen.repository;
 
 import com.example.WebTruyen.entity.model.SocialLibrary.BookmarkEntity;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +19,7 @@ public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> 
     Optional<BookmarkEntity> findByUser_IdAndChapter_IdAndSegment_Id(Long userId, Long chapterId, Long segmentId);
 
     Optional<BookmarkEntity> findByIdAndUser_Id(Long bookmarkId, Long userId);
+
 
     @Query("SELECT s.id as storyId, s.title as title, s.coverUrl as coverImage, " +
            "COUNT(b.id) as bookmarkCount, MAX(b.createdAt) as lastBookmark " +
@@ -38,4 +40,9 @@ public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> 
            "WHERE b.user.id = :userId AND s.id = :storyId AND b.isFavorite = true " +
            "ORDER BY b.createdAt DESC")
     List<Object[]> findBookmarkStoryDetails(@Param("userId") Long userId, @Param("storyId") Long storyId);
+
+    @Modifying
+    @Query("delete from BookmarkEntity b where b.chapter.id = :chapterId")
+    int deleteAllByChapterId(@Param("chapterId") Long chapterId);
+
 }

@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createPaymentOrder, confirmPayment } from '../../api/paymentApi'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { createPaymentOrder, confirmPayment, createVNPayUrl } from '../../api/paymentApi'
 import { WalletContext } from '../../context/WalletContext'
 
 const PACKAGES = [
@@ -18,6 +18,7 @@ function formatVnd(value) {
 
 export default function WalletTopupPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { refreshWallet } = useContext(WalletContext)
   const [loadingId, setLoadingId] = useState(null)
   const [error, setError] = useState('')
@@ -28,30 +29,60 @@ export default function WalletTopupPage() {
       const token = raw ? JSON.parse(raw)?.token : null
       if (!token) {
         navigate('/login')
+        return
+      }
+
+      // Show message from location state (from VNPay return)
+      if (location.state?.message) {
+        if (location.state.type === 'warning') {
+          setError(location.state.message)
+        } else if (location.state.type === 'error') {
+          setError(location.state.message)
+        }
+        // Clear the state after showing message
+        navigate(location.pathname, { replace: true, state: null })
       }
     } catch {
       navigate('/login')
     }
-  }, [navigate])
+  }, [navigate, location])
 
   const handlePayNow = async (pkg) => {
     setError('')
     setLoadingId(pkg.vnd)
 
     try {
+      console.log('Creating payment order for:', pkg)
       const order = await createPaymentOrder({
         amountVnd: pkg.vnd,
         coinBAmount: pkg.coin,
       })
+      
+      console.log('Payment order created:', order)
 
-      await confirmPayment(order.orderId)
-      await refreshWallet()
-
-      navigate(`/wallet/confirmation/${order.orderId}`)
+      // Redirect to VNPay
+      console.log('Creating VNPay URL for order ID:', order.orderId)
+      const responseData = await createVNPayUrl(order.orderId)
+      console.log('VNPay response data (after interceptor):', responseData)
+      
+      // axios interceptor returns response.data directly
+      if (!responseData) {
+        throw new Error('Empty response from server')
+      }
+      
+      if (responseData.error) {
+        throw new Error('Server error: ' + responseData.error)
+      }
+      
+      if (!responseData.paymentUrl) {
+        throw new Error('Invalid VNPay response: missing paymentUrl. Full response: ' + JSON.stringify(responseData))
+      }
+      
+      window.location.href = responseData.paymentUrl
     } catch (e) {
+      console.error('Payment error:', e)
       const msg = e?.response?.data || e?.message || 'Payment failed'
       setError(String(msg))
-    } finally {
       setLoadingId(null)
     }
   }
@@ -102,7 +133,7 @@ export default function WalletTopupPage() {
               onClick={() => handlePayNow(pkg)}
               disabled={loadingId === pkg.vnd}
             >
-              {loadingId === pkg.vnd ? 'Processing...' : 'Pay Now'}
+              {loadingId === pkg.vnd ? 'Đang xử lý...' : 'Thanh toán VNPay'}
             </button>
           </div>
         ))}

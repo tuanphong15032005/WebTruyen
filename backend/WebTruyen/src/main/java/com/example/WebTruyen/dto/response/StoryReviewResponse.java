@@ -10,6 +10,7 @@ public record StoryReviewResponse(
         Integer rating,
         String title,
         String content,
+        Boolean spoiler,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}

@@ -58,6 +58,10 @@ public class WalletService {
     @Autowired
     @Lazy
     private SimpleDailyTaskService simpleDailyTaskService;
+    
+    @Autowired
+    @Lazy
+    private DailyTaskOrchestrator dailyTaskOrchestrator;
 
     public WalletResponse getWallet(Long userId) {
         WalletEntity wallet = walletRepository.findById(userId)
@@ -208,6 +212,16 @@ public class WalletService {
         
         chapterUnlockRepository.save(unlock);
         
+        // Track chapter unlock for daily task using orchestrator
+        try {
+            log.info("Tracking chapter unlock for daily task - user: {}, chapter: {}", userId, chapterId);
+            dailyTaskOrchestrator.trackUserActivity(userId, DailyTaskOrchestrator.ActivityType.UNLOCK_CHAPTER);
+            log.info("Successfully tracked chapter unlock for daily task");
+        } catch (Exception e) {
+            // Don't fail the unlock process if daily task tracking fails
+            log.warn("Failed to track chapter unlock for daily task - user: {}, chapter: {}, error: {}", userId, chapterId, e.getMessage());
+        }
+        
         // Create ledger entries for the transaction
         if (deductFromA > 0) {
             createLedgerEntry(userId, CoinType.A, -deductFromA, LedgerReason.SPEND_CHAPTER, 
@@ -277,22 +291,19 @@ public class WalletService {
         authorWallet.setBalanceCoinB(newAuthorBalance);
         authorWallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(authorWallet);
-        
-        // Create ledger entry for author receiving donation
-        createLedgerEntry(toUserId, CoinType.B, coinBAmount, LedgerReason.DONATE, 
-            "DONATION_RECEIVE", "Received donation");
 
-        // Create donation record
+        // Create donation record first to get the ID
         DonationEntity donation = DonationEntity.builder()
                 .fromUser(fromUser)
                 .toUser(toUser)
                 .paidCoin(CoinType.B)
                 .amountCoin(coinBAmount)
+                .message(message)
                 .createdAt(LocalDateTime.now())
                 .build();
         
-        donationRepository.save(donation);
-
+        DonationEntity savedDonation = donationRepository.save(donation);
+        
         // Create ledger entries with message in description
         String donateOutDescription = "Donate to " + toUser.getUsername();
         if (message != null && !message.trim().isEmpty()) {
@@ -304,14 +315,12 @@ public class WalletService {
             donateInDescription += ": " + message;
         }
         
-        // Use unique refType to avoid constraint violations
-        String uniqueRefType = "DONATE_" + System.currentTimeMillis();
-        
+        // Create ledger entries with proper refType and refId pointing to donation
         createDonationLedgerEntry(fromUserId, CoinType.B, -coinBAmount, 
-            uniqueRefType + "_OUT", toUserId, donateOutDescription);
+            "DONATION", savedDonation.getId(), donateOutDescription);
         
         createDonationLedgerEntry(toUserId, CoinType.B, coinBAmount, 
-            uniqueRefType + "_IN", fromUserId, donateInDescription);
+            "DONATION", savedDonation.getId(), donateInDescription);
 
         // Return response
         Map<String, Object> response = new HashMap<>();
@@ -330,31 +339,49 @@ public class WalletService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
-        String idempotencyKey = String.format("DONATE_%d_%d_%s_%d", userId, refId, coinType, System.currentTimeMillis());
+        // Use different refTypes for debit and credit to avoid unique constraint violation
+        String finalRefType = delta < 0 ? "DONATION_OUT" : "DONATION_IN";
+        
+        // Generate a unique idempotency key using timestamp and random component
+        String idempotencyKey = String.format("D%d_%d_%s_%d", userId, refId, coinType.name().charAt(0), System.currentTimeMillis() % 1000000);
         
         // Check if similar entry already exists to prevent duplicate constraint violation
-        if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey)) {
-            LedgerEntryEntity entry = LedgerEntryEntity.builder()
-                    .user(user)
-                    .coin(coinType)
-                    .delta(delta)
-                    .reason(LedgerReason.DONATE)
-                    .refType(refType)
-                    .refId(refId)
-                    .idempotencyKey(idempotencyKey)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            
-            ledgerEntryRepository.save(entry);
+        try {
+            if (!ledgerEntryRepository.existsByIdempotencyKey(idempotencyKey)) {
+                LedgerEntryEntity entry = LedgerEntryEntity.builder()
+                        .user(user)
+                        .coin(coinType)
+                        .delta(delta)
+                        .reason(LedgerReason.DONATE)
+                        .refType(finalRefType)
+                        .refId(refId)
+                        .idempotencyKey(idempotencyKey)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                
+                ledgerEntryRepository.save(entry);
+            }
+        } catch (DataIntegrityViolationException e) {
+            // Log the error but don't fail the donation
+            log.warn("Ledger entry already exists for donation {} - user {} - coin {}: {}", 
+                    refId, userId, coinType, e.getMessage());
         }
     }
 
     private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
                                   LedgerReason reason, String refType, String description) {
+        createLedgerEntry(userId, coinType, delta, reason, refType, description, null);
+    }
+
+    private void createLedgerEntry(Long userId, CoinType coinType, Long delta, 
+                                  LedgerReason reason, String refType, String description, String idempotencyKey) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
-        String idempotencyKey = String.format("%s_%d_%s_%d", refType, userId, coinType, System.currentTimeMillis());
+        // Use provided idempotency key or generate default one
+        String finalIdempotencyKey = idempotencyKey != null ? idempotencyKey : 
+            String.format("%s%d_%c_%d", refType.substring(0, Math.min(5, refType.length())), 
+                          userId, coinType.name().charAt(0), System.currentTimeMillis() % 1000000);
         
         // Create ledger entry for all transaction types
         // Use timestamp as refId since transactions don't have a specific reference ID
@@ -367,7 +394,7 @@ public class WalletService {
                 .reason(reason)
                 .refType(refType)
                 .refId(refId)
-                .idempotencyKey(idempotencyKey)
+                .idempotencyKey(finalIdempotencyKey)
                 .createdAt(LocalDateTime.now())
                 .build();
         
@@ -395,6 +422,10 @@ public class WalletService {
     }
 
     public void addCoinB(UserEntity user, Long amount, LedgerReason reason) {
+        addCoinB(user, amount, reason, null);
+    }
+
+    public void addCoinB(UserEntity user, Long amount, LedgerReason reason, String idempotencyKey) {
         // 1. Lấy wallet
         WalletEntity wallet = getOrCreateWalletEntity(user.getId());
         // 2. Lấy balance cũ
@@ -426,7 +457,7 @@ public class WalletService {
         };
         
         createLedgerEntry(user.getId(), CoinType.B, amount, reason, 
-            refType, description);
+            refType, description, idempotencyKey);
         
         // Auto-track daily task for topup only (donation is tracked separately)
         if (reason == LedgerReason.TOPUP) {

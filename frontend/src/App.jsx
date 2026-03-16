@@ -15,15 +15,21 @@ import WalletTopupPage from './pages/Payment/WalletTopupPage';
 import PaymentConfirmationPage from './pages/Payment/PaymentConfirmationPage';
 import CoinTransactionHistoryPage from './pages/Payment/TransactionHistoryPage';
 import DonatePage from './pages/Payment/DonatePage';
+import PaymentSuccessPage from './pages/Payment/PaymentSuccessPage';
+import VNPayReturnHandler from './components/VNPayReturnHandler';
 import UserProfile from './pages/UserProfile';
 import UserPortfolioPage from './pages/profile/UserPortfolioPage';
 import DailyTasksPage from './pages/DailyTasksPage';
 import AchievementsPage from './pages/AchievementsPage';
 import ManageStories from './pages/ManageStories';
 import LibraryStories from './pages/LibraryStories';
+
 import BookmarkStoriesPage from './pages/BookmarkStoriesPage';
 import BookmarkDetailPage from './pages/BookmarkDetailPage';
 import ReadingHistoryPage from './pages/ReadingHistoryPage';
+
+import LibraryAlbumDetail from './pages/LibraryAlbumDetail';
+
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
@@ -55,7 +61,7 @@ function RoleProtectedRoute({ allowedRoles, children }) {
 
   return children;
 }
-// >>>>>>> origin/minhfinal1
+
 
 function RouteScrollManager() {
   const location = useLocation();
@@ -102,6 +108,8 @@ function App() {
         <Route path='/verify' element={<VerifyCode />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password' element={<ResetPassword />} />
+        <Route path='/payment/vnpay-return' element={<VNPayReturnHandler />} />
+        <Route path='/payment/success' element={<PaymentSuccessPage />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
         <Route path='/stories/:storyId/report' element={<Report />} />
         <Route
@@ -121,14 +129,19 @@ function App() {
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
         <Route path='/library' element={<LibraryStories />} />
+
         <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
         <Route path='/bookmarks/story/:storyId' element={<BookmarkDetailPage />} />
         <Route path='/reading-history' element={<ReadingHistoryPage />} />
+
+        <Route path='/library/albums/:albumId' element={<LibraryAlbumDetail />} />
+
         <Route path='/author/create-story' element={<CreateStory />} />
         <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
         <Route path='/author/stories/:storyId' element={<StoryDetail />} />
         <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
         <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
+
         <Route
           path='/stories/:storyId/chapters/:chapterId'
           element={<ChapterPage />}
