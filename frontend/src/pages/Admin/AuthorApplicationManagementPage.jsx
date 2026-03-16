@@ -332,12 +332,6 @@ const AuthorApplicationManagementPage = () => {
                                                     <span className={styles['activity-label']}>Ngày tồn tại:</span>
                                                     <span className={styles['activity-value']}>{userDetails.activity.daysSinceCreation || 0} ngày</span>
                                                 </div>
-                                                <div className={styles['activity-item']}>
-                                                    <span className={styles['activity-label']}>Lần đăng nhập cuối:</span>
-                                                    <span className={styles['activity-value']}>
-                                                        {userDetails.activity.lastLogin ? formatDate(userDetails.activity.lastLogin) : 'Chưa đăng nhập'}
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
                                     )}

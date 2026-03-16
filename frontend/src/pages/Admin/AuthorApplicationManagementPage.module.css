@@ -213,6 +213,9 @@
 .details-content {
     max-height: 60vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 20px;
+    margin-right: -5px;
 }
 
 .section {
@@ -232,10 +235,13 @@
 }
 
 .info-item {
-    padding: 0.5rem 0;
-    word-wrap: break-word;
+    padding: 0.5rem 10px 0.5rem 0;
+    word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .status-info {
