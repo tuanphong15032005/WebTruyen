@@ -10,6 +10,7 @@ import com.example.WebTruyen.repository.UserDailyStatusRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -202,6 +203,7 @@ public class SimpleDailyTaskService {
      * Update progress for a specific task
      */
     @Transactional
+    @CacheEvict(value = "userDailyTasks", key = "#userId")
     public Map<String, Object> updateTaskProgress(Long userId, String missionCode, Integer progressValue) {
         log.info("Updating task progress - userId: {}, missionCode: {}, progressValue: {}", userId, missionCode, progressValue);
         
@@ -740,6 +742,14 @@ public class SimpleDailyTaskService {
         boolean completed = userStatus != null && userStatus.getCompletedAt() != null;
         boolean canClaim = completed && !progressMap.containsKey("claimed_at");
         
+        log.info("Task status for mission {}: userStatus={}, completedAt={}, completed={}, canClaim={}, progressMap={}", 
+                mission.getMissionCode(), 
+                userStatus != null ? "exists" : "null",
+                userStatus != null ? userStatus.getCompletedAt() : "null",
+                completed, 
+                canClaim, 
+                progressMap);
+        
         Map<String, Object> response = new HashMap<>();
         response.put("id", mission.getId());
         response.put("missionCode", mission.getMissionCode());
@@ -756,6 +766,13 @@ public class SimpleDailyTaskService {
         
         // Add progress tracking for specific tasks
         switch (mission.getMissionCode()) {
+            case TASK_LOGIN:
+                boolean loginCompleted = Boolean.TRUE.equals(progressMap.get("completed"));
+                response.put("currentProgress", loginCompleted ? 1 : 0);
+                response.put("targetProgress", 1);
+                response.put("progressText", loginCompleted ? "1/1" : "0/1");
+                break;
+                
             case TASK_READ_CHAPTERS:
                 int currentRead = (int) progressMap.getOrDefault("chapters_read", 0);
                 int targetRead = Integer.parseInt(mission.getTarget());
@@ -831,7 +848,12 @@ public class SimpleDailyTaskService {
                 map.put("chapters_unlocked", value);
             }
             if (progressJson.contains("completed")) {
-                map.put("completed", progressJson.contains("\"completed\":true"));
+                // More robust parsing for completed field
+                boolean completed = progressJson.contains("\"completed\":true") || 
+                                 progressJson.contains("\"completed\": true") ||
+                                 (progressJson.contains("completed") && progressJson.contains("true"));
+                map.put("completed", completed);
+                log.debug("Parsed completed field: {} from JSON: {}", completed, progressJson);
             }
             if (progressJson.contains("claimed_at")) {
                 map.put("claimed_at", "claimed");
@@ -889,6 +911,13 @@ public class SimpleDailyTaskService {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    /**
+     * Debug method to build task response (public for testing)
+     */
+    public Map<String, Object> debugBuildTaskResponse(DailyMissionEntity mission, UserDailyStatusEntity userStatus) {
+        return buildTaskResponse(mission, userStatus);
     }
 
     /**

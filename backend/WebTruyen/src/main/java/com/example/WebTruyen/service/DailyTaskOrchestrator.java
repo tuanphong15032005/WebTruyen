@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -84,6 +85,36 @@ public class DailyTaskOrchestrator {
     }
 
     /**
+     * Get complete daily task status for user (no cache - for fresh data)
+     */
+    @Transactional(readOnly = true)
+    public UserDailyTaskStatus getUserDailyTaskStatusFresh(Long userId) {
+        log.debug("Getting FRESH daily task status for user: {}", userId);
+        
+        LocalDate today = LocalDate.now();
+        
+        // Single optimized query to get all data
+        List<DailyMissionEntity> missions = dailyMissionRepository.findByDate(today);
+        List<UserDailyStatusEntity> userStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
+        
+        // Build status map
+        Map<Long, UserDailyStatusEntity> statusMap = userStatuses.stream()
+                .collect(Collectors.toMap(
+                        status -> status.getId().getDailyMissionId(), 
+                        status -> status
+                ));
+        
+        UserDailyTaskStatus result = UserDailyTaskStatus.builder()
+                .userId(userId)
+                .date(today)
+                .missions(missions)
+                .statusMap(statusMap)
+                .build();
+        
+        return result;
+    }
+
+    /**
      * Track user activity and auto-complete login mission
      */
     @Transactional
@@ -96,8 +127,8 @@ public class DailyTaskOrchestrator {
             // Update user activity timestamp
             updateUserActivityTime(userId);
             
-            // Get cached status
-            UserDailyTaskStatus status = getUserDailyTaskStatus(userId);
+            // Get FRESH status (not cached) since we're about to modify it
+            UserDailyTaskStatus status = getUserDailyTaskStatusFresh(userId);
             
             // Auto-complete login mission if first activity of the day
             if (shouldCompleteLoginMission(status)) {
@@ -168,7 +199,156 @@ public class DailyTaskOrchestrator {
     private void trackSpecificMission(Long userId, ActivityType activityType) {
         String missionCode = getMissionCodeForActivity(activityType);
         if (missionCode != null) {
-            simpleDailyTaskService.updateTaskProgress(userId, missionCode, 1);
+            updateMissionProgressDirectly(userId, missionCode, 1);
+        }
+    }
+
+    /**
+     * Update mission progress directly without going through SimpleDailyTaskService
+     */
+    private void updateMissionProgressDirectly(Long userId, String missionCode, Integer progressValue) {
+        try {
+            LocalDate today = LocalDate.now();
+            
+            // Find the mission
+            DailyMissionEntity mission = dailyMissionRepository.findByDateAndMissionCode(today, missionCode)
+                    .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode + " for date: " + today));
+            
+            // Find or create user status
+            List<UserDailyStatusEntity> existingStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
+            Optional<UserDailyStatusEntity> existingStatus = existingStatuses.stream()
+                    .filter(status -> status.getDailyMission().getId().equals(mission.getId()))
+                    .findFirst();
+            
+            UserDailyStatusEntity userStatus;
+            if (existingStatus.isPresent()) {
+                userStatus = existingStatus.get();
+            } else {
+                // Create new status
+                UserEntity user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                
+                userDailyStatusRepository.insertUserDailyStatus(userId, mission.getId().longValue());
+                userStatus = userDailyStatusRepository
+                    .findByUserIdAndDailyMissionId(userId, mission.getId().longValue())
+                    .orElseThrow(() -> new RuntimeException("Failed to create user status"));
+            }
+            
+            // Update progress based on task type
+            updateProgressForTaskType(userStatus, missionCode, progressValue);
+            
+            // Check if task is completed
+            boolean wasCompleted = isTaskCompleted(userStatus, mission);
+            if (wasCompleted) {
+                userStatus.setCompletedAt(LocalDateTime.now());
+            }
+            
+            userDailyStatusRepository.save(userStatus);
+            log.info("Updated mission progress directly - userId: {}, missionCode: {}, progressValue: {}", 
+                    userId, missionCode, progressValue);
+            
+        } catch (Exception e) {
+            log.error("Error updating mission progress directly for user {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Update progress based on task type (copied from SimpleDailyTaskService)
+     */
+    private void updateProgressForTaskType(UserDailyStatusEntity userStatus, String missionCode, Integer progressValue) {
+        Map<String, Object> progressMap = parseProgress(userStatus.getProgress());
+        
+        switch (missionCode) {
+            case "DAILY_LOGIN":
+                progressMap.put("completed", true);
+                progressMap.put("login_time", LocalDateTime.now().toString());
+                break;
+                
+            case "READ_CHAPTERS":
+                int currentRead = (int) progressMap.getOrDefault("chapters_read", 0);
+                int newRead = Math.min(currentRead + (progressValue != null ? progressValue : 1), 5);
+                progressMap.put("chapters_read", newRead);
+                break;
+                
+            case "UNLOCK_CHAPTER":
+                progressMap.put("chapters_unlocked", 1);
+                break;
+                
+            case "MAKE_COMMENTS":
+                int currentComments = (int) progressMap.getOrDefault("comments_made", 0);
+                int newComments = Math.min(currentComments + (progressValue != null ? progressValue : 1), 3);
+                progressMap.put("comments_made", newComments);
+                break;
+                
+            case "MAKE_DONATION":
+                progressMap.put("donations_made", 1);
+                break;
+                
+            case "MAKE_TOPUP":
+                progressMap.put("topups_made", 1);
+                break;
+        }
+        
+        userStatus.setProgress(serializeProgress(progressMap));
+    }
+
+    /**
+     * Serialize progress to JSON (simple implementation)
+     */
+    private String serializeProgress(Map<String, Object> progressMap) {
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : progressMap.entrySet()) {
+            if (!first) json.append(",");
+            json.append("\"").append(entry.getKey()).append("\":");
+            
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                json.append("\"").append(value).append("\"");
+            } else if (value instanceof Boolean) {
+                json.append(value);
+            } else {
+                json.append(value);
+            }
+            first = false;
+        }
+        json.append("}");
+        return json.toString();
+    }
+
+    /**
+     * Check if task is completed (copied from SimpleDailyTaskService)
+     */
+    private boolean isTaskCompleted(UserDailyStatusEntity userStatus, DailyMissionEntity mission) {
+        Map<String, Object> progressMap = parseProgress(userStatus.getProgress());
+        int target = Integer.parseInt(mission.getTarget());
+        
+        switch (mission.getMissionCode()) {
+            case "DAILY_LOGIN":
+                return Boolean.TRUE.equals(progressMap.get("completed"));
+                
+            case "READ_CHAPTERS":
+                int chaptersRead = (int) progressMap.getOrDefault("chapters_read", 0);
+                return chaptersRead >= target;
+                
+            case "UNLOCK_CHAPTER":
+                int chaptersUnlocked = (int) progressMap.getOrDefault("chapters_unlocked", 0);
+                return chaptersUnlocked >= target;
+                
+            case "MAKE_COMMENTS":
+                int commentsMade = (int) progressMap.getOrDefault("comments_made", 0);
+                return commentsMade >= target;
+                
+            case "MAKE_DONATION":
+                int donationsMade = (int) progressMap.getOrDefault("donations_made", 0);
+                return donationsMade >= target;
+                
+            case "MAKE_TOPUP":
+                int topupsMade = (int) progressMap.getOrDefault("topups_made", 0);
+                return topupsMade >= target;
+                
+            default:
+                return false;
         }
     }
 
@@ -190,10 +370,10 @@ public class DailyTaskOrchestrator {
      * Get daily tasks summary for user (optimized)
      */
     public Map<String, Object> getDailyTasksSummary(Long userId) {
-        UserDailyTaskStatus status = getUserDailyTaskStatus(userId);
+        UserDailyTaskStatus status = getUserDailyTaskStatusFresh(userId); // Use fresh data instead of cached
         
         List<Map<String, Object>> taskResponses = status.getMissions().stream()
-                .map(mission -> buildTaskResponse(mission, status.getStatusMap().get(mission.getId())))
+                .map(mission -> buildTaskResponse(mission, status.getStatusMap().get(mission.getId().longValue())))
                 .collect(Collectors.toList());
         
         // Calculate summary
@@ -206,13 +386,17 @@ public class DailyTaskOrchestrator {
                 .mapToLong(task -> (Long) task.get("rewardCoin"))
                 .sum();
         
+        // Keep backward compatibility: provide both nested summary and flat fields used by frontend
         return Map.of(
                 "tasks", taskResponses,
+                "totalTasks", taskResponses.size(),
+                "completedTasks", completedTasks,
+                "totalAvailableCoins", totalAvailableCoins,
                 "summary", Map.of(
                         "totalTasks", taskResponses.size(),
                         "completedTasks", completedTasks,
                         "availableCoins", totalAvailableCoins,
-                        "completionRate", taskResponses.size() > 0 ? 
+                        "completionRate", taskResponses.size() > 0 ?
                                 (double) completedTasks / taskResponses.size() * 100 : 0
                 ),
                 "date", status.getDate()
@@ -235,16 +419,24 @@ public class DailyTaskOrchestrator {
         
         Map<String, Object> progressMap = userStatus != null ? parseProgress(userStatus.getProgress()) : new HashMap<>();
         
+        boolean completedAtPresent = userStatus != null && userStatus.getCompletedAt() != null;
+        boolean completedByProgress = userStatus != null && isCompletedByProgress(mission, progressMap);
+        boolean completed = completedAtPresent || completedByProgress;
+        boolean claimed = userStatus != null && isRewardClaimed(userStatus);
+        boolean canClaim = completed && !claimed;
+
         if (userStatus != null) {
             response.put("progress", userStatus.getProgress());
-            response.put("completed", userStatus.getCompletedAt() != null);
+            response.put("completed", completed);
             response.put("completedAt", userStatus.getCompletedAt());
-            response.put("claimed", isRewardClaimed(userStatus));
+            response.put("claimed", claimed);
+            response.put("canClaim", canClaim);
         } else {
             response.put("progress", "{}");
             response.put("completed", false);
             response.put("completedAt", null);
             response.put("claimed", false);
+            response.put("canClaim", false);
         }
         
         // Add progress tracking for specific tasks
@@ -300,6 +492,24 @@ public class DailyTaskOrchestrator {
         return response;
     }
 
+    private boolean isCompletedByProgress(DailyMissionEntity mission, Map<String, Object> progressMap) {
+        try {
+            int target = Integer.parseInt(mission.getTarget());
+
+            return switch (mission.getMissionCode()) {
+                case "DAILY_LOGIN" -> Boolean.TRUE.equals(progressMap.get("completed"));
+                case "READ_CHAPTERS" -> ((int) progressMap.getOrDefault("chapters_read", 0)) >= target;
+                case "UNLOCK_CHAPTER" -> ((int) progressMap.getOrDefault("chapters_unlocked", 0)) >= target;
+                case "MAKE_COMMENTS" -> ((int) progressMap.getOrDefault("comments_made", 0)) >= target;
+                case "MAKE_DONATION" -> ((int) progressMap.getOrDefault("donations_made", 0)) >= target;
+                case "MAKE_TOPUP" -> ((int) progressMap.getOrDefault("topups_made", 0)) >= target;
+                default -> false;
+            };
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Check if reward is claimed
      */
@@ -344,7 +554,8 @@ public class DailyTaskOrchestrator {
                     result.put("topups_made", value);
                 }
                 if (progressJson.contains("completed")) {
-                    boolean completed = progressJson.contains("\"completed\":true");
+                    boolean completed = progressJson.contains("\"completed\":true") ||
+                            progressJson.contains("\"completed\": true");
                     result.put("completed", completed);
                 }
                 if (progressJson.contains("claimed_at")) {
@@ -410,7 +621,7 @@ public class DailyTaskOrchestrator {
         
         public boolean hasLoginMissionToday() {
             return missions.stream()
-                    .anyMatch(m -> "DAILY_LOGIN".equals(m.getMissionCode()) && statusMap.containsKey(m.getId()));
+                    .anyMatch(m -> "DAILY_LOGIN".equals(m.getMissionCode()) && statusMap.containsKey(m.getId().longValue()));
         }
     }
 }
