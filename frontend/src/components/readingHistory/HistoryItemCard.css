@@ -1,0 +1,186 @@
+.history-item-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.history-item-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-color: #e2e8f0;
+}
+
+.card-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.cover-section {
+  flex-shrink: 0;
+}
+
+.story-cover-small {
+  width: 52px;
+  height: 70px;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.cover-placeholder {
+  width: 52px;
+  height: 70px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.cover-placeholder svg {
+  width: 24px;
+  height: 24px;
+}
+
+.story-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.story-info .story-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chapter-progress {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.mini-progress-bar {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  width: 120px;
+}
+
+.mini-progress-bar .progress-fill {
+  height: 100%;
+  background: #f97316;
+  transition: width 0.3s ease;
+}
+
+.time-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.time-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.continue-btn {
+  background: #f97316;
+  color: white;
+}
+
+.continue-btn:hover {
+  background: #ea580c;
+}
+
+.reread-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.reread-btn:hover {
+  background: #e5e7eb;
+}
+
+.delete-btn {
+  background: none;
+  color: #6b7280;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.delete-btn:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+@media (max-width: 640px) {
+  .card-layout {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .cover-section {
+    order: 1;
+  }
+  
+  .story-info {
+    order: 2;
+    flex-basis: calc(100% - 68px);
+  }
+  
+  .time-actions {
+    order: 3;
+    flex-basis: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .mini-progress-bar {
+    width: 100%;
+  }
+}

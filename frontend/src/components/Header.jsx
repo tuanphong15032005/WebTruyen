@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
@@ -379,6 +379,7 @@ function Header() {
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
                   <Link to='/achievements'>Thành tích</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
+                  <Link to='/bookmarks'>Bookmark</Link>
 
                   {hasAnyRole(['AUTHOR'], user) && (
                     <>

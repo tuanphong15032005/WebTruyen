@@ -135,6 +135,9 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
 
     @Query("SELECT COUNT(c) FROM ChapterEntity c WHERE c.volume.story.author.id = :authorId AND c.status = :status")
     long countByAuthorIdAndStatus(@Param("authorId") Long authorId, @Param("status") ChapterStatus status);
+    
+    @Query("SELECT c FROM ChapterEntity c WHERE c.volume.story.id = :storyId ORDER BY c.volume.sequenceIndex ASC, c.sequenceIndex ASC")
+    Optional<ChapterEntity> findFirstChapterOfStory(@Param("storyId") Long storyId);
 }
 
 
