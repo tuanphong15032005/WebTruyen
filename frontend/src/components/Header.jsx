@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import {
   BookOpen,
@@ -223,12 +223,25 @@ function Header() {
       className={`site-header ${isHomePage ? 'site-header--overlay' : 'site-header--solid'} ${isHomePage && isHeaderScrolled ? 'scrolled' : ''}`}
     >
       <div className='site-header__inner'>
-        <Link to='/' className='site-brand'>
-          <span className='site-brand__logo'>
-            <BookOpen size={18} />
-          </span>
-          <span className='site-brand__text'>Tramdoc</span>
-        </Link>
+        <div className='site-header__lead'>
+          <Link to='/' className='site-brand'>
+            <span className='site-brand__logo'>
+              <BookOpen size={18} />
+            </span>
+            <span className='site-brand__text'>Tramdoc</span>
+          </Link>
+
+          <nav className='site-nav' aria-label='Điều hướng chính'>
+            <NavLink
+              to='/ranking'
+              className={({ isActive }) =>
+                `site-nav__item ${isActive ? 'active' : ''}`
+              }
+            >
+              Xếp hạng
+            </NavLink>
+          </nav>
+        </div>
 
         <form
           className={`site-search ${isSearchOpen ? 'is-open' : ''}`}

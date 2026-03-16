@@ -48,9 +48,7 @@ import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import Report from './pages/Reader/report';
-import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
-import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
-import StoryRankingPage from './pages/Ranking/StoryRankingPage';
+import RankingPage from './pages/Ranking/RankingPage';
 
 import './App.css';
 
@@ -108,9 +106,19 @@ function App() {
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
-        <Route path='/ranking/authors' element={<AuthorRankingPage />} />
-        <Route path='/stories/recent' element={<RecentlyUpdatedStoriesPage />} />
-        <Route path='/ranking/stories' element={<StoryRankingPage />} />
+        <Route path='/ranking' element={<RankingPage />} />
+        <Route
+          path='/ranking/authors'
+          element={<Navigate to='/ranking?view=authors' replace />}
+        />
+        <Route
+          path='/stories/recent'
+          element={<Navigate to='/ranking?view=recent' replace />}
+        />
+        <Route
+          path='/ranking/stories'
+          element={<Navigate to='/ranking?view=stories' replace />}
+        />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/verify' element={<VerifyCode />} />
