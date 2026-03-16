@@ -139,9 +139,12 @@ const BookmarkDetailPage = () => {
               </div>
             </div>
             
-            <div className="bookmark-content">
-              {bookmark.segmentText || 'No content available'}
-            </div>
+            <div 
+              className="bookmark-content"
+              dangerouslySetInnerHTML={{ 
+                __html: bookmark.segmentText || 'No content available' 
+              }}
+            />
 
             <div className="bookmark-actions">
               <button

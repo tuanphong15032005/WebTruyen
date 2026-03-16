@@ -64,7 +64,7 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
             </button>
             <button 
               className="btn-secondary details-btn"
-              onClick={() => navigate(`/story/${story.storyId}`)}
+              onClick={() => navigate(`/stories/${story.storyId}/metadata`)}
             >
               Details
             </button>
