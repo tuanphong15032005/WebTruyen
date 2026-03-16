@@ -6,11 +6,15 @@ import useNotify from '../../hooks/useNotify';
 import api from '../../services/api';
 
 const ReportStoryPage = () => {
+  console.log('ReportStoryPage component mounted');
+  console.log('Current storyId:', window.location.search);
+  
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useNotify();
 
   const storyId = searchParams.get('storyId');
+  console.log('Parsed storyId from params:', storyId);
 
   const [storyInfo, setStoryInfo] = useState(null);
   const [loading, setLoading] = useState(true);

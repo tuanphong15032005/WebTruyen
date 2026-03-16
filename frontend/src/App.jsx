@@ -50,7 +50,6 @@ import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
-import Report from './pages/Reader/report';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
 import StoryRankingPage from './pages/Ranking/StoryRankingPage';
@@ -122,7 +121,6 @@ function App() {
         <Route path='/payment/vnpay-return' element={<VNPayReturnHandler />} />
         <Route path='/payment/success' element={<PaymentSuccessPage />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
-        <Route path='/stories/:storyId/report' element={<Report />} />
         <Route
           path='/wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}
