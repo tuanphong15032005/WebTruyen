@@ -213,7 +213,6 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                                         className="retry-btn"
                                         onClick={() => {
                                             setApplicationStatus(null);
-                                            checkApplicationStatus();
                                         }}
                                     >
                                         Gửi lại đơn

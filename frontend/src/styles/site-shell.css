@@ -203,7 +203,7 @@
 }
 
 .task-item.completed .task-title {
-  color: white;
+  color: black;
 }
 
 .task-description {
@@ -263,9 +263,10 @@
 }
 
 .task-item.completed .reward-amount {
-  color: white;
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  color: #f59e0b;
+  background: rgba(254, 243, 199, 0.5);
+  border-color: rgba(251, 191, 36, 0.5);
+  opacity: 0.7;
 }
 
 .reward-status {

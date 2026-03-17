@@ -78,7 +78,7 @@ const AuthorDashboard = () => {
                   <Button
                     onClick={() => {
                       setApplicationStatus(null);
-                      window.location.reload();
+                      setShowApplicationForm(true);
                     }}
                     className='retry-btn'
                   >
