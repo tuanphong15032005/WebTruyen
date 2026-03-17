@@ -37,6 +37,7 @@ import BookmarkDetailPage from './pages/BookmarkDetailPage';
 import ReadingHistoryPage from './pages/ReadingHistoryPage';
 
 import LibraryAlbumDetail from './pages/LibraryAlbumDetail';
+import PublicAlbumDetail from './pages/PublicAlbumDetail';
 
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
@@ -193,6 +194,10 @@ function MainLayoutWrapper() {
         <Route
           path='/library/albums/:albumId'
           element={<LibraryAlbumDetail />}
+        />
+        <Route
+          path='/library/albums/public/:albumId'
+          element={<PublicAlbumDetail />}
         />
 
         <Route path='/author/create-story' element={<CreateStory />} />

@@ -61,6 +61,13 @@ public class LibraryAlbumService {
     }
 
     @Transactional
+    public List<LibraryAlbumCardResponse> getAlbumsByUserId(Long userId) {
+        return libraryAlbumRepository.findByUser_IdAndVisibilityOrderByUpdatedAtDesc(userId, com.example.WebTruyen.entity.enums.LibraryAlbumVisibility.PUBLIC).stream()
+                .map(this::toCardResponse)
+                .toList();
+    }
+
+    @Transactional
     public LibraryAlbumDetailResponse getAlbumDetail(UserEntity currentUser, Long albumId) {
         LibraryAlbumEntity album = libraryAlbumRepository.findByIdAndUser_Id(albumId, currentUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay bo suu tap"));
@@ -81,6 +88,36 @@ public class LibraryAlbumService {
                 album.getName(),
                 album.getDescription(),
                 album.getVisibility() != null ? album.getVisibility().getValue() : LibraryAlbumVisibility.PRIVATE.getValue(),
+                (long) sortedItems.size(),
+                sortedItems.stream()
+                        .map(LibraryAlbumItemEntity::getStory)
+                        .filter(story -> story != null)
+                        .map(story -> storyService.toStoryResponse(story, false))
+                        .toList()
+        );
+    }
+
+    @Transactional
+    public LibraryAlbumDetailResponse getPublicAlbumDetail(Long albumId) {
+        LibraryAlbumEntity album = libraryAlbumRepository.findByIdAndVisibility(albumId, LibraryAlbumVisibility.PUBLIC)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay bo suu tap cong khai"));
+
+        List<LibraryAlbumItemEntity> sortedItems =
+                (album.getItems() == null ? List.<LibraryAlbumItemEntity>of() : album.getItems())
+                        .stream()
+                        .sorted(
+                                Comparator.comparing(
+                                        LibraryAlbumItemEntity::getAddedAt,
+                                        Comparator.nullsLast(Comparator.reverseOrder())
+                                )
+                        )
+                        .toList();
+
+        return new LibraryAlbumDetailResponse(
+                album.getId(),
+                album.getName(),
+                album.getDescription(),
+                album.getVisibility() != null ? album.getVisibility().getValue() : LibraryAlbumVisibility.PUBLIC.getValue(),
                 (long) sortedItems.size(),
                 sortedItems.stream()
                         .map(LibraryAlbumItemEntity::getStory)

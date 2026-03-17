@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FollowersModal from '../../components/FollowersModal';
 import { getFollowersList } from '../../api/userApi';
 
@@ -6,6 +6,35 @@ const UserPortfolioStats = ({ data }) => {
     const [showFollowersModal, setShowFollowersModal] = useState(false);
     const [followersList, setFollowersList] = useState([]);
     const [followersLoading, setFollowersLoading] = useState(false);
+    const [currentFollowersCount, setCurrentFollowersCount] = useState(data.followersCount || 0);
+
+    // Listen for follow status changes
+    useEffect(() => {
+        const handleFollowStatusChanged = (event) => {
+            const { authorId, isFollowing, followersCount } = event.detail;
+            console.log('📊 UserPortfolioStats received follow event:', event.detail);
+            
+            // Update followers count if this is the same author
+            if (authorId === data.userId) {
+                setCurrentFollowersCount(followersCount);
+            }
+        };
+
+        // Add event listener
+        window.addEventListener('followStatusChanged', handleFollowStatusChanged);
+
+        // Cleanup on unmount
+        return () => {
+            window.removeEventListener('followStatusChanged', handleFollowStatusChanged);
+        };
+    }, [data.userId]);
+
+    // Update followers count when data changes
+    useEffect(() => {
+        if (data.followersCount !== undefined) {
+            setCurrentFollowersCount(data.followersCount);
+        }
+    }, [data.followersCount]);
 
     const handleShowFollowers = async () => {
         setShowFollowersModal(true);
@@ -53,7 +82,7 @@ const UserPortfolioStats = ({ data }) => {
                         </div>
                         <div className="ml-4">
                             <div className="text-2xl font-bold text-green-900 hover:text-green-800 transition-colors duration-200">
-                                {data.followersCount}
+                                {currentFollowersCount}
                             </div>
                             <div className="text-sm text-green-700 hover:text-green-600 transition-colors duration-200">
                                 Người theo dõi
@@ -85,7 +114,7 @@ const UserPortfolioStats = ({ data }) => {
             <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
                     {data.author ? (
-                        <p>Tác giả này đã đăng {data.storiesCount} truyện và nhận được {data.commentsCount} bình luận từ độc giả.</p>
+                        <p>Tác giả này đã đăng {data.storiesCount} truyện và nhận được {data.commentsCount} bình luận từ {currentFollowersCount} người theo dõi.</p>
                     ) : (
                         <p>Người dùng này là người đọc tích cực và thành viên cộng đồng.</p>
                     )}

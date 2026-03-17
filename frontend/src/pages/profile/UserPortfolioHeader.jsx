@@ -256,22 +256,7 @@ const UserPortfolioHeader = ({ data, onDonateClick }) => {
                         </div>
                     </div>
                     
-                    {/* Stats Row */}
-                    <div className="mt-6 grid grid-cols-3 gap-8 pb-6 border-b border-gray-200">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{data.storiesCount}</div>
-                            <div className="text-sm text-gray-600">Truyện</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{followersCount}</div>
-                            <div className="text-sm text-gray-600">Người theo dõi</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{data.commentsCount}</div>
-                            <div className="text-sm text-gray-600">Bình luận</div>
-                        </div>
-                    </div>
-
+                    
                     {/* Cover Upload Preview & Messages - Only show on own portfolio */}
                     {isOwnPortfolio && (
                         <>

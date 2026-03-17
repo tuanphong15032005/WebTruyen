@@ -4,6 +4,7 @@ import api from '../../services/api';
 import UserPortfolioHeader from './UserPortfolioHeader';
 import UserPortfolioSidebar from './UserPortfolioSidebar';
 import UserPortfolioStats from './UserPortfolioStats';
+import UserPortfolioAlbums from './UserPortfolioAlbums';
 import AuthorStories from './AuthorStories';
 
 const UserPortfolioPage = () => {
@@ -93,6 +94,7 @@ const UserPortfolioPage = () => {
                     {/* Main Content */}
                     <div className="lg:col-span-3 space-y-8">
                         <UserPortfolioStats data={portfolioData} />
+                        <UserPortfolioAlbums userId={userId} />
                         
                         {/* Author Stories - Only show if user is author */}
                         {portfolioData.author && (

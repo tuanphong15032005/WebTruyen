@@ -44,6 +44,13 @@ public class LibraryAlbumController {
         return libraryAlbumService.getAlbums(currentUser);
     }
 
+    @GetMapping("/user/{userId}")
+    public java.util.List<LibraryAlbumCardResponse> getUserAlbums(
+            @PathVariable Long userId
+    ) {
+        return libraryAlbumService.getAlbumsByUserId(userId);
+    }
+
     @GetMapping("/{albumId}")
     public LibraryAlbumDetailResponse getAlbumDetail(
             @PathVariable Long albumId,
@@ -51,6 +58,13 @@ public class LibraryAlbumController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return libraryAlbumService.getAlbumDetail(currentUser, albumId);
+    }
+
+    @GetMapping("/{albumId}/public")
+    public LibraryAlbumDetailResponse getPublicAlbumDetail(
+            @PathVariable Long albumId
+    ) {
+        return libraryAlbumService.getPublicAlbumDetail(albumId);
     }
 
     @PostMapping

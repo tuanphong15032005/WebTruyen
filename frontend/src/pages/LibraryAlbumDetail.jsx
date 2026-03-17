@@ -95,7 +95,7 @@ const buildPaginationItems = (currentPage, totalPages) => {
   return items;
 };
 
-function LibraryAlbumDetail() {
+function LibraryAlbumDetail({ isPublic = false }) {
   const navigate = useNavigate();
   const { albumId } = useParams();
   const { notify } = useNotify();
@@ -113,15 +113,17 @@ function LibraryAlbumDetail() {
       try {
         setLoading(true);
         setErrorMessage('');
-        const response = await libraryAlbumService.getAlbumDetail(albumId);
+        const response = isPublic 
+          ? await libraryAlbumService.getPublicAlbumDetail(albumId)
+          : await libraryAlbumService.getAlbumDetail(albumId);
         if (cancelled) return;
         setAlbum(response || null);
       } catch (error) {
         if (cancelled) return;
         console.error('getAlbumDetail error', error);
         setAlbum(null);
-        setErrorMessage('Không tải được bộ sưu tập này.');
-        notify('Không tải được bộ sưu tập', 'error');
+        setErrorMessage(isPublic ? 'Không tìm thấy bộ sưu tập công khai này.' : 'Không tải được bộ sưu tập này.');
+        notify(isPublic ? 'Không tìm thấy bộ sưu tập công khai' : 'Không tải được bộ sưu tập', 'error');
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -134,7 +136,7 @@ function LibraryAlbumDetail() {
     return () => {
       cancelled = true;
     };
-  }, [albumId, notify]);
+  }, [albumId, isPublic, notify]);
 
   useEffect(() => {
     setCurrentPage(1);
