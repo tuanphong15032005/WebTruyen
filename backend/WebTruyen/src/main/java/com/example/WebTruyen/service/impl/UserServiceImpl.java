@@ -170,6 +170,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserEntity findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+    }
+
+    @Override
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         System.out.println("=== CHANGE PASSWORD ===");
         System.out.println("User ID: " + userId);

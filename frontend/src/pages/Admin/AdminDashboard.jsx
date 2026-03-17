@@ -28,15 +28,6 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>⚠️</span>
             Quản lý Báo cáo vi phạm
           </NavLink>
-{/*           <NavLink */}
-{/*             to='achievements' */}
-{/*             className={({ isActive }) => */}
-{/*               `admin-dashboard__nav-item ${isActive ? 'active' : ''}` */}
-{/*             } */}
-{/*           > */}
-{/*             <span className='admin-dashboard__nav-icon'>🏆</span> */}
-{/*             Quản lý thành tích */}
-{/*           </NavLink> */}
           <NavLink
             to='finance'
             className={({ isActive }) =>

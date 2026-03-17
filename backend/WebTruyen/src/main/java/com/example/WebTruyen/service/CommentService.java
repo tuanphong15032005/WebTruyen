@@ -92,7 +92,7 @@ public class CommentService {
         int safeSize = normalizeSize(size);
 
         Page<CommentEntity> dataPage = commentRepository
-                .findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(
+                .findByStory_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(
                         targetStoryId,
                         PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"))
                 );
@@ -512,16 +512,7 @@ public class CommentService {
     public void deleteAuthorComment(Long authorId, Long commentId) {
         CommentEntity comment = commentRepository.findAuthorOwnedCommentById(commentId, authorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
-        deleteCommentAndDescendantsFromDb(comment);
-    }
-
-    /** Permanently deletes the comment and all its replies from the database, and any reports targeting them. */
-    private void deleteCommentAndDescendantsFromDb(CommentEntity comment) {
-        reportRepository.deleteByComment_Id(comment.getId());
-        for (CommentEntity child : commentRepository.findByParentComment_Id(comment.getId())) {
-            deleteCommentAndDescendantsFromDb(child);
-        }
-        commentRepository.delete(comment);
+        hideCommentSubtree(comment);
     }
 
     // =========================================================================

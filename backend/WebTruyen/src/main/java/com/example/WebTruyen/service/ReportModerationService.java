@@ -116,7 +116,7 @@ public class ReportModerationService {
         }
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.comment && report.getComment() != null) {
             CommentEntity comment = report.getComment();
-            deleteCommentAndDescendants(comment);
+            hideCommentSubtree(comment);
             resolveReport(report, currentUser, "REMOVE_COMMENT");
             return;
         }
@@ -143,12 +143,12 @@ public class ReportModerationService {
         resolveReport(report, currentUser, "WARN_USER");
     }
 
-    private void deleteCommentAndDescendants(CommentEntity comment) {
-        reportRepository.deleteByComment_Id(comment.getId());
+    private void hideCommentSubtree(CommentEntity comment) {
+        comment.setIsHidden(true);
+        commentRepository.save(comment);
         for (CommentEntity child : commentRepository.findByParentComment_Id(comment.getId())) {
-            deleteCommentAndDescendants(child);
+            hideCommentSubtree(child);
         }
-        commentRepository.delete(comment);
     }
 
     private UserEntity resolveViolatingUser(ReportEntity report) {

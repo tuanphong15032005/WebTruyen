@@ -1,6 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
+import FollowersModal from '../../components/FollowersModal';
+import { getFollowersList } from '../../api/userApi';
 
 const UserPortfolioStats = ({ data }) => {
+    const [showFollowersModal, setShowFollowersModal] = useState(false);
+    const [followersList, setFollowersList] = useState([]);
+    const [followersLoading, setFollowersLoading] = useState(false);
+
+    const handleShowFollowers = async () => {
+        setShowFollowersModal(true);
+        setFollowersLoading(true);
+        try {
+            const followers = await getFollowersList(data.userId);
+            setFollowersList(Array.isArray(followers) ? followers : []);
+        } catch (error) {
+            console.error('Error fetching followers:', error);
+            setFollowersList([]);
+        } finally {
+            setFollowersLoading(false);
+        }
+    };
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">Thống kê</h2>
@@ -21,8 +40,11 @@ const UserPortfolioStats = ({ data }) => {
                     </div>
                 </div>
                 
-                {/* Followers Card */}
-                <div className="bg-green-50 rounded-lg p-4">
+                {/* Followers Card - CLICKABLE */}
+                <div 
+                    className="bg-green-50 rounded-lg p-4 cursor-pointer hover:bg-green-100 transition-colors duration-200"
+                    onClick={handleShowFollowers}
+                >
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -30,9 +52,16 @@ const UserPortfolioStats = ({ data }) => {
                             </svg>
                         </div>
                         <div className="ml-4">
-                            <div className="text-2xl font-bold text-green-900">{data.followersCount}</div>
-                            <div className="text-sm text-green-700">Người theo dõi</div>
+                            <div className="text-2xl font-bold text-green-900 hover:text-green-800 transition-colors duration-200">
+                                {data.followersCount}
+                            </div>
+                            <div className="text-sm text-green-700 hover:text-green-600 transition-colors duration-200">
+                                Người theo dõi
+                            </div>
                         </div>
+                    </div>
+                    <div className="mt-2 text-xs text-green-600 hover:text-green-500 transition-colors duration-200">
+                        Click để xem danh sách
                     </div>
                 </div>
                 
@@ -55,13 +84,21 @@ const UserPortfolioStats = ({ data }) => {
             {/* Additional Info */}
             <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
-                    {data.isAuthor ? (
+                    {data.author ? (
                         <p>Tác giả này đã đăng {data.storiesCount} truyện và nhận được {data.commentsCount} bình luận từ độc giả.</p>
                     ) : (
                         <p>Người dùng này là người đọc tích cực và thành viên cộng đồng.</p>
                     )}
                 </div>
             </div>
+
+            {/* Followers Modal */}
+            <FollowersModal
+                isOpen={showFollowersModal}
+                onClose={() => setShowFollowersModal(false)}
+                followers={followersList}
+                loading={followersLoading}
+            />
         </div>
     );
 };

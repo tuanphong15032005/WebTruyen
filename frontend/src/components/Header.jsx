@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-
 import {
   BookOpen,
   Bookmark,
@@ -8,8 +7,8 @@ import {
   Gem,
   Search,
   Star,
+  Users,
 } from 'lucide-react';
-
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import storyService from '../services/storyService';
@@ -240,6 +239,14 @@ function Header() {
             >
               Xếp hạng
             </NavLink>
+            <NavLink
+              to='/authors'
+              className={({ isActive }) =>
+                `site-nav__item ${isActive ? 'active' : ''}`
+              }
+            >
+              Tác giả
+            </NavLink>
           </nav>
         </div>
 
@@ -405,7 +412,10 @@ function Header() {
                   )}
 
                   {hasAnyRole(['ADMIN', 'MOD'], user) && (
+                    <>
                       <Link to='/admin/dashboard'>Dashboard quản trị</Link>
+                      <Link to='/admin/terms'>Quản lý điều khoản</Link>
+                    </>
                   )}
 
                   <button type='button' onClick={handleLogout}>
@@ -423,7 +433,6 @@ function Header() {
                 Đăng ký
               </Link>
             </div>
-            // <<<<<<< HEAD
           )}
         </div>
       </div>

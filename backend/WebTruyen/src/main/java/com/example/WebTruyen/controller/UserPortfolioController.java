@@ -1,6 +1,7 @@
 package com.example.WebTruyen.controller;
 
 import com.example.WebTruyen.dto.response.UserPortfolioResponse;
+import com.example.WebTruyen.dto.response.FollowerResponse;
 import com.example.WebTruyen.service.user.UserPortfolioService;
 import com.example.WebTruyen.service.TieredAchievementIntegrationService;
 import lombok.RequiredArgsConstructor;
@@ -61,5 +62,11 @@ public class UserPortfolioController {
     @GetMapping("/{userId}/stories")
     public List<Map<String, Object>> getAuthorStories(@PathVariable Long userId) {
         return userPortfolioService.getAuthorStories(userId);
+    }
+
+    // Get followers list endpoint
+    @GetMapping("/{userId}/followers")
+    public List<FollowerResponse> getFollowersList(@PathVariable Long userId) {
+        return userPortfolioService.getFollowersList(userId);
     }
 }

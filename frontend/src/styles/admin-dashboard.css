@@ -1,10 +1,14 @@
 /* Layout hai cột: sidebar tối + main sáng (theme đen trắng NovelPanel) */
 .admin-dashboard {
+  --admin-dashboard-base-height: calc(100vh - var(--site-header-height, 72px) - 60px);
+  --admin-dashboard-min-height: calc(
+    var(--admin-dashboard-base-height) + (var(--admin-dashboard-base-height) / 2)
+  );
   display: flex;
   flex: 1;
-  min-height: 0;
-  height: calc(100vh - var(--site-header-height, 72px) - 60px);
-  max-height: calc(100vh - var(--site-header-height, 72px) - 60px);
+  min-height: var(--admin-dashboard-min-height);
+  height: auto;
+  max-height: none;
   background: #f1f5f9;
   overflow: hidden;
 }
@@ -12,7 +16,7 @@
 /* Khi nằm trong main-content--admin: tận dụng flex để fill khung */
 .main-content--admin > .admin-dashboard {
   flex: 1;
-  min-height: 0;
+  min-height: var(--admin-dashboard-min-height);
   height: auto;
   max-height: none;
 }
