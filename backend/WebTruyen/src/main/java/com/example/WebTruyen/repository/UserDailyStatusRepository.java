@@ -43,6 +43,9 @@ public interface UserDailyStatusRepository extends JpaRepository<UserDailyStatus
     @Query("SELECT COUNT(DISTINCT uds.id.userId) FROM UserDailyStatusEntity uds WHERE uds.id.dailyMissionId = :dailyMissionId")
     Long countUsersByMissionId(@Param("dailyMissionId") Long dailyMissionId);
     
+    @Query("SELECT uds FROM UserDailyStatusEntity uds WHERE uds.id.dailyMissionId = :dailyMissionId")
+    List<UserDailyStatusEntity> findByMissionId(@Param("dailyMissionId") Long dailyMissionId);
+    
     @Modifying
     @Query(value = "INSERT INTO user_daily_status (user_id, daily_mission_id, progress) VALUES (:userId, :dailyMissionId, '{}')", nativeQuery = true)
     void insertUserDailyStatus(@Param("userId") Long userId, @Param("dailyMissionId") Long dailyMissionId);

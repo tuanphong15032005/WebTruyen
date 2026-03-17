@@ -18,6 +18,14 @@ const DailyMissionManagement = () => {
   const [templateLoading, setTemplateLoading] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
 
+  // Custom modal states
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertModalContent, setAlertModalContent] = useState({
+    title: '',
+    message: '',
+    type: 'info' // 'success', 'error', 'info'
+  });
+
   // Form states
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -28,6 +36,27 @@ const DailyMissionManagement = () => {
     rewardCoinType: 'A',
   });
   const [existingMissionCodes, setExistingMissionCodes] = useState([]);
+
+  // Helper function to show custom alert modal
+  const showAlert = (title, message, type = 'info') => {
+    setAlertModalContent({
+      title,
+      message,
+      type
+    });
+    setShowAlertModal(true);
+  };
+
+  // Helper function to show confirmation modal
+  const showConfirm = (title, message, onConfirm) => {
+    setAlertModalContent({
+      title,
+      message,
+      type: 'confirm',
+      onConfirm
+    });
+    setShowAlertModal(true);
+  };
 
   // Mission code options with recommended rewards
   const missionCodeOptions = [
@@ -132,17 +161,170 @@ const DailyMissionManagement = () => {
   };
 
   const handleGenerateMissions = async () => {
-    if (window.confirm(`Bạn có chắc chắn muốn tạo tự động tất cả nhiệm vụ cho ngày ${selectedDate}?`)) {
-      try {
-        const response = await dailyMissionAdminApi.generateMissionsForDate(selectedDate);
-        alert(response.message);
-        loadMissions();
-        loadExistingMissionCodes();
-      } catch (error) {
-        console.error('Error generating missions:', error);
-        alert(error.response?.data?.error || 'Không thể tạo nhiệm vụ. Vui lòng thử lại.');
-      }
+    // First check if missions already exist for this date
+    const existingMissions = missions.filter(mission => mission.date === selectedDate);
+    const existingCount = existingMissions.length;
+    
+    if (existingCount === 0) {
+      // Case 1: No missions exist - create all 6
+      showConfirm(
+        'Tạo nhiệm vụ mới',
+        `Bạn có chắc chắn muốn tạo tự động tất cả nhiệm vụ cho ngày ${selectedDate}?`,
+        async () => {
+          await generateMissions();
+        }
+      );
+    } else if (existingCount >= 6) {
+      // Case 2: Already have 6+ missions - ask if want to update from templates
+      showConfirm(
+        'Cập nhật từ Template',
+        `Đã có đủ ${existingCount} nhiệm vụ cho ngày ${selectedDate}. Bạn có muốn cập nhật các nhiệm vụ chưa có ai làm theo template không? Các nhiệm vụ đang có người làm sẽ được giữ nguyên.`,
+        async () => {
+          await regenerateMissions();
+        }
+      );
+    } else {
+      // Case 3: Have some missions but less than 6 - create missing ones
+      showConfirm(
+        'Tạo nhiệm vụ thiếu',
+        `Đã có ${existingCount} nhiệm vụ cho ngày ${selectedDate}. Bạn có chắc chắn muốn tạo thêm ${6 - existingCount} nhiệm vụ còn thiếu không?`,
+        async () => {
+          await generateMissions();
+        }
+      );
     }
+  };
+
+  const generateMissions = async () => {
+    try {
+      const response = await dailyMissionAdminApi.generateMissionsForDate(selectedDate);
+      console.log('Generate missions response:', response);
+      
+      if (response && response.message) {
+        // Show appropriate message based on action type
+        if (response.actionType === 'created_all') {
+          showAlert('Thành công', response.message, 'success');
+        } else if (response.actionType === 'added_missing') {
+          showAlert('Thành công', response.message, 'success');
+        } else if (response.actionType === 'already_complete') {
+          showAlert('Thông tin', response.message, 'info');
+        } else {
+          showAlert('Thành công', response.message, 'success');
+        }
+      } else {
+        showAlert('Thành công', 'Đã xử lý yêu cầu tạo nhiệm vụ', 'success');
+      }
+      
+      loadMissions();
+      loadExistingMissionCodes(); // Reload existing codes
+    } catch (error) {
+      console.error('Error generating missions:', error);
+      console.error('Error response:', error.response);
+      
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Không thể tạo nhiệm vụ. Vui lòng thử lại.';
+      showAlert('Lỗi', errorMessage, 'error');
+    }
+  };
+
+  const regenerateMissions = async () => {
+    try {
+      const response = await dailyMissionAdminApi.regenerateMissionsFromTemplates(selectedDate);
+      console.log('Regenerate missions response:', response);
+      
+      if (response && response.message) {
+        showAlert('Thành công', response.message, 'success');
+      } else {
+        showAlert('Thành công', 'Đã cập nhật nhiệm vụ từ template', 'success');
+      }
+      
+      loadMissions();
+      loadExistingMissionCodes(); // Reload existing codes
+    } catch (error) {
+      console.error('Error regenerating missions:', error);
+      console.error('Error response:', error.response);
+      
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Không thể cập nhật nhiệm vụ từ template. Vui lòng thử lại.';
+      showAlert('Lỗi', errorMessage, 'error');
+    }
+  };
+
+  const handleDeleteMission = async (missionId) => {
+    showConfirm(
+      'Xác nhận xóa',
+      'Bạn có chắc chắn muốn xóa nhiệm vụ này không? Hành động này không thể hoàn tác.',
+      async () => {
+        try {
+          await dailyMissionAdminApi.deleteMission(missionId);
+          showAlert('Thành công', 'Đã xóa nhiệm vụ thành công', 'success');
+          loadMissions();
+          loadExistingMissionCodes(); // Reload existing codes
+        } catch (error) {
+          console.error('Error deleting mission:', error);
+          const errorMessage = error.response?.data?.error || 
+                              error.response?.data?.message || 
+                              error.message || 
+                              'Không thể xóa nhiệm vụ. Vui lòng thử lại.';
+          showAlert('Lỗi', errorMessage, 'error');
+        }
+      }
+    );
+  };
+
+  const handleBatchDeleteMissions = async () => {
+    const missionsWithoutProgress = missions.filter(mission => !mission.hasProgress);
+    
+    if (missionsWithoutProgress.length === 0) {
+      showAlert('Thông tin', 'Không có nhiệm vụ nào chưa có người làm để xóa', 'info');
+      return;
+    }
+
+    showConfirm(
+      'Xác nhận xóa hàng loạt',
+      `Bạn có chắc chắn muốn xóa ${missionsWithoutProgress.length} nhiệm vụ chưa có người làm không? Hành động này không thể hoàn tác.`,
+      async () => {
+        try {
+          console.log('Calling batch delete API for date:', selectedDate);
+          const response = await dailyMissionAdminApi.batchDeleteMissionsWithoutProgress(selectedDate);
+          console.log('Batch delete response:', response);
+          
+          // Handle response safely - check if response exists and has message
+          let message = 'Đã xóa nhiệm vụ thành công';
+          if (response) {
+            if (typeof response === 'object' && response !== null) {
+              message = response.message || message;
+              console.log('Response message:', message);
+            } else if (typeof response === 'string') {
+              message = response;
+            }
+          } else {
+            console.log('Response is undefined or null');
+          }
+          
+          showAlert('Thành công', message, 'success');
+          loadMissions();
+          loadExistingMissionCodes(); // Reload existing codes
+        } catch (error) {
+          console.error('Error batch deleting missions:', error);
+          console.error('Error response:', error.response);
+          
+          // Handle error message safely
+          let errorMessage = 'Không thể xóa nhiệm vụ hàng loạt. Vui lòng thử lại.';
+          if (error.response && error.response.data) {
+            errorMessage = error.response.data.error || error.response.data.message || errorMessage;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          showAlert('Lỗi', errorMessage, 'error');
+        }
+      }
+    );
   };
 
   const openEditModal = (mission) => {
@@ -184,26 +366,23 @@ const DailyMissionManagement = () => {
   };
 
   const handleUpdateTemplate = async () => {
-    if (!window.confirm(
-      '⚠️ Lưu ý quan trọng:\n\n' +
-      'Thay đổi template này sẽ chỉ có hiệu lực từ NGÀY MAI.\n' +
-      'Nhiệm vụ của HÔM NAY sẽ giữ nguyên như cũ.\n\n' +
-      'Bạn có chắc chắn muốn tiếp tục?'
-    )) {
-      return;
-    }
-
-    try {
-      await dailyMissionAdminApi.updateTemplate(editingTemplate.id, formData);
-      setShowCreateModal(false);
-      setEditingTemplate(null);
-      resetForm();
-      loadTemplates();
-      alert('✅ Template đã được cập nhật. Thay đổi sẽ áp dụng từ ngày mai.');
-    } catch (error) {
-      console.error('Error updating template:', error);
-      alert(error.response?.data?.error || 'Không thể cập nhật template. Vui lòng thử lại.');
-    }
+    showConfirm(
+      'Lưu ý quan trọng',
+      '⚠️ Thay đổi template này sẽ chỉ có hiệu lực từ NGÀY MAI. Nhiệm vụ của HÔM NAY sẽ giữ nguyên như cũ. Bạn có chắc chắn muốn tiếp tục?',
+      async () => {
+        try {
+          await dailyMissionAdminApi.updateTemplate(editingTemplate.id, formData);
+          setShowCreateModal(false);
+          setEditingTemplate(null);
+          resetForm();
+          loadTemplates();
+          showAlert('Thành công', 'Template đã được cập nhật. Thay đổi sẽ áp dụng từ ngày mai.', 'success');
+        } catch (error) {
+          console.error('Error updating template:', error);
+          showAlert('Lỗi', error.response?.data?.error || 'Không thể cập nhật template. Vui lòng thử lại.', 'error');
+        }
+      }
+    );
   };
 
   return (
@@ -259,7 +438,13 @@ const DailyMissionManagement = () => {
                   onClick={handleGenerateMissions}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 >
-                  Tự động tạo nhiệm vụ cho ngày
+                  Tự động tạo và cập nhật nhiệm vụ
+                </button>
+                <button
+                  onClick={handleBatchDeleteMissions}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  Xóa hàng loạt nhiệm vụ chưa có người làm
                 </button>
               </div>
             </div>
@@ -369,12 +554,20 @@ const DailyMissionManagement = () => {
                           {mission.hasProgress ? (
                             <span className="text-gray-400 italic">Đã có người làm</span>
                           ) : (
-                            <button
-                              onClick={() => openEditModal(mission)}
-                              className="text-indigo-600 hover:text-indigo-900"
-                            >
-                              Sửa
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => openEditModal(mission)}
+                                className="text-indigo-600 hover:text-indigo-900"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMission(mission.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Xóa
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -481,8 +674,8 @@ const DailyMissionManagement = () => {
 
       {/* Create/Edit Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
               {editingTemplate ? 'Chỉnh sửa Template' : 'Chỉnh sửa Nhiệm vụ'}
             </h3>
@@ -500,25 +693,7 @@ const DailyMissionManagement = () => {
                 </div>
               )}
               
-              {!editingTemplate && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mã nhiệm vụ</label>
-                  <select
-                    value={formData.missionCode}
-                    onChange={(e) => setFormData({ ...formData, missionCode: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={!!editingMission}
-                  >
-                    {missionCodeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              
-              {/* Mission code field removed for template editing to prevent duplication */}
+              {/* Mission code field removed for editing to prevent duplication */}
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
@@ -585,6 +760,82 @@ const DailyMissionManagement = () => {
               >
                 Cập nhật
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert/Confirm Modal */}
+      {showAlertModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center mb-4">
+              {alertModalContent.type === 'success' && (
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+              )}
+              {alertModalContent.type === 'error' && (
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </div>
+              )}
+              {alertModalContent.type === 'info' && (
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              )}
+              {alertModalContent.type === 'confirm' && (
+                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              )}
+              <h3 className="text-lg font-semibold text-gray-900">{alertModalContent.title}</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">{alertModalContent.message}</p>
+            
+            <div className="flex justify-end">
+              {alertModalContent.type === 'confirm' ? (
+                <>
+                  <button
+                    onClick={() => setShowAlertModal(false)}
+                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 mr-3"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (alertModalContent.onConfirm) {
+                        alertModalContent.onConfirm();
+                      }
+                      setShowAlertModal(false);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Xác nhận
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowAlertModal(false)}
+                  className={`px-4 py-2 rounded-md text-white ${
+                    alertModalContent.type === 'success' ? 'bg-green-600 hover:bg-green-700' :
+                    alertModalContent.type === 'error' ? 'bg-red-600 hover:bg-red-700' :
+                    'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  OK
+                </button>
+              )}
             </div>
           </div>
         </div>
