@@ -59,6 +59,7 @@ import AdminTermsPage from './pages/Admin/AdminTermsPage';
 import DynamicPage from './pages/docs/DynamicPage';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
+import DailyMissionManagement from './pages/Admin/DailyMissionManagement';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
@@ -248,6 +249,7 @@ function MainLayoutWrapper() {
           <Route path='reports' element={<ViolationReportManagement />} />
           <Route path='achievements' element={<AchievementManagementPage />} />
           <Route path='finance' element={<FinanceManagementPage />} />
+          <Route path='daily-missions' element={<DailyMissionManagement />} />
         </Route>
         <Route
           path='/admin/content-moderation'
