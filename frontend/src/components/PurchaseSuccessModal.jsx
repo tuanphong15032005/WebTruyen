@@ -1,10 +1,10 @@
 import React from 'react';
 import '../styles/PurchaseSuccessModal.css';
 
-const PurchaseSuccessModal = ({ isOpen, onClose, response }) => {
+const PurchaseSuccessModal = ({ isOpen, onClose, response, chapterTitle }) => {
   if (!isOpen) return null;
 
-  const chapterLabel = response?.chapterId || 'N/A';
+  const chapterLabel = chapterTitle || `Chương ${response?.chapterId || 'N/A'}`;
   const amountPaid = Number(response?.amountPaid ?? response?.totalPrice ?? 0);
   const remainingBalance = Number(
     response?.remainingBalance ??

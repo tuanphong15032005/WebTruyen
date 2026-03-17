@@ -46,6 +46,13 @@
   gap: 14px;
 }
 
+.site-header__lead {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
 /* Daily Tasks Page Styles */
 .daily-tasks-page {
   max-width: 1200px;
@@ -977,7 +984,7 @@
   margin-bottom: 10px;
 }
 
-.site-footer__social button {
+.site-footer__social a {
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -987,6 +994,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.site-footer__social a:hover {
+  transform: translateY(-1px);
+  border-color: #c1d1eb;
+  box-shadow: 0 8px 18px rgba(50, 80, 130, 0.12);
+}
+
+.site-footer__social-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.site-footer__social-icon--facebook {
+  color: #1877f2;
+}
+
+.site-footer__social-icon--google {
+  width: 19px;
+  height: 19px;
 }
 
 @media (max-width: 1180px) {
@@ -1002,14 +1035,33 @@
     gap: 10px;
   }
 
+  .site-header__lead {
+    gap: 12px;
+  }
+
+  .site-nav__item {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
   .site-footer__inner {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 640px) {
+  .site-header__lead {
+    gap: 8px;
+  }
+
   .site-brand__text {
     font-size: 1.3rem;
+  }
+
+  .site-nav__item {
+    height: 34px;
+    padding: 0 9px;
+    font-size: 0.86rem;
   }
 
   .site-header__actions {

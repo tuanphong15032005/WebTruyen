@@ -57,6 +57,7 @@ public class UserPortfolioService {
                 .username(user.getUsername())
                 .displayName(user.getDisplayName())
                 .avatarUrl(user.getAvatarUrl())
+                .coverUrl(user.getCoverUrl())
                 .authorPenName(user.getAuthorPenName())  // Added for ISSUE 2
                 .joinDate(user.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE))
                 .bio(bio)

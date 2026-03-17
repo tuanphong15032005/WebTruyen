@@ -1,4 +1,5 @@
 package com.example.WebTruyen.entity.model.Gamification;
+
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,29 +7,29 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_achievements")
+@Table(name = "user_achievement_progress",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "achievement_id"}))
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class UserAchievementEntity {
+public class UserAchievementProgressEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private UserAchievementProgressId id;
 
-    // user_id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId("userId")
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    // achievement_id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId("achievementId")
     @JoinColumn(name = "achievement_id", nullable = false)
     private AchievementEntity achievement;
 
-    @Column(name = "achieved_at", nullable = false)
-    private LocalDateTime achievedAt;
+    @Column(nullable = false)
+    private Integer progress;
 
-    @Column(name = "is_claimed", nullable = false)
-    private Boolean isClaimed;
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }

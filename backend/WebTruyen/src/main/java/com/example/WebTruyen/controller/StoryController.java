@@ -5,30 +5,39 @@ import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.request.CreateVolumeRequest;
+import com.example.WebTruyen.dto.request.UpdateStoryLibraryRequest;
 import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
 import com.example.WebTruyen.dto.response.CommentResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
 import com.example.WebTruyen.dto.response.CreateVolumeResponse;
 import com.example.WebTruyen.dto.response.HomeCommunityCommentResponse;
+import com.example.WebTruyen.dto.response.LibraryStoryResponse;
 import com.example.WebTruyen.dto.response.PagedResponse;
 import com.example.WebTruyen.dto.response.StoryReviewResponse;
+import com.example.WebTruyen.dto.response.StoryLibraryDialogResponse;
+import com.example.WebTruyen.dto.response.StoryResumePointResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
 import com.example.WebTruyen.dto.response.AuthorCommentResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.security.UserPrincipal;
+import com.example.WebTruyen.security.JwtTokenProvider;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.CommentService;
 import com.example.WebTruyen.service.SimpleDailyTaskService;
 import com.example.WebTruyen.service.StoryReviewService;
 import com.example.WebTruyen.service.StoryService;
 import com.example.WebTruyen.service.VolumeService;
+import com.example.WebTruyen.service.TieredAchievementIntegrationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,6 +47,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api")
@@ -49,15 +59,34 @@ public class StoryController {
     private final StoryService storyService;
     private final VolumeService volumeService;
     private final ChapterService chapterService;
-    private final StoryReviewService storyReviewService;
     private final CommentService commentService;
+    private final StoryReviewService storyReviewService;
     private final SimpleDailyTaskService simpleDailyTaskService;
+
+    private final TieredAchievementIntegrationService achievementIntegrationService;
+
+    private final JwtTokenProvider jwtTokenProvider;
+
 
     private UserEntity requireUser(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
         return userPrincipal.getUser();
+    }
+
+    private Long resolveUserIdFromToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        String normalized = token.trim();
+        if (normalized.startsWith("Bearer ")) {
+            normalized = normalized.substring("Bearer ".length()).trim();
+        }
+        if (!jwtTokenProvider.validateToken(normalized)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return jwtTokenProvider.getUserIdFromToken(normalized);
     }
 
     @PostMapping(value = "/stories", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -68,7 +97,9 @@ public class StoryController {
     ) throws Exception {
         CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
         UserEntity currentUser = requireUser(userPrincipal);
-        return storyService.createStory(currentUser, data, cover);
+        StoryResponse response = storyService.createStory(currentUser, data, cover);
+        
+        return response;
     }
 
     // Lấy thông tin chi tiết truyện theo id
@@ -88,6 +119,19 @@ public class StoryController {
         return storyService.getPublicStorySidebar(storyId);
     }
 
+    @GetMapping("/stories/{storyId}/resume-point")
+    public ResponseEntity<StoryResumePointResponse> getStoryResumePoint(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        StoryResumePointResponse response = storyService.getStoryResumePoint(currentUser, storyId);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/public/stories")
     // Hieu Son - ngay 26/02/2026 | v1.0.0-search | branch: minhfinal2
     // Sua ham: mo rong API danh sach truyen cong khai, ho tro tim kiem nang cao theo ten, tac gia, tinh trang va tag (AND).
@@ -97,8 +141,10 @@ public class StoryController {
             @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort,
             @RequestParam(required = false) String q, //keyword 
             @RequestParam(required = false) String author,
+            @RequestParam(required = false) String kind,
             @RequestParam(required = false) String completionStatus,
-            @RequestParam(required = false) String tagIds
+            @RequestParam(required = false) String tagIds,
+            @RequestParam(required = false) String excludeTagIds
     ) {
         return storyService.getPublishedStories(
                 page,
@@ -106,8 +152,10 @@ public class StoryController {
                 sort,
                 q,
                 author,
+                kind,
                 completionStatus,
-                parseTagIdsCsv(tagIds)
+                parseTagIdsCsv(tagIds),
+                parseTagIdsCsv(excludeTagIds)
         );
     }
 
@@ -128,7 +176,7 @@ public class StoryController {
     }
 
     @GetMapping("/stories/library")
-    public java.util.List<StoryResponse> getLibraryStories(
+    public java.util.List<LibraryStoryResponse> getLibraryStories(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
@@ -161,8 +209,26 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
-        boolean saved = storyService.getLibraryStatus(currentUser, storyId);
-        return Map.of("saved", saved);
+        return storyService.getLibraryStatus(currentUser, storyId);
+    }
+
+    @GetMapping("/stories/{storyId}/library-dialog")
+    public StoryLibraryDialogResponse getStoryLibraryDialog(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getStoryLibraryDialog(currentUser, storyId);
+    }
+
+    @PutMapping("/stories/{storyId}/library-dialog")
+    public StoryLibraryDialogResponse updateStoryLibraryDialog(
+            @PathVariable Long storyId,
+            @Valid @RequestBody UpdateStoryLibraryRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.updateStoryLibraryDialog(currentUser, storyId, request);
     }
 
     @PostMapping("/stories/{storyId}/library/toggle")
@@ -171,8 +237,16 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        boolean saved = storyService.toggleLibraryStatus(currentUser, storyId);
-        return Map.of("saved", saved);
+        return storyService.toggleLibraryStatus(currentUser, storyId);
+    }
+
+    @PostMapping("/stories/{storyId}/favorite/toggle")
+    public Map<String, Boolean> toggleLibraryFavoriteStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.toggleLibraryFavoriteStatus(currentUser, storyId);
     }
 
     // C?p nh?t truy?n theo id
@@ -186,6 +260,29 @@ public class StoryController {
         CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
         UserEntity currentUser = requireUser(userPrincipal);
         return storyService.updateStory(currentUser, storyId, data, cover);
+    }
+
+    @PostMapping("/stories/{storyId}/submit-approval")
+    public ResponseEntity<Map<String, String>> submitStoryApproval(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        try {
+            StoryApprovalStatus approvalStatus = storyService.submitStoryForApproval(storyId, userId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Story submitted for review",
+                    "approvalStatus", approvalStatus.name()
+            ));
+        } catch (ResponseStatusException ex) {
+            String message = ex.getReason() != null && !ex.getReason().isBlank()
+                    ? ex.getReason()
+                    : "gửi duyệt truyện thất bại";
+            return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
+        }
     }
 
     // L?y danh s?ch volume v? chapter theo story
@@ -238,12 +335,20 @@ public class StoryController {
         
         // Track comment for daily task
         try {
-            log.info("Tracking comment for daily task - user: {}, story: {}", currentUser.getId(), storyId);
             simpleDailyTaskService.updateTaskProgress(currentUser.getId(), "MAKE_COMMENTS", null);
             log.info("Successfully tracked comment for daily task");
         } catch (Exception e) {
             // Don't fail the comment creation if daily task tracking fails
             log.warn("Failed to track comment for daily task - user: {}, story: {}", currentUser.getId(), storyId, e);
+        }
+        
+        // Trigger achievement event for comment creation
+        try {
+
+            achievementIntegrationService.onCommentCreated(currentUser.getId());
+            log.info("Achievement event triggered successfully for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("Failed to trigger achievement event for user {}: {}", currentUser.getId(), e.getMessage(), e);
         }
         
         return response;
@@ -314,6 +419,15 @@ public class StoryController {
             log.warn("Failed to track chapter comment for daily task - user: {}, story: {}, chapter: {}", currentUser.getId(), storyId, chapterId, e);
         }
         
+        // Trigger achievement event for comment creation
+        try {
+            log.info("DEBUG: About to trigger achievement event for user: {}", currentUser.getId());
+            achievementIntegrationService.onCommentCreated(currentUser.getId());
+            log.info("DEBUG: Achievement event triggered successfully for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("DEBUG: Failed to trigger achievement event for user {}: {}", currentUser.getId(), e.getMessage(), e);
+        }
+        
         return response;
     }
     //phong sua conflict merge muatruyen voi admin1
@@ -364,10 +478,14 @@ public class StoryController {
     public List<AuthorCommentResponse> getAuthorComments(
             @RequestParam Integer storyId,
             @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) java.time.Instant fromDate,
+            @RequestParam(required = false) java.time.Instant toDate,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId);
+        java.time.LocalDateTime from = fromDate != null ? fromDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        java.time.LocalDateTime to = toDate != null ? toDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId, from, to);
     }
 
     @PostMapping(value = "/author/comments/{parentCommentId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -488,7 +606,24 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
-        return chapterService.createChapterFromHtml( currentUser,  storyId,  volumeId, req);
+        CreateChapterResponse response = chapterService.createChapterFromHtml(currentUser, storyId, volumeId, req);
+        
+        // Trigger achievement event only for published chapters
+        try {
+            // Check if the created chapter is published from request
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                achievementIntegrationService.onChapterCreated(currentUser.getId());
+                log.info("Triggered chapter creation achievement for published chapter - user: {}", currentUser.getId());
+            } else {
+                log.info("Chapter created but not published - no achievement triggered - user: {}, status: {}", 
+                    currentUser.getId(), req != null ? req.getStatus() : "null");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to trigger chapter creation achievement: {}", e.getMessage());
+        }
+        
+        return response;
     }
 
     @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -500,6 +635,26 @@ public class StoryController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
+        
+        // Get current chapter status before update
+        try {
+            // Check if this is a status change to published
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                
+                // Check if chapter was previously not published
+                var currentChapter = chapterService.getChapterById(chapterId);
+                if (currentChapter != null && currentChapter.getStatus() != null && 
+                    !"published".equals(currentChapter.getStatus().toString())) {
+                    
+                    log.info("Chapter status changing to published - triggering achievement for user: {}", currentUser.getId());
+                    achievementIntegrationService.onChapterCreated(currentUser.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to check chapter status for achievement: {}", e.getMessage());
+        }
+        
         return chapterService.updateChapterFromHtml(currentUser, storyId, volumeId, chapterId, req);
     }
     
@@ -509,6 +664,77 @@ public class StoryController {
             @PathVariable Long chapterId
     ) {
         return chapterService.getChapterContent(chapterId);
+    }
+
+    @GetMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Object> getChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return chapterService.getChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId()
+        );
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> saveChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @RequestBody(required = false) Map<String, Object> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String draftContent = payload != null ? Objects.toString(payload.get("draftContent"), "") : "";
+        return chapterService.saveChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId(),
+                draftContent
+        );
+    }
+
+    @PostMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft/beacon", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> saveChapterDraftByBeacon(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @RequestParam("token") String token,
+            @RequestBody(required = false) Map<String, Object> payload
+    ) {
+        Long userId = resolveUserIdFromToken(token);
+        String draftContent = payload != null ? Objects.toString(payload.get("draftContent"), "") : "";
+        return chapterService.saveChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                userId,
+                draftContent
+        );
+    }
+
+    @DeleteMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Boolean> deleteChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        chapterService.deleteChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId()
+        );
+        return Map.of("deleted", true);
     }
 
     public record AuthorReplyRequest(String content) {}

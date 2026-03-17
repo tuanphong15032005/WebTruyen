@@ -19,6 +19,10 @@ const PurchaseConfirmationModal = ({ isOpen, onClose, chapter, wallet, onConfirm
       <div className="purchase-modal">
         <h2>Xác nhận mua chương</h2>
         <div className="purchase-details">
+          <div className="detail-row chapter-title">
+            <span>Tên chương:</span>
+            <span>{chapter?.title || `Chương ${chapter?.id || 'N/A'}`}</span>
+          </div>
           <div className="detail-row">
             <span>Số tiền cần thanh toán:</span>
             <span>{chapterPrice} Coin</span>

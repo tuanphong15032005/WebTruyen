@@ -16,6 +16,7 @@ public record StoryResponse(
         String summaryHtml,
         String coverUrl,
         String status,
+        String approvalStatus,
         String kind,
         String completionStatus,
         LocalDateTime completedAt,

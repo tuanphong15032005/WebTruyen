@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
+import ConfirmActionModal from '../../components/ConfirmActionModal';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
 import '../../styles/create-story.css';
@@ -11,6 +12,9 @@ const STORY_STATUS_OPTIONS = [
   { value: 'draft', label: 'Nháp' },
   { value: 'published', label: 'Công khai' },
 ];
+const DRAFT_ONLY_STORY_STATUS_OPTIONS = STORY_STATUS_OPTIONS.filter(
+  (option) => option.value === 'draft',
+);
 
 const STORY_KIND_OPTIONS = [
   { value: 'original', label: 'Truyện gốc' },
@@ -33,6 +37,7 @@ const CreateStory = () => {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [status, setStatus] = useState('draft');
+  const [approvalStatus, setApprovalStatus] = useState('');
   const [kind, setKind] = useState('original');
   const [originalAuthorName, setOriginalAuthorName] = useState('');
   const [completionStatus, setCompletionStatus] = useState('ongoing');
@@ -46,7 +51,15 @@ const CreateStory = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [selectedLabels, setSelectedLabels] = useState([]);
+  const [showApprovalResetModal, setShowApprovalResetModal] = useState(false);
+  const [initialStorySnapshot, setInitialStorySnapshot] = useState(null);
   const coverInputRef = useRef(null);
+  const approvalKey = String(approvalStatus || '').toLowerCase();
+  const canShowPublishedOption =
+    status === 'published' || (isEditing && approvalKey === 'approved');
+  const statusOptions = canShowPublishedOption
+    ? STORY_STATUS_OPTIONS
+    : DRAFT_ONLY_STORY_STATUS_OPTIONS;
 
   useEffect(() => {
     if (!coverFile) {
@@ -57,6 +70,11 @@ const CreateStory = () => {
     setCoverPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [coverFile]);
+
+  useEffect(() => {
+    if (status !== 'published' || canShowPublishedOption) return;
+    setStatus('draft');
+  }, [canShowPublishedOption, status]);
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -95,6 +113,7 @@ const CreateStory = () => {
         setTitle(data.title || '');
         setSummary(data.summaryHtml || data.summary || '');
         setStatus((data.status || 'draft').toLowerCase());
+        setApprovalStatus((data.approvalStatus || '').toLowerCase());
         setKind((data.kind || 'original').toLowerCase());
         setOriginalAuthorName(data.originalAuthorName || '');
         setCompletionStatus((data.completionStatus || 'ongoing').toLowerCase());
@@ -108,6 +127,18 @@ const CreateStory = () => {
           setCategoryId('');
           setTagIds([]);
         }
+        setInitialStorySnapshot({
+          title: data.title || '',
+          summary: data.summaryHtml || data.summary || '',
+          status: (data.status || 'draft').toLowerCase(),
+          approvalStatus: (data.approvalStatus || '').toLowerCase(),
+          kind: (data.kind || 'original').toLowerCase(),
+          originalAuthorName: data.originalAuthorName || '',
+          completionStatus: (data.completionStatus || 'ongoing').toLowerCase(),
+          categoryId: tagIdList[0] || '',
+          tagIds: tagIdList.slice(1),
+          coverUrl: data.coverUrl || '',
+        });
       } catch (error) {
         console.error('getStory error', error);
         notify('Không tải được thông tin truyện', 'error');
@@ -163,6 +194,44 @@ const CreateStory = () => {
     setCoverFile(selected);
   };
 
+  const normalizeCompareText = (value) =>
+    String(value == null ? '' : value).trim();
+
+  const restoreInitialStorySnapshot = () => {
+    if (!initialStorySnapshot) return;
+    setTitle(initialStorySnapshot.title || '');
+    setSummary(initialStorySnapshot.summary || '');
+    setStatus(initialStorySnapshot.status || 'draft');
+    setApprovalStatus(initialStorySnapshot.approvalStatus || '');
+    setKind(initialStorySnapshot.kind || 'original');
+    setOriginalAuthorName(initialStorySnapshot.originalAuthorName || '');
+    setCompletionStatus(initialStorySnapshot.completionStatus || 'ongoing');
+    setCategoryId(initialStorySnapshot.categoryId || '');
+    setTagIds(
+      Array.isArray(initialStorySnapshot.tagIds)
+        ? initialStorySnapshot.tagIds
+        : [],
+    );
+    setExistingCoverUrl(initialStorySnapshot.coverUrl || '');
+    setCoverFile(null);
+    setErrors({});
+  };
+
+  const shouldTriggerStoryApprovalResetConfirm = () => {
+    if (!isEditing || !initialStorySnapshot) return false;
+    const baseApproval = String(
+      initialStorySnapshot.approvalStatus || '',
+    ).toLowerCase();
+    if (!baseApproval || baseApproval === 'rejected') return false;
+    const titleChanged =
+      normalizeCompareText(title) !==
+      normalizeCompareText(initialStorySnapshot.title);
+    const summaryChanged =
+      normalizeCompareText(summary) !==
+      normalizeCompareText(initialStorySnapshot.summary);
+    return titleChanged || summaryChanged;
+  };
+
   const validate = () => {
     const nextErrors = {};
     if (!title.trim()) nextErrors.title = 'Tiêu đề là bắt buộc';
@@ -175,11 +244,51 @@ const CreateStory = () => {
     return nextErrors;
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const submitStory = async ({ forceApprovalResetConfirm = false } = {}) => {
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+
+    const triggerApprovalResetConfirm =
+      shouldTriggerStoryApprovalResetConfirm();
+    const isCreatingPublishedStory = !isEditing && status === 'published';
+    const isPublishingFromDraft =
+      Boolean(isEditing) &&
+      String(initialStorySnapshot?.status || '').toLowerCase() === 'draft' &&
+      status === 'published';
+    const shouldForceDraftBySensitiveChange =
+      triggerApprovalResetConfirm && status === 'published';
+
+    if (isCreatingPublishedStory) {
+      notify(
+        'Truyện mới phải được lưu nháp trước khi công khai.',
+        'error',
+      );
+      setStatus('draft');
+      return;
+    }
+
+    if (isPublishingFromDraft && approvalKey !== 'approved') {
+      notify(
+        'Chỉ có thể chuyển truyện từ nháp sang công khai khi truyện đã được duyệt.',
+        'error',
+      );
+      return;
+    }
+
+    if (isPublishingFromDraft && triggerApprovalResetConfirm) {
+      notify(
+        'Bạn đã chỉnh sửa tiêu đề hoặc mô tả, truyện cần duyệt lại trước khi công khai.',
+        'error',
+      );
+      setStatus('draft');
+      return;
+    }
+
+    if (triggerApprovalResetConfirm && !forceApprovalResetConfirm) {
+      setShowApprovalResetModal(true);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -189,17 +298,22 @@ const CreateStory = () => {
       };
       const combinedIds = [categoryId, ...tagIds].filter(Boolean);
       const uniqueIds = Array.from(new Set(combinedIds));
+      const finalStatus = shouldForceDraftBySensitiveChange ? 'draft' : status;
       const payload = {
         title: title.trim(),
         summaryHtml: summary.trim(),
         tagIds: uniqueIds.map(toNumber).filter((id) => id != null),
-        status,
-        visibility: status === 'published' ? 'PUBLIC' : 'DRAFT',
+        status: finalStatus,
+        visibility: finalStatus === 'published' ? 'PUBLIC' : 'DRAFT',
         kind,
         originalAuthorName:
           kind === 'translated' ? originalAuthorName.trim() : null,
         completionStatus,
       };
+
+      if (shouldForceDraftBySensitiveChange && status !== 'draft') {
+        setStatus('draft');
+      }
 
       const formData = new FormData();
       formData.append('data', JSON.stringify(payload));
@@ -227,6 +341,11 @@ const CreateStory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await submitStory();
   };
 
   return (
@@ -278,7 +397,7 @@ const CreateStory = () => {
 
             <Select
               label='Trạng thái truyện'
-              options={STORY_STATUS_OPTIONS}
+              options={statusOptions}
               value={status}
               onChange={setStatus}
               placeholder='Chọn trạng thái'
@@ -454,6 +573,21 @@ const CreateStory = () => {
           </p>
         </article>
       </div>
+
+      <ConfirmActionModal
+        isOpen={showApprovalResetModal}
+        message='Bất kì chỉnh sửa nào về tiêu đề hoặc mô tả cho truyện sẽ phải duyệt lại, bạn có chắc muốn lưu các thay đổi không?'
+        cancelText='Hủy'
+        confirmText='Xác nhận'
+        onCancel={() => {
+          setShowApprovalResetModal(false);
+          restoreInitialStorySnapshot();
+        }}
+        onConfirm={() => {
+          setShowApprovalResetModal(false);
+          submitStory({ forceApprovalResetConfirm: true });
+        }}
+      />
     </div>
   );
 };

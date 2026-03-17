@@ -1,8 +1,12 @@
 .story-reviews {
   display: grid;
+  justify-items: center;
+  padding: 0 16px;
 }
 
 .story-reviews__frame {
+  width: min(50vw, 760px);
+  max-width: 100%;
   background: #ffffff;
   border: 1px solid #b7d9b1;
   border-radius: 16px;
@@ -74,6 +78,19 @@
   padding: 10px;
   font: inherit;
   resize: vertical;
+}
+
+.story-reviews__spoiler-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5c6f8d;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.story-reviews__spoiler-toggle input {
+  margin: 0;
 }
 
 .story-reviews__form-footer {
@@ -163,6 +180,38 @@
   word-break: break-word;
 }
 
+.story-reviews__content-mask-wrap {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.story-reviews__content-mask,
+.story-reviews__item p.story-reviews__content-mask {
+  margin: 0;
+  color: rgba(92, 111, 141, 0.72);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.story-reviews__reveal-btn {
+  width: fit-content;
+  border: 1px solid #c8d6ea;
+  background: #ffffff;
+  color: #3f6fbe;
+  border-radius: 999px;
+  padding: 0.42rem 0.9rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.story-reviews__reveal-btn:hover {
+  background: #eef5ff;
+}
+
 .story-reviews__load-more {
   margin-top: 14px;
   height: 38px;
@@ -172,4 +221,26 @@
   color: #2d8ce8;
   font-weight: 600;
   cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .story-reviews__frame {
+    width: min(720px, 100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .story-reviews {
+    padding: 0 10px;
+  }
+
+  .story-reviews__frame {
+    width: 100%;
+    padding: 14px;
+  }
+
+  .story-reviews__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
