@@ -153,7 +153,7 @@ const SettingsPopup = ({ isOpen, onClose, settings, onSettingsChange }) => {
         onClick={(event) => event.stopPropagation()}
       >
         <div className='settings-header'>
-          <h3>Tùy chỉnh giao dien</h3>
+          <h3>Tùy chỉnh giao diện</h3>
           <button className='close-btn' onClick={onClose}>
             <X size={18} />
           </button>
@@ -1440,23 +1440,27 @@ const ChapterPage = () => {
 
   if (loading) {
     return (
-      <div
-        className='chapter-state'
-        style={{ backgroundColor: settings.bgColor, color: settings.textColor }}
-      >
-        Đang tải chương...
+      <div className={`chapter-reader-container ${dark ? 'theme-dark' : 'theme-light'}`}>
+        <div
+          className='chapter-state'
+          style={{ backgroundColor: settings.bgColor, color: settings.textColor }}
+        >
+          Đang tải chương...
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className='chapter-state'
-        style={{ backgroundColor: settings.bgColor, color: '#e53935' }}
-      >
-        <p>{error}</p>
-        <button onClick={() => window.location.reload()}>Thử lại</button>
+      <div className={`chapter-reader-container ${dark ? 'theme-dark' : 'theme-light'}`}>
+        <div
+          className='chapter-state'
+          style={{ backgroundColor: settings.bgColor, color: '#e53935' }}
+        >
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Thử lại</button>
+        </div>
       </div>
     );
   }
@@ -1465,13 +1469,16 @@ const ChapterPage = () => {
 
   return (
     <div
-      className={`chapter-reader ${dark ? 'theme-dark' : 'theme-light'}`}
-      style={{
-        backgroundColor: settings.bgColor,
-        color: settings.textColor,
-        fontFamily: settings.fontFamily,
-      }}
+      className={`chapter-reader-container ${dark ? 'theme-dark' : 'theme-light'}`}
     >
+      <div
+        className={`chapter-reader ${dark ? 'theme-dark' : 'theme-light'}`}
+        style={{
+          backgroundColor: settings.bgColor,
+          color: settings.textColor,
+          fontFamily: settings.fontFamily,
+        }}
+      >
       <VerticalToolbar
         onPrevChapter={() =>
           previousChapterId && gotoChapter(previousChapterId)
@@ -1650,6 +1657,7 @@ const ChapterPage = () => {
       />
 
       <ScrollTopButton />
+    </div>
     </div>
   );
 };
