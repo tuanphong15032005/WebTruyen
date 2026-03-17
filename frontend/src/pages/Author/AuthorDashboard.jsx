@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import TopBar from '../../components/dashboard/TopBar';
 import StatsGrid from '../../components/dashboard/StatsGrid';
 import MyStories from '../../components/dashboard/MyStories';
-import LatestComments from '../../components/dashboard/LatestComments';
+import LatestCommentsSidebar from '../../components/dashboard/LatestCommentsSidebar';
 import { fetchDashboardData } from '../../services/dashboardService';
 import Button from '../../components/Button';
 import AuthorApplicationForm from '../../components/AuthorApplicationForm';
@@ -12,7 +12,7 @@ import './AuthorDashboard.css';
 
 /**
  * AuthorDashboard component
- * Main author dashboard page with content panels
+ * Main author dashboard page with modern layout
  * Displays statistics, stories, and comments for logged-in authors
  */
 const AuthorDashboard = () => {
@@ -64,14 +64,6 @@ const AuthorDashboard = () => {
   const handleApplicationSuccess = (response) => {
     setUserRole('author');
     setShowApplicationForm(false);
-  };
-
-  const handleCreateStory = () => {
-    navigate('/author/create-story');
-  };
-
-  const handleManageStories = () => {
-    navigate('/author/my-stories');
   };
 
   if (loading) {
@@ -140,6 +132,10 @@ const AuthorDashboard = () => {
           <TopBar />
           
           <div className='dashboard-content-area'>
+            <div className='dashboard-page-header'>
+              <h1 className='dashboard-page-title'>Trang cá nhân Tác giả</h1>
+            </div>
+            
             {error && (
               <div className='dashboard-error-message'>
                 {error}
@@ -154,29 +150,21 @@ const AuthorDashboard = () => {
                 <div className="loading-skeleton"></div>
                 <div className="loading-skeleton"></div>
                 <div className="loading-skeleton"></div>
-                <div className="loading-skeleton"></div>
               </div>
             ) : (
               <StatsGrid summary={dashboardData?.summary} />
             )}
             
-            <div className='dashboard-content-grid'>
-              <div className='dashboard-section dashboard-stories-section'>
+            <div className='dashboard-main-layout'>
+              {/* Cột trái - Truyện của tôi (75%) */}
+              <div className='dashboard-main-column'>
                 <MyStories stories={dashboardData?.stories} />
               </div>
               
-              <div className='dashboard-section dashboard-comments-section'>
-                <LatestComments comments={dashboardData?.comments} />
+              {/* Cột phải - Sidebar (25%) */}
+              <div className='dashboard-sidebar-column'>
+                <LatestCommentsSidebar comments={dashboardData?.comments} />
               </div>
-            </div>
-            
-            <div className='dashboard-actions-area'>
-              <Button onClick={handleCreateStory} className='dashboard-action-btn'>
-                Tạo truyện mới hoàn toàn
-              </Button>
-              <Button onClick={handleManageStories} className='dashboard-action-btn'>
-                Quản lý truyện đã đăng
-              </Button>
             </div>
           </div>
         </div>

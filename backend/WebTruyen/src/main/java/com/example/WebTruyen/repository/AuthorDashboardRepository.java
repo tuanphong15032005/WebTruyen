@@ -22,50 +22,25 @@ import java.util.List;
 public interface AuthorDashboardRepository extends JpaRepository<StoryEntity, Long> {
 
     /**
-     * Calculate total views across all stories by author
-     * Sum of view_count from stories table
+     * Count total chapters across all stories by author
+     * Count from chapters table where volume.story.author.id = authorId
      */
-    @Query("SELECT COALESCE(SUM(s.viewCount), 0) FROM StoryEntity s WHERE s.author.id = :authorId")
-    Long getTotalViewsByAuthor(@Param("authorId") Long authorId);
+    @Query("SELECT COUNT(c) FROM ChapterEntity c WHERE c.volume.story.author.id = :authorId")
+    Long getTotalChaptersByAuthor(@Param("authorId") Long authorId);
 
     /**
-     * Count total followers for an author
-     * Count from follows_users table where target_user_id = authorId
-     */
-    @Query("SELECT COUNT(f) FROM FollowUserEntity f WHERE f.targetUser.id = :authorId")
-    Long getFollowersCountByAuthor(@Param("authorId") Long authorId);
-
-    /**
-     * Calculate total revenue from successful payment orders
-     * Sum of amount_vnd from payment_orders where status = PAID and user is the author's followers
-     */
-    @Query("SELECT COALESCE(SUM(po.amountVnd), 0) FROM PaymentOrderEntity po WHERE po.user.id IN " +
-           "(SELECT f.user.id FROM FollowUserEntity f WHERE f.targetUser.id = :authorId) " +
-           "AND po.status = :status")
-    Long getRevenueByAuthor(@Param("authorId") Long authorId, @Param("status") PaymentOrderStatus status);
-
-    /**
-     * Calculate unpaid revenue from pending payment orders
-     * Sum of amount_vnd from payment_orders where status != PAID and user is the author's followers
-     */
-    @Query("SELECT COALESCE(SUM(po.amountVnd), 0) FROM PaymentOrderEntity po WHERE po.user.id IN " +
-           "(SELECT f.user.id FROM FollowUserEntity f WHERE f.targetUser.id = :authorId) " +
-           "AND po.status != :status")
-    Long getUnpaidRevenueByAuthor(@Param("authorId") Long authorId, @Param("status") PaymentOrderStatus status);
-
-    /**
-     * Count total comments on author's stories
-     * Count from comments table where story_id belongs to author
+     * Count total comments across all author's stories
+     * Count from comments table where story.author.id = authorId
      */
     @Query("SELECT COUNT(c) FROM CommentEntity c WHERE c.story.author.id = :authorId")
-    Long getCommentsCountByAuthor(@Param("authorId") Long authorId);
+    Long getTotalCommentsByAuthor(@Param("authorId") Long authorId);
 
     /**
-     * Count pending comments on author's stories
-     * Count from comments table where story belongs to author and is_hidden = true
+     * Count total stories by author
+     * Count from stories table where author.id = authorId
      */
-    @Query("SELECT COUNT(c) FROM CommentEntity c WHERE c.story.author.id = :authorId AND c.isHidden = true")
-    Long getPendingCommentsCountByAuthor(@Param("authorId") Long authorId);
+    @Query("SELECT COUNT(s) FROM StoryEntity s WHERE s.author.id = :authorId")
+    Long getTotalStoriesByAuthor(@Param("authorId") Long authorId);
 
     /**
      * Get latest 3 stories by author
@@ -80,4 +55,40 @@ public interface AuthorDashboardRepository extends JpaRepository<StoryEntity, Lo
      */
     @Query("SELECT c FROM CommentEntity c WHERE c.story.author.id = :authorId ORDER BY c.createdAt DESC")
     List<CommentEntity> getLatestCommentsByAuthor(@Param("authorId") Long authorId);
+
+    /**
+     * Count total chapters by author for yesterday
+     * Count from chapters table where volume.story.author.id = authorId 
+     * and chapter created yesterday
+     */
+    @Query(value = "SELECT COUNT(*) FROM chapters c " +
+           "JOIN volumes v ON c.volume_id = v.id " +
+           "JOIN stories s ON v.story_id = s.id " +
+           "WHERE s.author_id = :authorId " +
+           "AND DATE(c.created_at) = DATE(CURRENT_DATE - INTERVAL 1 DAY)", 
+           nativeQuery = true)
+    Long getTotalChaptersByAuthorYesterday(@Param("authorId") Long authorId);
+
+    /**
+     * Count total comments by author for yesterday
+     * Count from comments table where story.author.id = authorId 
+     * and comment created yesterday
+     */
+    @Query(value = "SELECT COUNT(*) FROM comments c " +
+           "JOIN stories s ON c.story_id = s.id " +
+           "WHERE s.author_id = :authorId " +
+           "AND DATE(c.created_at) = DATE(CURRENT_DATE - INTERVAL 1 DAY)", 
+           nativeQuery = true)
+    Long getTotalCommentsByAuthorYesterday(@Param("authorId") Long authorId);
+
+    /**
+     * Count total stories by author for yesterday
+     * Count from stories table where author.id = authorId 
+     * and story created yesterday
+     */
+    @Query(value = "SELECT COUNT(*) FROM stories s " +
+           "WHERE s.author_id = :authorId " +
+           "AND DATE(s.created_at) = DATE(CURRENT_DATE - INTERVAL 1 DAY)", 
+           nativeQuery = true)
+    Long getTotalStoriesByAuthorYesterday(@Param("authorId") Long authorId);
 }

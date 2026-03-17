@@ -3,7 +3,6 @@ package com.example.WebTruyen.service;
 import com.example.WebTruyen.dto.response.DashboardCommentDTO;
 import com.example.WebTruyen.dto.response.DashboardSummaryResponse;
 import com.example.WebTruyen.dto.response.StoryDashboardDTO;
-import com.example.WebTruyen.entity.enums.PaymentOrderStatus;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
@@ -33,43 +32,68 @@ public class AuthorDashboardService {
 
     /**
      * Get dashboard summary statistics for an author
-     * Calculates total views, followers, revenue, and comments
+     * Calculates total chapters, total comments, total stories and growth percentages
      * 
      * @param authorId The ID of the author
-     * @return DashboardSummaryResponse containing all summary metrics
+     * @return DashboardSummaryResponse containing all summary metrics with growth
      */
     public DashboardSummaryResponse getDashboardSummary(Long authorId) {
         log.debug("Fetching dashboard summary for author: {}", authorId);
 
-        // Calculate core metrics from database
-        Long totalViews = authorDashboardRepository.getTotalViewsByAuthor(authorId);
-        Long followers = authorDashboardRepository.getFollowersCountByAuthor(authorId);
-        Long revenue = authorDashboardRepository.getRevenueByAuthor(authorId, PaymentOrderStatus.PAID);
-        Long unpaidRevenue = authorDashboardRepository.getUnpaidRevenueByAuthor(authorId, PaymentOrderStatus.PAID);
-        Long comments = authorDashboardRepository.getCommentsCountByAuthor(authorId);
-        Long pendingComments = authorDashboardRepository.getPendingCommentsCountByAuthor(authorId);
+        // Calculate current metrics from database
+        Long totalChapters = authorDashboardRepository.getTotalChaptersByAuthor(authorId);
+        Long totalComments = authorDashboardRepository.getTotalCommentsByAuthor(authorId);
+        Long totalStories = authorDashboardRepository.getTotalStoriesByAuthor(authorId);
 
-        log.debug("Raw metrics - views: {}, followers: {}, revenue: {}, comments: {}", 
-                 totalViews, followers, revenue, comments);
+        // Calculate yesterday's metrics from database
+        Long yesterdayChapters = authorDashboardRepository.getTotalChaptersByAuthorYesterday(authorId);
+        Long yesterdayComments = authorDashboardRepository.getTotalCommentsByAuthorYesterday(authorId);
+        Long yesterdayStories = authorDashboardRepository.getTotalStoriesByAuthorYesterday(authorId);
 
-        // Calculate growth percentages (placeholder logic - in real implementation, 
-        // you would compare with previous period data)
-        Double viewsGrowth = calculateGrowthPercentage(totalViews, 0.1); // 10% sample growth
-        Double followersGrowth = calculateGrowthPercentage(followers, 0.05); // 5% sample growth
+        log.debug("Raw metrics - chapters: {}, comments: {}, stories: {}", 
+                 totalChapters, totalComments, totalStories);
+        log.debug("Yesterday metrics - chapters: {}, comments: {}, stories: {}", 
+                 yesterdayChapters, yesterdayComments, yesterdayStories);
+
+        // Calculate growth percentages using Day over Day formula
+        Double chaptersGrowth = calculateGrowthPercentage(totalChapters, yesterdayChapters);
+        Double commentsGrowth = calculateGrowthPercentage(totalComments, yesterdayComments);
+        Double storiesGrowth = calculateGrowthPercentage(totalStories, yesterdayStories);
 
         DashboardSummaryResponse response = DashboardSummaryResponse.builder()
-                .totalViews(totalViews != null ? totalViews : 0L)
-                .viewsGrowth(viewsGrowth)
-                .followers(followers != null ? followers : 0L)
-                .followersGrowth(followersGrowth)
-                .revenue(revenue != null ? revenue : 0L)
-                .unpaidRevenue(unpaidRevenue != null ? unpaidRevenue : 0L)
-                .comments(comments != null ? comments : 0L)
-                .pendingComments(pendingComments != null ? pendingComments : 0L)
+                .totalChapters(totalChapters != null ? totalChapters : 0L)
+                .totalComments(totalComments != null ? totalComments : 0L)
+                .totalStories(totalStories != null ? totalStories : 0L)
+                .chaptersGrowth(chaptersGrowth)
+                .commentsGrowth(commentsGrowth)
+                .storiesGrowth(storiesGrowth)
                 .build();
         
         log.debug("Dashboard summary response: {}", response);
         return response;
+    }
+
+    /**
+     * Calculate growth percentage using Day over Day formula
+     * Formula: ((currentValue - yesterdayValue) / yesterdayValue) * 100
+     * 
+     * @param currentValue Current value
+     * @param yesterdayValue Yesterday's value
+     * @return Growth percentage as Double, or 0.0 if yesterdayValue is 0
+     */
+    private Double calculateGrowthPercentage(Long currentValue, Long yesterdayValue) {
+        if (yesterdayValue == null || yesterdayValue == 0) {
+            // If yesterday's value is 0, return 100% if there's growth today, 0% otherwise
+            return (currentValue != null && currentValue > 0) ? 100.0 : 0.0;
+        }
+        
+        if (currentValue == null) {
+            currentValue = 0L;
+        }
+        
+        double growth = ((double) (currentValue - yesterdayValue) / yesterdayValue) * 100;
+        // Round to 1 decimal place
+        return Math.round(growth * 10.0) / 10.0;
     }
 
     /**
@@ -128,25 +152,5 @@ public class AuthorDashboardService {
                         .createdAt(comment.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Calculate growth percentage based on current value and growth rate
-     * This is a simplified calculation - in production, you would compare
-     * with actual historical data from previous period
-     * 
-     * @param currentValue The current metric value
-     * @param growthRate Sample growth rate (e.g., 0.1 for 10%)
-     * @return Calculated growth percentage
-     */
-    private Double calculateGrowthPercentage(Long currentValue, Double growthRate) {
-        if (currentValue == null || currentValue == 0) {
-            return 0.0;
-        }
-        
-        // In real implementation, this would be:
-        // ((currentValue - previousValue) / previousValue) * 100
-        // For now, we'll use a sample calculation
-        return currentValue * growthRate / 100.0;
     }
 }

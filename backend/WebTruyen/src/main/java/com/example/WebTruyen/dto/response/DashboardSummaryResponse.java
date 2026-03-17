@@ -17,42 +17,32 @@ import lombok.NoArgsConstructor;
 public class DashboardSummaryResponse {
     
     /**
-     * Total views across all author's stories
+     * Total number of chapters across all author's stories
      */
-    private Long totalViews;
+    private Long totalChapters;
     
     /**
-     * Views growth percentage (compared to previous period)
+     * Total number of comments across all author's stories
      */
-    private Double viewsGrowth;
+    private Long totalComments;
     
     /**
-     * Total number of followers
+     * Total number of stories by the author
      */
-    private Long followers;
+    private Long totalStories;
     
     /**
-     * Followers growth percentage (compared to previous period)
+     * Growth percentage for total chapters (Day over Day)
      */
-    private Double followersGrowth;
+    private Double chaptersGrowth;
     
     /**
-     * Total revenue from successful transactions (in VND)
+     * Growth percentage for total comments (Day over Day)
      */
-    private Long revenue;
+    private Double commentsGrowth;
     
     /**
-     * Unpaid revenue amount (in VND)
+     * Growth percentage for total stories (Day over Day)
      */
-    private Long unpaidRevenue;
-    
-    /**
-     * Total number of comments on author's stories
-     */
-    private Long comments;
-    
-    /**
-     * Number of pending comments awaiting moderation
-     */
-    private Long pendingComments;
+    private Double storiesGrowth;
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen, Library, MessageSquare } from 'lucide-react';
 import StatCard from './StatCard';
 import { formatCurrency, formatNumber } from '../../services/dashboardService';
 import './StatsGrid.css';
@@ -6,13 +7,12 @@ import './StatsGrid.css';
 /**
  * StatsGrid component
  * Grid of statistics cards displaying key performance metrics
- * Shows total views, followers, revenue, and comments
+ * Shows total stories, total chapters, and total comments with growth badges
  */
 const StatsGrid = ({ summary }) => {
   if (!summary) {
     return (
       <div className="stats-grid loading">
-        <div className="loading-skeleton"></div>
         <div className="loading-skeleton"></div>
         <div className="loading-skeleton"></div>
         <div className="loading-skeleton"></div>
@@ -22,32 +22,25 @@ const StatsGrid = ({ summary }) => {
 
   const stats = [
     {
-      title: 'Tổng lượt xem',
-      value: formatNumber(summary.totalViews),
-      growth: summary.viewsGrowth,
-      icon: '👁️',
-      color: '#3B82F6'
+      title: 'Tổng số truyện',
+      value: formatNumber(summary.totalStories),
+      growth: summary.storiesGrowth,
+      icon: <BookOpen className="stat-icon" />,
+      color: 'purple'
     },
     {
-      title: 'Người theo dõi',
-      value: formatNumber(summary.followers),
-      growth: summary.followersGrowth,
-      icon: '👥',
-      color: '#10B981'
+      title: 'Tổng số chương',
+      value: formatNumber(summary.totalChapters),
+      growth: summary.chaptersGrowth,
+      icon: <Library className="stat-icon" />,
+      color: 'blue'
     },
     {
-      title: 'Doanh thu',
-      value: formatCurrency(summary.revenue),
-      growth: null, // Revenue growth calculation would need historical data
-      icon: '💰',
-      color: '#F59E0B'
-    },
-    {
-      title: 'Bình luận',
-      value: formatNumber(summary.comments),
-      growth: null,
-      icon: '💬',
-      color: '#8B5CF6'
+      title: 'Số lượt bình luận',
+      value: formatNumber(summary.totalComments),
+      growth: summary.commentsGrowth,
+      icon: <MessageSquare className="stat-icon" />,
+      color: 'teal'
     }
   ];
 

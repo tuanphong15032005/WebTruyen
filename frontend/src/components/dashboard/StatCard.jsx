@@ -4,7 +4,7 @@ import './StatCard.css';
 /**
  * StatCard component
  * Individual statistics card for displaying key metrics
- * Shows title, value, growth indicator, and icon
+ * Shows title, value, growth indicator with dynamic color, and icon with pastel colors
  */
 const StatCard = ({ title, value, growth, icon, color }) => {
   const formatValue = (val) => {
@@ -23,13 +23,13 @@ const StatCard = ({ title, value, growth, icon, color }) => {
   const formatGrowth = (growthRate) => {
     if (growthRate === undefined || growthRate === null) return null;
     
-    const isPositive = growthRate > 0;
+    const isPositive = growthRate >= 0;
     const formattedGrowth = Math.abs(growthRate).toFixed(1);
     
     return (
-      <div className={`growth-indicator ${isPositive ? 'positive' : 'negative'}`}>
+      <div className={`stat-growth ${isPositive ? 'positive' : 'negative'}`}>
         <span className="growth-arrow">
-          {isPositive ? '↑' : '↓'}
+          {isPositive ? '+' : '-'}
         </span>
         <span className="growth-value">
           {formattedGrowth}%
@@ -39,22 +39,21 @@ const StatCard = ({ title, value, growth, icon, color }) => {
   };
 
   return (
-    <div className="dashboard-stat-card">
-      <div className="dashboard-stat-header">
-        <div className="dashboard-stat-icon" style={{ backgroundColor: color }}>
-          {icon}
-        </div>
-        {growth !== undefined && formatGrowth(growth)}
+    <div className={`stat-card ${color}`}>
+      <div className="stat-icon-wrapper">
+        {icon}
       </div>
       
-      <div className="dashboard-stat-content">
-        <div className="dashboard-stat-value">
-          {formatValue(value)}
-        </div>
-        <div className="dashboard-stat-title">
+      <div className="stat-content">
+        <div className="stat-title">
           {title}
         </div>
+        <div className="stat-value">
+          {formatValue(value)}
+        </div>
       </div>
+      
+      {growth !== undefined && growth !== null && formatGrowth(growth)}
     </div>
   );
 };

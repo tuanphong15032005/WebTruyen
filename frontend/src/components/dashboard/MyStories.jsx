@@ -5,18 +5,18 @@ import './MyStories.css';
 
 /**
  * MyStories component
- * Panel displaying author's latest stories with management actions
- * Shows story cover, title, status, chapter count, and action buttons
+ * Panel displaying author's latest stories with modern design
+ * Shows story cover (3:4 ratio), title, status badge, and action buttons
  */
 const MyStories = ({ stories }) => {
   const navigate = useNavigate();
 
   const handleEditStory = (storyId) => {
-    navigate(`/author/edit-story/${storyId}`);
+    navigate('/author/performance-analytics');
   };
 
   const handleAddChapter = (storyId) => {
-    navigate(`/author/story/${storyId}/add-chapter`);
+    navigate('/author/my-stories');
   };
 
   const getStatusText = (status) => {
@@ -38,12 +38,6 @@ const MyStories = ({ stories }) => {
       <div className="dashboard-my-stories">
         <div className="dashboard-panel-header">
           <h3>Truyện của tôi</h3>
-          <button 
-            className="view-all-btn"
-            onClick={() => navigate('/author/my-stories')}
-          >
-            Xem tất cả
-          </button>
         </div>
         <div className="empty-state">
           <div className="empty-icon">📚</div>
@@ -63,12 +57,6 @@ const MyStories = ({ stories }) => {
     <div className="dashboard-my-stories">
       <div className="dashboard-panel-header">
         <h3>Truyện của tôi</h3>
-        <button 
-          className="view-all-btn"
-          onClick={() => navigate('/author/my-stories')}
-        >
-          Xem tất cả
-        </button>
       </div>
       
       <div className="stories-list">
@@ -76,10 +64,10 @@ const MyStories = ({ stories }) => {
           <div key={story.storyId} className="story-item">
             <div className="story-cover">
               <img 
-                src={story.coverUrl || 'https://via.placeholder.com/80x120'} 
+                src={story.coverUrl || 'https://via.placeholder.com/120x160'} 
                 alt={story.title}
                 onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/80x120';
+                  e.target.src = 'https://via.placeholder.com/120x160';
                 }}
               />
             </div>
@@ -101,20 +89,29 @@ const MyStories = ({ stories }) => {
             
             <div className="story-actions">
               <button 
-                className="dashboard-action-btn edit-btn"
+                className="dashboard-action-btn primary-btn"
                 onClick={() => handleEditStory(story.storyId)}
               >
-                Chỉnh sửa
+                Xem thống kê
               </button>
               <button 
-                className="dashboard-action-btn add-chapter-btn"
+                className="dashboard-action-btn secondary-btn"
                 onClick={() => handleAddChapter(story.storyId)}
               >
-                Thêm chương
+                Quản lý truyện
               </button>
             </div>
           </div>
         ))}
+      </div>
+      
+      <div className="dashboard-panel-footer">
+        <button 
+          className="view-all-btn"
+          onClick={() => navigate('/author/my-stories')}
+        >
+          Xem tất cả
+        </button>
       </div>
     </div>
   );
