@@ -12,6 +12,9 @@ const STORY_STATUS_OPTIONS = [
   { value: 'draft', label: 'Nháp' },
   { value: 'published', label: 'Công khai' },
 ];
+const DRAFT_ONLY_STORY_STATUS_OPTIONS = STORY_STATUS_OPTIONS.filter(
+  (option) => option.value === 'draft',
+);
 
 const STORY_KIND_OPTIONS = [
   { value: 'original', label: 'Truyện gốc' },
@@ -51,6 +54,12 @@ const CreateStory = () => {
   const [showApprovalResetModal, setShowApprovalResetModal] = useState(false);
   const [initialStorySnapshot, setInitialStorySnapshot] = useState(null);
   const coverInputRef = useRef(null);
+  const approvalKey = String(approvalStatus || '').toLowerCase();
+  const canShowPublishedOption =
+    status === 'published' || (isEditing && approvalKey === 'approved');
+  const statusOptions = canShowPublishedOption
+    ? STORY_STATUS_OPTIONS
+    : DRAFT_ONLY_STORY_STATUS_OPTIONS;
 
   useEffect(() => {
     if (!coverFile) {
@@ -61,6 +70,11 @@ const CreateStory = () => {
     setCoverPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [coverFile]);
+
+  useEffect(() => {
+    if (status !== 'published' || canShowPublishedOption) return;
+    setStatus('draft');
+  }, [canShowPublishedOption, status]);
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -237,13 +251,22 @@ const CreateStory = () => {
 
     const triggerApprovalResetConfirm =
       shouldTriggerStoryApprovalResetConfirm();
+    const isCreatingPublishedStory = !isEditing && status === 'published';
     const isPublishingFromDraft =
       Boolean(isEditing) &&
       String(initialStorySnapshot?.status || '').toLowerCase() === 'draft' &&
       status === 'published';
-    const approvalKey = String(approvalStatus || '').toLowerCase();
     const shouldForceDraftBySensitiveChange =
       triggerApprovalResetConfirm && status === 'published';
+
+    if (isCreatingPublishedStory) {
+      notify(
+        'Truyện mới phải được lưu nháp trước khi công khai.',
+        'error',
+      );
+      setStatus('draft');
+      return;
+    }
 
     if (isPublishingFromDraft && approvalKey !== 'approved') {
       notify(
@@ -374,7 +397,7 @@ const CreateStory = () => {
 
             <Select
               label='Trạng thái truyện'
-              options={STORY_STATUS_OPTIONS}
+              options={statusOptions}
               value={status}
               onChange={setStatus}
               placeholder='Chọn trạng thái'

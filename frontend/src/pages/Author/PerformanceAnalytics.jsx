@@ -13,7 +13,7 @@ function SimpleBarChart({ title, data, colorClass }) {
       <h3>{title}</h3>
       <div className='author-analytics__chart'>
         {!data || data.length === 0 ? (
-          <div className='author-analytics__chart-empty'>No data</div>
+          <div className='author-analytics__chart-empty'>Không có dữ liệu</div>
         ) : (
           data.map((item, index) => {
             const value = Number(item.value) || 0;
@@ -37,10 +37,13 @@ function SimpleBarChart({ title, data, colorClass }) {
 
 function PerformanceAnalytics() {
   const [storyOptions, setStoryOptions] = useState([]);
-  const [selectedStoryId, setSelectedStoryId] = useState('');
+  const [selectedStoryId, setSelectedStoryId] = useState('ALL');
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [overall, setOverall] = useState(null);
+  const [overallLoading, setOverallLoading] = useState(true);
+  const [overallError, setOverallError] = useState('');
   const [error, setError] = useState('');
 
   const loadStoryOptions = async () => {
@@ -50,17 +53,24 @@ function PerformanceAnalytics() {
       const stories = await authorAnalyticsService.getAuthorStories();
       const list = Array.isArray(stories) ? stories : [];
       setStoryOptions(list);
-      if (list.length > 0) {
-        const firstId = String(list[0].id);
-        setSelectedStoryId(firstId);
-        await loadStoryPerformance(firstId);
-      } else {
-        setAnalytics(null);
-      }
+      setAnalytics(null);
     } catch (err) {
-      setError(err.message || 'Failed to load story options');
+      setError(err.message || 'Không thể tải danh sách truyện');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOverallPerformance = async () => {
+    setOverallLoading(true);
+    setOverallError('');
+    try {
+      const data = await authorAnalyticsService.getOverallPerformance();
+      setOverall(data);
+    } catch (err) {
+      setOverallError(err.message || 'Không thể tải tổng hiệu suất truyện');
+    } finally {
+      setOverallLoading(false);
     }
   };
 
@@ -75,7 +85,7 @@ function PerformanceAnalytics() {
       const data = await authorAnalyticsService.getStoryPerformance(storyId);
       setAnalytics(data);
     } catch (err) {
-      setError(err.message || 'Failed to load analytics');
+      setError(err.message || 'Không thể tải thống kê');
     } finally {
       setLoadingDetail(false);
     }
@@ -83,31 +93,39 @@ function PerformanceAnalytics() {
 
   useEffect(() => {
     loadStoryOptions();
+    loadOverallPerformance();
   }, []);
 
   const handleChangeStory = async (event) => {
     const storyId = event.target.value;
     setSelectedStoryId(storyId);
+    if (storyId === 'ALL') {
+      setAnalytics(null);
+      return;
+    }
     await loadStoryPerformance(storyId);
   };
 
   return (
     <section className='author-analytics'>
       <header className='author-analytics__header'>
-        <h1>Performance Analytics</h1>
-        <p>Track views, followers, and Coin revenue to evaluate your story performance.</p>
+        <h1>Hiệu suất truyện</h1>
+        <p>Theo dõi lượt xem, follower và Coin đạt được để đánh giá hiệu suất truyện.</p>
       </header>
 
       <div className='author-analytics__toolbar'>
-        <label htmlFor='storySelector'>Story selector</label>
+        <label htmlFor='storySelector'>Chọn truyện</label>
         <select
           id='storySelector'
           value={selectedStoryId}
           onChange={handleChangeStory}
-          disabled={loading || storyOptions.length === 0}
+          disabled={loading}
         >
+          <option value='ALL'>Tất cả truyện</option>
           {storyOptions.length === 0 ? (
-            <option value=''>No stories available</option>
+            <option value='' disabled>
+              Chưa có truyện
+            </option>
           ) : (
             storyOptions.map((story) => (
               <option key={story.id} value={story.id}>
@@ -120,53 +138,83 @@ function PerformanceAnalytics() {
 
       {error && <div className='author-analytics__error'>{error}</div>}
 
-      {!analytics || loadingDetail ? (
-        <div className='author-analytics__placeholder'>Loading analytics...</div>
+      {selectedStoryId === 'ALL' ? (
+        <section className='author-analytics__overall'>
+          <h2>Tổng tất cả truyện</h2>
+          {overallLoading ? (
+            <div className='author-analytics__placeholder'>Đang tải tổng hiệu suất...</div>
+          ) : overallError ? (
+            <div className='author-analytics__error'>{overallError}</div>
+          ) : overall ? (
+            <div className='author-analytics__kpi-grid author-analytics__kpi-grid--overall'>
+              <article className='author-analytics__kpi'>
+                <span>Tổng số truyện</span>
+                <strong>{overall.storyCount ?? 0}</strong>
+              </article>
+              <article className='author-analytics__kpi'>
+                <span>Tổng lượt xem</span>
+                <strong>{overall.totalViews ?? 0}</strong>
+              </article>
+              <article className='author-analytics__kpi'>
+                <span>Tổng Coin đạt được</span>
+                <strong>{overall.totalCoinEarned ?? 0}</strong>
+              </article>
+              <article className='author-analytics__kpi'>
+                <span>Tổng số người theo dõi</span>
+                <strong>{overall.totalFollowers ?? 0}</strong>
+              </article>
+            </div>
+          ) : (
+            <div className='author-analytics__placeholder'>Chưa có dữ liệu tổng hiệu suất.</div>
+          )}
+        </section>
+      ) : !analytics || loadingDetail ? (
+        <div className='author-analytics__placeholder'>Đang tải dữ liệu thống kê...</div>
       ) : (
         <>
           <div className='author-analytics__kpi-grid'>
             <article className='author-analytics__kpi'>
-              <span>Total views</span>
+              <span>Lượt xem</span>
               <strong>{analytics.totalViews ?? 0}</strong>
             </article>
             <article className='author-analytics__kpi'>
-              <span>Total Coin earned</span>
+              <span>Coin đạt được</span>
               <strong>{analytics.totalCoinEarned ?? 0}</strong>
             </article>
             <article className='author-analytics__kpi'>
-              <span>Total followers</span>
+              <span>Follower</span>
               <strong>{analytics.totalFollowers ?? 0}</strong>
             </article>
           </div>
 
           <div className='author-analytics__charts-grid'>
             <SimpleBarChart
-              title='Views over time'
+              title='Lượt xem theo thời gian'
               data={analytics.viewsOverTime}
               colorClass='views'
             />
             <SimpleBarChart
-              title='Coin revenue chart'
+              title='Coin đạt được theo thời gian'
               data={analytics.coinRevenueOverTime}
               colorClass='coin'
             />
             <SimpleBarChart
-              title='Follower growth chart'
+              title='Follower theo thời gian'
               data={analytics.followerGrowthOverTime}
               colorClass='followers'
             />
           </div>
 
           <section className='author-analytics__table-wrap'>
-            <h3>Chapter performance table</h3>
+            <h3>Bảng hiệu suất chương</h3>
             <table>
               <thead>
                 <tr>
-                  <th>Chapter</th>
-                  <th>Status</th>
-                  <th>Estimated Views</th>
-                  <th>Coin Earned</th>
-                  <th>Unlock Count</th>
+                  <th>Chương</th>
+                  <th>Trạng thái</th>
+                  <th>Lượt xem ước tính</th>
+                  <th>Coin đạt được</th>
+                  <th>Số lần mở khóa</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,7 +231,7 @@ function PerformanceAnalytics() {
                 ) : (
                   <tr>
                     <td colSpan={5} className='author-analytics__empty'>
-                      No chapter statistics
+                      Không có thống kê chương
                     </td>
                   </tr>
                 )}

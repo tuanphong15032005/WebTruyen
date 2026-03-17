@@ -1,5 +1,6 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.dto.request.ChangePasswordRequest;
 import com.example.WebTruyen.dto.request.UpdateProfileRequest;
 import com.example.WebTruyen.dto.response.UserProfileResponse;
 import com.example.WebTruyen.dto.response.UserRoleResponse;
@@ -63,6 +64,25 @@ public class UserProfileController {
         }
     }
 
+    @PostMapping("/{userId}/upload-cover")
+    public Map<String, String> uploadCover(@PathVariable Long userId, @RequestParam("cover") MultipartFile file) {
+        System.out.println("=== CONTROLLER UPLOAD COVER ===");
+        System.out.println("User ID: " + userId);
+        System.out.println("File: " + (file != null ? file.getOriginalFilename() : "null"));
+        System.out.println("File size: " + (file != null ? file.getSize() : 0));
+        
+        try {
+            String coverUrl = userService.uploadCover(userId, file);
+            if (coverUrl == null) throw new RuntimeException("Cover upload returned null url");
+            System.out.println("Controller returning URL: " + coverUrl);
+            return Map.of("coverUrl", coverUrl);
+        } catch (Exception ex) {
+            System.err.println("Controller error: " + ex.getMessage());
+            ex.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Cover upload failed", ex);
+        }
+    }
+
 
     @PutMapping("/{userId}")
     public UserProfileResponse updateProfile(
@@ -71,5 +91,17 @@ public class UserProfileController {
 
 
         return userService.updateProfile(userId, request);
+    }
+
+    @PostMapping("/{userId}/change-password")
+    public Map<String, String> changePassword(
+            @PathVariable Long userId,
+            @RequestBody ChangePasswordRequest request) {
+        try {
+            userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+            return Map.of("message", "Password changed successfully");
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
     }
 }

@@ -18,7 +18,6 @@ export const debugChapterNavigation = (chapterId, chapter, allChapters) => {
       console.log(`  ${index + 1}. ID: ${ch.id}, Seq: ${ch.sequenceIndex}, Title: ${ch.title}`);
     });
   }
-  
   console.groupEnd();
 };
 

@@ -1,4 +1,11 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ArrowLeft,
   Bookmark,
@@ -14,21 +21,27 @@ import {
   Type,
   X,
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import useNotify from '../hooks/useNotify';
 import useChapter from '../hooks/useChapter';
 import useBookmarks from '../hooks/useBookmarks';
 import useComments from '../hooks/useComments';
 import { purchaseChapter } from '../api/walletApi';
-import { recordChapterView } from '../services/ChapterService';
+import {
+  recordChapterView,
+  sendReadingProgressKeepalive,
+  updateReadingProgress,
+} from '../services/ChapterService';
 import { WalletContext } from '../context/WalletContext';
 import PurchaseConfirmationModal from '../components/PurchaseConfirmationModal';
 import PurchaseSuccessModal from '../components/PurchaseSuccessModal';
 import PurchaseErrorModal from '../components/PurchaseErrorModal';
+import ScrollTopButton from '../components/ScrollTopButton';
 import chapterPageCss from '../styles/chapter-page.css?raw';
 import '../styles/story-metadata.css';
 
 const INITIAL_CHAPTER_ID = 1;
+const QUALIFIED_READ_MS = 3_000;
 
 const htmlToText = (html) => {
   if (!html) return '';
@@ -291,6 +304,7 @@ const VerticalToolbar = ({
   onBackToMetadata,
   onSettings,
   onBookmarks,
+  onReport,
   hasPrev,
   hasNext,
 }) => (
@@ -335,6 +349,14 @@ const VerticalToolbar = ({
       title='Bookmarks'
     >
       <Bookmark size={18} />
+    </button>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onReport}
+      title='Báo lỗi'
+    >
+      <Flag size={18} />
     </button>
     <button
       type='button'
@@ -452,14 +474,14 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   };
 
   const openReplyForm = (comment, rootId) => {
-    const mentionUsername =
-      Number(comment?.userId) !== currentUserId ? comment?.username : null;
+    const mentionUsername = comment?.username || null;
     setEditingCommentId(null);
     setEditingContent('');
     setReplyForId(comment.id);
     setReplyTarget({
       rootId: String(rootId || comment.id),
       parentCommentId: comment.id,
+      parentUserId: comment?.userId ?? null,
       mentionUsername,
     });
     setReplyContent('');
@@ -530,19 +552,13 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     }
   };
 
-  const handleReportComment = async (commentId) => {
+  const handleReportComment = async (commentId, commentContent, commentUsername) => {
     if (!requireLogin()) return;
-    const reason = window.prompt('Nhập lý do báo cáo bình luận:');
-    if (!reason || !reason.trim()) return;
-    try {
-      setSubmittingReportForId(commentId);
-      await reportComment(commentId, reason.trim());
-      notify('Đã gửi báo cáo bình luận', 'success');
-    } catch (err) {
-      notify(getErrorMessage(err, 'Không thể báo cáo bình luận'), 'error');
-    } finally {
-      setSubmittingReportForId(null);
-    }
+    
+    // Navigate to comment report page with comment details
+    const encodedContent = encodeURIComponent(commentContent || '');
+    const encodedUsername = encodeURIComponent(commentUsername || '');
+    navigate(`/report-comment?commentId=${commentId}&storyId=${storyId}&chapterId=${chapterId}&content=${encodedContent}&username=${encodedUsername}`);
   };
 
   const handleLoadMoreReplies = (rootId, totalReplies) => {
@@ -597,12 +613,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   const renderCommentItem = (comment, isReply = false, rootId = null) => {
     const commentRootId = String(rootId || comment.id);
     const isOwner = currentUserId === Number(comment.userId);
-    const mention =
-      isReply &&
-      comment.parentUsername &&
-      Number(comment.parentUserId) !== Number(comment.userId)
-        ? `@${comment.parentUsername} `
-        : '';
+    const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
     const isEditing = editingCommentId === comment.id;
 
     return (
@@ -625,7 +636,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
         </div>
         <div className='story-metadata__comment-body'>
           <div className='story-metadata__comment-head'>
-            <strong 
+            <strong
               className='cursor-pointer hover:text-blue-600 transition-colors'
               onClick={() => navigate(`/user/${comment.userId}`)}
             >
@@ -698,12 +709,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                 <button
                   type='button'
                   className='story-metadata__inline-action'
-                  onClick={() => handleReportComment(comment.id)}
-                  disabled={submittingReportForId === comment.id}
+                  onClick={() => handleReportComment(comment.id, comment.content, comment.username)}
                 >
-                  {submittingReportForId === comment.id
-                    ? 'Đang gửi...'
-                    : 'Báo cáo'}
+                  Báo cáo
                 </button>
               )}
             </div>
@@ -813,6 +821,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
 
 const ChapterPage = () => {
   const { storyId, chapterId: chapterIdParam } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useNotify();
 
@@ -848,6 +857,9 @@ const ChapterPage = () => {
   const antiCopyNotifyRef = useRef(0);
   const chapterViewTimerRef = useRef(null);
   const viewedChapterKeysRef = useRef(new Set());
+  const activeReadingSegmentIdRef = useRef(null);
+  const chapterQualifiedRef = useRef(false);
+  const lastPersistedProgressRef = useRef('');
 
   const orderedChapters = useMemo(
     () => (Array.isArray(allChapters) ? allChapters : []),
@@ -877,6 +889,10 @@ const ChapterPage = () => {
     [chapter?.segments],
   );
   const visibleSegments = useMemo(() => segments, [segments]);
+  const resumeSegmentId = useMemo(() => {
+    const raw = Number(searchParams.get('segmentId') || 0);
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }, [searchParams]);
   const isChapterFree = toBoolean(chapter?.free ?? chapter?.isFree);
   const isChapterUnlocked = toBoolean(chapter?.unlocked ?? chapter?.isUnlocked);
   const isLocked = Boolean(chapter && !isChapterFree && !isChapterUnlocked);
@@ -909,28 +925,321 @@ const ChapterPage = () => {
   }, [chapter?.id]);
 
   useEffect(() => {
+    const fallbackSegmentId = visibleSegments.some(
+      (segment) => Number(segment.id) === Number(resumeSegmentId),
+    )
+      ? Number(resumeSegmentId)
+      : Number(visibleSegments[0]?.id || 0);
+    activeReadingSegmentIdRef.current = fallbackSegmentId || null;
+    chapterQualifiedRef.current = Boolean(
+      chapter?.id &&
+      viewedChapterKeysRef.current.has(`${storyId || ''}:${chapter.id}`),
+    );
+    lastPersistedProgressRef.current = '';
+  }, [chapter?.id, resumeSegmentId, storyId, visibleSegments]);
+
+  const resolveSegmentIdFromViewportCenter = useCallback(() => {
+    const segmentElements = Array.from(
+      chapterContentRef.current?.querySelectorAll('[data-segment-id]') || [],
+    );
+    if (segmentElements.length === 0) return null;
+
+    const viewportCenterY = window.innerHeight * 0.5;
+    let crossingSegmentId = null;
+    let nearestAbove = null;
+    let nearestBelow = null;
+
+    segmentElements.forEach((element) => {
+      const id = Number(element.getAttribute('data-segment-id') || 0);
+      if (!id) return;
+
+      const rect = element.getBoundingClientRect();
+      if (rect.top <= viewportCenterY && rect.bottom >= viewportCenterY) {
+        if (crossingSegmentId == null) {
+          crossingSegmentId = id;
+        }
+        return;
+      }
+
+      if (rect.bottom < viewportCenterY) {
+        const distance = viewportCenterY - rect.bottom;
+        if (!nearestAbove || distance < nearestAbove.distance) {
+          nearestAbove = { id, distance };
+        }
+        return;
+      }
+
+      const distance = rect.top - viewportCenterY;
+      if (!nearestBelow || distance < nearestBelow.distance) {
+        nearestBelow = { id, distance };
+      }
+    });
+
+    return (
+      crossingSegmentId ||
+      nearestBelow?.id ||
+      nearestAbove?.id ||
+      Number(segmentElements[0]?.getAttribute('data-segment-id') || 0) ||
+      null
+    );
+  }, []);
+
+  const getActiveSegmentId = useCallback(() => {
+    const viewportSegmentId = Number(resolveSegmentIdFromViewportCenter() || 0);
+    if (viewportSegmentId) {
+      activeReadingSegmentIdRef.current = viewportSegmentId;
+      return viewportSegmentId;
+    }
+
+    const currentSegmentId = Number(activeReadingSegmentIdRef.current || 0);
+    if (currentSegmentId) return currentSegmentId;
+
+    const selectedId = Number(selectedSegmentId || 0);
+    if (selectedId) return selectedId;
+
+    const fallbackId = Number(visibleSegments[0]?.id || 0);
+    return fallbackId || null;
+  }, [resolveSegmentIdFromViewportCenter, selectedSegmentId, visibleSegments]);
+
+  const persistQualifiedProgress = useCallback(
+    ({
+      keepalive = false,
+      chapterIdOverride = null,
+      segmentIdOverride = null,
+    } = {}) => {
+      if (!chapterQualifiedRef.current || !hasAuthSession()) {
+        return Promise.resolve(false);
+      }
+
+      const targetChapterId = Number(chapterIdOverride || chapter?.id || 0);
+      const targetSegmentId = Number(
+        segmentIdOverride || getActiveSegmentId() || 0,
+      );
+      if (!targetChapterId || !targetSegmentId) {
+        return Promise.resolve(false);
+      }
+
+      const progressKey = `${targetChapterId}:${targetSegmentId}`;
+      if (!keepalive && lastPersistedProgressRef.current === progressKey) {
+        return Promise.resolve(false);
+      }
+
+      lastPersistedProgressRef.current = progressKey;
+      if (keepalive) {
+        sendReadingProgressKeepalive(targetChapterId, targetSegmentId);
+        return Promise.resolve(true);
+      }
+
+      return updateReadingProgress(targetChapterId, targetSegmentId)
+        .then(() => true)
+        .catch((err) => {
+          if (lastPersistedProgressRef.current === progressKey) {
+            lastPersistedProgressRef.current = '';
+          }
+          console.error('updateReadingProgress error', err);
+          return false;
+        });
+    },
+    [chapter?.id, getActiveSegmentId],
+  );
+
+  useEffect(() => {
     if (!chapter?.id) return;
+    if (resumeSegmentId) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-  }, [chapter?.id]);
+  }, [chapter?.id, resumeSegmentId]);
+
+  useEffect(() => {
+    if (!chapter?.id || !resumeSegmentId) return;
+    if (
+      !visibleSegments.some(
+        (segment) => Number(segment.id) === Number(resumeSegmentId),
+      )
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    let animationFrameId = 0;
+    let startTimeoutId = 0;
+    let settleTimeoutId = 0;
+
+    const easeInOutCubic = (t) =>
+      t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
+
+    const getScrollElement = () => {
+      const hostMain = document.querySelector('main.main-content');
+      const canUseHostMain =
+        hostMain &&
+        typeof hostMain.scrollTop === 'number' &&
+        hostMain.scrollHeight > hostMain.clientHeight;
+
+      return canUseHostMain
+        ? hostMain
+        : document.scrollingElement || document.documentElement;
+    };
+
+    const animateScrollTo = (targetTop, duration = 1800) => {
+      const scrollElement = getScrollElement();
+      const startTop = scrollElement.scrollTop;
+      const distance = targetTop - startTop;
+      if (Math.abs(distance) < 2) {
+        scrollElement.scrollTop = targetTop;
+        return;
+      }
+
+      let startTime = null;
+
+      const step = (timestamp) => {
+        if (cancelled) return;
+        if (startTime == null) {
+          startTime = timestamp;
+        }
+
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = easeInOutCubic(progress);
+        scrollElement.scrollTop = startTop + distance * eased;
+
+        if (progress < 1) {
+          animationFrameId = window.requestAnimationFrame(step);
+        }
+      };
+
+      animationFrameId = window.requestAnimationFrame(step);
+    };
+
+    const getTargetTop = () => {
+      if (cancelled) return;
+
+      const targetElement = chapterContentRef.current?.querySelector(
+        `[data-segment-id="${resumeSegmentId}"]`,
+      );
+      if (!targetElement) return null;
+
+      const hostMain = document.querySelector('main.main-content');
+      const canUseHostMain =
+        hostMain &&
+        typeof hostMain.scrollTop === 'number' &&
+        hostMain.scrollHeight > hostMain.clientHeight;
+      const scrollElement = getScrollElement();
+      const elementRect = targetElement.getBoundingClientRect();
+      const hostRect = canUseHostMain ? hostMain.getBoundingClientRect() : { top: 0 };
+      return Math.max(
+        0,
+        scrollElement.scrollTop + elementRect.top - hostRect.top - 24,
+      );
+    };
+
+    const alignTargetSegment = (behavior = 'auto') => {
+      const targetTop = getTargetTop();
+      if (targetTop == null) return;
+
+      if (behavior === 'smooth') {
+        animateScrollTo(targetTop);
+      } else {
+        getScrollElement().scrollTop = targetTop;
+      }
+
+      activeReadingSegmentIdRef.current = Number(resumeSegmentId);
+      setSelectedSegmentId(Number(resumeSegmentId));
+    };
+
+    const scrollToTargetSegment = () => {
+      const scrollElement = getScrollElement();
+      scrollElement.scrollTop = 0;
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+
+      startTimeoutId = window.setTimeout(() => {
+        if (cancelled) return;
+        alignTargetSegment('smooth');
+        settleTimeoutId = window.setTimeout(() => {
+          if (cancelled) return;
+          alignTargetSegment('auto');
+        }, 1900);
+      }, 80);
+    };
+
+    const frame = window.requestAnimationFrame(scrollToTargetSegment);
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      if (startTimeoutId) {
+        window.clearTimeout(startTimeoutId);
+      }
+      if (settleTimeoutId) {
+        window.clearTimeout(settleTimeoutId);
+      }
+    };
+  }, [chapter?.id, resumeSegmentId, visibleSegments]);
+
+  useEffect(() => {
+    if (!chapter?.id || isLocked || visibleSegments.length === 0)
+      return undefined;
+
+    let frameId = 0;
+
+    const updateActiveSegmentFromCenterLine = () => {
+      frameId = 0;
+      const nextSegmentId = resolveSegmentIdFromViewportCenter();
+      if (nextSegmentId) {
+        activeReadingSegmentIdRef.current = nextSegmentId;
+      }
+    };
+
+    const scheduleActiveSegmentUpdate = () => {
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(updateActiveSegmentFromCenterLine);
+    };
+
+    scheduleActiveSegmentUpdate();
+    window.addEventListener('scroll', scheduleActiveSegmentUpdate, {
+      passive: true,
+    });
+    window.addEventListener('resize', scheduleActiveSegmentUpdate);
+
+    return () => {
+      if (frameId) {
+      window.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener('scroll', scheduleActiveSegmentUpdate);
+      window.removeEventListener('resize', scheduleActiveSegmentUpdate);
+    };
+  }, [chapter?.id, isLocked, resolveSegmentIdFromViewportCenter, visibleSegments]);
 
   useEffect(() => {
     if (!chapter?.id || isLocked) return undefined;
 
     const chapterViewKey = `${storyId || ''}:${chapter.id}`;
     if (viewedChapterKeysRef.current.has(chapterViewKey)) {
+      chapterQualifiedRef.current = true;
       return undefined;
     }
 
     chapterViewTimerRef.current = window.setTimeout(async () => {
       chapterViewTimerRef.current = null;
       try {
-        await recordChapterView(chapter.id);
+        const currentSegmentId = getActiveSegmentId();
+        await recordChapterView(chapter.id, currentSegmentId);
         viewedChapterKeysRef.current.add(chapterViewKey);
-        console.log('Chapter view recorded for daily task tracking:', chapter.id);
+        chapterQualifiedRef.current = true;
+        lastPersistedProgressRef.current = currentSegmentId
+          ? `${chapter.id}:${currentSegmentId}`
+          : '';
+        console.log(
+          'Chapter view recorded for daily task tracking:',
+          chapter.id,
+        );
       } catch (err) {
         console.error('recordChapterView error', err);
       }
-    }, 5000); // Reduced from 30 seconds to 5 seconds for better daily task tracking
+    }, QUALIFIED_READ_MS);
 
     return () => {
       if (chapterViewTimerRef.current) {
@@ -938,7 +1247,35 @@ const ChapterPage = () => {
         chapterViewTimerRef.current = null;
       }
     };
-  }, [chapter?.id, storyId, isLocked]);
+  }, [chapter?.id, storyId, isLocked, getActiveSegmentId]);
+
+  useEffect(() => {
+    if (!chapter?.id || isLocked) return undefined;
+
+    const currentChapterId = Number(chapter.id);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'hidden') return;
+      persistQualifiedProgress({
+        keepalive: true,
+        chapterIdOverride: currentChapterId,
+      });
+    };
+    const handlePageHide = () => {
+      persistQualifiedProgress({
+        keepalive: true,
+        chapterIdOverride: currentChapterId,
+      });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      persistQualifiedProgress({ chapterIdOverride: currentChapterId });
+    };
+  }, [chapter?.id, isLocked, persistQualifiedProgress]);
 
   useEffect(() => {
     const styleId = 'chapter-page-style';
@@ -992,10 +1329,20 @@ const ChapterPage = () => {
     };
   }, [settings.bgColor, settings.textColor]);
 
-  const gotoChapter = (targetId) => {
+  const gotoChapter = async (targetId) => {
     if (!storyId || !targetId) return;
+    await persistQualifiedProgress({ chapterIdOverride: chapter?.id });
     navigate(`/stories/${storyId}/chapters/${targetId}`);
   };
+
+  const navigateWithQualifiedProgress = useCallback(
+    async (targetPath) => {
+      if (!targetPath) return;
+      await persistQualifiedProgress({ chapterIdOverride: chapter?.id });
+      navigate(targetPath);
+    },
+    [chapter?.id, navigate, persistQualifiedProgress],
+  );
 
   const progressPercent = () => {
     const max =
@@ -1130,12 +1477,18 @@ const ChapterPage = () => {
           previousChapterId && gotoChapter(previousChapterId)
         }
         onNextChapter={() => nextChapterId && gotoChapter(nextChapterId)}
-        onHome={() => navigate('/')}
+        onHome={() => navigateWithQualifiedProgress('/')}
         onBackToMetadata={() =>
-          storyId && navigate(`/stories/${storyId}/metadata`)
+          storyId &&
+          navigateWithQualifiedProgress(`/stories/${storyId}/metadata`)
         }
         onSettings={() => setShowSettings(true)}
         onBookmarks={() => setShowPanel(true)}
+        onReport={() => {
+          if (storyId && chapterIdParam) {
+            navigate(`/report?storyId=${storyId}&chapterId=${chapterIdParam}`);
+          }
+        }}
         hasPrev={Boolean(previousChapterId)}
         hasNext={Boolean(nextChapterId)}
       />
@@ -1172,6 +1525,7 @@ const ChapterPage = () => {
                 return (
                   <article
                     key={segment.id}
+                    data-segment-id={segment.id}
                     className={`chapter-segment ${selected ? 'selected' : ''} ${bookmarked ? 'bookmarked' : ''}`}
                     onClick={() =>
                       setSelectedSegmentId((prev) =>
@@ -1233,7 +1587,14 @@ const ChapterPage = () => {
                 <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
                 {liked ? 'Đã thích' : 'Thả tim'}
               </button>
-              <button className='interaction-btn'>
+              <button 
+                className='interaction-btn'
+                onClick={() => {
+                  if (storyId && chapterIdParam) {
+                    navigate(`/report?storyId=${storyId}&chapterId=${chapterIdParam}`);
+                  }
+                }}
+              >
                 <Flag size={18} />
                 Báo lỗi
               </button>
@@ -1277,13 +1638,18 @@ const ChapterPage = () => {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         response={purchaseResponse}
+        chapterTitle={chapter?.title}
       />
 
       <PurchaseErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errorMessage={purchaseError}
+        chapterPrice={chapter?.priceCoin}
+        currentBalance={wallet?.coinA + wallet?.coinB || 0}
       />
+
+      <ScrollTopButton />
     </div>
   );
 };

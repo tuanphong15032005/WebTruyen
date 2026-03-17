@@ -12,7 +12,7 @@ const AuthorSearchPage = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [sortBy, setSortBy] = useState('follower_count');
+  const [sortBy, setSortBy] = useState('stories');
   const [totalElements, setTotalElements] = useState(0);
 
   // Load authors on initial render and when page/sort changes
@@ -25,16 +25,33 @@ const AuthorSearchPage = () => {
     setError(null);
     
     try {
+      // Lấy toàn bộ dữ liệu (tăng size để lấy nhiều hơn)
       const result = await searchAuthors({
         keyword: query,
-        page: currentPage,
-        size: 12,
-        sort: sortBy,
+        page: 0,
+        size: 100, // Lấy nhiều dữ liệu hơn để sắp xếp client-side
+        sort: 'follower_count',
       });
       
-      setAuthors(result.content || []);
-      setTotalPages(result.totalPages || 0);
-      setTotalElements(result.totalElements || 0);
+      // Sắp xếp toàn bộ dataset
+      let allAuthors = Array.isArray(result.content) ? result.content : [];
+      
+      if (sortBy === 'follower_count') {
+        allAuthors.sort((a, b) => (b.followers || 0) - (a.followers || 0));
+      } else if (sortBy === 'stories') {
+        allAuthors.sort((a, b) => (b.totalStories || 0) - (a.totalStories || 0));
+      } else if (sortBy === 'views') {
+        allAuthors.sort((a, b) => (b.totalViews || 0) - (a.totalViews || 0));
+      }
+      
+      // Phân trang client-side
+      const startIndex = currentPage * 12;
+      const endIndex = startIndex + 12;
+      const paginatedAuthors = allAuthors.slice(startIndex, endIndex);
+      
+      setAuthors(paginatedAuthors);
+      setTotalPages(Math.ceil(allAuthors.length / 12));
+      setTotalElements(allAuthors.length);
     } catch (error) {
       console.error('Error loading authors:', error);
       setError('Failed to load authors. Please try again.');
@@ -74,9 +91,9 @@ const AuthorSearchPage = () => {
   };
 
   const sortOptions = [
-    { value: 'followers', label: 'Được theo dõi nhiều nhất' },
-    { value: 'totalStories', label: 'Nhiều truyện nhất' },
-    { value: 'totalViews', label: 'Nhiều lượt xem nhất' },
+    { value: 'follower_count', label: 'Được theo dõi nhiều nhất' },
+    { value: 'stories', label: 'Nhiều truyện nhất' },
+    { value: 'views', label: 'Nhiều lượt xem nhất' },
   ];
 
   return (

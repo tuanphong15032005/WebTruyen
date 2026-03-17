@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import Button from '../../components/Button';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import SkeletonBlock from '../../components/SkeletonBlock';
 import CreateVolume from './CreateVolume';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -45,6 +45,8 @@ const CHAPTER_APPROVAL_LABELS = {
   pending: 'Đang chờ duyệt',
   approved: 'duyệt thành công, giờ có thể đăng công khai',
 };
+
+const VOLUMES_PAGE_SIZE = 3;
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
@@ -94,15 +96,17 @@ const StoryDetail = () => {
   const [submittingApprovalStory, setSubmittingApprovalStory] = useState(false);
   const [submittingApprovalChapterId, setSubmittingApprovalChapterId] =
     useState(null);
-  const [expandedSummary, setExpandedSummary] = useState(false);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'volumes' ? 'volumes' : 'info',
   );
   const tabsRef = React.useRef(null);
   const infoTabRef = React.useRef(null);
   const volumesTabRef = React.useRef(null);
+  const infoPanelRef = React.useRef(null);
   const volumeCoverInputRefs = React.useRef({});
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
+  const [detailPanelHeight, setDetailPanelHeight] = useState(0);
+  const [volumePage, setVolumePage] = useState(1);
 
   const fetchStory = useCallback(async () => {
     try {
@@ -157,6 +161,16 @@ const StoryDetail = () => {
       return next;
     });
   }, [searchParams]);
+
+  useEffect(() => {
+    const volumeId = searchParams.get('volumeId');
+    if (!volumeId || volumes.length === 0) return;
+    const targetIndex = volumes.findIndex(
+      (volume) => String(volume.id || volume.volumeId) === String(volumeId),
+    );
+    if (targetIndex < 0) return;
+    setVolumePage(Math.floor(targetIndex / VOLUMES_PAGE_SIZE) + 1);
+  }, [searchParams, volumes]);
 
   const categoryTag = useMemo(() => {
     const tags = Array.isArray(story?.tags) ? story.tags : [];
@@ -222,8 +236,6 @@ const StoryDetail = () => {
     () => htmlToText(story?.summaryHtml || story?.summary || ''),
     [story],
   );
-
-  const canExpandSummary = summaryText.length > 260;
   const storyApprovalStatusKey = String(story?.approvalStatus || '').toLowerCase();
   const hasStoryApprovalStatusValue =
     story?.approvalStatus != null && String(story.approvalStatus).trim() !== '';
@@ -443,10 +455,88 @@ const StoryDetail = () => {
     };
   }, [updateTabIndicator]);
 
+  useEffect(() => {
+    document.documentElement.classList.add('story-detail-scroll-enabled');
+    document.body.classList.add('story-detail-scroll-enabled');
+
+    return () => {
+      document.documentElement.classList.remove('story-detail-scroll-enabled');
+      document.body.classList.remove('story-detail-scroll-enabled');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!infoPanelRef.current) return undefined;
+
+    const updateHeight = () => {
+      const nextHeight = infoPanelRef.current?.offsetHeight || 0;
+      if (nextHeight > 0) {
+        setDetailPanelHeight(nextHeight);
+      }
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(() => updateHeight());
+    observer.observe(infoPanelRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [story, loadingStory]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PAGE_SIZE));
+    setVolumePage((prev) => Math.min(prev, totalPages));
+  }, [volumes.length]);
+
+  const pagedVolumes = useMemo(() => {
+    const startIndex = (volumePage - 1) * VOLUMES_PAGE_SIZE;
+    return volumes.slice(startIndex, startIndex + VOLUMES_PAGE_SIZE);
+  }, [volumePage, volumes]);
+
+  const totalVolumePages = useMemo(
+    () => Math.max(1, Math.ceil(volumes.length / VOLUMES_PAGE_SIZE)),
+    [volumes.length],
+  );
+
+  const detailPanelStyle = useMemo(() => {
+    if (!detailPanelHeight) {
+      return undefined;
+    }
+
+    return {
+      minHeight: `${detailPanelHeight}px`,
+    };
+  }, [detailPanelHeight]);
+
+  const renderVolumeSkeletons = (count = VOLUMES_PAGE_SIZE) =>
+    Array.from({ length: count }, (_, index) => (
+      <div
+        key={`story-detail-volume-skeleton-${index}`}
+        className='story-detail__volume story-detail__volume--skeleton'
+        aria-hidden='true'
+      >
+        <div className='story-detail__volume-header'>
+          <div className='story-detail__volume-cover-wrap'>
+            <SkeletonBlock className='story-detail__volume-cover-skeleton' />
+          </div>
+          <div className='story-detail__volume-meta story-detail__volume-meta--skeleton'>
+            <SkeletonBlock className='story-detail__volume-line-skeleton story-detail__volume-line-skeleton--title' />
+            <SkeletonBlock className='story-detail__volume-line-skeleton story-detail__volume-line-skeleton--meta' />
+            <div className='story-detail__volume-actions'>
+              <SkeletonBlock className='story-detail__volume-btn-skeleton' />
+              <SkeletonBlock className='story-detail__volume-btn-skeleton' />
+            </div>
+          </div>
+          <SkeletonBlock className='story-detail__volume-link-skeleton' />
+        </div>
+      </div>
+    ));
+
   return (
     <div className='story-detail'>
       <div className='story-detail__top'>
-        <h2>Chi tiết truyện</h2>
+        <h2 className='story-detail__title'>Chi tiết truyện</h2>
         {activeTab === 'volumes' && (
           <Button type='button' onClick={() => setShowCreateVolume((s) => !s)}>
             {showCreateVolume ? 'Đóng' : 'Tạo tập mới'}
@@ -481,13 +571,66 @@ const StoryDetail = () => {
       </div>
       {activeTab === 'info' && (
         <div className='story-detail__info'>
-          {loadingStory && (
-            <div className='story-detail__loading'>
-              <LoadingSpinner size={74} label='Đang tải dữ liệu...' />
+          {loadingStory && !story && (
+            <div
+              className='story-detail__card story-detail__frame story-detail__card--skeleton'
+              aria-hidden='true'
+            >
+              <div className='story-detail__cover'>
+                <SkeletonBlock className='story-detail__cover-skeleton' />
+                <SkeletonBlock className='story-detail__button-skeleton' />
+                <SkeletonBlock className='story-detail__button-skeleton story-detail__button-skeleton--alt' />
+              </div>
+
+              <div className='story-detail__content'>
+                <SkeletonBlock className='story-detail__title-skeleton' />
+                <div className='story-detail__meta-list'>
+                  {Array.from({ length: 4 }, (_, index) => (
+                    <div
+                      key={`story-detail-meta-skeleton-${index}`}
+                      className='story-detail__meta-item story-detail__meta-item--skeleton'
+                    >
+                      <SkeletonBlock className='story-detail__meta-icon-skeleton' />
+                      <SkeletonBlock className='story-detail__meta-label-skeleton' />
+                      <SkeletonBlock className='story-detail__meta-value-skeleton' />
+                    </div>
+                  ))}
+                </div>
+                <div className='story-detail__tags story-detail__tags--skeleton'>
+                  <SkeletonBlock className='story-detail__tag-skeleton' />
+                  <SkeletonBlock className='story-detail__tag-skeleton' />
+                  <SkeletonBlock className='story-detail__tag-skeleton story-detail__tag-skeleton--wide' />
+                </div>
+                <div className='story-detail__rows'>
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <div
+                      key={`story-detail-row-skeleton-${index}`}
+                      className='story-detail__row story-detail__row--skeleton'
+                    >
+                      <SkeletonBlock className='story-detail__row-icon-skeleton' />
+                      <SkeletonBlock className='story-detail__row-label-skeleton' />
+                      <SkeletonBlock className='story-detail__row-value-skeleton' />
+                    </div>
+                  ))}
+                </div>
+                <div className='story-detail__summary-header'>
+                  <div className='story-detail__summary-header-info'>
+                    <span className='story-detail__label'>Nội dung</span>
+                  </div>
+                </div>
+                <div className='story-detail__summary-box story-detail__summary-box--skeleton'>
+                  <SkeletonBlock className='story-detail__summary-line-skeleton' />
+                  <SkeletonBlock className='story-detail__summary-line-skeleton' />
+                  <SkeletonBlock className='story-detail__summary-line-skeleton story-detail__summary-line-skeleton--short' />
+                </div>
+              </div>
             </div>
           )}
           {story && (
-            <div className='story-detail__card story-detail__frame'>
+            <div
+              ref={infoPanelRef}
+              className='story-detail__card story-detail__frame'
+            >
               <div className='story-detail__cover'>
                 {story.coverUrl ? (
                   <img src={story.coverUrl} alt={story.title} />
@@ -688,21 +831,9 @@ const StoryDetail = () => {
                   )}
                 </div>
 
-                <div
-                  className={`story-detail__summary-box ${expandedSummary ? 'expanded' : ''}`}
-                >
+                <div className='story-detail__summary-box'>
                   {summaryText || 'Chưa có tóm tắt.'}
                 </div>
-
-                {canExpandSummary && (
-                  <button
-                    type='button'
-                    className='story-detail__expand'
-                    onClick={() => setExpandedSummary((prev) => !prev)}
-                  >
-                    {expandedSummary ? 'Thu gọn' : 'Xem thêm'}
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -710,7 +841,7 @@ const StoryDetail = () => {
       )}
 
       {activeTab === 'volumes' && (
-        <div className='story-detail__volumes'>
+        <div className='story-detail__volumes story-detail__panel' style={detailPanelStyle}>
           {showCreateVolume && (
             <CreateVolume
               storyId={storyId}
@@ -729,17 +860,29 @@ const StoryDetail = () => {
             />
           )}
 
-          {loadingVolumes && (
-            <div className='story-detail__loading'>
-              <LoadingSpinner size={74} label='Đang tải danh sách volume...' />
+          {loadingVolumes && volumes.length === 0 && (
+            <div className='story-detail__panel-fill story-detail__panel-fill--skeleton'>
+              <div className='story-detail__volumes-list'>
+                {renderVolumeSkeletons()}
+              </div>
+              <div className='story-detail__pagination story-detail__pagination--skeleton'>
+                <SkeletonBlock className='story-detail__pagination-btn-skeleton' />
+                <SkeletonBlock className='story-detail__pagination-text-skeleton' />
+                <SkeletonBlock className='story-detail__pagination-btn-skeleton' />
+              </div>
             </div>
           )}
 
           {!loadingVolumes && volumes.length === 0 && (
-            <div className='story-detail__empty'>Chưa có volume nào.</div>
+            <div className='story-detail__empty story-detail__panel-fill'>
+              Chưa có volume nào.
+            </div>
           )}
 
-          {volumes.map((volume) => {
+          {!loadingVolumes && volumes.length > 0 && (
+            <>
+              <div className='story-detail__volumes-list'>
+                {pagedVolumes.map((volume) => {
             const id = String(volume.id || volume.volumeId);
             const isOpen = expandedVolumes.has(id);
             const coverUrl = String(volume?.coverUrl || '').trim();
@@ -748,8 +891,8 @@ const StoryDetail = () => {
                   (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
                 )
               : [];
-            return (
-              <div key={id} className='story-detail__volume'>
+                  return (
+                    <div key={id} className='story-detail__volume'>
                 <div className='story-detail__volume-header'>
                   <div className='story-detail__volume-cover-wrap'>
                     {coverUrl ? (
@@ -951,8 +1094,39 @@ const StoryDetail = () => {
                   </div>
                 )}
               </div>
-            );
-          })}
+                  );
+                })}
+              </div>
+
+              {totalVolumePages > 1 && (
+                <div className='story-detail__pagination'>
+                  <button
+                    type='button'
+                    className='story-detail__pagination-btn'
+                    onClick={() => setVolumePage((prev) => Math.max(1, prev - 1))}
+                    disabled={volumePage === 1}
+                  >
+                    Trước
+                  </button>
+                  <span className='story-detail__pagination-text'>
+                    Trang {volumePage}/{totalVolumePages}
+                  </span>
+                  <button
+                    type='button'
+                    className='story-detail__pagination-btn'
+                    onClick={() =>
+                      setVolumePage((prev) =>
+                        Math.min(totalVolumePages, prev + 1),
+                      )
+                    }
+                    disabled={volumePage === totalVolumePages}
+                  >
+                    Sau
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

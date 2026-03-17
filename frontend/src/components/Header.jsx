@@ -1,6 +1,14 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Bookmark, Eye, Gem, Search, Star, Users } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BookOpen,
+  Bookmark,
+  Eye,
+  Gem,
+  Search,
+  Star,
+  Users,
+} from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser, hasAnyRole } from '../utils/helpers';
 import storyService from '../services/storyService';
@@ -214,12 +222,25 @@ function Header() {
       className={`site-header ${isHomePage ? 'site-header--overlay' : 'site-header--solid'} ${isHomePage && isHeaderScrolled ? 'scrolled' : ''}`}
     >
       <div className='site-header__inner'>
-        <Link to='/' className='site-brand'>
-          <span className='site-brand__logo'>
-            <BookOpen size={18} />
-          </span>
-          <span className='site-brand__text'>Tramdoc</span>
-        </Link>
+        <div className='site-header__lead'>
+          <Link to='/' className='site-brand'>
+            <span className='site-brand__logo'>
+              <BookOpen size={18} />
+            </span>
+            <span className='site-brand__text'>Tramdoc</span>
+          </Link>
+
+          <nav className='site-nav' aria-label='Điều hướng chính'>
+            <NavLink
+              to='/ranking'
+              className={({ isActive }) =>
+                `site-nav__item ${isActive ? 'active' : ''}`
+              }
+            >
+              Xếp hạng
+            </NavLink>
+          </nav>
+        </div>
 
         <form
           className={`site-search ${isSearchOpen ? 'is-open' : ''}`}
@@ -382,6 +403,9 @@ function Header() {
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
+                  {hasAnyRole(['READER'], user) && (
+                    <Link to='/reader/refund-request'>Yêu cầu hoàn tiền</Link>
+                  )}
 
                   {hasAnyRole(['AUTHOR'], user) && (
                     <>
@@ -389,12 +413,14 @@ function Header() {
                       <Link to='/author/performance-analytics'>
                         Báo cáo hiệu suất truyện
                       </Link>
+                      <Link to='/author/withdrawal-request'>Yêu cầu rút tiền</Link>
                     </>
                   )}
 
                   {hasAnyRole(['ADMIN', 'MOD'], user) && (
                     <>
                       <Link to='/admin/dashboard'>Dashboard quản trị</Link>
+                      <Link to='/admin/terms'>Quản lý điều khoản</Link>
                     </>
                   )}
 
@@ -413,7 +439,6 @@ function Header() {
                 Đăng ký
               </Link>
             </div>
-            // <<<<<<< HEAD
           )}
         </div>
       </div>

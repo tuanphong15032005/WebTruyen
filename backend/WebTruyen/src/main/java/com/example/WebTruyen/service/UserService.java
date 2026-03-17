@@ -10,4 +10,8 @@ public interface UserService {
     UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request);
     
     String uploadAvatar(Long userId, MultipartFile file);
+    
+    String uploadCover(Long userId, MultipartFile file);
+    
+    void changePassword(Long userId, String oldPassword, String newPassword);
 }

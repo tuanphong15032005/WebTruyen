@@ -43,7 +43,8 @@ public interface ChapterService {
 
     // ===== Chapter Reader Page (ChapterPage branch) =====
     ChapterDetailResponse getChapterDetail(Long chapterId, Long userId);
-    void recordChapterView(Long chapterId, Long userId);
+    void recordChapterView(Long chapterId, Long userId, Long segmentId);
+    void updateReadingProgress(Long chapterId, Long userId, Long segmentId);
     Long getNextChapterId(Long chapterId);
     Long getPreviousChapterId(Long chapterId);
     ChapterApprovalStatus submitChapterForApproval(Long chapterId, Long authorId);

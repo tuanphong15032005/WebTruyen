@@ -175,7 +175,7 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
           {/* Stories */}
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">
-              {formatNumber(author.totalStories || 42)}
+              {formatNumber(author.totalStories || 0)}
             </div>
             <div className="text-xs text-blue-400 uppercase tracking-wide">Stories</div>
           </div>
@@ -183,7 +183,7 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
           {/* Views */}
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">
-              {formatNumber(author.totalViews || 1200000)}
+              {formatNumber(author.totalViews || 0)}
             </div>
             <div className="text-xs text-blue-400 uppercase tracking-wide">Views</div>
           </div>
@@ -191,7 +191,7 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
           {/* Followers */}
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">
-              {formatNumber(author.followers || 8500)}
+              {formatNumber(author.followers || 0)}
             </div>
             <div className="text-xs text-blue-400 uppercase tracking-wide">Followers</div>
           </div>

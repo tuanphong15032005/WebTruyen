@@ -14,6 +14,7 @@ import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
+import com.example.WebTruyen.repository.BookmarkRepository;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.DraftRepository;
@@ -59,6 +60,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final StorageService storageService;
     private final ChapterUnlockRepository chapterUnlockRepository;
     private final ReadingHistoryRepository readingHistoryRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final UserRepository userRepository;
     private final DraftRepository draftRepository;
     private static final Set<String> SEGMENT_BLOCK_TAGS = Set.of(
@@ -142,6 +144,7 @@ public class ChapterServiceImpl implements ChapterService {
         String previousTitle = normalizeCompareText(chapter.getTitle());
         Long previousPriceCoin = chapter.getPriceCoin();
         String previousContentHtml = buildChapterFullHtml(chapterId);
+        String previousContentSignature = buildContentSignature(previousContentHtml);
         ChapterApprovalStatus currentApprovalStatus = chapter.getApprovalStatus();
         ChapterStatus previousStatus = chapter.getStatus() == null ? ChapterStatus.draft : chapter.getStatus();
 
@@ -157,10 +160,9 @@ public class ChapterServiceImpl implements ChapterService {
         boolean hasApprovalSensitiveChange =
                 !Objects.equals(previousTitle, normalizeCompareText(nextTitle))
                         || !Objects.equals(previousPriceCoin, nextPriceCoin)
-                        || !Objects.equals(
-                        buildContentSignature(previousContentHtml),
-                        buildContentSignature(nextContentHtml)
-                );
+                        || !Objects.equals(previousContentSignature, buildContentSignature(nextContentHtml));
+        boolean hasContentChange =
+                !Objects.equals(previousContentSignature, buildContentSignature(nextContentHtml));
 
         ChapterApprovalStatus effectiveApprovalStatus = hasApprovalSensitiveChange
                 && currentApprovalStatus != ChapterApprovalStatus.rejected
@@ -191,10 +193,12 @@ public class ChapterServiceImpl implements ChapterService {
 
         chapterRepository.save(chapter);
 
-        chapterSegmentRepository.deleteByChapter_Id(chapterId);
-        chapterSegmentRepository.flush();
-
-        processAndSaveContent(chapter, req.getContentHtml());
+        if (hasContentChange) {
+            clearSegmentReferences(chapterId);
+            chapterSegmentRepository.deleteByChapter_Id(chapterId);
+            chapterSegmentRepository.flush();
+            processAndSaveContent(chapter, req.getContentHtml());
+        }
 
         List<ChapterSegmentEntity> segs =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapter.getId());
@@ -205,6 +209,11 @@ public class ChapterServiceImpl implements ChapterService {
         resp.setSegmentCount(segs.size());
 
         return resp;
+    }
+
+    private void clearSegmentReferences(Long chapterId) {
+        readingHistoryRepository.clearLastSegmentByLastChapterId(chapterId);
+        bookmarkRepository.deleteAllByChapterId(chapterId);
     }
 
     // ============================================================
@@ -220,7 +229,9 @@ public class ChapterServiceImpl implements ChapterService {
         // Check if chapter is unlocked for the user
         boolean isUnlocked = chapter.isFree();
         if (!isUnlocked && userId != null) {
-            isUnlocked = chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
+            Long authorId = chapter.getVolume().getStory().getAuthor().getId();
+            isUnlocked = userId.equals(authorId)
+                    || chapterUnlockRepository.existsByUserIdAndChapterId(userId, chapterId);
         }
 
         List<ChapterSegmentEntity> segments =
@@ -238,7 +249,10 @@ public class ChapterServiceImpl implements ChapterService {
         return ChapterDetailResponse.builder()
                 .id(chapter.getId())
                 .storyId(chapter.getVolume().getStory().getId())
+                .storyTitle(chapter.getVolume().getStory().getTitle())
                 .volumeId(chapter.getVolume().getId())
+                .volumeTitle(chapter.getVolume().getTitle())
+                .volumeNumber(chapter.getVolume().getSequenceIndex())
                 .title(chapter.getTitle())
                 .free(chapter.isFree())
                 .unlocked(isUnlocked)
@@ -765,7 +779,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional
-    public void recordChapterView(Long chapterId, Long userId) {
+    public void recordChapterView(Long chapterId, Long userId, Long segmentId) {
         ChapterEntity chapter = getChapterById(chapterId);
         StoryEntity story = chapter.getVolume().getStory();
         Long storyId = story != null ? story.getId() : null;
@@ -783,15 +797,62 @@ public class ChapterServiceImpl implements ChapterService {
         if (user == null) {
             return;
         }
+        ChapterSegmentEntity lastSegment = null;
+        if (segmentId != null) {
+            lastSegment = chapterSegmentRepository.findById(segmentId)
+                    .filter(segment -> segment.getChapter() != null
+                            && Objects.equals(segment.getChapter().getId(), chapter.getId()))
+                    .orElse(null);
+        }
         //record + lưu lịch sử đọc mới nhất cho user
         ReadingHistoryEntity history = readingHistoryRepository
-                .findById_UserIdAndId_StoryId(userId, storyId)
+                .findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistoryEntity.builder()
                         .id(new ReadingHistoryId(userId, storyId))
                         .user(user)
                         .story(story)
                         .build());
         history.setLastChapter(chapter);
+        history.setLastSegment(lastSegment);
+        readingHistoryRepository.save(history);
+    }
+
+    @Override
+    @Transactional
+    public void updateReadingProgress(Long chapterId, Long userId, Long segmentId) {
+        if (userId == null) {
+            return;
+        }
+
+        ChapterEntity chapter = getChapterById(chapterId);
+        StoryEntity story = chapter.getVolume().getStory();
+        Long storyId = story != null ? story.getId() : null;
+        if (storyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Story not found for chapter");
+        }
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return;
+        }
+
+        ChapterSegmentEntity lastSegment = null;
+        if (segmentId != null) {
+            lastSegment = chapterSegmentRepository.findById(segmentId)
+                    .filter(segment -> segment.getChapter() != null
+                            && Objects.equals(segment.getChapter().getId(), chapter.getId()))
+                    .orElse(null);
+        }
+
+        ReadingHistoryEntity history = readingHistoryRepository
+                .findByUserIdAndStoryId(userId, storyId)
+                .orElseGet(() -> ReadingHistoryEntity.builder()
+                        .id(new ReadingHistoryId(userId, storyId))
+                        .user(user)
+                        .story(story)
+                        .build());
+        history.setLastChapter(chapter);
+        history.setLastSegment(lastSegment);
         readingHistoryRepository.save(history);
     }
 //=======

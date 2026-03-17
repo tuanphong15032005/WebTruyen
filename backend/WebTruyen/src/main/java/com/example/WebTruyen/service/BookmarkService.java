@@ -2,6 +2,8 @@ package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateBookmarkRequest;
 import com.example.WebTruyen.dto.response.BookmarkResponse;
+import com.example.WebTruyen.dto.response.BookmarkStoryResponse;
+import com.example.WebTruyen.dto.response.BookmarkStoryDetailResponse;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -75,6 +78,37 @@ public class BookmarkService {
                 .findByIdAndUser_Id(bookmarkId, currentUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bookmark not found"));
         bookmarkRepository.delete(bookmark);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookmarkStoryResponse> getBookmarkStories(UserEntity currentUser) {
+        List<Object[]> results = bookmarkRepository.findBookmarkStories(currentUser.getId());
+        return results.stream()
+                .map(row -> new BookmarkStoryResponse(
+                        (Long) row[0],  // storyId
+                        (String) row[1], // title
+                        (String) row[2], // coverImage
+                        ((Number) row[3]).intValue(), // bookmarkCount
+                        (LocalDateTime) row[4] // lastBookmark
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookmarkStoryDetailResponse> getBookmarkStoryDetails(UserEntity currentUser, Long storyId) {
+        List<Object[]> results = bookmarkRepository.findBookmarkStoryDetails(currentUser.getId(), storyId);
+        return results.stream()
+                .map(row -> new BookmarkStoryDetailResponse(
+                        (Long) row[0],  // id
+                        (Long) row[1],  // chapterId
+                        (Long) row[2],  // segmentId
+                        row[3] != null ? ((BigDecimal) row[3]).doubleValue() : null, // positionPercent
+                        (LocalDateTime) row[4], // createdAt
+                        (String) row[5], // chapterTitle
+                        (String) row[6], // segmentText
+                        (String) row[7]  // storyTitle
+                ))
+                .toList();
     }
 
     private BookmarkResponse toResponse(BookmarkEntity bookmark) {

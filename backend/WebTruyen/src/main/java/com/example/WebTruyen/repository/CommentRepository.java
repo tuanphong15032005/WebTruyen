@@ -22,6 +22,7 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
     Page<CommentEntity> findByChapter_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Long chapterId, Pageable pageable);
 
     Page<CommentEntity> findByStory_IdAndParentCommentIsNullAndIsHiddenFalseOrderByCreatedAtDesc(Integer storyId, Pageable pageable);
+    Page<CommentEntity> findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(Integer storyId, Pageable pageable);
     List<CommentEntity> findByStory_IdAndParentCommentIsNullOrderByCreatedAtDesc(Integer storyId);
 
     List<CommentEntity> findByRootComment_IdInAndParentCommentIsNotNullAndIsHiddenFalseOrderByCreatedAtAsc(List<Long> rootCommentIds);
@@ -34,6 +35,8 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
     List<CommentEntity> findByParentComment_IdOrderByCreatedAtAsc(Long parentCommentId);
     
     List<CommentEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
+    
+    long countByUserId(Long userId);
 
     @Query("""
             select c from CommentEntity c
@@ -83,5 +86,12 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
 
     /** Direct replies (children) of a comment, for cascade delete. */
     List<CommentEntity> findByParentComment_Id(Long parentCommentId);
-//>>>>>>> origin/minhfinal1
+
+    /** Author comments filtered by date range (chapter). */
+    List<CommentEntity> findByChapter_IdAndParentCommentIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+            Long chapterId, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
+    /** Author comments filtered by date range (story). */
+    List<CommentEntity> findByStory_IdAndParentCommentIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+            Integer storyId, java.time.LocalDateTime from, java.time.LocalDateTime to);
 }

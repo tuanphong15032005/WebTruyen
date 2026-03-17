@@ -103,6 +103,17 @@ const simpleDailyTaskService = {
       throw error;
     }
   },
+
+  // Force refresh to clear cache
+  forceRefresh: async () => {
+    try {
+      const response = await api.post('/daily-tasks/force-refresh', {});
+      return response;
+    } catch (error) {
+      console.error('Error force refreshing daily tasks:', error);
+      throw error;
+    }
+  },
 };
 
 export default simpleDailyTaskService;

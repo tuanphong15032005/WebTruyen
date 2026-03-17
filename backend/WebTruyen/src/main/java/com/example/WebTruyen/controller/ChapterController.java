@@ -1,11 +1,14 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.dto.request.ChapterProgressRequest;
 import com.example.WebTruyen.dto.response.ChapterDetailResponse;
 import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.security.UserPrincipal;
+import com.example.WebTruyen.service.TieredAchievementIntegrationService;
 import com.example.WebTruyen.service.ChapterService;
 import com.example.WebTruyen.service.SimpleDailyTaskService;
+import com.example.WebTruyen.service.DailyTaskOrchestrator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +28,8 @@ public class ChapterController {
 
     private final ChapterService chapterService;
     private final SimpleDailyTaskService simpleDailyTaskService;
+    private final TieredAchievementIntegrationService achievementIntegrationService;
+    private final DailyTaskOrchestrator dailyTaskOrchestrator;
 
     @GetMapping("/{id}")
     public ResponseEntity<ChapterDetailResponse> getChapterDetail(
@@ -41,25 +46,43 @@ public class ChapterController {
     @PostMapping("/{id}/view")
     public ResponseEntity<Void> recordChapterView(
             @PathVariable Long id,
+            @RequestBody(required = false) ChapterProgressRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
                 ? userPrincipal.getUser().getId()
                 : null;
         
-        chapterService.recordChapterView(id, userId);
+        chapterService.recordChapterView(id, userId, request != null ? request.segmentId() : null);
         
-        // Track chapter reading for daily task
+        // Track chapter reading for daily task using orchestrator
         if (userId != null) {
             try {
                 log.info("Tracking chapter reading for daily task - user: {}, chapter: {}", userId, id);
-                simpleDailyTaskService.updateTaskProgress(userId, "READ_CHAPTERS", 1);
+                dailyTaskOrchestrator.trackUserActivity(userId, DailyTaskOrchestrator.ActivityType.READ_CHAPTER);
                 log.info("Successfully tracked chapter reading for daily task");
+                
+                // Track achievements for chapter reading
+                achievementIntegrationService.onChapterRead(userId);
+                log.info("Successfully tracked chapter reading achievement");
             } catch (Exception e) {
                 // Don't fail the chapter view recording if daily task tracking fails
-                log.warn("Failed to track chapter reading for daily task - user: {}, chapter: {}", userId, id, e);
+                log.warn("Failed to track chapter reading for daily task or achievement - user: {}, chapter: {}, error: {}", userId, id, e);
             }
         }
         
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/progress")
+    public ResponseEntity<Void> updateReadingProgress(
+            @PathVariable Long id,
+            @RequestBody(required = false) ChapterProgressRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        chapterService.updateReadingProgress(id, userId, request != null ? request.segmentId() : null);
         return ResponseEntity.ok().build();
     }
 

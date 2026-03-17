@@ -15,12 +15,16 @@ public class TransactionHistoryResponse {
     private Long refId;
     private LocalDateTime createdAt;
     private String description;
+    private String donationMessage; // New field for donation message
+    private String fromUserName; // New field for donation sender
+    private String toUserName; // New field for donation receiver
 
     // Constructors
     public TransactionHistoryResponse() {}
 
     public TransactionHistoryResponse(Long id, CoinType coinType, Long delta, Long balanceAfter, 
-                                   LedgerReason reason, String refType, Long refId, LocalDateTime createdAt) {
+                                   LedgerReason reason, String refType, Long refId, LocalDateTime createdAt, 
+                                   String donationMessage, String fromUserName, String toUserName) {
         this.id = id;
         this.coinType = coinType;
         this.delta = delta;
@@ -30,6 +34,9 @@ public class TransactionHistoryResponse {
         this.refId = refId;
         this.createdAt = createdAt;
         this.description = generateDescription(reason, refType, refId, delta);
+        this.donationMessage = donationMessage;
+        this.fromUserName = fromUserName;
+        this.toUserName = toUserName;
     }
 
     private String generateDescription(LedgerReason reason, String refType, Long refId, Long delta) {
@@ -39,10 +46,20 @@ public class TransactionHistoryResponse {
             case SPEND_CHAPTER:
                 return "Mua chương VIP";
             case DONATE:
-                return "Donate tác giả";
+                // Create better description based on refType and delta
+                if ("DONATION_OUT".equals(refType) || delta < 0) {
+                    return "Ủng hộ tác giả";
+                } else if ("DONATION_IN".equals(refType) || delta > 0) {
+                    return "Nhận được donate";
+                } else {
+                    return "Donate";
+                }
             case WITHDRAW:
                 return "Rút coin";
             case EARN:
+                if ("CHAPTER_SETTLEMENT".equals(refType)) {
+                    return "Nháº­n doanh thu chÆ°Æ¡ng";
+                }
                 return "Nhận thưởng";
             case REVIEW_REWARD:
                 return "Thưởng đánh giá";
@@ -80,4 +97,13 @@ public class TransactionHistoryResponse {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getDonationMessage() { return donationMessage; }
+    public void setDonationMessage(String donationMessage) { this.donationMessage = donationMessage; }
+
+    public String getFromUserName() { return fromUserName; }
+    public void setFromUserName(String fromUserName) { this.fromUserName = fromUserName; }
+
+    public String getToUserName() { return toUserName; }
+    public void setToUserName(String toUserName) { this.toUserName = toUserName; }
 }

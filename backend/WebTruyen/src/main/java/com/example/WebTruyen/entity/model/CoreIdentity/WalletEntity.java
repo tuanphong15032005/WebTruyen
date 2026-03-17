@@ -27,6 +27,9 @@ public class WalletEntity {
     @Column(name = "balance_coin_b", nullable = false)
     private Long balanceCoinB;
 
+    @Column(name = "pending_coin_b", nullable = false)
+    private Long pendingCoinB;
+
     @Column(name = "reserved_coin_b", nullable = false)
     private Long reservedCoinB;
 

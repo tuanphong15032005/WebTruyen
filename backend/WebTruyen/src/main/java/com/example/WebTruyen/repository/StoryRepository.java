@@ -1,12 +1,17 @@
 package com.example.WebTruyen.repository;
 
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryStatus;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.enums.StoryCompletionStatus;
+import com.example.WebTruyen.entity.enums.StoryKind;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,9 +36,13 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     
     // Query methods for published stories with sorting
     List<StoryEntity> findByStatusOrderByCreatedAtDesc(StoryStatus status);
+    List<StoryEntity> findByApprovalStatusOrderByCreatedAtDesc(StoryApprovalStatus approvalStatus);
     List<StoryEntity> findByStatusOrderByCreatedAtAsc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleDesc(StoryStatus status);
     List<StoryEntity> findByStatusOrderByTitleAsc(StoryStatus status);
+
+    /** Lấy truyện theo approval_status (dùng cho kiểm duyệt) */
+    List<StoryEntity> findByApprovalStatusInOrderByCreatedAtDesc(List<StoryApprovalStatus> approvalStatuses);
 
 //<<<<<<< HEAD
     // Muc dich: Dem so luot luu vao thu vien theo story de hien thi sidebar metadata. Hieuson + 10h30
@@ -95,6 +104,7 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
             left join s.originalAuthorUser oau
             where s.status = :status
               and (:query is null or lower(s.title) like lower(concat('%', :query, '%')))
+              and (:kind is null or s.kind = :kind)
               and (
                     :authorName is null
                     or lower(coalesce(s.author.authorPenName, s.author.username, '')) like lower(concat('%', :authorName, '%'))
@@ -109,14 +119,32 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Integer> {
     List<StoryEntity> findPublishedStoriesWithAdvancedFilters(
             @Param("status") StoryStatus status,
             @Param("query") String query,
+            @Param("kind") StoryKind kind,
             @Param("authorName") String authorName,
             @Param("completionStatus") StoryCompletionStatus completionStatus,
             @Param("tagIds") List<Long> tagIds,
             @Param("tagCount") long tagCount
     );
+
+    /** Top truyện công khai xếp theo số lượt theo dõi (library_entries) giảm dần */
+    @Query(value = """
+            SELECT s.id FROM stories s
+            LEFT JOIN library_entries le ON le.story_id = s.id
+            WHERE s.status = 'published'
+            GROUP BY s.id
+            ORDER BY COUNT(le.id) DESC
+            """, nativeQuery = true)
+    List<Integer> findTopPublishedStoryIdsOrderByLibraryCount(Pageable pageable);
+
+    /** Danh sách author_id phân biệt của truyện đã xuất bản */
+    @Query("SELECT DISTINCT s.author.id FROM StoryEntity s WHERE s.status = :status AND s.author.id IS NOT NULL")
+    List<Long> findDistinctAuthorIdsByStatus(@Param("status") StoryStatus status);
 //=======
     
     long countByAuthor_Id(Long authorId);
+    
+    // Count only published stories by author
+    long countByAuthor_IdAndStatus(Long authorId, StoryStatus status);
     
 //    List<StoryEntity> findByAuthorIdOrderByCreatedAtDesc(Long authorId);
 //>>>>>>> origin/portfolio

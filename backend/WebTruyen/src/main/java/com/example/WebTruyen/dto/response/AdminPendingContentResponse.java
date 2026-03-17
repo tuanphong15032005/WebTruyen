@@ -9,10 +9,10 @@ public record AdminPendingContentResponse(
         String storyTitle,
         String authorName,
         String genre,
-        String ratingAgeClassification,
         LocalDateTime submissionDate,
         String moderationStatus,
         String moderationActionType,
         String moderationNote,
-        LocalDateTime moderationProcessedAt
+        LocalDateTime moderationProcessedAt,
+        String approvalStatus
 ) {}

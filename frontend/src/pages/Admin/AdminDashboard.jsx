@@ -1,43 +1,84 @@
+import { NavLink, Outlet } from 'react-router-dom';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import ContentModeration from './ContentModeration';
 import ViolationReportManagement from './ViolationReportManagement';
+import DailyMissionManagement from './DailyMissionManagement';
+import AchievementManagementPage from './AchievementManagementPage';
 import '../../styles/admin-dashboard.css';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('moderation');
 
   return (
-    <section className='admin-dashboard'>
-
-      <div className='admin-dashboard__topbar'>
-        <div className='admin-dashboard__tabs'>
-          <button
-            type='button'
-            className={activeTab === 'moderation' ? 'active' : ''}
-            onClick={() => setActiveTab('moderation')}
+    <div className='admin-dashboard'>
+      <aside className='admin-dashboard__sidebar'>
+        <div className='admin-dashboard__logo'>
+          <span className='admin-dashboard__logo-icon'>A</span>
+          <span className='admin-dashboard__logo-text'>Admin Panel</span>
+        </div>
+        <nav className='admin-dashboard__nav'>
+          <NavLink
+            to='moderation'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
           >
+            <span className='admin-dashboard__nav-icon'>📋</span>
             Kiểm duyệt nội dung
+          </NavLink>
+          <NavLink
+            to='reports'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className='admin-dashboard__nav-icon'>⚠️</span>
+            Quản lý Báo cáo vi phạm
+          </NavLink>
+          <NavLink
+            to='achievements'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className='admin-dashboard__nav-icon'>🏆</span>
+            Quản lý thành tích
+          </NavLink>
+          <NavLink
+            to='finance'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className='admin-dashboard__nav-icon'>💳</span>
+            Quản lý chi trả và hoàn tiền
+          </NavLink>
+          <button
+            type='button'
+            className={`admin-dashboard__nav-item ${activeTab === 'daily-missions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('daily-missions')}
+          >
+            <span className='admin-dashboard__nav-icon'>🎯</span>
+            Quản lý Nhiệm vụ hàng ngày
           </button>
           <button
             type='button'
-            className={activeTab === 'reports' ? 'active' : ''}
-            onClick={() => setActiveTab('reports')}
+            className={`admin-dashboard__nav-item ${activeTab === 'achievements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('achievements')}
           >
-            Quản lý Báo cáo vi phạm
+            <span className='admin-dashboard__nav-icon'>🏆</span>
+            Quản lý Thành tựu
           </button>
-        </div>
-
-        <div className='admin-dashboard__links'>
-          <Link to='/admin/content-moderation'>Mở trang kiểm duyệt riêng</Link>
-          <Link to='/admin/violation-reports'>Mở trang báo cáo riêng</Link>
-        </div>
-      </div>
-
-      <div className='admin-dashboard__panel'>
-        {activeTab === 'moderation' ? <ContentModeration /> : <ViolationReportManagement />}
-      </div>
-    </section>
+        </nav>
+      </aside>
+      <main className='admin-dashboard__main'>
+        <Outlet />
+        {activeTab === 'moderation' ? <ContentModeration /> :
+         activeTab === 'reports' ? <ViolationReportManagement /> :
+         activeTab === 'daily-missions' ? <DailyMissionManagement /> :
+         <AchievementManagementPage />}
+      </main>
+    </div>
   );
 }
 

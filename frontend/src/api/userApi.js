@@ -20,3 +20,18 @@ export async function uploadAvatar(userId, formData) {
     },
   });
 }
+
+
+export async function getFollowersList(userId) {
+  const res = await api.get(`/users/${userId}/followers`)
+  return res.data
+}
+
+//create a cover upload API function
+export async function uploadCover(userId, formData) {
+  return await api.post(`/users/profile/${userId}/upload-cover`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
