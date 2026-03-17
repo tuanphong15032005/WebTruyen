@@ -2,6 +2,8 @@ import React from 'react';
 import { X, User, Calendar, BookOpen } from 'lucide-react';
 
 export default function FollowersModal({ isOpen, onClose, followers, loading }) {
+  const followerItems = Array.isArray(followers) ? followers : [];
+
   if (!isOpen) return null;
 
   return (
@@ -40,7 +42,7 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
             fontWeight: 'bold',
             color: '#333'
           }}>
-            Danh sách người theo dõi ({followers.length})
+            Danh sách người theo dõi ({followerItems.length})
           </h2>
           <button
             onClick={onClose}
@@ -75,7 +77,7 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
             }}>
               Đang tải...
             </div>
-          ) : followers.length === 0 ? (
+          ) : followerItems.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '40px',
@@ -86,7 +88,7 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {followers.map((follower) => (
+              {followerItems.map((follower) => (
                 <div
                   key={follower.userId}
                   style={{
@@ -110,7 +112,7 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
                   }}
                   onClick={() => {
                     // Navigate to user profile
-                    window.location.href = `/portfolio/${follower.userId}`;
+                    window.location.href = `/user/${follower.userId}`;
                   }}
                 >
                   {/* Avatar */}

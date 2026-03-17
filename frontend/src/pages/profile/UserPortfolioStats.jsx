@@ -12,9 +12,10 @@ const UserPortfolioStats = ({ data }) => {
         setFollowersLoading(true);
         try {
             const followers = await getFollowersList(data.userId);
-            setFollowersList(followers);
+            setFollowersList(Array.isArray(followers) ? followers : []);
         } catch (error) {
             console.error('Error fetching followers:', error);
+            setFollowersList([]);
         } finally {
             setFollowersLoading(false);
         }
