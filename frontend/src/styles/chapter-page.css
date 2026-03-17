@@ -71,6 +71,12 @@ main.main-content.chapter-layout-host {
   color: #2b3a4e;
 }
 
+.toolbar-btn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
 .theme-dark .toolbar-btn {
   color: #f2f3f5;
 }
@@ -705,6 +711,11 @@ main.main-content.chapter-layout-host {
   .toolbar-btn {
     width: 52px;
     height: 52px;
+  }
+
+  .toolbar-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .story-title {

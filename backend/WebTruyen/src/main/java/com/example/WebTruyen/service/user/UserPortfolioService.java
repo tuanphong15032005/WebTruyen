@@ -1,9 +1,11 @@
 package com.example.WebTruyen.service.user;
 
 import com.example.WebTruyen.dto.response.UserPortfolioResponse;
+import com.example.WebTruyen.dto.response.FollowerResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowUserEntity;
+import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,7 @@ public class UserPortfolioService {
                 .username(user.getUsername())
                 .displayName(user.getDisplayName())
                 .avatarUrl(user.getAvatarUrl())
+                .coverUrl(user.getCoverUrl())
                 .authorPenName(user.getAuthorPenName())  // Added for ISSUE 2
                 .joinDate(user.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE))
                 .bio(bio)
@@ -66,7 +69,7 @@ public class UserPortfolioService {
     }
 
     public Long countStories(Long userId) {
-        return storyRepository.countByAuthor_Id(userId);
+        return storyRepository.countByAuthor_IdAndStatus(userId, StoryStatus.published);
     }
 
     public Long countFollowers(Long userId) {
@@ -83,8 +86,8 @@ public class UserPortfolioService {
             return true;
         }
         
-        // Check if user has any stories (user.id appears in stories.author_id)
-        Long storiesCount = storyRepository.countByAuthor_Id(user.getId());
+        // Check if user has any published stories (user.id appears in stories.author_id with status = published)
+        Long storiesCount = storyRepository.countByAuthor_IdAndStatus(user.getId(), StoryStatus.published);
         return storiesCount > 0;
     }
 
@@ -164,5 +167,17 @@ public class UserPortfolioService {
                     return storyMap;
                 })
                 .collect(Collectors.toList());
+    }
+
+    // Get followers list with user details
+    public List<FollowerResponse> getFollowersList(Long userId) {
+        try {
+            List<Object[]> results = followUserRepository.findFollowersWithDetails(userId);
+            return results.stream()
+                    .map(FollowerResponse::from)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch followers list: " + e.getMessage());
+        }
     }
 }

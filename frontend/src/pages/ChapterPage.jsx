@@ -304,6 +304,7 @@ const VerticalToolbar = ({
   onBackToMetadata,
   onSettings,
   onBookmarks,
+  onReport,
   hasPrev,
   hasNext,
 }) => (
@@ -348,6 +349,14 @@ const VerticalToolbar = ({
       title='Bookmarks'
     >
       <Bookmark size={18} />
+    </button>
+    <button
+      type='button'
+      className='toolbar-btn'
+      onClick={onReport}
+      title='Báo lỗi'
+    >
+      <Flag size={18} />
     </button>
     <button
       type='button'
@@ -465,14 +474,14 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   };
 
   const openReplyForm = (comment, rootId) => {
-    const mentionUsername =
-      Number(comment?.userId) !== currentUserId ? comment?.username : null;
+    const mentionUsername = comment?.username || null;
     setEditingCommentId(null);
     setEditingContent('');
     setReplyForId(comment.id);
     setReplyTarget({
       rootId: String(rootId || comment.id),
       parentCommentId: comment.id,
+      parentUserId: comment?.userId ?? null,
       mentionUsername,
     });
     setReplyContent('');
@@ -543,19 +552,13 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     }
   };
 
-  const handleReportComment = async (commentId) => {
+  const handleReportComment = async (commentId, commentContent, commentUsername) => {
     if (!requireLogin()) return;
-    const reason = window.prompt('Nhập lý do báo cáo bình luận:');
-    if (!reason || !reason.trim()) return;
-    try {
-      setSubmittingReportForId(commentId);
-      await reportComment(commentId, reason.trim());
-      notify('Đã gửi báo cáo bình luận', 'success');
-    } catch (err) {
-      notify(getErrorMessage(err, 'Không thể báo cáo bình luận'), 'error');
-    } finally {
-      setSubmittingReportForId(null);
-    }
+    
+    // Navigate to comment report page with comment details
+    const encodedContent = encodeURIComponent(commentContent || '');
+    const encodedUsername = encodeURIComponent(commentUsername || '');
+    navigate(`/report-comment?commentId=${commentId}&storyId=${storyId}&chapterId=${chapterId}&content=${encodedContent}&username=${encodedUsername}`);
   };
 
   const handleLoadMoreReplies = (rootId, totalReplies) => {
@@ -610,12 +613,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
   const renderCommentItem = (comment, isReply = false, rootId = null) => {
     const commentRootId = String(rootId || comment.id);
     const isOwner = currentUserId === Number(comment.userId);
-    const mention =
-      isReply &&
-      comment.parentUsername &&
-      Number(comment.parentUserId) !== Number(comment.userId)
-        ? `@${comment.parentUsername} `
-        : '';
+    const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
     const isEditing = editingCommentId === comment.id;
 
     return (
@@ -711,12 +709,9 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
                 <button
                   type='button'
                   className='story-metadata__inline-action'
-                  onClick={() => handleReportComment(comment.id)}
-                  disabled={submittingReportForId === comment.id}
+                  onClick={() => handleReportComment(comment.id, comment.content, comment.username)}
                 >
-                  {submittingReportForId === comment.id
-                    ? 'Đang gửi...'
-                    : 'Báo cáo'}
+                  Báo cáo
                 </button>
               )}
             </div>
@@ -1489,6 +1484,11 @@ const ChapterPage = () => {
         }
         onSettings={() => setShowSettings(true)}
         onBookmarks={() => setShowPanel(true)}
+        onReport={() => {
+          if (storyId && chapterIdParam) {
+            navigate(`/report?storyId=${storyId}&chapterId=${chapterIdParam}`);
+          }
+        }}
         hasPrev={Boolean(previousChapterId)}
         hasNext={Boolean(nextChapterId)}
       />
@@ -1587,7 +1587,14 @@ const ChapterPage = () => {
                 <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
                 {liked ? 'Đã thích' : 'Thả tim'}
               </button>
-              <button className='interaction-btn'>
+              <button 
+                className='interaction-btn'
+                onClick={() => {
+                  if (storyId && chapterIdParam) {
+                    navigate(`/report?storyId=${storyId}&chapterId=${chapterIdParam}`);
+                  }
+                }}
+              >
                 <Flag size={18} />
                 Báo lỗi
               </button>

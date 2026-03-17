@@ -12,11 +12,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <WalletProvider>
-          <NotifyProvider>
+        <NotifyProvider>
+          <WalletProvider>
             <App />
-          </NotifyProvider>
-        </WalletProvider>
+          </WalletProvider>
+        </NotifyProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,

@@ -23,3 +23,18 @@ export const createBookmark = (payload) =>
  */
 export const deleteBookmark = (bookmarkId) =>
   api.delete(`/bookmarks/${bookmarkId}`);
+
+/**
+ * Lấy danh sách stories có bookmark của user.
+ * @returns {Promise<BookmarkStoryResponse[]>}
+ */
+export const getBookmarkStories = () =>
+  api.get('/bookmarks/stories');
+
+/**
+ * Lấy chi tiết bookmarks của một story.
+ * @param {number|string} storyId
+ * @returns {Promise<BookmarkStoryDetailResponse[]>}
+ */
+export const getBookmarkStoryDetails = (storyId) =>
+  api.get(`/bookmarks/story/${storyId}`);

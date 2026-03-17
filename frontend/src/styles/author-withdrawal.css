@@ -1,0 +1,367 @@
+ .author-withdrawal {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #f1f5f9;
+  min-height: 100%;
+  border-radius: 12px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.author-withdrawal__header {
+  margin-bottom: 20px;
+}
+
+.author-withdrawal__header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.author-withdrawal__header p {
+  margin-top: 8px;
+  color: #475569;
+  font-size: 14px;
+  max-width: 720px;
+}
+
+.author-withdrawal__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.author-withdrawal__card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.author-withdrawal__card--history {
+  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+
+.author-withdrawal__balance {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: radial-gradient(circle at top left, #22c55e, #0f766e);
+  color: #f9fafb;
+  margin-bottom: 18px;
+}
+
+.author-withdrawal__balance-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.author-withdrawal__balance-label {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.author-withdrawal__balance-value {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.author-withdrawal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.author-withdrawal__field label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.author-withdrawal__field label span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.author-withdrawal__field label small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.author-withdrawal__input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.author-withdrawal__input-wrapper svg {
+  color: #0ea5e9;
+}
+
+.author-withdrawal__input-wrapper input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.author-withdrawal__input-wrapper select {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.author-withdrawal__input-wrapper input::placeholder {
+  color: #9ca3af;
+}
+
+.author-withdrawal__field-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.author-withdrawal__textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  font: inherit;
+  resize: vertical;
+}
+
+.author-withdrawal__summary {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.author-withdrawal__summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.author-withdrawal__summary-row--net {
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.author-withdrawal__terms {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.author-withdrawal__terms-box {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.author-withdrawal__terms-box h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.author-withdrawal__terms-box ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-withdrawal__terms-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.author-withdrawal__terms-check input {
+  margin-top: 2px;
+}
+
+.author-withdrawal__alert {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.author-withdrawal__alert--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.author-withdrawal__alert--success {
+  background: #ecfdf5;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.author-withdrawal__submit {
+  margin-top: 4px;
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: linear-gradient(to right, #0ea5e9, #6366f1);
+  color: #f9fafb;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+}
+
+.author-withdrawal__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(59, 130, 246, 0.45);
+}
+
+.author-withdrawal__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.author-withdrawal__history-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.author-withdrawal__history-head p {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.author-withdrawal__history-empty {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px dashed #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.author-withdrawal__history-table {
+  margin-top: 8px;
+  overflow: auto;
+}
+
+.author-withdrawal__history-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.author-withdrawal__history-table th,
+.author-withdrawal__history-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.author-withdrawal__history-table thead th {
+  background: #f8fafc;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.withdrawal-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.withdrawal-status--pending {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.withdrawal-status--approved {
+  background: #ecfdf5;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.withdrawal-status--rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.withdrawal-status--paid {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+@media (max-width: 960px) {
+  .author-withdrawal__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

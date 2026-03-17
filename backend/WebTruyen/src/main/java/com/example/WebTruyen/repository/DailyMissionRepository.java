@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DailyMissionRepository extends JpaRepository<DailyMissionEntity, Integer> {
+public interface DailyMissionRepository extends JpaRepository<DailyMissionEntity, Long> {
     
     List<DailyMissionEntity> findByDate(LocalDate date);
     
@@ -22,4 +22,10 @@ public interface DailyMissionRepository extends JpaRepository<DailyMissionEntity
     
     @Query("SELECT DISTINCT dm.date FROM DailyMissionEntity dm ORDER BY dm.date DESC")
     List<LocalDate> findAllDistinctDates();
+    
+    // Template management methods
+    List<DailyMissionEntity> findByDateIsNull();
+    
+    @Query("SELECT dm FROM DailyMissionEntity dm WHERE dm.date IS NULL ORDER BY dm.id")
+    List<DailyMissionEntity> findTemplatesOrdered();
 }

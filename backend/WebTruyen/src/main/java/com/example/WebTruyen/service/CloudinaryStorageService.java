@@ -49,6 +49,23 @@ public class CloudinaryStorageService implements StorageService {
     @Override
     public String saveImage(MultipartFile file) {
         if (file == null || file.isEmpty()) return null;
+        
+        System.out.println("=== CLOUDINARY STORAGE SERVICE ===");
+        System.out.println("Original filename: " + file.getOriginalFilename());
+        System.out.println("Content type: " + file.getContentType());
+        System.out.println("File size: " + file.getSize() + " bytes");
+        
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new RuntimeException("Invalid file type. Only images are allowed. Content type: " + contentType);
+        }
+        
+        // Validate file size (max 10MB)
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new RuntimeException("File too large. Maximum size is 10MB. Actual size: " + file.getSize() + " bytes");
+        }
+        
         try {
             byte[] resized = resizeImage(file.getBytes(), IMAGE_MAX_SIZE, IMAGE_MAX_SIZE, true);
             String publicId = "webtruyen/images/" + UUID.randomUUID();
@@ -61,9 +78,16 @@ public class CloudinaryStorageService implements StorageService {
                     )
             );
             Object url = result.get("secure_url");
-            return url == null ? null : url.toString();
+            String finalUrl = url == null ? null : url.toString();
+            System.out.println("Upload successful: " + finalUrl);
+            return finalUrl;
         } catch (IOException e) {
-            throw new RuntimeException("Upload image failed", e);
+            System.err.println("IO Exception during image processing: " + e.getMessage());
+            throw new RuntimeException("Upload image failed: " + e.getMessage(), e);
+        } catch (Exception e) {
+            System.err.println("Exception during upload: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Upload image failed: " + e.getMessage(), e);
         }
     }
 
@@ -90,13 +114,32 @@ public class CloudinaryStorageService implements StorageService {
     }
    //resize img using thumbailnator
     private byte[] resizeImage(byte[] input, int width, int height, boolean keepAspect) throws IOException {
-        if (input == null || input.length == 0) return input;
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        Thumbnails.of(new ByteArrayInputStream(input))
-                .size(width, height)
-                .keepAspectRatio(keepAspect)
-                .outputQuality(0.9)
-                .toOutputStream(output);
-        return output.toByteArray();
+        if (input == null || input.length == 0) {
+            throw new IllegalArgumentException("Input image data is null or empty");
+        }
+        
+        System.out.println("=== RESIZE IMAGE ===");
+        System.out.println("Input size: " + input.length + " bytes");
+        System.out.println("Target size: " + width + "x" + height);
+        
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            Thumbnails.of(new ByteArrayInputStream(input))
+                    .size(width, height)
+                    .keepAspectRatio(keepAspect)
+                    .outputQuality(0.9)
+                    .toOutputStream(output);
+            
+            byte[] result = output.toByteArray();
+            System.out.println("Resize successful: " + result.length + " bytes");
+            return result;
+        } catch (net.coobird.thumbnailator.tasks.UnsupportedFormatException e) {
+            System.err.println("Unsupported image format: " + e.getMessage());
+            throw new RuntimeException("Unsupported image format. Please use a valid image file (JPG, PNG, GIF, WebP).", e);
+        } catch (Exception e) {
+            System.err.println("Error resizing image: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to process image: " + e.getMessage(), e);
+        }
     }
 }

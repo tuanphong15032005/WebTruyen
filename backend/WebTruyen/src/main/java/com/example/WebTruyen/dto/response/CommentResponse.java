@@ -9,8 +9,12 @@ public record CommentResponse(
         String username,
         String avatarUrl,
         String content,
+        Boolean hidden,
+        Boolean spoiler,
         LocalDateTime createdAt,
         Long parentCommentId,
+        Long parentUserId,
+        String parentUsername,
         Integer depth,
         List<CommentResponse> replies
 ) {}

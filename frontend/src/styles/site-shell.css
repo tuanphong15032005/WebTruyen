@@ -46,6 +46,13 @@
   gap: 14px;
 }
 
+.site-header__lead {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
 /* Daily Tasks Page Styles */
 .daily-tasks-page {
   max-width: 1200px;
@@ -784,6 +791,56 @@
   gap: 12px;
 }
 
+/* ===== WebTruyen Author Search Feature START ===== */
+/* Author discovery button styling */
+/* ===== WebTruyen Author Search Feature END ===== */
+.site-authors-discovery-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.site-authors-discovery-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  color: white;
+  text-decoration: none;
+}
+
+.site-authors-discovery-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.site-authors-discovery-btn__text {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .site-authors-discovery-btn__text {
+    display: none;
+  }
+  
+  .site-authors-discovery-btn {
+    padding: 6px 8px;
+    min-width: 36px;
+    justify-content: center;
+  }
+}
+
 .site-wallet {
   display: flex;
   align-items: center;
@@ -1028,14 +1085,33 @@
     gap: 10px;
   }
 
+  .site-header__lead {
+    gap: 12px;
+  }
+
+  .site-nav__item {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
   .site-footer__inner {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 640px) {
+  .site-header__lead {
+    gap: 8px;
+  }
+
   .site-brand__text {
     font-size: 1.3rem;
+  }
+
+  .site-nav__item {
+    height: 34px;
+    padding: 0 9px;
+    font-size: 0.86rem;
   }
 
   .site-header__actions {

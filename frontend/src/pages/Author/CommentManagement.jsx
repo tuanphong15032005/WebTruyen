@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
@@ -24,6 +24,147 @@ const statusClassName = (status) => {
   return 'normal';
 };
 
+const statusLabelVi = (status) => {
+  const key = String(status || '').toLowerCase();
+  if (key === 'hidden') return 'Đã ẩn';
+  if (key === 'reported') return 'Đã bị báo cáo';
+  return 'Bình thường';
+};
+
+// Searchable select: options = [{value, label}], value, onChange, placeholder, disabled, ariaLabel
+const SearchableSelect = ({
+  options = [],
+  value,
+  onChange,
+  placeholder = 'Chọn...',
+  disabled = false,
+  ariaLabel,
+  getOptionLabel = (o) => o?.label ?? o?.title ?? String(o),
+  getOptionValue = (o) => o?.value ?? o?.id ?? o,
+}) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const filteredOptions = useMemo(() => {
+    const q = String(search || '').trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => getOptionLabel(o).toLowerCase().includes(q));
+  }, [options, search, getOptionLabel]);
+
+  const selectedOption = useMemo(
+    () => options.find((o) => String(getOptionValue(o)) === String(value)),
+    [options, value, getOptionValue],
+  );
+  const displayText = selectedOption ? getOptionLabel(selectedOption) : '';
+
+  useEffect(() => {
+    if (open) {
+      inputRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const fn = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const handleSelect = (opt) => {
+    onChange(getOptionValue(opt));
+    setSearch('');
+    setOpen(false);
+  };
+
+  return (
+    <div className='author-comments__searchable' ref={containerRef}>
+      <div
+        role='combobox'
+        aria-expanded={open}
+        aria-haspopup='listbox'
+        aria-label={ariaLabel}
+        className={`author-comments__searchable-trigger ${open ? 'author-comments__searchable-trigger--open' : ''} ${disabled ? 'author-comments__searchable-trigger--disabled' : ''}`}
+        onClick={() => !disabled && !open && setOpen(true)}
+      >
+        <input
+          ref={inputRef}
+          type='text'
+          className='author-comments__searchable-input'
+          value={open ? search : displayText}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          disabled={disabled}
+          readOnly={!open}
+          aria-autocomplete='list'
+          autoComplete='off'
+        />
+      </div>
+      {open && (
+        <ul className='author-comments__searchable-dropdown' role='listbox'>
+          {filteredOptions.map((opt) => {
+            const optValue = getOptionValue(opt);
+            const optLabel = getOptionLabel(opt);
+            const isSelected = String(optValue) === String(value);
+            return (
+              <li
+                key={optValue}
+                role='option'
+                aria-selected={isSelected}
+                className={`author-comments__searchable-option ${isSelected ? 'author-comments__searchable-option--selected' : ''}`}
+                onClick={() => handleSelect(opt)}
+              >
+                {optLabel}
+              </li>
+            );
+          })}
+          {filteredOptions.length === 0 && (
+            <li className='author-comments__searchable-empty'>Không có kết quả</li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+// Compute fromDate, toDate from period (week|month|year) + optional year, month
+const getDateRange = (period, year, month) => {
+  const now = new Date();
+  const y = year ?? now.getFullYear();
+  const m = month ?? now.getMonth() + 1;
+  let from, to;
+  if (period === 'week') {
+    const d = new Date(now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    from = new Date(d.setDate(diff));
+    from.setHours(0, 0, 0, 0);
+    to = new Date(from);
+    to.setDate(to.getDate() + 6);
+    to.setHours(23, 59, 59, 999);
+  } else if (period === 'month') {
+    from = new Date(y, m - 1, 1, 0, 0, 0, 0);
+    to = new Date(y, m, 0, 23, 59, 59, 999);
+  } else if (period === 'year') {
+    from = new Date(y, 0, 1, 0, 0, 0, 0);
+    to = new Date(y, 11, 31, 23, 59, 59, 999);
+  } else {
+    return { from: null, to: null };
+  }
+  return {
+    from: from.toISOString(),
+    to: to.toISOString(),
+  };
+};
+
 const CommentManagement = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -36,6 +177,9 @@ const CommentManagement = () => {
 
   const [storyId, setStoryId] = useState(initialStoryId || '');
   const [chapterId, setChapterId] = useState('');
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
 
   const [loadingStories, setLoadingStories] = useState(false);
   const [loadingChapters, setLoadingChapters] = useState(false);
@@ -55,6 +199,10 @@ const CommentManagement = () => {
     const value = Number(chapterId);
     return Number.isFinite(value) && value > 0 ? value : null;
   }, [chapterId]);
+
+  const dateRange = useMemo(() => {
+    return getDateRange(timeFilter, filterYear, timeFilter === 'month' ? filterMonth : null);
+  }, [timeFilter, filterYear, filterMonth]);
 
   const fetchStories = useCallback(async () => {
     try {
@@ -111,10 +259,15 @@ const CommentManagement = () => {
     }
     try {
       setLoadingComments(true);
-      const response = await storyService.getAuthorComments({
+      const params = {
         storyId: selectedStoryId,
         chapterId: selectedChapterId ?? undefined,
-      });
+      };
+      if (dateRange?.from && dateRange?.to) {
+        params.fromDate = dateRange.from;
+        params.toDate = dateRange.to;
+      }
+      const response = await storyService.getAuthorComments(params);
       setComments(Array.isArray(response) ? response : []);
       setReplyForId(null);
       setReplyContent('');
@@ -129,7 +282,7 @@ const CommentManagement = () => {
     } finally {
       setLoadingComments(false);
     }
-  }, [notify, navigate, selectedChapterId, selectedStoryId]);
+  }, [notify, navigate, selectedChapterId, selectedStoryId, dateRange]);
 
   useEffect(() => {
     fetchStories();
@@ -171,44 +324,6 @@ const CommentManagement = () => {
     }
   };
 
-  const handleHide = async (commentId) => {
-    try {
-      setActingCommentId(commentId);
-      await storyService.hideAuthorComment(commentId);
-      notify('Đã ẩn bình luận', 'success');
-      await fetchComments();
-    } catch (error) {
-      console.error('hideAuthorComment error', error);
-      if (isUnauthorized(error)) {
-        notify('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-        navigate('/login', { replace: true, state: { from: '/author/comments' } });
-        return;
-      }
-      notify('Không thể ẩn bình luận', 'error');
-    } finally {
-      setActingCommentId(null);
-    }
-  };
-
-  const handleUnhide = async (commentId) => {
-    try {
-      setActingCommentId(commentId);
-      await storyService.unhideAuthorComment(commentId);
-      notify('Đã hiện lại bình luận', 'success');
-      await fetchComments();
-    } catch (error) {
-      console.error('unhideAuthorComment error', error);
-      if (isUnauthorized(error)) {
-        notify('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-        navigate('/login', { replace: true, state: { from: '/author/comments' } });
-        return;
-      }
-      notify('Không thể hiện lại bình luận', 'error');
-    } finally {
-      setActingCommentId(null);
-    }
-  };
-
   const handleDelete = async (commentId) => {
     try {
       setActingCommentId(commentId);
@@ -228,16 +343,62 @@ const CommentManagement = () => {
     }
   };
 
-  // Renders one comment (or reply) with Fields 4–10: avatar, display name, content, time, status, Reply, Hide/Delete.
-  const renderNode = (comment) => {
+  const handleToggleVisibility = async (comment) => {
+    const commentId = comment?.id;
+    if (!commentId) return;
+    const isHidden = String(comment?.status || '').toLowerCase() === 'hidden';
+    try {
+      setActingCommentId(commentId);
+      if (isHidden) {
+        await storyService.unhideAuthorComment(commentId);
+        notify('Đã hiện bình luận', 'success');
+      } else {
+        await storyService.hideAuthorComment(commentId);
+        notify('Đã ẩn bình luận', 'success');
+      }
+      await fetchComments();
+    } catch (error) {
+      console.error('toggleAuthorCommentVisibility error', error);
+      if (isUnauthorized(error)) {
+        notify('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
+        navigate('/login', { replace: true, state: { from: '/author/comments' } });
+        return;
+      }
+      notify('Không thể cập nhật trạng thái bình luận', 'error');
+    } finally {
+      setActingCommentId(null);
+    }
+  };
+
+  // Flatten reply tree: [{reply, parentDisplayName}] theo thời gian (Facebook-style flat list).
+  const flattenRepliesWithParent = (replies, parentName = '') => {
+    const result = [];
+    const walk = (list, parent) => {
+      if (!Array.isArray(list)) return;
+      list.forEach((r) => {
+        result.push({ reply: r, parentDisplayName: parent || 'Độc giả' });
+        walk(r.replies || [], r.displayName || 'Độc giả');
+      });
+    };
+    walk(replies, parentName);
+    return result.sort((a, b) => new Date(a.reply.postedTime || 0) - new Date(b.reply.postedTime || 0));
+  };
+
+  // Renders one comment — Facebook style: flat layout, không bậc thang.
+  const renderComment = (comment, { isReply = false, replyToName } = {}) => {
     const replies = Array.isArray(comment.replies) ? comment.replies : [];
-    const isReplying = replyForId === comment.id;
+    const flatReplies = !isReply ? flattenRepliesWithParent(replies, comment.displayName) : [];
+    const actualReplying = replyForId === comment.id;
     const isActing = actingCommentId === comment.id;
-    const statusLabel = comment.status === 'Normal' ? 'Normal' : comment.status === 'Reported' ? 'Reported' : comment.status === 'Hidden' ? 'Hidden' : (comment.status || 'Normal');
+    const isHidden = String(comment?.status || '').toLowerCase() === 'hidden';
+    const statusLabel = statusLabelVi(comment.status);
 
     return (
-      <article key={comment.id} className='author-comments__item' role='listitem'>
-        {/* Field 4: Reader avatar (display field) */}
+      <article
+        key={comment.id}
+        className={`author-comments__item ${isReply ? 'author-comments__item--reply' : ''}`}
+        role='listitem'
+      >
         <div className='author-comments__avatar' aria-hidden='true'>
           {comment.avatarUrl ? (
             <img src={comment.avatarUrl} alt='' />
@@ -247,70 +408,61 @@ const CommentManagement = () => {
         </div>
 
         <div className='author-comments__body'>
-          {/* Field 5: Reader display name | Field 7: Comment posted time | Field 8: Comment status (Normal / Reported / Hidden) */}
           <div className='author-comments__head'>
-            <strong className='author-comments__name'>{comment.displayName || 'Reader'}</strong>
+            {replyToName && (
+              <span className='author-comments__reply-to'>Trả lời {replyToName}</span>
+            )}
+            <strong className='author-comments__name'>{comment.displayName || 'Độc giả'}</strong>
             <time className='author-comments__time' dateTime={comment.postedTime || ''}>
               {formatDateTime(comment.postedTime)}
             </time>
-            <span className={`author-comments__status author-comments__status--${statusClassName(comment.status)}`} title='Comment status'>
+            <span
+              className={`author-comments__status author-comments__status--${statusClassName(comment.status)}`}
+              title='Trạng thái bình luận'
+            >
               {statusLabel}
             </span>
           </div>
 
-          {/* Field 6: Comment content (display field) */}
           <p className='author-comments__content'>{comment.content}</p>
 
-          {/* Field 9: Reply action (action button) | Field 10: Hide / Delete action (action buttons) */}
           <div className='author-comments__actions'>
             <button
               type='button'
               className='author-comments__btn author-comments__btn--reply'
               onClick={() => setReplyForId((prev) => (prev === comment.id ? null : comment.id))}
-              aria-label='Reply to this comment'
+              aria-label='Phan hoi binh luan nay'
             >
-              Reply
+              Phản hồi
             </button>
-            {String(comment.status || '').toLowerCase() === 'hidden' ? (
-              <button
-                type='button'
-                className='author-comments__btn author-comments__btn--unhide'
-                onClick={() => handleUnhide(comment.id)}
-                disabled={isActing}
-                aria-label='Unhide comment'
-              >
-                {isActing ? '…' : 'Unhide'}
-              </button>
-            ) : (
-              <button
-                type='button'
-                className='author-comments__btn author-comments__btn--hide'
-                onClick={() => handleHide(comment.id)}
-                disabled={isActing}
-                aria-label='Hide comment'
-              >
-                {isActing ? '…' : 'Hide'}
-              </button>
-            )}
+            <button
+              type='button'
+              className='author-comments__btn author-comments__btn--toggle'
+              onClick={() => handleToggleVisibility(comment)}
+              disabled={isActing}
+              aria-label={isHidden ? 'Hiện bình luận' : 'Ẩn bình luận'}
+            >
+              {isActing ? '…' : isHidden ? 'Hiện' : 'Ẩn'}
+            </button>
             <button
               type='button'
               className='author-comments__btn author-comments__btn--delete'
               onClick={() => handleDelete(comment.id)}
               disabled={isActing}
-              aria-label='Delete comment'
+              aria-label='Xóa bình luận'
             >
-              {isActing ? '…' : 'Delete'}
+              {isActing ? '…' : 'Xóa'}
             </button>
           </div>
 
-          {isReplying && (
+          {actualReplying && (
             <div className='author-comments__reply-box'>
               <textarea
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
-                placeholder='Write your reply…'
+                placeholder='Viết phản hồi…'
                 maxLength={4000}
-                aria-label='Reply text'
+                aria-label='Nội dung phản hồi'
               />
               <div className='author-comments__reply-footer'>
                 <span>{replyContent.trim().length} / 4000</span>
@@ -320,15 +472,20 @@ const CommentManagement = () => {
                   onClick={() => handleReply(comment.id)}
                   disabled={isActing}
                 >
-                  {isActing ? 'Sending…' : 'Send reply'}
+                  {isActing ? 'Đang gửi…' : 'Gửi'}
                 </button>
               </div>
             </div>
           )}
 
-          {replies.length > 0 && (
+          {flatReplies.length > 0 && (
             <div className='author-comments__replies' role='list'>
-              {replies.map((reply) => renderNode(reply))}
+              {flatReplies.map(({ reply, parentDisplayName }) =>
+                renderComment(reply, {
+                  isReply: true,
+                  replyToName: parentDisplayName,
+                })
+              )}
             </div>
           )}
         </div>
@@ -337,61 +494,111 @@ const CommentManagement = () => {
   };
 
   return (
-    <div className='author-comments' role='region' aria-label='Comment Management'>
+    <div className='author-comments' role='region' aria-label='Quản lý bình luận'>
       {/* Mô tả màn hình theo spec: Authors access the Comment Management screen to manage and respond to reader comments. */}
       <header className='author-comments__header'>
-        <h1 className='author-comments__title'>Comment Management</h1>
+        <h1 className='author-comments__title'>Quản lý bình luận</h1>
         <p className='author-comments__desc'>
-          Manage and respond to reader comments on each story chapter. View, reply, and moderate comments that violate community guidelines.
+          Quản lý và phản hồi bình luận của độc giả theo từng truyện hoặc chương. Bạn có thể trả lời,
+          ẩn/hiện và xóa các bình luận không phù hợp.
         </p>
       </header>
 
-      {/* Field 1: Story selector (dropdown) — Select the story for which comments will be displayed. */}
-      {/* Field 2: Chapter selector (dropdown) — Select a specific chapter to view related comments. */}
-      <section className='author-comments__filters' aria-label='Filters'>
+      {/* Field 1: Story selector (searchable) | Field 2: Chapter selector (searchable) */}
+      <section className='author-comments__filters' aria-label='Bộ lọc'>
         <label className='author-comments__filter-group'>
-          <span className='author-comments__label'>Story</span>
-          <select
-            className='author-comments__select'
+          <span className='author-comments__label'>Truyện</span>
+          <SearchableSelect
+            options={stories}
             value={storyId}
-            onChange={(e) => setStoryId(e.target.value)}
+            onChange={(v) => setStoryId(String(v ?? ''))}
+            placeholder={loadingStories ? 'Đang tải...' : 'Tìm kiếm truyện...'}
             disabled={loadingStories}
-            aria-label='Select the story for which comments will be displayed'
-          >
-            <option value=''>{loadingStories ? 'Loading...' : 'Select story'}</option>
-            {stories.map((story) => (
-              <option key={story.id} value={story.id}>{story.title}</option>
-            ))}
-          </select>
+            ariaLabel='Chọn truyện để xem bình luận'
+            getOptionLabel={(o) => o?.title ?? ''}
+            getOptionValue={(o) => o?.id ?? ''}
+          />
         </label>
         <label className='author-comments__filter-group'>
-          <span className='author-comments__label'>Chapter</span>
+          <span className='author-comments__label'>Chương</span>
+          <SearchableSelect
+            options={[{ id: '', title: 'Tất cả chương' }, ...chapters]}
+            value={chapterId}
+            onChange={(v) => setChapterId(String(v ?? ''))}
+            placeholder={loadingChapters ? 'Đang tải...' : 'Tìm kiếm chương...'}
+            disabled={!selectedStoryId || loadingChapters}
+            ariaLabel='Chọn chương để xem bình luận'
+            getOptionLabel={(o) => o?.id === '' ? 'Tất cả chương' : (o?.sequenceIndex ? `Ch. ${o.sequenceIndex}: ${o.title}` : o?.title ?? '')}
+            getOptionValue={(o) => o?.id ?? ''}
+          />
+        </label>
+        <label className='author-comments__filter-group'>
+          <span className='author-comments__label'>Lọc theo thời gian</span>
           <select
             className='author-comments__select'
-            value={chapterId}
-            onChange={(e) => setChapterId(e.target.value)}
-            disabled={!selectedStoryId || loadingChapters}
-            aria-label='Select a specific chapter to view related comments'
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+            aria-label='Lọc bình luận theo tuần, tháng, năm'
           >
-            <option value=''>{loadingChapters ? 'Loading...' : 'All chapters'}</option>
-            {chapters.map((chapter) => (
-              <option key={chapter.id} value={chapter.id}>
-                {chapter.sequenceIndex ? `Ch. ${chapter.sequenceIndex}: ${chapter.title}` : chapter.title}
-              </option>
-            ))}
+            <option value='all'>Tất cả</option>
+            <option value='week'>Tuần này</option>
+            <option value='month'>Tháng này</option>
+            <option value='year'>Năm này</option>
           </select>
         </label>
+        {timeFilter === 'month' && (
+          <>
+            <label className='author-comments__filter-group'>
+              <span className='author-comments__label'>Năm</span>
+              <select
+                className='author-comments__select'
+                value={filterYear}
+                onChange={(e) => setFilterYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
+            <label className='author-comments__filter-group'>
+              <span className='author-comments__label'>Tháng</span>
+              <select
+                className='author-comments__select'
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
+        {timeFilter === 'year' && (
+          <label className='author-comments__filter-group'>
+            <span className='author-comments__label'>Năm</span>
+            <select
+              className='author-comments__select'
+              value={filterYear}
+              onChange={(e) => setFilterYear(Number(e.target.value))}
+            >
+              {Array.from({ length: 1 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </section>
 
       {/* Field 3: Comment list (list / thread view) — Display comments in threaded format (comment – reply). */}
-      <section className='author-comments__list-section' aria-label='Comment list'>
-        <h2 className='author-comments__list-title'>Comments</h2>
+      <section className='author-comments__list-section' aria-label='Danh sách bình luận'>
+        <h2 className='author-comments__list-title'>Bình luận</h2>
         <div className='author-comments__list' role='list'>
-          {loadingComments && <p className='author-comments__empty'>Loading comments...</p>}
+          {loadingComments && <p className='author-comments__empty'>Đang tải bình luận...</p>}
           {!loadingComments && comments.length === 0 && (
-            <p className='author-comments__empty'>No comments for this story or chapter.</p>
+            <p className='author-comments__empty'>Chưa có bình luận cho truyện hoặc chương này.</p>
           )}
-          {!loadingComments && comments.map((comment) => renderNode(comment))}
+          {!loadingComments && comments.map((comment) => renderComment(comment))}
         </div>
       </section>
     </div>

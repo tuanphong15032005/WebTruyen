@@ -44,4 +44,5 @@ public class ReadingHistoryEntity {
     @JoinColumn(name = "last_segment_id",
             foreignKey = @ForeignKey(name = "fk_readhist_segment"))
     private ChapterSegmentEntity lastSegment;
+
 }
