@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ConfirmActionModal from './ConfirmActionModal';
+import SkeletonBlock from './SkeletonBlock';
 import storyService from '../services/storyService';
 import libraryAlbumService from '../services/libraryAlbumService';
 import '../styles/story-library-modal.css';
@@ -41,9 +42,12 @@ const StoryLibraryModal = ({
   const [creatingAlbum, setCreatingAlbum] = useState(false);
   const [albumForm, setAlbumForm] = useState(DEFAULT_ALBUM_FORM);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [hydratedStoryId, setHydratedStoryId] = useState(null);
+  const currentStoryId = story?.id == null ? null : String(story.id);
 
   useEffect(() => {
     if (!isOpen) {
+      setLoading(true);
       setAlbums([]);
       setReadingStatus('none');
       setSelectedAlbumIds([]);
@@ -51,22 +55,25 @@ const StoryLibraryModal = ({
       setCreatingAlbum(false);
       setAlbumForm(DEFAULT_ALBUM_FORM);
       setShowRemoveConfirm(false);
+      setHydratedStoryId(null);
       return undefined;
     }
 
-    if (!story?.id) return undefined;
+    if (!story?.id || !currentStoryId) return undefined;
 
     let isMounted = true;
 
     const fetchDialog = async () => {
       try {
         setLoading(true);
+        setHydratedStoryId(null);
         const response = await storyService.getStoryLibraryDialog(story.id);
         if (!isMounted) return;
         const nextAlbums = normalizeAlbums(response?.albums);
         setAlbums(nextAlbums);
         setReadingStatus(response?.readingStatus || 'none');
         setSelectedAlbumIds(getSelectedAlbumIds(nextAlbums));
+        setHydratedStoryId(currentStoryId);
       } catch (error) {
         if (!isMounted) return;
         notify?.(error?.message || 'Không tải được dữ liệu thư viện', 'error');
@@ -83,7 +90,7 @@ const StoryLibraryModal = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, notify, onClose, story?.id]);
+  }, [currentStoryId, isOpen, notify, onClose, story?.id]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -198,6 +205,61 @@ const StoryLibraryModal = ({
   };
 
   const selectedCount = selectedAlbumIds.length;
+  const showLoadingSkeleton =
+    Boolean(currentStoryId) && (loading || hydratedStoryId !== currentStoryId);
+
+  const renderLoadingSkeleton = () => (
+    <div className='story-library-modal__loading' aria-hidden='true'>
+      <div className='story-library-modal__story story-library-modal__story--loading'>
+        <div className='story-library-modal__cover-wrap'>
+          <SkeletonBlock className='story-library-modal__cover-skeleton' />
+        </div>
+
+        <div className='story-library-modal__story-main story-library-modal__story-main--loading'>
+          <SkeletonBlock className='story-library-modal__title-skeleton' />
+          <SkeletonBlock className='story-library-modal__title-skeleton story-library-modal__title-skeleton--short' />
+          <SkeletonBlock className='story-library-modal__desc-skeleton' />
+
+          <div className='story-library-modal__field story-library-modal__field--loading'>
+            <SkeletonBlock className='story-library-modal__label-skeleton' />
+            <SkeletonBlock className='story-library-modal__select-skeleton' />
+          </div>
+        </div>
+      </div>
+
+      <div className='story-library-modal__albums story-library-modal__albums--loading'>
+        <div className='story-library-modal__albums-head'>
+          <div className='story-library-modal__albums-head-copy'>
+            <SkeletonBlock className='story-library-modal__albums-title-skeleton' />
+            <SkeletonBlock className='story-library-modal__albums-subtitle-skeleton' />
+          </div>
+          <SkeletonBlock className='story-library-modal__inline-btn-skeleton' />
+        </div>
+
+        <div className='story-library-modal__album-list story-library-modal__album-list--loading'>
+          {[0, 1, 2].map((item) => (
+            <div
+              key={item}
+              className='story-library-modal__album-item story-library-modal__album-item--skeleton'
+            >
+              <SkeletonBlock className='story-library-modal__album-thumb-skeleton' />
+              <div className='story-library-modal__album-copy'>
+                <SkeletonBlock className='story-library-modal__album-line-skeleton story-library-modal__album-line-skeleton--title' />
+                <SkeletonBlock className='story-library-modal__album-line-skeleton story-library-modal__album-line-skeleton--meta' />
+                <SkeletonBlock className='story-library-modal__album-line-skeleton story-library-modal__album-line-skeleton--desc' />
+              </div>
+              <SkeletonBlock className='story-library-modal__album-mark-skeleton' />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className='story-library-modal__actions story-library-modal__actions--loading'>
+        <SkeletonBlock className='story-library-modal__ghost-btn-skeleton' />
+        <SkeletonBlock className='story-library-modal__solid-btn-skeleton' />
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -224,11 +286,10 @@ const StoryLibraryModal = ({
             </button>
           </div>
 
-          {loading ? (
-            <div className='story-library-modal__loading'>
+          {showLoadingSkeleton ? (
+            renderLoadingSkeleton() /*
               Đang tải dữ liệu thư viện...
-            </div>
-          ) : (
+          */ ) : (
             <>
               <div className='story-library-modal__story'>
                 <div className='story-library-modal__cover-wrap'>

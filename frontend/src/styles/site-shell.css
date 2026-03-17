@@ -46,6 +46,13 @@
   gap: 14px;
 }
 
+.site-header__lead {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
 /* Daily Tasks Page Styles */
 .daily-tasks-page {
   max-width: 1200px;
@@ -1040,14 +1047,33 @@
     gap: 10px;
   }
 
+  .site-header__lead {
+    gap: 12px;
+  }
+
+  .site-nav__item {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
   .site-footer__inner {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 640px) {
+  .site-header__lead {
+    gap: 8px;
+  }
+
   .site-brand__text {
     font-size: 1.3rem;
+  }
+
+  .site-nav__item {
+    height: 34px;
+    padding: 0 9px;
+    font-size: 0.86rem;
   }
 
   .site-header__actions {

@@ -125,10 +125,135 @@
 }
 
 .story-library-modal__loading {
-  padding: 44px 28px 52px;
-  color: #597662;
-  text-align: center;
-  font-weight: 600;
+  display: grid;
+  gap: 0;
+  padding: 0 0 28px;
+}
+
+.story-library-modal__story--loading {
+  pointer-events: none;
+}
+
+.story-library-modal__story-main--loading {
+  gap: 14px;
+}
+
+.story-library-modal__field--loading {
+  gap: 10px;
+}
+
+.story-library-modal__cover-skeleton {
+  width: 180px;
+  aspect-ratio: 3 / 4;
+  border-radius: 22px;
+}
+
+.story-library-modal__title-skeleton {
+  width: min(100%, 620px);
+  height: 30px;
+  border-radius: 14px;
+}
+
+.story-library-modal__title-skeleton--short {
+  width: min(100%, 460px);
+}
+
+.story-library-modal__desc-skeleton {
+  width: min(100%, 360px);
+  height: 18px;
+  border-radius: 999px;
+}
+
+.story-library-modal__label-skeleton {
+  width: 132px;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.story-library-modal__select-skeleton {
+  width: 100%;
+  height: 54px;
+  border-radius: 16px;
+}
+
+.story-library-modal__albums--loading {
+  gap: 14px;
+}
+
+.story-library-modal__albums-head-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.story-library-modal__albums-title-skeleton {
+  width: 210px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+.story-library-modal__albums-subtitle-skeleton {
+  width: 148px;
+  height: 16px;
+  border-radius: 999px;
+}
+
+.story-library-modal__inline-btn-skeleton {
+  width: 184px;
+  height: 42px;
+  border-radius: 999px;
+}
+
+.story-library-modal__album-list--loading {
+  max-height: none;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.story-library-modal__album-item--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.story-library-modal__album-thumb-skeleton {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+}
+
+.story-library-modal__album-line-skeleton {
+  height: 14px;
+  border-radius: 999px;
+}
+
+.story-library-modal__album-line-skeleton--title {
+  width: 68%;
+  height: 18px;
+}
+
+.story-library-modal__album-line-skeleton--meta {
+  width: 42%;
+}
+
+.story-library-modal__album-line-skeleton--desc {
+  width: 84%;
+}
+
+.story-library-modal__album-mark-skeleton {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  justify-self: end;
+}
+
+.story-library-modal__actions--loading {
+  padding-top: 8px;
+}
+
+.story-library-modal__ghost-btn-skeleton,
+.story-library-modal__solid-btn-skeleton {
+  width: 142px;
+  height: 48px;
+  border-radius: 999px;
 }
 
 .story-library-modal__story {
@@ -492,7 +617,8 @@
   }
 
   .story-library-modal__cover,
-  .story-library-modal__cover--empty {
+  .story-library-modal__cover--empty,
+  .story-library-modal__cover-skeleton {
     width: min(220px, 100%);
   }
 

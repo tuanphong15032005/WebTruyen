@@ -3,6 +3,14 @@
   font-size: 1rem;
   width: min(100%, 92rem);
   margin-inline: auto;
+  --story-metadata-font-ui:
+    'Be Vietnam Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --story-metadata-font-display:
+    'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --story-metadata-font-copy:
+    'Charter', 'Bitstream Charter', 'Sitka Text', Georgia, serif;
+  font-family: var(--story-metadata-font-ui);
+  color: #243957;
 }
 
 .story-metadata__layout {
@@ -36,10 +44,13 @@
 
 .story-metadata__sidebar-card h3 {
   margin: 0;
+  font-family: var(--story-metadata-font-display);
   color: #fcfcfd;
   background: #46c787;
-  font-size: 1.45rem;
+  font-size: 1.3rem;
+  line-height: 1.22;
   font-weight: 700;
+  letter-spacing: -0.01em;
   border-radius: 10px;
   text-align: center;
 }
@@ -64,12 +75,16 @@
 .story-metadata__sidebar-info-row span {
   color: #5d7292;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__sidebar-info-row strong {
   color: #21375a;
-  font-size: 1.08rem;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.04rem;
+  line-height: 1.35;
+  letter-spacing: -0.008em;
 }
 
 .story-metadata__rank-value {
@@ -141,8 +156,11 @@
 
 .story-metadata__sidebar-item-body strong {
   color: #1f365a;
-  font-size: 1.4rem;
-  line-height: 1.3;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.02rem;
+  line-height: 1.38;
+  font-weight: 700;
+  letter-spacing: -0.008em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -150,14 +168,15 @@
 
 .story-metadata__sidebar-item-body > span {
   color: #627a9f;
-  font-size: 1rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__sidebar-item-rating {
   display: grid;
   gap: 2px;
   color: #2e456a;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
@@ -369,8 +388,10 @@
   color: #ef2f6d;
   border-radius: 999px;
   min-height: 3.5rem;
+  font-family: var(--story-metadata-font-ui);
   font-weight: 800;
-  font-size: 1.02rem;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -442,13 +463,15 @@
 
 .story-metadata__content h1 {
   margin: 0 0 1rem;
+  font-family: var(--story-metadata-font-display);
   color: #1f2f4d;
-  line-height: 1.16;
-  font-size: clamp(2rem, 2.1vw + 1.1rem, 3rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  line-height: 1.14;
+  font-size: clamp(2.05rem, 2.2vw + 1.1rem, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
   min-height: calc(2 * 1.16em);
   padding-right: 4.5rem;
+  text-wrap: balance;
 }
 
 .story-metadata__content {
@@ -470,7 +493,7 @@
   align-items: center;
   column-gap: 10px;
   margin: 0;
-  font-size: 0.96rem;
+  font-size: 0.95rem;
 }
 
 .story-metadata__icon {
@@ -524,6 +547,10 @@
   color: #6366f1;
 }
 
+.story-metadata__icon--chapters {
+  color: #0ea5e9;
+}
+
 .story-metadata__icon--saved {
   color: #db2777;
 }
@@ -535,11 +562,13 @@
 .story-metadata__meta-label {
   color: #4b5870;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__meta-value {
   color: #1f2f4d;
   font-weight: 700;
+  letter-spacing: -0.005em;
 }
 
 .story-metadata__meta-value--button {
@@ -561,6 +590,9 @@
   border: 1px solid #bfd8ff;
   background: #ebf3ff;
   color: #3c6ec5;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .story-metadata__tags {
@@ -578,8 +610,9 @@
   background: #ff66af;
   border: 1px solid #ff4ca1;
   color: #fff;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
 .story-metadata__rows {
@@ -597,13 +630,19 @@
   gap: 12px;
   align-items: center;
   color: #313d55;
-  font-weight: 800;
-  font-size: 1.05rem;
+  font-family: var(--story-metadata-font-display);
+  font-weight: 700;
+  font-size: 1.22rem;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
 }
 
 .story-metadata__summary-header span:last-child {
   color: #5b6e8f;
   font-weight: 500;
+  font-family: var(--story-metadata-font-ui);
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__summary {
@@ -620,10 +659,11 @@
   margin: 0;
   height: 100%;
   color: #5e6778;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1rem;
-  font-style: italic;
-  line-height: 1.9;
+  font-family: var(--story-metadata-font-copy);
+  font-size: 1.03rem;
+  font-style: normal;
+  line-height: 1.82;
+  letter-spacing: 0.003em;
   overflow-y: hidden;
   overflow: hidden;
   padding-right: 10px;
@@ -759,6 +799,10 @@
 .story-metadata__review-preview-head h3 {
   margin: 0;
   color: #243a5d;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.38rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .story-metadata__review-preview-head a {
@@ -782,6 +826,10 @@
 
 .story-metadata__latest-review-head strong {
   color: #20365a;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.02rem;
+  line-height: 1.35;
+  letter-spacing: -0.008em;
 }
 
 .story-metadata__latest-review-stars {
@@ -797,7 +845,10 @@
 .story-metadata__latest-review-card p {
   margin: 8px 0 0;
   color: #2c4266;
-  line-height: 1.55;
+  font-family: var(--story-metadata-font-copy);
+  font-size: 0.97rem;
+  line-height: 1.68;
+  letter-spacing: 0.002em;
 }
 
 .story-metadata__content-mask-wrap {
@@ -812,10 +863,11 @@
 .story-metadata__latest-review-card p.story-metadata__content-mask {
   margin: 0;
   color: rgba(92, 111, 141, 0.72);
-  font-family: Georgia, 'Times New Roman', serif;
-  font-style: italic;
+  font-family: var(--story-metadata-font-copy);
+  font-style: normal;
   font-weight: 400;
-  letter-spacing: 0.01em;
+  line-height: 1.66;
+  letter-spacing: 0.003em;
 }
 
 .story-metadata__content-mask--hidden {
@@ -855,6 +907,10 @@
 .story-metadata__volume-section h2 {
   margin: 0 0 10px;
   color: #30405f;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.52rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .story-metadata__volume {
@@ -900,6 +956,10 @@
   display: grid;
   gap: 4px;
   min-width: 0;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.06rem;
+  line-height: 1.38;
+  letter-spacing: -0.008em;
 }
 
 .story-metadata__volume-cover,
@@ -930,6 +990,9 @@
 .story-metadata__volume-head small {
   color: #7f91a8;
   font-weight: 600;
+  font-family: var(--story-metadata-font-ui);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__chapter-list {
@@ -946,6 +1009,10 @@
   text-decoration: none;
   border-radius: 8px;
   transition: background-color 160ms ease;
+  font-family: var(--story-metadata-font-display);
+  font-size: 0.98rem;
+  line-height: 1.46;
+  letter-spacing: -0.006em;
 }
 
 .story-metadata__chapter-row:first-child {
@@ -959,11 +1026,18 @@
 .story-metadata__chapter-date {
   color: #8394ad;
   white-space: nowrap;
+  font-family: var(--story-metadata-font-ui);
+  font-size: 0.79rem;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__comments-section h3 {
   margin: 0 0 10px;
   color: #243a5d;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1.42rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .story-metadata__comment-form {
@@ -1086,16 +1160,25 @@
 
 .story-metadata__comment-head strong {
   color: #1f365a;
+  font-family: var(--story-metadata-font-display);
+  font-size: 1rem;
+  line-height: 1.34;
+  letter-spacing: -0.006em;
 }
 
 .story-metadata__comment-head small {
   color: #8193ac;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
 }
 
 .story-metadata__comment-body p {
   margin: 8px 0 0;
   color: #2d4265;
-  line-height: 1.55;
+  font-family: var(--story-metadata-font-copy);
+  font-size: 0.97rem;
+  line-height: 1.66;
+  letter-spacing: 0.002em;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1229,16 +1312,16 @@
 }
 
 .story-metadata__reply-item .story-metadata__comment-head strong {
-  font-size: 14px;
+  font-size: 0.92rem;
 }
 
 .story-metadata__reply-item .story-metadata__comment-head small {
-  font-size: 12px;
+  font-size: 0.76rem;
 }
 
 .story-metadata__reply-item .story-metadata__comment-body p {
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 0.9rem;
 }
 
 .story-metadata__reply-item .story-metadata__reply-list {

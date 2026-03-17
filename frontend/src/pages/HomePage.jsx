@@ -36,6 +36,15 @@ const HERO_TRANSITION_MS = 320;
 const HERO_SWIPE_THRESHOLD = 56;
 const HOME_SKELETON_RANK_COUNT = 5;
 const HOME_SKELETON_COMMENT_COUNT = 4;
+const DEFERRED_SECTION_ROOT_MARGIN = '240px 0px';
+
+const EMPTY_CHAPTER_META = {
+  firstChapterId: null,
+  latestChapterTitle: 'Chưa có chương',
+  latestChapterLabel: 'Chưa có chương',
+  latestVolumeLabel: 'Chưa có tập',
+  chapterCount: 0,
+};
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
@@ -176,14 +185,34 @@ const getStoryChapterMeta = async (storyId) => {
       chapterCount: chapters.length,
     };
   } catch {
-    return {
-      firstChapterId: null,
-      latestChapterTitle: 'Chưa có chương',
-      latestChapterLabel: 'Chưa có chương',
-      latestVolumeLabel: 'Chưa có tập',
-      chapterCount: 0,
-    };
+    return EMPTY_CHAPTER_META;
   }
+};
+
+const buildChapterMetaMap = async (stories) => {
+  const storyIds = [
+    ...new Set(
+      (Array.isArray(stories) ? stories : [])
+        .map((story) => Number(story?.id || 0))
+        .filter(Boolean),
+    ),
+  ];
+
+  if (storyIds.length === 0) {
+    return {};
+  }
+
+  const settledResults = await Promise.allSettled(
+    storyIds.map((storyId) => getStoryChapterMeta(storyId)),
+  );
+  const nextMap = {};
+
+  settledResults.forEach((result, index) => {
+    nextMap[storyIds[index]] =
+      result.status === 'fulfilled' ? result.value : EMPTY_CHAPTER_META;
+  });
+
+  return nextMap;
 };
 
 // Hieuson - 24/2 + Sáº¯p xáº¿p truyá»‡n theo rating cao nháº¥t Ä‘á»ƒ dÃ¹ng cho gá»£i Ã½ vÃ  fallback.
@@ -218,6 +247,41 @@ const getDominantTagFromLibrary = (libraryStories) => {
   return dominant?.tag || null;
 };
 
+const buildDeferredSections = (publicStories) => {
+  const sortedByUpdated = [...(Array.isArray(publicStories) ? publicStories : [])].sort(
+    (a, b) =>
+      toEpoch(b?.lastUpdatedAt || b?.createdAt) -
+      toEpoch(a?.lastUpdatedAt || a?.createdAt),
+  );
+
+  return {
+    originalList: sortedByUpdated
+      .filter((story) => String(story?.kind || '').toLowerCase() === 'original')
+      .slice(0, SECTION_STORY_COUNT),
+    translatedList: sortedByUpdated
+      .filter(
+        (story) => String(story?.kind || '').toLowerCase() === 'translated',
+      )
+      .slice(0, SECTION_STORY_COUNT),
+    aiList: sortedByUpdated
+      .filter((story) => String(story?.kind || '').toLowerCase() === 'ai')
+      .slice(0, SECTION_STORY_COUNT),
+    completedList: sortedByUpdated
+      .filter((story) =>
+        ['completed', 'complete', 'done', 'finished'].includes(
+          String(story?.completionStatus || '').toLowerCase(),
+        ),
+      )
+      .slice(0, SECTION_STORY_COUNT),
+    viewRankingList: [...(Array.isArray(publicStories) ? publicStories : [])]
+      .sort((a, b) => Number(b?.readerCount || 0) - Number(a?.readerCount || 0))
+      .slice(0, VIEW_RANKING_COUNT),
+    savedRankingList: [...(Array.isArray(publicStories) ? publicStories : [])]
+      .sort((a, b) => Number(b?.savedCount || 0) - Number(a?.savedCount || 0))
+      .slice(0, SAVED_RANKING_COUNT),
+  };
+};
+
 const buildHeroBackground = (story) => {
   const coverUrl = String(story?.coverUrl || '').trim();
   if (!coverUrl) {
@@ -231,6 +295,7 @@ function HomePage() {
   const { notify } = useNotify();
 
   const [loading, setLoading] = useState(false);
+  const [allPublicStories, setAllPublicStories] = useState([]);
   const [heroStories, setHeroStories] = useState([]);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [latestStories, setLatestStories] = useState([]);
@@ -244,6 +309,9 @@ function HomePage() {
   const [recommendTagName, setRecommendTagName] = useState('');
   const [communityComments, setCommunityComments] = useState([]);
   const [chapterMetaByStoryId, setChapterMetaByStoryId] = useState({});
+  const [deferredSectionsVisible, setDeferredSectionsVisible] = useState(false);
+  const [deferredHydrationLoading, setDeferredHydrationLoading] = useState(false);
+  const [deferredHydrationError, setDeferredHydrationError] = useState(null);
   const [shouldLoadOriginalCovers, setShouldLoadOriginalCovers] =
     useState(false);
   const [heroPrevStory, setHeroPrevStory] = useState(null);
@@ -261,9 +329,85 @@ function HomePage() {
     swiped: false,
   });
   const activeHeroIndexRef = useRef(0);
+  const deferredSectionRef = useRef(null);
   const originalSectionRef = useRef(null);
+  const deferredLoadStartedRef = useRef(false);
+  const deferredHydrationRequestRef = useRef(0);
 
   const activeHeroStory = heroStories[activeHeroIndex] || null;
+
+  const startDeferredSectionsLoad = useCallback(async () => {
+    if (deferredLoadStartedRef.current || allPublicStories.length === 0) {
+      return;
+    }
+
+    deferredLoadStartedRef.current = true;
+    setDeferredSectionsVisible(true);
+    setDeferredHydrationError(null);
+    setDeferredHydrationLoading(true);
+
+    const {
+      originalList,
+      translatedList,
+      aiList,
+      completedList,
+      viewRankingList,
+      savedRankingList,
+    } = buildDeferredSections(allPublicStories);
+
+    setOriginalStories(originalList);
+    setTranslatedStories(translatedList);
+    setAiStories(aiList);
+    setCompletedStories(completedList);
+    setViewRankingStories(viewRankingList);
+    setSavedRankingStories(savedRankingList);
+
+    const requestId = deferredHydrationRequestRef.current + 1;
+    deferredHydrationRequestRef.current = requestId;
+
+    try {
+      const [chapterMetaMap, latestComments] = await Promise.all([
+        buildChapterMetaMap([
+          ...originalList,
+          ...translatedList,
+          ...aiList,
+          ...completedList,
+        ]),
+        storyService
+          .getLatestCommunityComments({
+            size: COMMUNITY_COUNT,
+          })
+          .catch(() => []),
+      ]);
+
+      if (deferredHydrationRequestRef.current !== requestId) {
+        return;
+      }
+
+      setChapterMetaByStoryId((current) => ({
+        ...current,
+        ...chapterMetaMap,
+      }));
+      setCommunityComments(
+        Array.isArray(latestComments) ? latestComments : [],
+      );
+    } catch (error) {
+      if (deferredHydrationRequestRef.current !== requestId) {
+        return;
+      }
+
+      console.error('startDeferredSectionsLoad error', error);
+      setDeferredHydrationError(
+        'Không tải được phần nội dung phía dưới. Bạn có thể thử lại.',
+      );
+      notify('Không tải được các mục truyện phía dưới', 'warning');
+      deferredLoadStartedRef.current = false;
+    } finally {
+      if (deferredHydrationRequestRef.current === requestId) {
+        setDeferredHydrationLoading(false);
+      }
+    }
+  }, [allPublicStories, notify]);
 
   useEffect(() => {
     activeHeroIndexRef.current = activeHeroIndex;
@@ -271,6 +415,7 @@ function HomePage() {
 
   useEffect(() => {
     return () => {
+      deferredHydrationRequestRef.current += 1;
       if (heroTransitionTimerRef.current) {
         window.clearTimeout(heroTransitionTimerRef.current);
       }
@@ -282,6 +427,42 @@ function HomePage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || deferredSectionsVisible || allPublicStories.length === 0) {
+      return undefined;
+    }
+
+    const sectionElement = deferredSectionRef.current;
+    if (!sectionElement) return undefined;
+
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      startDeferredSectionsLoad();
+      return undefined;
+    }
+
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        startDeferredSectionsLoad();
+        observer.disconnect();
+      },
+      {
+        root: null,
+        threshold: 0.01,
+        rootMargin: DEFERRED_SECTION_ROOT_MARGIN,
+      },
+    );
+
+    observer.observe(sectionElement);
+    return () => observer.disconnect();
+  }, [
+    allPublicStories.length,
+    deferredSectionsVisible,
+    loading,
+    startDeferredSectionsLoad,
+  ]);
 
   useEffect(() => {
     if (loading) return undefined;
@@ -322,12 +503,28 @@ function HomePage() {
     const fetchHomeData = async () => {
       try {
         setLoading(true);
+        setAllPublicStories([]);
+        setOriginalStories([]);
+        setTranslatedStories([]);
+        setAiStories([]);
+        setCompletedStories([]);
+        setViewRankingStories([]);
+        setSavedRankingStories([]);
+        setCommunityComments([]);
+        setChapterMetaByStoryId({});
+        setDeferredSectionsVisible(false);
+        setDeferredHydrationLoading(false);
+        setDeferredHydrationError(null);
+        setShouldLoadOriginalCovers(false);
+        deferredLoadStartedRef.current = false;
+        deferredHydrationRequestRef.current = 0;
         const response = await storyService.getPublicStories({
           page: 0,
           size: 60,
           sort: 'lastUpdatedAt,desc',
         });
         const publicStories = Array.isArray(response) ? response : [];
+        setAllPublicStories(publicStories);
         const sortedByUpdated = [...publicStories].sort(
           (a, b) =>
             toEpoch(b?.lastUpdatedAt || b?.createdAt) -
@@ -336,44 +533,6 @@ function HomePage() {
 
         const newestStories = sortedByUpdated.slice(0, LATEST_COUNT);
         setLatestStories(newestStories);
-        const originalList = sortedByUpdated
-          .filter(
-            (story) => String(story?.kind || '').toLowerCase() === 'original',
-          )
-          .slice(0, SECTION_STORY_COUNT);
-        setOriginalStories(originalList);
-        const translatedList = sortedByUpdated
-          .filter(
-            (story) => String(story?.kind || '').toLowerCase() === 'translated',
-          )
-          .slice(0, SECTION_STORY_COUNT);
-        setTranslatedStories(translatedList);
-        const aiList = sortedByUpdated
-          .filter((story) => String(story?.kind || '').toLowerCase() === 'ai')
-          .slice(0, SECTION_STORY_COUNT);
-        setAiStories(aiList);
-        const completedList = sortedByUpdated
-          .filter((story) =>
-            ['completed', 'complete', 'done', 'finished'].includes(
-              String(story?.completionStatus || '').toLowerCase(),
-            ),
-          )
-          .slice(0, SECTION_STORY_COUNT);
-        setCompletedStories(completedList);
-
-        const allTimeViewRanking = [...publicStories]
-          .sort(
-            (a, b) => Number(b?.readerCount || 0) - Number(a?.readerCount || 0),
-          )
-          .slice(0, VIEW_RANKING_COUNT);
-        setViewRankingStories(allTimeViewRanking);
-
-        const allTimeSavedRanking = [...publicStories]
-          .sort(
-            (a, b) => Number(b?.savedCount || 0) - Number(a?.savedCount || 0),
-          )
-          .slice(0, SAVED_RANKING_COUNT);
-        setSavedRankingStories(allTimeSavedRanking);
 
         const randomHeroStories = pickRandomStories(publicStories, HERO_COUNT);
         setHeroStories(randomHeroStories);
@@ -410,39 +569,12 @@ function HomePage() {
         setRecommendedStories(recommendList);
         setRecommendTagName(dominantTag?.name || '');
 
-        const chapterMetaStoryIds = [
-          ...new Set(
-            [
-              ...randomHeroStories,
-              ...newestStories,
-              ...recommendList,
-              ...originalList,
-              ...translatedList,
-              ...aiList,
-              ...completedList,
-            ]
-              .map((story) => Number(story?.id || 0))
-              .filter(Boolean),
-          ),
-        ];
-        const chapterMetaEntries = await Promise.all(
-          chapterMetaStoryIds.map(async (storyId) => [
-            storyId,
-            await getStoryChapterMeta(storyId),
-          ]),
-        );
-        const chapterMetaMap = {};
-        chapterMetaEntries.forEach(([storyId, meta]) => {
-          chapterMetaMap[storyId] = meta;
-        });
+        const chapterMetaMap = await buildChapterMetaMap([
+          ...randomHeroStories,
+          ...newestStories,
+          ...recommendList,
+        ]);
         setChapterMetaByStoryId(chapterMetaMap);
-
-        const latestComments = await storyService.getLatestCommunityComments({
-          size: COMMUNITY_COUNT,
-        });
-        setCommunityComments(
-          Array.isArray(latestComments) ? latestComments : [],
-        );
       } catch (error) {
         console.error('fetchHomeData error', error);
         notify('Không tải được dữ liệu trang chủ', 'error');
@@ -773,6 +905,50 @@ function HomePage() {
     [],
   );
 
+  const renderDeferredSectionsPlaceholder = useCallback(
+    () => (
+      <section
+        className='home-section home-section--deferred'
+        ref={deferredSectionRef}
+      >
+        <div className='home-section__head'>
+          <h2>
+            <PenTool
+              size={22}
+              className='home-section__icon home-section__icon--original'
+            />
+            Sáng tác
+          </h2>
+        </div>
+
+        <div className='home-story-grid'>{renderStorySkeletonCards()}</div>
+
+        <div className='home-section__lazy-state'>
+          <p className='home-section__lazy-text'>
+            Phần nội dung còn lại sẽ được tải khi bạn cuộn tới đây.
+          </p>
+          <button
+            type='button'
+            className='home-section__lazy-button'
+            onClick={startDeferredSectionsLoad}
+            disabled={deferredHydrationLoading}
+          >
+            {deferredHydrationLoading ? 'Đang tải...' : 'Tải ngay'}
+          </button>
+          {deferredHydrationError && (
+            <p className='home-section__lazy-error'>{deferredHydrationError}</p>
+          )}
+        </div>
+      </section>
+    ),
+    [
+      deferredHydrationError,
+      deferredHydrationLoading,
+      renderStorySkeletonCards,
+      startDeferredSectionsLoad,
+    ],
+  );
+
   return (
     <div className='home-dashboard'>
       <div className='home-dashboard__container'>
@@ -1003,194 +1179,264 @@ function HomePage() {
                 </div>
               </section>
 
-              <section className='home-section' ref={originalSectionRef}>
-                <div className='home-section__head'>
-                  <h2>
-                    <PenTool
-                      size={22}
-                      className='home-section__icon home-section__icon--original'
-                    />
-                    Sáng tác
-                  </h2>
-                </div>
-                <div className='home-story-grid'>
-                  {renderStoryTiles(originalStories, {
-                    deferCoverLoading: true,
-                    shouldLoadCovers: shouldLoadOriginalCovers,
-                  })}
-                </div>
-              </section>
+              {deferredSectionsVisible ? (
+                <>
+                  <section className='home-section' ref={originalSectionRef}>
+                    <div className='home-section__head'>
+                      <h2>
+                        <PenTool
+                          size={22}
+                          className='home-section__icon home-section__icon--original'
+                        />
+                        Sáng tác
+                      </h2>
+                    </div>
+                    <div className='home-story-grid'>
+                      {renderStoryTiles(originalStories, {
+                        deferCoverLoading: true,
+                        shouldLoadCovers: shouldLoadOriginalCovers,
+                      })}
+                    </div>
+                  </section>
 
-              <section className='home-section'>
-                <div className='home-section__head'>
-                  <h2>
-                    <Languages
-                      size={22}
-                      className='home-section__icon home-section__icon--translated'
-                    />
-                    Truyện dịch
-                  </h2>
-                </div>
-                <div className='home-story-grid'>
-                  {renderStoryTiles(translatedStories, {
-                    deferCoverLoading: true,
-                    shouldLoadCovers: shouldLoadOriginalCovers,
-                  })}
-                </div>
-              </section>
+                  <section className='home-section'>
+                    <div className='home-section__head'>
+                      <h2>
+                        <Languages
+                          size={22}
+                          className='home-section__icon home-section__icon--translated'
+                        />
+                        Truyện dịch
+                      </h2>
+                    </div>
+                    <div className='home-story-grid'>
+                      {renderStoryTiles(translatedStories, {
+                        deferCoverLoading: true,
+                        shouldLoadCovers: shouldLoadOriginalCovers,
+                      })}
+                    </div>
+                  </section>
 
-              <section className='home-section'>
-                <div className='home-section__head'>
-                  <h2>
-                    <Bot
-                      size={22}
-                      className='home-section__icon home-section__icon--ai'
-                    />
-                    Truyện AI
-                  </h2>
-                </div>
-                <div className='home-story-grid'>
-                  {renderStoryTiles(aiStories, {
-                    deferCoverLoading: true,
-                    shouldLoadCovers: shouldLoadOriginalCovers,
-                  })}
-                </div>
-              </section>
+                  <section className='home-section'>
+                    <div className='home-section__head'>
+                      <h2>
+                        <Bot
+                          size={22}
+                          className='home-section__icon home-section__icon--ai'
+                        />
+                        Truyện AI
+                      </h2>
+                    </div>
+                    <div className='home-story-grid'>
+                      {renderStoryTiles(aiStories, {
+                        deferCoverLoading: true,
+                        shouldLoadCovers: shouldLoadOriginalCovers,
+                      })}
+                    </div>
+                  </section>
 
-              <section className='home-section'>
-                <div className='home-section__head'>
-                  <h2>
-                    <CheckCircle2
-                      size={22}
-                      className='home-section__icon home-section__icon--completed'
-                    />
-                    Truyện đã hoàn thành
-                  </h2>
-                </div>
-                <div className='home-story-grid'>
-                  {renderStoryTiles(completedStories, {
-                    deferCoverLoading: true,
-                    shouldLoadCovers: shouldLoadOriginalCovers,
-                  })}
-                </div>
-              </section>
+                  <section className='home-section'>
+                    <div className='home-section__head'>
+                      <h2>
+                        <CheckCircle2
+                          size={22}
+                          className='home-section__icon home-section__icon--completed'
+                        />
+                        Truyện đã hoàn thành
+                      </h2>
+                    </div>
+                    <div className='home-story-grid'>
+                      {renderStoryTiles(completedStories, {
+                        deferCoverLoading: true,
+                        shouldLoadCovers: shouldLoadOriginalCovers,
+                      })}
+                    </div>
+                  </section>
+                </>
+              ) : (
+                renderDeferredSectionsPlaceholder()
+              )}
             </div>
 
             <aside className='home-main-grid__right'>
-              <section className='home-ranking'>
-                <div className='home-ranking__head'>
-                  <h2>
-                    <TrendingUp
-                      size={24}
-                      className='home-section__icon home-section__icon--ranking'
-                    />
-                    Top lượt đọc
-                  </h2>
-                </div>
-                <ol className='home-ranking__list'>
-                  {viewRankingStories.length === 0 ? (
-                    <p className='home-ranking__empty'>
-                      Chưa có dữ liệu lượt xem.
-                    </p>
-                  ) : (
-                    viewRankingStories.map((story, idx) => (
-                      <li key={story.id}>
-                        <span className='home-ranking__index'>
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
-                        <div className='home-ranking__story'>
-                          <Link to={`/stories/${story.id}/metadata`}>
-                            {story.title}
-                          </Link>
-                          <small>
-                            {formatNumber(story.readerCount || 0)} lượt xem
-                          </small>
-                        </div>
-                      </li>
-                    ))
-                  )}
-                </ol>
-              </section>
-
-              <section className='home-ranking'>
-                <div className='home-ranking__head'>
-                  <h2>
-                    <Bookmark
-                      size={24}
-                      className='home-section__icon home-section__icon--ranking'
-                    />
-                    Top lượt theo dõi
-                  </h2>
-                </div>
-                <ol className='home-ranking__list'>
-                  {savedRankingStories.length === 0 ? (
-                    <p className='home-ranking__empty'>
-                      Chưa có dữ liệu lượt lưu.
-                    </p>
-                  ) : (
-                    savedRankingStories.map((story, idx) => (
-                      <li key={story.id}>
-                        <span className='home-ranking__index'>
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
-                        <div className='home-ranking__story'>
-                          <Link to={`/stories/${story.id}/metadata`}>
-                            {story.title}
-                          </Link>
-                          <small>
-                            {formatNumber(story.savedCount || 0)} lượt lưu
-                          </small>
-                        </div>
-                      </li>
-                    ))
-                  )}
-                </ol>
-              </section>
-
-              <section className='home-ranking home-ranking--comments'>
-                <div className='home-ranking__head'>
-                  <h2>
-                    <MessageSquare
-                      size={24}
-                      className='home-section__icon home-section__icon--ranking'
-                    />
-                    Bình luận mới
-                  </h2>
-                </div>
-                <ol className='home-ranking__list'>
-                  {communityComments.length === 0 ? (
-                    <p className='home-ranking__empty'>
-                      Chưa có bình luận gần đây.
-                    </p>
-                  ) : (
-                    communityComments.map((comment, idx) => (
-                      <li key={comment.id}>
-                        <span className='home-ranking__index'>
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
-                        <div className='home-ranking__comment'>
-                          <strong>{comment.username || 'Ẩn danh'}</strong>
-                          <p className='home-ranking__comment-story'>
-                            {comment.storyId ? (
-                              <Link to={`/stories/${comment.storyId}/metadata`}>
-                                {comment.storyTitle || 'Không rõ truyện'}
+              {deferredSectionsVisible ? (
+                <>
+                  <section className='home-ranking'>
+                    <div className='home-ranking__head'>
+                      <h2>
+                        <TrendingUp
+                          size={24}
+                          className='home-section__icon home-section__icon--ranking'
+                        />
+                        Top lượt đọc
+                      </h2>
+                    </div>
+                    <ol className='home-ranking__list'>
+                      {viewRankingStories.length === 0 ? (
+                        <p className='home-ranking__empty'>
+                          Chưa có dữ liệu lượt xem.
+                        </p>
+                      ) : (
+                        viewRankingStories.map((story, idx) => (
+                          <li key={story.id}>
+                            <span className='home-ranking__index'>
+                              {String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <div className='home-ranking__story'>
+                              <Link to={`/stories/${story.id}/metadata`}>
+                                {story.title}
                               </Link>
-                            ) : (
-                              <span>
-                                {comment.storyTitle || 'Không rõ truyện'}
-                              </span>
-                            )}
-                          </p>
-                          <p className='home-ranking__comment-content'>
-                            {comment.content}
-                          </p>
-                          <small>{formatRelativeTime(comment.createdAt)}</small>
-                        </div>
-                      </li>
-                    ))
-                  )}
-                </ol>
-              </section>
+                              <small>
+                                {formatNumber(story.readerCount || 0)} lượt xem
+                              </small>
+                            </div>
+                          </li>
+                        ))
+                      )}
+                    </ol>
+                  </section>
+
+                  <section className='home-ranking'>
+                    <div className='home-ranking__head'>
+                      <h2>
+                        <Bookmark
+                          size={24}
+                          className='home-section__icon home-section__icon--ranking'
+                        />
+                        Top lượt theo dõi
+                      </h2>
+                    </div>
+                    <ol className='home-ranking__list'>
+                      {savedRankingStories.length === 0 ? (
+                        <p className='home-ranking__empty'>
+                          Chưa có dữ liệu lượt lưu.
+                        </p>
+                      ) : (
+                        savedRankingStories.map((story, idx) => (
+                          <li key={story.id}>
+                            <span className='home-ranking__index'>
+                              {String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <div className='home-ranking__story'>
+                              <Link to={`/stories/${story.id}/metadata`}>
+                                {story.title}
+                              </Link>
+                              <small>
+                                {formatNumber(story.savedCount || 0)} lượt lưu
+                              </small>
+                            </div>
+                          </li>
+                        ))
+                      )}
+                    </ol>
+                  </section>
+
+                  <section className='home-ranking home-ranking--comments'>
+                    <div className='home-ranking__head'>
+                      <h2>
+                        <MessageSquare
+                          size={24}
+                          className='home-section__icon home-section__icon--ranking'
+                        />
+                        Bình luận mới
+                      </h2>
+                    </div>
+                    <ol className='home-ranking__list'>
+                      {deferredHydrationLoading &&
+                      communityComments.length === 0 ? (
+                        renderRankingSkeletonItems(
+                          HOME_SKELETON_COMMENT_COUNT,
+                          'home-ranking__comment-skeleton',
+                        )
+                      ) : communityComments.length === 0 ? (
+                        <p className='home-ranking__empty'>
+                          Chưa có bình luận gần đây.
+                        </p>
+                      ) : (
+                        communityComments.map((comment, idx) => (
+                          <li key={comment.id}>
+                            <span className='home-ranking__index'>
+                              {String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <div className='home-ranking__comment'>
+                              <strong>{comment.username || 'Ẩn danh'}</strong>
+                              <p className='home-ranking__comment-story'>
+                                {comment.storyId ? (
+                                  <Link
+                                    to={`/stories/${comment.storyId}/metadata`}
+                                  >
+                                    {comment.storyTitle || 'Không rõ truyện'}
+                                  </Link>
+                                ) : (
+                                  <span>
+                                    {comment.storyTitle || 'Không rõ truyện'}
+                                  </span>
+                                )}
+                              </p>
+                              <p className='home-ranking__comment-content'>
+                                {comment.content}
+                              </p>
+                              <small>
+                                {formatRelativeTime(comment.createdAt)}
+                              </small>
+                            </div>
+                          </li>
+                        ))
+                      )}
+                    </ol>
+                  </section>
+                </>
+              ) : (
+                <>
+                  <section className='home-ranking'>
+                    <div className='home-ranking__head'>
+                      <h2>
+                        <TrendingUp
+                          size={24}
+                          className='home-section__icon home-section__icon--ranking'
+                        />
+                        Top lượt đọc
+                      </h2>
+                    </div>
+                    <ol className='home-ranking__list'>
+                      {renderRankingSkeletonItems(HOME_SKELETON_RANK_COUNT)}
+                    </ol>
+                  </section>
+
+                  <section className='home-ranking'>
+                    <div className='home-ranking__head'>
+                      <h2>
+                        <Bookmark
+                          size={24}
+                          className='home-section__icon home-section__icon--ranking'
+                        />
+                        Top lượt theo dõi
+                      </h2>
+                    </div>
+                    <ol className='home-ranking__list'>
+                      {renderRankingSkeletonItems(HOME_SKELETON_RANK_COUNT)}
+                    </ol>
+                  </section>
+
+                  <section className='home-ranking home-ranking--comments'>
+                    <div className='home-ranking__head'>
+                      <h2>
+                        <MessageSquare
+                          size={24}
+                          className='home-section__icon home-section__icon--ranking'
+                        />
+                        Bình luận mới
+                      </h2>
+                    </div>
+                    <ol className='home-ranking__list'>
+                      {renderRankingSkeletonItems(
+                        HOME_SKELETON_COMMENT_COUNT,
+                        'home-ranking__comment-skeleton',
+                      )}
+                    </ol>
+                  </section>
+                </>
+              )}
             </aside>
           </div>
         )}

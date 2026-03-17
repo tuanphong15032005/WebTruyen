@@ -94,6 +94,46 @@
   position: relative;
 }
 
+.ranking-hub {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 0;
+}
+
+.ranking-hub__switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #eef2f7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.ranking-hub__switcher-item {
+  border: none;
+  background: transparent;
+  color: #475569;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ranking-hub__switcher-item:hover {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ranking-hub__switcher-item.active {
+  color: #ffffff;
+  background: #111827;
+  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.22);
+}
+
 /* ========== Author ranking ========== */
 .ranking-page--authors .ranking-page__content {
   padding-top: 0;
@@ -568,6 +608,22 @@
 @media (max-width: 640px) {
   .ranking-page {
     padding: 0 12px 36px;
+  }
+
+  .ranking-hub {
+    padding: 18px 12px 0;
+  }
+
+  .ranking-hub__switcher {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ranking-hub__switcher-item {
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 0.88rem;
   }
 
   .ranking-page__hero {
