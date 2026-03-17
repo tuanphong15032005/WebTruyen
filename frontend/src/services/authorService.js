@@ -24,9 +24,8 @@ export const searchAuthors = async (params = {}) => {
     sort: sort,
   });
   
-  if (keyword && keyword.trim()) {
-    queryParams.append('keyword', keyword.trim());
-  }
+  // Always send keyword parameter (even if empty) so server knows when to return all authors
+  queryParams.append('keyword', keyword.trim());
   
   try {
     const response = await api.get(`/authors/search?${queryParams}`);

@@ -1,6 +1,7 @@
 // frontend/src/components/Author/AuthorSearchBar.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { getAuthorSuggestions } from '../../services/authorService';
+import { useNavigate } from 'react-router-dom';
+import { searchAuthors } from '../../services/authorService';
 
 const AuthorSearchBar = ({ 
   value = '', 
@@ -9,32 +10,48 @@ const AuthorSearchBar = ({
   placeholder = 'Search by pen name or display name...',
   className = ''
 }) => {
+  const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTouched, setSearchTouched] = useState(false);
   const searchRef = useRef(null);
-  const debounceRef = useRef(null);
+  const searchRequestRef = useRef(0);
 
-  // Debounced search for suggestions
+  // Search for authors with suggestions
   useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (value.trim().length >= 2) {
-      debounceRef.current = setTimeout(() => {
-        fetchSuggestions(value.trim());
-      }, 300);
-    } else {
+    const keyword = value.trim();
+    if (keyword.length < 1) {
       setSuggestions([]);
-      setShowSuggestions(false);
+      setIsLoading(false);
+      return undefined;
     }
 
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
+    setIsLoading(true);
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await searchAuthors({
+          keyword: keyword,
+          page: 0,
+          size: 6,
+          sort: 'follower_count',
+        });
+        if (searchRequestRef.current !== requestId) return;
+        setSuggestions(Array.isArray(response.content) ? response.content : []);
+      } catch {
+        if (searchRequestRef.current !== requestId) return;
+        setSuggestions([]);
+      } finally {
+        if (searchRequestRef.current === requestId) {
+          setIsLoading(false);
+        }
       }
-    };
+    }, 200);
+
+    return () => window.clearTimeout(timer);
   }, [value]);
 
   // Close suggestions when clicking outside
@@ -51,25 +68,11 @@ const AuthorSearchBar = ({
     };
   }, []);
 
-  const fetchSuggestions = async (keyword) => {
-    if (isLoading) return;
-    
-    setIsLoading(true);
-    try {
-      const suggestions = await getAuthorSuggestions(keyword, 5);
-      setSuggestions(suggestions);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleInputChange = (e) => {
     const newValue = e.target.value;
     onChange(newValue);
+    setSearchTouched(true);
+    setShowSuggestions(newValue.trim().length >= 1);
   };
 
   const handleKeyPress = (e) => {
@@ -87,15 +90,11 @@ const AuthorSearchBar = ({
   };
 
   const handleSuggestionClick = (suggestion) => {
-    onChange(suggestion.penName);
     setShowSuggestions(false);
-    onSearch(suggestion.penName);
-  };
-
-  const formatNumber = (num) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num?.toString() || '0';
+    // Navigate to author portfolio
+    if (suggestion.authorId || suggestion.id) {
+      navigate(`/user/${suggestion.authorId || suggestion.id}`);
+    }
   };
 
   return (
@@ -120,7 +119,11 @@ const AuthorSearchBar = ({
           value={value}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          onFocus={() => value.trim().length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
+          onFocus={() => {
+              if (searchTouched && value.trim().length >= 1) {
+                setShowSuggestions(true);
+              }
+            }}
           placeholder={placeholder}
           className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
         />
@@ -142,7 +145,7 @@ const AuthorSearchBar = ({
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
           {suggestions.map((suggestion, index) => (
             <button
-              key={suggestion.authorId}
+              key={suggestion.authorId || suggestion.id || index}
               onClick={() => handleSuggestionClick(suggestion)}
               className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors duration-150 border-b border-gray-100 last:border-b-0"
             >
@@ -166,12 +169,9 @@ const AuthorSearchBar = ({
                 
                 {/* Author Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center">
                     <span className="text-sm font-medium text-gray-900 truncate">
                       {suggestion.penName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatNumber(suggestion.followers)} followers
                     </span>
                   </div>
                   {suggestion.displayName && (
@@ -192,10 +192,10 @@ const AuthorSearchBar = ({
       )}
 
       {/* No suggestions message */}
-      {showSuggestions && !isLoading && suggestions.length === 0 && value.trim().length >= 2 && (
+      {showSuggestions && !isLoading && suggestions.length === 0 && value.trim().length >= 1 && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
           <div className="px-4 py-3 text-sm text-gray-500 text-center">
-            No authors found for "{value}"
+            Không có tác giả nào phù hợp.
           </div>
         </div>
       )}

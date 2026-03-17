@@ -63,19 +63,14 @@ const AuthorSearchPage = () => {
     // loadAuthors will be called by useEffect
   };
 
-  const handleFollowChange = (authorId, isFollowing) => {
-    // Update the author's follow status and follower count in the local state
-    setAuthors(prevAuthors => 
-      prevAuthors.map(author => 
-        author.authorId === authorId 
-          ? { 
-              ...author, 
-              isFollowing: isFollowing,
-              followers: isFollowing ? author.followers + 1 : author.followers - 1 
-            }
-          : author
-      )
-    );
+  const handleFollowChange = async (authorId, isFollowing) => {
+    // After follow/unfollow, reload the authors data from database to get updated follower count
+    setLoading(true);
+    try {
+      await loadAuthors();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sortOptions = [
