@@ -239,6 +239,14 @@ function Header() {
             >
               Xếp hạng
             </NavLink>
+            <NavLink
+              to='/authors'
+              className={({ isActive }) =>
+                `site-nav__item ${isActive ? 'active' : ''}`
+              }
+            >
+              Tác giả
+            </NavLink>
           </nav>
         </div>
 
