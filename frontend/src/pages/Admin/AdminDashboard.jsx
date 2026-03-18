@@ -64,6 +64,15 @@ function AdminDashboard() {
             <span className='admin-dashboard__nav-icon'>📋</span>
             Quản lý Đơn
           </NavLink>
+          <NavLink
+            to='tags'
+            className={({ isActive }) =>
+              `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className='admin-dashboard__nav-icon'>🏷️</span>
+            Quản lý Tags
+          </NavLink>
         </nav>
       </aside>
       <main className='admin-dashboard__main'>

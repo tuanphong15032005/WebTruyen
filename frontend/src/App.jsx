@@ -9,6 +9,7 @@ import {
 import MainLayout from './layouts/MainLayout';
 import DocsLayout from './layouts/DocsLayout';
 import HomePage from './pages/HomePage';
+import { ToastProvider, ToastContainer } from './hooks/useToast';
 
 import SearchPage from './pages/SearchPage';
 import AuthorSearchPage from './pages/AuthorSearchPage';
@@ -62,6 +63,7 @@ import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
 import DailyMissionManagement from './pages/Admin/DailyMissionManagement';
 import ApplicationManagementPage from './pages/Admin/ApplicationManagementPage';
+import TagManagementPage from './pages/Admin/TagManagementPage';
 import ReviewerArea from './pages/Reviewer/ReviewerArea';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
@@ -262,6 +264,7 @@ function MainLayoutWrapper() {
           <Route path='daily-missions' element={<DailyMissionManagement />} />
           <Route path='achievement-management' element={<AchievementManagementPage />} />
           <Route path='applications' element={<ApplicationManagementPage />} />
+          <Route path='tags' element={<TagManagementPage />} />
 
         </Route>
         <Route
@@ -297,18 +300,21 @@ function App() {
   const location = useLocation();
 
   return (
-    <Routes>
-      {/* Documentation Routes */}
-      <Route path="/policy" element={<DocsLayout />}>
-        <Route index element={<DynamicPage code="terms" />} />
-        <Route path="terms-of-service" element={<DynamicPage code="terms" />} />
-        <Route path="privacy-policy" element={<DynamicPage code="privacy" />} />
-        <Route path="upload-rule" element={<DynamicPage code="author-rules" />} />
-      </Route>
+    <ToastProvider>
+      <Routes>
+        {/* Documentation Routes */}
+        <Route path="/policy" element={<DocsLayout />}>
+          <Route index element={<DynamicPage code="terms" />} />
+          <Route path="terms-of-service" element={<DynamicPage code="terms" />} />
+          <Route path="privacy-policy" element={<DynamicPage code="privacy" />} />
+          <Route path="upload-rule" element={<DynamicPage code="author-rules" />} />
+        </Route>
 
-      {/* Main Routes with Layout */}
-      <Route path="/*" element={<MainLayoutWrapper />} />
-    </Routes>
+        {/* Main Routes with Layout */}
+        <Route path="/*" element={<MainLayoutWrapper />} />
+      </Routes>
+      <ToastContainer />
+    </ToastProvider>
   );
 }
 
