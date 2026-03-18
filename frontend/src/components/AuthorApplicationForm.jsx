@@ -49,6 +49,14 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
             return;
         }
 
+        // Check validation first before API call
+        const words = penName.trim().split(/\s+/);
+        const invalidWords = words.filter(word => word.length > 7);
+        
+        if (invalidWords.length > 0) {
+            return; // Don't check availability if validation fails
+        }
+
         setIsCheckingPenName(true);
         try {
             const response = await api.get(`/author-application/check-pen-name?penName=${encodeURIComponent(penName.trim())}`);
@@ -76,30 +84,54 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
         const newErrors = {};
         let isValid = true;
 
+        // Validate pen name with word length limit
         if (!formData.penName.trim()) {
             newErrors.penName = 'Vui lòng nhập bút danh';
             isValid = false;
-        } else if (formData.penName.length < 2) {
-            newErrors.penName = 'Bút danh phải có ít nhất 2 ký tự';
-            isValid = false;
-        } else if (!penNameValidated && formData.penName.trim().length >= 2) {
-            newErrors.penName = 'Vui lòng kiểm tra tính khả dụng của bút danh';
-            isValid = false;
+        } else {
+            // Check each word doesn't exceed 7 characters
+            const words = formData.penName.trim().split(/\s+/);
+            const invalidWords = words.filter(word => word.length > 7);
+            
+            if (invalidWords.length > 0) {
+                newErrors.penName = `Mỗi từ trong bút danh không được quá 7 ký tự. Các từ quá dài: ${invalidWords.join(', ')}`;
+                isValid = false;
+            } else if (formData.penName.length < 2) {
+                newErrors.penName = 'Bút danh phải có ít nhất 2 ký tự';
+                isValid = false;
+            } else if (!penNameValidated && formData.penName.trim().length >= 2) {
+                newErrors.penName = 'Vui lòng kiểm tra tính khả dụng của bút danh';
+                isValid = false;
+            }
         }
 
+        // Validate bio with character limit
         if (!formData.bio.trim()) {
             newErrors.bio = 'Vui lòng nhập tiểu sử';
             isValid = false;
         } else if (formData.bio.length < 10) {
             newErrors.bio = 'Tiểu sử phải có ít nhất 10 ký tự';
             isValid = false;
+        } else if (formData.bio.length > 2000) {
+            newErrors.bio = 'Tiểu sử không được quá 2000 ký tự';
+            isValid = false;
         }
 
+        // Validate experience with character limit
+        if (formData.experience.length > 1000) {
+            newErrors.experience = 'Kinh nghiệm không được quá 1000 ký tự';
+            isValid = false;
+        }
+
+        // Validate motivation with character limit
         if (!formData.motivation.trim()) {
             newErrors.motivation = 'Vui lòng nhập lý do muốn trở thành tác giả';
             isValid = false;
         } else if (formData.motivation.length < 20) {
             newErrors.motivation = 'Lý do phải có ít nhất 20 ký tự';
+            isValid = false;
+        } else if (formData.motivation.length > 1000) {
+            newErrors.motivation = 'Lý do không được quá 1000 ký tự';
             isValid = false;
         }
 
@@ -125,6 +157,21 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
         // Check pen name availability when user types pen name
         if (name === 'penName') {
             setPenNameValidated(false); // Reset validation when user types
+            
+            // Real-time validation for word length
+            if (value.trim()) {
+                const words = value.trim().split(/\s+/);
+                const invalidWords = words.filter(word => word.length > 8);
+                
+                if (invalidWords.length > 0) {
+                    setErrors(prev => ({
+                        ...prev,
+                        penName: `Mỗi từ trong bút danh không được quá 8 ký tự. Các từ quá dài: ${invalidWords.join(', ')}`
+                    }));
+                    return; // Don't check availability if validation fails
+                }
+            }
+            
             // Debounce the check to avoid too many API calls
             const timeoutId = setTimeout(() => {
                 checkPenNameAvailability(value);
@@ -193,32 +240,10 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                             <h3>🎉 Bạn đã là tác giả!</h3>
                             <p>Bạn đã có quyền tác giả và có thể bắt đầu đăng truyện của mình.</p>
                         </div>
-                    ) : applicationStatus ? (
-                        <div className={`status-message ${applicationStatus.status.toLowerCase()}`}>
-                            {applicationStatus.status === 'PENDING' ? (
-                                <>
-                                    <h3>⏳ Đơn đang chờ duyệt</h3>
-                                    <p>Đơn đăng ký của bạn đã được gửi vào ngày {new Date(applicationStatus.submittedAt).toLocaleDateString('vi-VN')} và đang chờ admin xét duyệt.</p>
-                                </>
-                            ) : applicationStatus.status === 'REJECTED' ? (
-                                <>
-                                    <h3>❌ Đơn bị từ chối</h3>
-                                    <p>Đơn đăng ký của bạn đã bị từ chối.</p>
-                                    {applicationStatus.rejectionReason && (
-                                        <div className="rejection-reason">
-                                            <strong>Lý do:</strong> {applicationStatus.rejectionReason}
-                                        </div>
-                                    )}
-                                    <button 
-                                        className="retry-btn"
-                                        onClick={() => {
-                                            setApplicationStatus(null);
-                                        }}
-                                    >
-                                        Gửi lại đơn
-                                    </button>
-                                </>
-                            ) : null}
+                    ) : applicationStatus && applicationStatus.status === 'PENDING' ? (
+                        <div className="status-message pending">
+                            <h3>⏳ Đơn đang chờ duyệt</h3>
+                            <p>Đơn đăng ký của bạn đã được gửi vào ngày {new Date(applicationStatus.submittedAt).toLocaleDateString('vi-VN')} và đang chờ admin xét duyệt.</p>
                         </div>
                     ) : !canApply ? (
                         <div className="status-message warning">
@@ -236,8 +261,20 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                         </div>
                     )}
 
-                    {canApply && !hasAuthorRole && !applicationStatus && (
-                        <form onSubmit={handleSubmit} className="application-form">
+                    {canApply && !hasAuthorRole && (!applicationStatus || applicationStatus.status === 'REJECTED') && (
+                        <>
+                            {applicationStatus && applicationStatus.status === 'REJECTED' && (
+                                <div className="status-message rejected">
+                                    <h3>❌ Đơn bị từ chối</h3>
+                                    <p>Đơn đăng ký của bạn đã bị từ chối.</p>
+                                    {applicationStatus.rejectionReason && (
+                                        <div className="rejection-reason">
+                                            <strong>Lý do:</strong> {applicationStatus.rejectionReason}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <form onSubmit={handleSubmit} className="application-form">
                 <div className="form-group">
                     <label htmlFor="penName">Bút danh *</label>
                     <div className="input-with-indicator">
@@ -251,8 +288,9 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                                 errors.penName ? 'error' : 
                                 penNameValidated ? 'success' : ''
                             }`}
-                            placeholder="Nhập bút danh của bạn"
+                            placeholder="Nhập bút danh của bạn (tối đa 7 ký tự mỗi từ)"
                             disabled={isLoading}
+                            maxLength={200}
                         />
                         {isCheckingPenName && (
                             <span className="checking-indicator">⏳</span>
@@ -264,23 +302,40 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                     {errors.penName && <span className="error-message">{errors.penName}</span>}
                 </div>
 
-                <div className="form-group">
-                    <label htmlFor="bio">Tiểu sử *</label>
-                    <textarea
-                        id="bio"
-                        name="bio"
-                        value={formData.bio}
-                        onChange={handleInputChange}
-                        className={errors.bio ? 'error' : ''}
-                        placeholder="Giới thiệu ngắn gọn về bản thân bạn"
-                        rows="3"
-                        disabled={isLoading}
-                    />
-                    {errors.bio && <span className="error-message">{errors.bio}</span>}
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="bio">
+                            Tiểu sử * 
+                            <span className={`char-count ${
+                                formData.bio.length > 1800 ? 'danger' : 
+                                formData.bio.length > 1500 ? 'warning' : ''
+                            }`}>
+                                ({formData.bio.length}/2000)
+                            </span>
+                        </label>
+                        <textarea
+                            id="bio"
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleInputChange}
+                            className={errors.bio ? 'error' : ''}
+                            placeholder="Giới thiệu ngắn gọn về bản thân bạn"
+                            rows="3"
+                            disabled={isLoading}
+                            maxLength={2000}
+                        />
+                        {errors.bio && <span className="error-message">{errors.bio}</span>}
+                    </div>
 
                 <div className="form-group">
-                    <label htmlFor="experience">Kinh nghiệm viết lách</label>
+                    <label htmlFor="experience">
+                        Kinh nghiệm viết lách
+                        <span className={`char-count ${
+                            formData.experience.length > 900 ? 'danger' : 
+                            formData.experience.length > 750 ? 'warning' : ''
+                        }`}>
+                            ({formData.experience.length}/1000)
+                        </span>
+                    </label>
                     <textarea
                         id="experience"
                         name="experience"
@@ -289,11 +344,21 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                         placeholder="Kinh nghiệm viết lách của bạn (nếu có)"
                         rows="3"
                         disabled={isLoading}
+                        maxLength={1000}
                     />
+                    {errors.experience && <span className="error-message">{errors.experience}</span>}
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="motivation">Lý do muốn trở thành tác giả *</label>
+                    <label htmlFor="motivation">
+                        Lý do muốn trở thành tác giả *
+                        <span className={`char-count ${
+                            formData.motivation.length > 900 ? 'danger' : 
+                            formData.motivation.length > 750 ? 'warning' : ''
+                        }`}>
+                            ({formData.motivation.length}/1000)
+                        </span>
+                    </label>
                     <textarea
                         id="motivation"
                         name="motivation"
@@ -303,6 +368,7 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                         placeholder="Tại sao bạn muốn trở thành tác giả trên nền tảng của chúng tôi?"
                         rows="4"
                         disabled={isLoading}
+                        maxLength={1000}
                     />
                     {errors.motivation && <span className="error-message">{errors.motivation}</span>}
                 </div>
@@ -317,6 +383,7 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                     </button>
                 </div>
                         </form>
+                        </>
                     )}
                 </>
             )}
@@ -439,6 +506,23 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                     margin-bottom: 0.5rem;
                     font-weight: 600;
                     color: #333;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .char-count {
+                    font-size: 0.875rem;
+                    color: #666;
+                    font-weight: 400;
+                }
+
+                .char-count.warning {
+                    color: #ff9800;
+                }
+
+                .char-count.danger {
+                    color: #dc3545;
                 }
 
                 .form-group input,

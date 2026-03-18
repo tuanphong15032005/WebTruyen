@@ -57,9 +57,10 @@ public class AuthorApplicationService {
             throw new RuntimeException("You already have a pending application");
         }
 
-        // Check if user account is at least 7 days old
-        if (user.getCreatedAt().plusDays(7).isAfter(LocalDateTime.now())) {
-            long daysUntilEligible = ChronoUnit.DAYS.between(LocalDateTime.now(), user.getCreatedAt().plusDays(7));
+        // Check if user account is at least 7 days old (use same logic as ReviewerApplicationService)
+        long daysSinceCreation = ChronoUnit.DAYS.between(user.getCreatedAt(), LocalDateTime.now());
+        if (daysSinceCreation < 7) {
+            long daysUntilEligible = 7 - daysSinceCreation;
             throw new RuntimeException("Your account must be at least 7 days old to apply for author status. " +
                     "Please wait " + daysUntilEligible + " more day(s).");
         }
@@ -68,10 +69,32 @@ public class AuthorApplicationService {
         Map<String, Object> applicationData = new HashMap<>();
         applicationData.put("authorApplicationStatus", "PENDING");
         applicationData.put("authorApplicationSubmittedAt", LocalDateTime.now().toString());
-        applicationData.put("authorPenName", request.getPenName());
-        applicationData.put("authorBio", request.getBio());
+        
+        // Validate and truncate pen name if it exceeds database limit
+        String penName = request.getPenName();
+        if (penName != null && penName.length() > 200) {
+            penName = penName.substring(0, 200);
+            System.out.println("Warning: Pen name truncated to 200 characters. Original length: " + request.getPenName().length());
+        }
+        applicationData.put("authorPenName", penName);
+        
+        // Validate and truncate bio if it exceeds database limit  
+        String bio = request.getBio();
+        if (bio != null && bio.length() > 2000) {
+            bio = bio.substring(0, 2000);
+            System.out.println("Warning: Bio truncated to 2000 characters. Original length: " + request.getBio().length());
+        }
+        applicationData.put("authorBio", bio);
+        
         applicationData.put("authorExperience", request.getExperience());
         applicationData.put("authorMotivation", request.getMotivation());
+        
+        // Debug logs for saving data
+        System.out.println("Saving author application data:");
+        System.out.println("Pen Name: " + penName);
+        System.out.println("Bio: " + bio);
+        System.out.println("Experience: " + request.getExperience());
+        System.out.println("Motivation: " + request.getMotivation());
         
         // Merge with existing settings
         settings.putAll(applicationData);
@@ -109,8 +132,11 @@ public class AuthorApplicationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Map<String, Object> settings = getUserSettings(user);
+        System.out.println("Settings for user " + userId + ": " + settings);
+        
         if (settings.containsKey("authorApplicationStatus")) {
             Map<String, Object> application = new HashMap<>();
+            application.put("id", user.getId()); // Add application ID (same as user ID)
             application.put("status", settings.get("authorApplicationStatus"));
             application.put("submittedAt", settings.get("authorApplicationSubmittedAt"));
             application.put("rejectionReason", settings.get("authorApplicationRejectionReason"));
@@ -120,6 +146,12 @@ public class AuthorApplicationService {
             application.put("bio", settings.get("authorBio"));
             application.put("experience", settings.get("authorExperience"));
             application.put("motivation", settings.get("authorMotivation"));
+            
+            // Debug logs for application data
+            System.out.println("Debug: authorPenName = " + settings.get("authorPenName"));
+            System.out.println("Debug: authorBio = " + settings.get("authorBio"));
+            System.out.println("Debug: authorExperience = " + settings.get("authorExperience"));
+            System.out.println("Debug: authorMotivation = " + settings.get("authorMotivation"));
             
             // Add reviewer name if reviewed
             Object reviewerIdObj = settings.get("authorApplicationReviewedBy");
@@ -162,21 +194,18 @@ public class AuthorApplicationService {
             return false;
         }
 
-        // Check if account is at least 7 days old
-        return user.getCreatedAt().plusDays(7).isBefore(LocalDateTime.now()) || 
-               user.getCreatedAt().plusDays(7).isEqual(LocalDateTime.now());
+        // Check if account is at least 7 days old (use same logic as ReviewerApplicationService)
+        long daysSinceCreation = ChronoUnit.DAYS.between(user.getCreatedAt(), LocalDateTime.now());
+        return daysSinceCreation >= 7;
     }
 
     public long getDaysUntilEligible(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        if (user.getCreatedAt().plusDays(7).isBefore(LocalDateTime.now()) || 
-            user.getCreatedAt().plusDays(7).isEqual(LocalDateTime.now())) {
-            return 0;
-        }
-        
-        return ChronoUnit.DAYS.between(LocalDateTime.now(), user.getCreatedAt().plusDays(7));
+        // Use same logic as ReviewerApplicationService for consistency
+        long daysSinceCreation = ChronoUnit.DAYS.between(user.getCreatedAt(), LocalDateTime.now());
+        return Math.max(0, 7 - daysSinceCreation);
     }
 
     public List<Map<String, Object>> getAllApplications() {
@@ -190,6 +219,7 @@ public class AuthorApplicationService {
                 application.put("id", user.getId()); // Use user ID as application ID
                 application.put("userId", user.getId());
                 application.put("username", user.getUsername());
+                application.put("email", user.getEmail()); // Add email field
                 application.put("status", settings.get("authorApplicationStatus"));
                 application.put("submittedAt", settings.get("authorApplicationSubmittedAt"));
                 application.put("reviewedAt", settings.get("authorApplicationReviewedAt"));
@@ -214,10 +244,17 @@ public class AuthorApplicationService {
                     application.put("reviewerName", null);
                 }
                 
-                application.put("penName", settings.get("authorPenName"));
-                application.put("bio", settings.get("authorBio"));
-                application.put("experience", settings.get("authorExperience"));
-                application.put("motivation", settings.get("authorMotivation"));
+                // IMPORTANT: Get ORIGINAL form data directly from settings
+                String originalPenName = (String) settings.get("authorPenName");
+                String originalBio = (String) settings.get("authorBio");
+                String originalExperience = (String) settings.get("authorExperience");
+                String originalMotivation = (String) settings.get("authorMotivation");
+                
+                application.put("penName", originalPenName);
+                application.put("bio", originalBio);
+                application.put("experience", originalExperience);
+                application.put("motivation", originalMotivation);
+                
                 applications.add(application);
             }
         }
@@ -265,8 +302,25 @@ public class AuthorApplicationService {
                 .orElseThrow(() -> new RuntimeException("Author role not found"));
 
         // Update user's author profile information
-        user.setAuthorPenName((String) settings.get("authorPenName"));
-        user.setAuthorProfileBio((String) settings.get("authorBio"));
+        String penName = (String) settings.get("authorPenName");
+        String bio = (String) settings.get("authorBio");
+        
+        // Truncate pen name if it exceeds database limit (200 characters)
+        if (penName != null && penName.length() > 200) {
+            penName = penName.substring(0, 200);
+            System.out.println("Warning: Pen name truncated to 200 characters. Original length: " + 
+                ((String) settings.get("authorPenName")).length());
+        }
+        
+        // Truncate bio if it exceeds database limit
+        if (bio != null && bio.length() > 2000) {
+            bio = bio.substring(0, 2000);
+            System.out.println("Warning: Bio truncated to 2000 characters. Original length: " + 
+                ((String) settings.get("authorBio")).length());
+        }
+        
+        user.setAuthorPenName(penName);
+        user.setAuthorProfileBio(bio);
         user.setUpdatedAt(LocalDateTime.now());
         
         // Update application status

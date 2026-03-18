@@ -111,6 +111,10 @@ public class AdminAuthorApplicationService {
         userDetails.put("verified", user.isVerified());
         userDetails.put("avatarUrl", user.getAvatarUrl());
         
+        // Debug logs
+        System.out.println("User Email: " + user.getEmail());
+        System.out.println("User Settings JSON: " + user.getSettingsJson());
+        
         // Add user activity information
         Map<String, Object> userActivity = getUserActivityStats(user.getId());
         userDetails.put("activity", userActivity);

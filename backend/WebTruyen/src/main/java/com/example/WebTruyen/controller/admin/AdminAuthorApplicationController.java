@@ -137,6 +137,77 @@ public class AdminAuthorApplicationController {
         }
     }
 
+    @GetMapping("/{id}/raw-data")
+    public ResponseEntity<?> getRawApplicationData(@PathVariable Long id) {
+        try {
+            UserEntity user = userRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            Map<String, Object> rawData = new HashMap<>();
+            rawData.put("userId", user.getId());
+            rawData.put("username", user.getUsername());
+            rawData.put("settingsJson", user.getSettingsJson());
+            
+            System.out.println("Raw data for user " + id + ": " + user.getSettingsJson());
+            
+            return ResponseEntity.ok(rawData);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/user/{userId}/all-data")
+    public ResponseEntity<?> getAllUserData(@PathVariable Long userId) {
+        try {
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            Map<String, Object> allData = new HashMap<>();
+            allData.put("userId", user.getId());
+            allData.put("username", user.getUsername());
+            allData.put("email", user.getEmail());
+            allData.put("createdAt", user.getCreatedAt());
+            allData.put("settingsJson", user.getSettingsJson());
+            
+            // Parse and show individual fields
+            if (user.getSettingsJson() != null) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    Map<String, Object> settings = mapper.readValue(user.getSettingsJson(), Map.class);
+                    allData.put("parsedSettings", settings);
+                    
+                    // Extract author application fields - ORIGINAL FORM DATA
+                    Map<String, Object> authorApp = new HashMap<>();
+                    authorApp.put("authorApplicationStatus", settings.get("authorApplicationStatus"));
+                    authorApp.put("authorApplicationSubmittedAt", settings.get("authorApplicationSubmittedAt"));
+                    authorApp.put("authorPenName", settings.get("authorPenName"));
+                    authorApp.put("authorBio", settings.get("authorBio"));
+                    authorApp.put("authorExperience", settings.get("authorExperience"));
+                    authorApp.put("authorMotivation", settings.get("authorMotivation"));
+                    authorApp.put("authorApplicationRejectionReason", settings.get("authorApplicationRejectionReason"));
+                    allData.put("authorApplicationData", authorApp);
+                    
+                    // Debug logs to show original form data
+                    System.out.println("=== ORIGINAL FORM DATA FROM DATABASE ===");
+                    System.out.println("User ID: " + user.getId());
+                    System.out.println("Username: " + user.getUsername());
+                    System.out.println("Original Pen Name: " + settings.get("authorPenName"));
+                    System.out.println("Original Bio: " + settings.get("authorBio"));
+                    System.out.println("Original Experience: " + settings.get("authorExperience"));
+                    System.out.println("Original Motivation: " + settings.get("authorMotivation"));
+                    System.out.println("=== END ORIGINAL DATA ===");
+                    
+                } catch (Exception e) {
+                    allData.put("parseError", e.getMessage());
+                }
+            }
+            
+            return ResponseEntity.ok(allData);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/search")
     public ResponseEntity<?> searchApplications(@RequestParam String query) {
         try {

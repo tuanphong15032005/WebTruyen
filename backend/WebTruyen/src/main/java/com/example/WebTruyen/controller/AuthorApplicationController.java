@@ -4,6 +4,7 @@ import com.example.WebTruyen.dto.request.AuthorApplicationRequest;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.service.AuthorApplicationService;
+import com.example.WebTruyen.service.ReviewerApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +24,9 @@ public class AuthorApplicationController {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private ReviewerApplicationService reviewerApplicationService;
 
     @PostMapping("/apply")
     public ResponseEntity<?> applyForAuthor(
@@ -80,6 +84,44 @@ public class AuthorApplicationController {
                     response.put("rejectionReason", application.get("rejectionReason"));
                 }
             }
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/all-statuses")
+    public ResponseEntity<?> getAllApplicationStatuses(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            UserEntity user = userRepository.findByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Author application status
+            boolean hasAuthorRole = authorApplicationService.hasAuthorRole(user.getId());
+            boolean canApplyForAuthor = authorApplicationService.canApplyForAuthor(user.getId());
+            long daysUntilEligible = authorApplicationService.getDaysUntilEligible(user.getId());
+            
+            Map<String, Object> authorStatus = new HashMap<>();
+            authorStatus.put("hasRole", hasAuthorRole);
+            authorStatus.put("canApply", canApplyForAuthor);
+            authorStatus.put("daysUntilEligible", daysUntilEligible);
+            
+            if (!hasAuthorRole) {
+                var authorApplication = authorApplicationService.getApplicationByUserId(user.getId());
+                if (authorApplication != null) {
+                    authorStatus.put("status", authorApplication.get("status"));
+                    authorStatus.put("submittedAt", authorApplication.get("submittedAt"));
+                    authorStatus.put("rejectionReason", authorApplication.get("rejectionReason"));
+                }
+            }
+            
+            // Reviewer application status
+            Map<String, Object> reviewerStatus = reviewerApplicationService.checkEligibility(user.getId());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("authorApplication", authorStatus);
+            response.put("reviewerApplication", reviewerStatus);
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
