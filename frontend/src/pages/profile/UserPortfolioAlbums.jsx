@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Eye, Star } from 'lucide-react';
+import { BookOpen, Eye, Star, Plus } from 'lucide-react';
 import libraryAlbumService from '../../services/libraryAlbumService';
 import '../../styles/library-stories.css';
 
@@ -58,25 +58,24 @@ const UserPortfolioAlbums = ({ userId }) => {
 
     if (loading) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">Bộ sưu tập</h2>
-                <div className='library-album-grid' aria-hidden='true'>
-                    {Array.from({ length: 6 }, (_, index) => (
-                        <article
-                            key={`library-album-skeleton-${index}`}
-                            className='library-album-card library-album-card--skeleton'
-                        >
-                            <div className='library-album-card__mosaic'>
-                                <div className='library-album-card__tile library-album-card__tile--primary' />
-                                <div className='library-album-card__tile' />
-                                <div className='library-album-card__tile' />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="text-xl font-extrabold text-gray-900 mb-6">Bộ sưu tập của tôi</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {Array.from({ length: 6 }, (_, i) => (
+                        <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                            <div className="h-48 bg-gray-200 animate-pulse"></div>
+                            <div className="p-5">
+                                <div className="h-5 w-full bg-gray-200 rounded animate-pulse mb-2"></div>
+                                <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-4"></div>
+                                <div className="flex items-center justify-between">
+                                    <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                    <div className="flex gap-3">
+                                        <div className="h-3 w-8 bg-gray-200 rounded animate-pulse"></div>
+                                        <div className="h-3 w-8 bg-gray-200 rounded animate-pulse"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className='library-album-card__body'>
-                                <div className='library-album-card__line-skeleton library-album-card__line-skeleton--title' />
-                                <div className='library-album-card__line-skeleton' />
-                                <div className='library-album-card__line-skeleton library-album-card__line-skeleton--short' />
-                            </div>
-                        </article>
+                        </div>
                     ))}
                 </div>
             </div>
@@ -85,10 +84,12 @@ const UserPortfolioAlbums = ({ userId }) => {
 
     if (error) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">Bộ sưu tập</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="text-xl font-extrabold text-gray-900 mb-6">Bộ sưu tập của tôi</h3>
                 <div className="text-center py-8">
-                    <p className="text-red-600">{error}</p>
+                    <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Đã xảy ra lỗi</h3>
+                    <p className="text-gray-500">{error}</p>
                 </div>
             </div>
         );
@@ -96,11 +97,12 @@ const UserPortfolioAlbums = ({ userId }) => {
 
     if (albums.length === 0) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">Bộ sưu tập</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="text-xl font-extrabold text-gray-900 mb-6">Bộ sưu tập của tôi</h3>
                 <div className="text-center py-8">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Chưa có bộ sưu tập nào</p>
+                    <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Chưa có bộ sưu tập nào</h3>
+                    <p className="text-gray-500">Bắt đầu tạo bộ sưu tập đầu tiên của bạn</p>
                 </div>
             </div>
         );
@@ -108,86 +110,67 @@ const UserPortfolioAlbums = ({ userId }) => {
 
     return (
         <>
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="library-count mb-6">
-                    <strong>{formatNumber(albums.length)}</strong>
-                    <span>bộ sưu tập</span>
+            {/* Published Albums Section */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-extrabold text-gray-900">Bộ sưu tập của tôi</h3>
+                    <Link to="#" className="text-blue-500 font-bold text-sm flex items-center gap-1 hover:underline">
+                        View All <span>→</span>
+                    </Link>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {albums.slice(0, 6).map((album) => {
+                        const previewCoverUrls = Array.isArray(album?.previewCovers)
+                            ? album.previewCovers.slice(0, 1)
+                            : [];
+                        const description = String(album?.description || '').trim();
 
-                {albums.length === 0 ? (
-                    <div className='library-page__empty'>
-                        <p>Chưa có bộ sưu tập công khai nào.</p>
-                    </div>
-                ) : (
-                    <div className='library-album-grid'>
-                        {albums.map((album) => {
-                            const previewCoverUrls = Array.isArray(album?.previewCovers)
-                                ? album.previewCovers.slice(0, 3)
-                                : [];
-                            const description = String(album?.description || '').trim();
-
-                            return (
-                                <article key={album.id} className='library-album-card'>
-                                    <div
-                                        className='library-album-card__link'
-                                        onClick={() => openAlbumModal(album.id)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <div className='library-album-card__mosaic'>
-                                            {[0, 1, 2].map((index) => {
-                                                const coverUrl = previewCoverUrls[index] || '';
-                                                const isLastTile = index === 2;
-                                                const showMoreBadge =
-                                                    isLastTile && Number(album.remainingCount || 0) > 0;
-                                                const tileClass =
-                                                    index === 0
-                                                        ? 'library-album-card__tile library-album-card__tile--primary'
-                                                        : `library-album-card__tile ${
-                                                            showMoreBadge
-                                                                ? 'library-album-card__tile--stacked'
-                                                                : ''
-                                                        }`;
-
-                                                return (
-                                                    <div key={`${album.id}-${index}`} className={tileClass}>
-                                                        {coverUrl ? (
-                                                            <img
-                                                                src={coverUrl}
-                                                                alt={album.name}
-                                                                loading='lazy'
-                                                                decoding='async'
-                                                            />
-                                                        ) : (
-                                                            <div className='library-album-card__tile-placeholder' />
-                                                        )}
-
-                                                        {showMoreBadge && (
-                                                            <span className='library-album-card__more'>
-                                                                +{formatNumber(album.remainingCount)}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                        return (
+                            <div key={album.id} className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm transition-all cursor-pointer hover:shadow-lg" onClick={() => openAlbumModal(album.id)}>
+                                <div className="h-48 overflow-hidden relative">
+                                    {previewCoverUrls[0] ? (
+                                        <img
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            src={previewCoverUrls[0]}
+                                            alt={album.name}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                                            <BookOpen className="w-12 h-12 text-white/50" />
                                         </div>
-
-                                        <div className='library-album-card__body'>
-                                            <h3>{album.name}</h3>
-                                            <p>
-                                                {description || 'Chưa có mô tả cho bộ sưu tập này.'}
-                                            </p>
-                                            <span className='library-album-card__meta'>
-                                                {formatNumber(album.itemCount || 0)} truyện
+                                    )}
+                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-gray-900">
+                                        Album
+                                    </div>
+                                </div>
+                                <div className="p-5">
+                                    <h4 className="font-bold text-lg text-gray-900 mb-2 leading-tight">{album.name}</h4>
+                                    <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                                        {description || 'Chưa có mô tả cho bộ sưu tập này.'}
+                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-gray-400">
+                                            {formatNumber(album.itemCount || 0)} stories
+                                        </span>
+                                        <div className="flex items-center gap-3 text-gray-400">
+                                            <span className="flex items-center gap-1 text-xs">
+                                                <Eye size={12} />
+                                                {formatNumber(album.views || 0)}
+                                            </span>
+                                            <span className="flex items-center gap-1 text-xs">
+                                                <Star size={12} />
+                                                {album.averageRating ? album.averageRating.toFixed(1) : '0.0'}
                                             </span>
                                         </div>
                                     </div>
-                                </article>
-                            );
-                        })}
-                    </div>
-                )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
+            
             {/* Album Stories Modal */}
             {selectedAlbum && (
                 <div 

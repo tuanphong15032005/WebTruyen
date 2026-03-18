@@ -16,4 +16,5 @@ public class UserPortfolioResponse {
     private Long storiesCount;
     private Long followersCount;
     private Long commentsCount;
+    private Long totalViews;  // Add this field for views calculation
 }
