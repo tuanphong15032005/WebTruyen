@@ -10,7 +10,6 @@ import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumItemEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -81,9 +80,6 @@ public class StoryEntity {
 
     @Column(name = "rating_count", nullable = false)
     private int ratingCount;
-
-    @Column(name = "rating_avg", precision = 4, scale = 2)
-    private BigDecimal ratingAvg;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
