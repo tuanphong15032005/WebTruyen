@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.achievement;
+package com.example.WebTruyen.dto.request;
 
 import com.example.WebTruyen.entity.enums.AchievementCategory;
 import lombok.AllArgsConstructor;
@@ -12,7 +12,7 @@ import jakarta.validation.constraints.Size;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AchievementUpdateDto {
+public class AchievementUpdateRequest {
     
     @Size(max = 50, message = "Code must be less than 50 characters")
     private String code;

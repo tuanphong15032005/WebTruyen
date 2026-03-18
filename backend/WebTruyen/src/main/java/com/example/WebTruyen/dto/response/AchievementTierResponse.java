@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.achievement;
+package com.example.WebTruyen.dto.response;
 
 import com.example.WebTruyen.entity.enums.CoinType;
 import lombok.*;
@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class AchievementTierDto {
+public class AchievementTierResponse {
     
     private Integer id;
     private Integer tierLevel;
@@ -23,4 +23,7 @@ public class AchievementTierDto {
     private LocalDateTime claimedAt;
     private Boolean current;
     private Boolean visible;
+    private Boolean isActive;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

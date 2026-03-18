@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.achievement;
+package com.example.WebTruyen.dto.response;
 
 import lombok.*;
 
@@ -7,7 +7,7 @@ import java.util.List;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class AchievementProgressDto {
+public class AchievementProgressResponse {
     
     private String achievementCode;
     private String achievementName;
@@ -16,8 +16,8 @@ public class AchievementProgressDto {
     private Integer currentTier;
     private Integer totalTiers;
     private Double progressPercentage;
-    private AchievementTierDto currentTierInfo;
-    private AchievementTierDto nextTierInfo;
-    private List<AchievementTierDto> allTiers;
+    private AchievementTierResponse currentTierInfo;
+    private AchievementTierResponse nextTierInfo;
+    private List<AchievementTierResponse> allTiers;
     private Boolean isCompleted;
 }

@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.achievement;
+package com.example.WebTruyen.dto.request;
 
 import com.example.WebTruyen.entity.enums.AchievementCategory;
 import lombok.AllArgsConstructor;
@@ -14,7 +14,7 @@ import jakarta.validation.constraints.Size;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AchievementCreateDto {
+public class AchievementCreateRequest {
     
     @NotBlank(message = "Code is required")
     @Size(max = 50, message = "Code must be less than 50 characters")
