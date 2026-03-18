@@ -7,7 +7,7 @@ import UserPortfolioStats from './UserPortfolioStats';
 import AuthorStories from './AuthorStories';
 
 const UserPortfolioPage = () => {
-    const { userId } = useParams();
+    const { userId, username } = useParams();
     const navigate = useNavigate();
     const [portfolioData, setPortfolioData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,9 +16,18 @@ const UserPortfolioPage = () => {
     useEffect(() => {
         const fetchPortfolioData = async () => {
             try {
-                console.log('🔍 Fetching portfolio for userId:', userId); // Debug log
+                console.log('🔍 Fetching portfolio for:', { userId, username }); // Debug log
                 setLoading(true);
-                const response = await api.get(`/users/${userId}/portfolio`);
+                
+                let response;
+                if (username) {
+                    response = await api.get(`/users/username/${username}/portfolio`);
+                } else if (userId) {
+                    response = await api.get(`/users/${userId}/portfolio`);
+                } else {
+                    throw new Error('No userId or username provided');
+                }
+                
                 console.log('📡 Full API Response:', response); // Debug log
                 console.log('📡 Response type:', typeof response); // Debug log
                 console.log('📡 Response keys:', Object.keys(response || {})); // Debug log
@@ -35,13 +44,14 @@ const UserPortfolioPage = () => {
             }
         };
 
-        if (userId) {
+        if (userId || username) {
             fetchPortfolioData();
         }
-    }, [userId]);
+    }, [userId, username]);
 
     const handleDonateClick = () => {
-        navigate(`/donate/${userId}`);
+        const targetUserId = portfolioData?.userId || userId;
+        navigate(`/donate/${targetUserId}`);
     };
 
     if (loading) {

@@ -412,10 +412,7 @@ function Header() {
                   )}
 
                   {hasAnyRole(['ADMIN', 'MOD'], user) && (
-                    <>
-                      <Link to='/admin/dashboard'>Dashboard quản trị</Link>
                       <Link to='/admin/terms'>Quản lý điều khoản</Link>
-                    </>
                   )}
 
                   <button type='button' onClick={handleLogout}>

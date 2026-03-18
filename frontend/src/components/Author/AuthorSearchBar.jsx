@@ -93,7 +93,7 @@ const AuthorSearchBar = ({
     setShowSuggestions(false);
     // Navigate to author portfolio
     if (suggestion.authorId || suggestion.id) {
-      navigate(`/user/${suggestion.authorId || suggestion.id}`);
+      navigate(`/portfolio/${suggestion.authorId || suggestion.id}`);
     }
   };
 

@@ -7,6 +7,7 @@ import LatestCommentsSidebar from '../../components/dashboard/LatestCommentsSide
 import { fetchDashboardData } from '../../services/dashboardService';
 import Button from '../../components/Button';
 import AuthorApplicationForm from '../../components/AuthorApplicationForm';
+import { Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
 import './AuthorDashboard.css';
 
@@ -25,6 +26,8 @@ const AuthorDashboard = () => {
   const [canApply, setCanApply] = useState(false);
   const [daysUntilEligible, setDaysUntilEligible] = useState(0);
 
+  const [reviewerApplicationStatus, setReviewerApplicationStatus] = useState(null);
+
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,17 +36,25 @@ const AuthorDashboard = () => {
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        const response = await api.get('/author-application/status');
-        setUserRole(response.hasAuthorRole ? 'author' : 'reader');
-        setCanApply(response.canApply);
-        setDaysUntilEligible(response.daysUntilEligible || 0);
-        if (response.applicationStatus) {
+        const response = await api.get('/author-application/all-statuses');
+        
+        // Author application data
+        const authorApp = response.authorApplication;
+        setUserRole(authorApp.hasRole ? 'author' : 'reader');
+        setCanApply(authorApp.canApply);
+        setDaysUntilEligible(authorApp.daysUntilEligible || 0);
+        
+        if (authorApp.status) {
           setApplicationStatus({
-            status: response.applicationStatus,
-            submittedAt: response.submittedAt,
-            rejectionReason: response.rejectionReason
+            status: authorApp.status,
+            submittedAt: authorApp.submittedAt,
+            rejectionReason: authorApp.rejectionReason
           });
         }
+        
+        // Reviewer application data
+        setReviewerApplicationStatus(response.reviewerApplication);
+        
       } catch (error) {
         console.error('Error checking user role:', error);
         setUserRole('reader'); // Default to reader if error
@@ -94,37 +105,47 @@ const AuthorDashboard = () => {
     return (
       <div className='dashboard-author dashboard-reader-view'>
         <div className='dashboard-reader-content'>
-          <h1>Trở thành tác giả</h1>
-
           {applicationStatus && (
-            <div className={`application-status ${applicationStatus.status.toLowerCase()}`}>
-              {applicationStatus.status === 'PENDING' ? (
-                <>
-                  <h3>⏳ Đơn đang chờ duyệt</h3>
-                  <p>Đơn đăng ký của bạn đã được gửi vào ngày {new Date(applicationStatus.submittedAt).toLocaleDateString('vi-VN')} và đang chờ admin xét duyệt.</p>
-                </>
-              ) : applicationStatus.status === 'REJECTED' ? (
-                <>
-                  <h3>❌ Đơn bị từ chối</h3>
-                  <p>Đơn đăng ký của bạn đã bị từ chối.</p>
-                  {applicationStatus.rejectionReason && (
-                    <div className='rejection-reason'>
-                      <strong>Lý do:</strong> {applicationStatus.rejectionReason}
+            <div className="status-container">
+              <div className={`status-card ${applicationStatus.status.toLowerCase()}`}>
+                <div className="status-icon">
+                  {applicationStatus.status === 'PENDING' && <Clock size={48} className="warning" />}
+                  {applicationStatus.status === 'REJECTED' && <AlertCircle size={48} className="error" />}
+                </div>
+                <h3>📝 Đơn đăng ký Tác giả</h3>
+                {applicationStatus.status === 'PENDING' ? (
+                  <>
+                    <h3>Đơn đang chờ duyệt</h3>
+                    <p>Đơn đăng ký tác giả của bạn đang được admin xem xét. Vui lòng chờ thông báo kết quả.</p>
+                    <div className="application-details">
+                      <p><strong>Ngày gửi:</strong> {new Date(applicationStatus.submittedAt).toLocaleDateString('vi-VN')}</p>
+                      <p><strong>Trạng thái:</strong> Đang chờ duyệt</p>
                     </div>
-                  )}
-                  <Button
-                    onClick={() => {
-                      setApplicationStatus(null);
-                      setShowApplicationForm(true);
-                    }}
-                    className='retry-btn'
-                  >
-                    Gửi lại đơn
-                  </Button>
-                </>
-              ) : null}
+                  </>
+                ) : applicationStatus.status === 'REJECTED' ? (
+                  <>
+                    <h3>Đơn bị từ chối</h3>
+                    <p>Đơn đăng ký tác giả của bạn đã bị từ chối.</p>
+                    {applicationStatus.rejectionReason && (
+                      <div className="rejection-reason">
+                        <strong>Lý do:</strong> {applicationStatus.rejectionReason}
+                      </div>
+                    )}
+                    <Button
+                      onClick={() => {
+                        setApplicationStatus(null);
+                        setShowApplicationForm(true);
+                      }}
+                      className='retry-btn'
+                    >
+                      Gửi lại đơn
+                    </Button>
+                  </>
+                ) : null}
+              </div>
             </div>
           )}
+
 
           {!applicationStatus && !canApply && (
             <div className='eligibility-warning'>
@@ -139,27 +160,71 @@ const AuthorDashboard = () => {
           {!applicationStatus && canApply && (
             <>
               <div className='reader-info'>
-                <p>
-                  Bạn hiện đang có vai trò người đọc. Để truy cập vào trang quản lý
-                  của tác giả, bạn cần đăng ký trở thành tác giả.
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent mb-4">
+                  Trở thành tác giả
+                </h1>
+                <p className="text-gray-600 text-base leading-relaxed mb-8">
+                  Bạn hiện đang có vai trò người đọc. Để truy cập vào trang quản lý của tác giả, 
+                  bạn cần đăng ký để bắt đầu hành trình sáng tạo của mình.
                 </p>
-                <div className='benefits'>
-                  <h3>Quyền lợi khi trở thành tác giả:</h3>
-                  <ul>
-                    <li>Tạo và đăng tải truyện của riêng bạn</li>
-                    <li>Quản lý các chương và tập truyện</li>
-                    <li>Tương tác với độc giả qua bình luận</li>
-                    <li>Nhận donate từ độc giả</li>
-                    <li>Xây dựng thương hiệu cá nhân</li>
-                  </ul>
+                
+                <h2 className="text-gray-500 text-sm font-medium uppercase tracking-wider text-center mb-8">
+                  QUYỀN LỢI KHI TRỞ THÀNH TÁC GIẢ
+                </h2>
+                
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-8'>
+                  <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300'>
+                    <div className='flex items-center gap-4'>
+                      <div className='w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0'>
+                        <span className='text-xl'>✏️</span>
+                      </div>
+                      <div>
+                        <h4 className='text-gray-900 font-medium'>Tạo và đăng tải truyện riêng</h4>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300'>
+                    <div className='flex items-center gap-4'>
+                      <div className='w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0'>
+                        <span className='text-xl'>📚</span>
+                      </div>
+                      <div>
+                        <h4 className='text-gray-900 font-medium'>Quản lý chương và tập truyện</h4>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300'>
+                    <div className='flex items-center gap-4'>
+                      <div className='w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0'>
+                        <span className='text-xl'>💬</span>
+                      </div>
+                      <div>
+                        <h4 className='text-gray-900 font-medium'>Tương tác trực tiếp với độc giả</h4>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300'>
+                    <div className='flex items-center gap-4'>
+                      <div className='w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0'>
+                        <span className='text-xl'>💰</span>
+                      </div>
+                      <div>
+                        <h4 className='text-gray-900 font-medium'>Nhận donate từ độc giả</h4>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <Button
+              
+              <button 
                 onClick={() => setShowApplicationForm(true)}
-                className='apply-btn'
+                className='w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-lg'
               >
                 Đăng ký trở thành tác giả
-              </Button>
+              </button>
             </>
           )}
         </div>

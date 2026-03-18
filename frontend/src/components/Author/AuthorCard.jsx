@@ -231,7 +231,7 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
             className="ml-3 flex items-center text-orange-500 hover:text-orange-600 transition-colors duration-200"
             onClick={() => {
               // Navigate to user profile (always works, even for own profile)
-              navigate(`/user/${author.authorId}`);
+              navigate(`/portfolio/${author.authorId}`);
             }}
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

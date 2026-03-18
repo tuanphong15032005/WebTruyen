@@ -30,11 +30,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileResponse getProfile(Long userId) {
-
-
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        return mapToResponse(user);
+    }
+
+    @Override
+    public UserProfileResponse getProfileByUsername(String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
 
         return mapToResponse(user);
     }

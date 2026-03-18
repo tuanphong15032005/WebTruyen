@@ -25,6 +25,11 @@ public class UserPortfolioController {
         return userPortfolioService.getUserPortfolio(userId);
     }
 
+    @GetMapping("/username/{username}/portfolio")
+    public UserPortfolioResponse getUserPortfolioByUsername(@PathVariable String username) {
+        return userPortfolioService.getUserPortfolioByUsername(username);
+    }
+
     // ISSUE 3: Follow/Unfollow endpoints
     @PostMapping("/{authorId}/follow")
     public Map<String, Object> toggleFollow(@PathVariable Long authorId, @RequestParam Long currentUserId) {

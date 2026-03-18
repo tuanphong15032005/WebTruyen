@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import adminAchievementApi from '../../services/adminAchievementApi';
 import useNotify from '../../hooks/useNotify';
+import ConfirmActionModal from '../../components/ConfirmActionModal';
 import { 
   Plus, 
   Edit, 
@@ -29,6 +30,13 @@ const AchievementManagementPage = () => {
   const [editingTier, setEditingTier] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState(null); // 'active', 'inactive', or null
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: ''
+  });
   const { notify } = useNotify();
 
   // Form states
@@ -149,8 +157,16 @@ const AchievementManagementPage = () => {
   };
 
   const handleDeleteAchievement = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa thành tựu này?')) return;
-    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc muốn xóa thành tựu này?',
+      confirmText: 'Xóa',
+      onConfirm: () => deleteAchievement(id)
+    });
+  };
+
+  const deleteAchievement = async (id) => {
     try {
       await adminAchievementApi.deleteAchievement(id);
       notify('Xóa thành công!', 'success');
@@ -159,6 +175,7 @@ const AchievementManagementPage = () => {
       console.error('Error deleting achievement:', error);
       notify('Lỗi xóa thành tựu', 'error');
     }
+    setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' });
   };
 
   const handleCreateTier = async () => {
@@ -188,8 +205,16 @@ const AchievementManagementPage = () => {
   };
 
   const handleDeleteTier = async (tierId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa tier này?')) return;
-    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc muốn xóa tier này?',
+      confirmText: 'Xóa',
+      onConfirm: () => deleteTier(tierId)
+    });
+  };
+
+  const deleteTier = async (tierId) => {
     try {
       await adminAchievementApi.deleteTier(tierId);
       notify('Xóa tier thành công!', 'success');
@@ -198,6 +223,7 @@ const AchievementManagementPage = () => {
       console.error('Error deleting tier:', error);
       notify('Lỗi xóa tier', 'error');
     }
+    setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' });
   };
 
   const resetAchievementForm = () => {
@@ -699,9 +725,21 @@ const AchievementManagementPage = () => {
           </div>
         </div>
       )}
-      </div>
     </div>
-  );
+      
+      {/* Confirm Action Modal */}
+      {confirmModal.isOpen && (
+        <ConfirmActionModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText || 'Xóa'}
+          onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' })}
+          onConfirm={confirmModal.onConfirm}
+        />
+      )}
+  </div>
+);
 };
 
 export default AchievementManagementPage;

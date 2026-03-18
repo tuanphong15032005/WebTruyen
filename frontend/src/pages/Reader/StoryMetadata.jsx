@@ -1258,7 +1258,7 @@ const StoryMetadata = () => {
             {/*               //link đến portfolio */}
             <strong
               className='cursor-pointer hover:text-blue-600 transition-colors'
-              onClick={() => navigate(`/user/${comment.userId}`)}
+              onClick={() => navigate(`/portfolio/${comment.userId}`)}
             >
               {comment.username}
             </strong>
@@ -1590,7 +1590,7 @@ const StoryMetadata = () => {
                         value={story.authorPenName || 'Chưa có bút danh'}
                         onValueClick={
                           story?.authorId
-                            ? () => navigate(`/user/${story.authorId}`)
+                            ? () => navigate(`/portfolio/${story.authorId}`)
                             : undefined
                         }
                       />
@@ -1608,7 +1608,7 @@ const StoryMetadata = () => {
                         value={translatorName}
                         onValueClick={
                           story?.authorId
-                            ? () => navigate(`/user/${story.authorId}`)
+                            ? () => navigate(`/portfolio/${story.authorId}`)
                             : undefined
                         }
                       />
@@ -1789,7 +1789,7 @@ const StoryMetadata = () => {
                 <div className='story-metadata__latest-review-head'>
                   <strong
                     className='cursor-pointer hover:text-blue-600 transition-colors'
-                    onClick={() => navigate(`/user/${latestReview.userId}`)}
+                    onClick={() => navigate(`/portfolio/${latestReview.userId}`)}
                   >
                     {latestReview.username || 'Ẩn danh'}
                   </strong>

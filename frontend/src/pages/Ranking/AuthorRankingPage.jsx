@@ -74,7 +74,7 @@ function AuthorRankingPage() {
               <li key={item.userId} className={`author-ranking-item ${rankClass}`}>
                 <span className="author-ranking-item__rank">#{rank || '-'}</span>
                 <Link
-                  to={`/user/${item.userId}`}
+                  to={`/portfolio/${item.userId}`}
                   className="author-ranking-item__avatar-wrap"
                 >
                   {item.avatarUrl ? (
@@ -90,7 +90,7 @@ function AuthorRankingPage() {
                   )}
                 </Link>
                 <div className="author-ranking-item__info">
-                  <Link to={`/user/${item.userId}`} className="author-ranking-item__name">
+                  <Link to={`/portfolio/${item.userId}`} className="author-ranking-item__name">
                     {item.authorPenName || item.displayName || `User #${item.userId}`}
                   </Link>
                   <span className="author-ranking-item__followers">

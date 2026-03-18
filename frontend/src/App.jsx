@@ -60,7 +60,8 @@ import DynamicPage from './pages/docs/DynamicPage';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
 import DailyMissionManagement from './pages/Admin/DailyMissionManagement';
-import AuthorApplicationManagementPage from './pages/Admin/AuthorApplicationManagementPage';
+import ApplicationManagementPage from './pages/Admin/ApplicationManagementPage';
+import ReviewerArea from './pages/Reviewer/ReviewerArea';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
@@ -167,9 +168,10 @@ function MainLayoutWrapper() {
         />
 
         <Route path='/profile' element={<UserProfile />} />
+        <Route path='/user/:username' element={<UserProfile />} />
+        <Route path='/portfolio/:userId' element={<UserPortfolioPage />} />
+        <Route path='/portfolio/username/:username' element={<UserPortfolioPage />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
-        <Route path='/achievements' element={<AchievementsPage />} />
-        <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route
           path='/reader/refund-request'
@@ -190,6 +192,8 @@ function MainLayoutWrapper() {
           element={<BookmarkDetailPage />}
         />
         <Route path='/reading-history' element={<ReadingHistoryPage />} />
+
+        <Route path='/reviewer-area' element={<ReviewerArea />} />
 
         <Route
           path='/library/albums/:albumId'
@@ -252,7 +256,7 @@ function MainLayoutWrapper() {
           <Route path='finance' element={<FinanceManagementPage />} />
           <Route path='daily-missions' element={<DailyMissionManagement />} />
           <Route path='achievement-management' element={<AchievementManagementPage />} />
-          <Route path='author-applications' element={<AuthorApplicationManagementPage />} />
+          <Route path='applications' element={<ApplicationManagementPage />} />
 
         </Route>
         <Route

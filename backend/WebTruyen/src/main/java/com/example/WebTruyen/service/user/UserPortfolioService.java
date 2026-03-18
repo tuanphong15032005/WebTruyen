@@ -36,6 +36,19 @@ public class UserPortfolioService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        return buildPortfolioResponse(user, userId);
+    }
+
+    public UserPortfolioResponse getUserPortfolioByUsername(String username) {
+        // 1. Load user by username
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+
+        return buildPortfolioResponse(user, user.getId());
+    }
+
+    private UserPortfolioResponse buildPortfolioResponse(UserEntity user, Long userId) {
+
         // 2. Detect isAuthor
         boolean isAuthor = isAuthor(user);
 

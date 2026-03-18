@@ -56,13 +56,13 @@ function AdminDashboard() {
             Quản lý Thành tựu
           </NavLink>
           <NavLink
-            to='author-applications'
+            to='applications'
             className={({ isActive }) =>
               `admin-dashboard__nav-item ${isActive ? 'active' : ''}`
             }
           >
-            <span className='admin-dashboard__nav-icon'>✍️</span>
-            Quản lý Đơn tác giả
+            <span className='admin-dashboard__nav-icon'>📋</span>
+            Quản lý Đơn
           </NavLink>
         </nav>
       </aside>

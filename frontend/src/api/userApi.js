@@ -12,6 +12,10 @@ export async function getUserProfile() {
 export async function getUserProfileById(userId) {
   return await api.get(`/users/profile/${userId}`);
 }
+
+export async function getUserProfileByUsername(username) {
+  return await api.get(`/users/profile/username/${username}`);
+}
 //create an avatar upload API function
 export async function uploadAvatar(userId, formData) {
   return await api.post(`/users/profile/${userId}/avatar`, formData, {

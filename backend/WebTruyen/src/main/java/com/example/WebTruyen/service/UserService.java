@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
     UserProfileResponse getProfile(Long userId);
+    UserProfileResponse getProfileByUsername(String username);
 
     UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request);
     

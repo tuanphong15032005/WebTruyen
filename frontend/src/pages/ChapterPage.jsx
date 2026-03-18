@@ -638,7 +638,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
           <div className='story-metadata__comment-head'>
             <strong
               className='cursor-pointer hover:text-blue-600 transition-colors'
-              onClick={() => navigate(`/user/${comment.userId}`)}
+              onClick={() => navigate(`/portfolio/${comment.userId}`)}
             >
               {comment.username || 'Unknown'}
             </strong>

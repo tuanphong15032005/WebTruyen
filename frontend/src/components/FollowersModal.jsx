@@ -112,7 +112,7 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
                   }}
                   onClick={() => {
                     // Navigate to user profile
-                    window.location.href = `/user/${follower.userId}`;
+                    window.location.href = `/portfolio/${follower.userId}`;
                   }}
                 >
                   {/* Avatar */}
