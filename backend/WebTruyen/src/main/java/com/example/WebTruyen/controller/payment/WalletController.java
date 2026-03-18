@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.payment;
 
 import com.example.WebTruyen.dto.response.WalletResponse;
 import com.example.WebTruyen.entity.model.Payment.LedgerEntryEntity;

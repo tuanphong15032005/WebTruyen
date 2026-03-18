@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.author;
 
 import com.example.WebTruyen.dto.request.AuthorApplicationRequest;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;

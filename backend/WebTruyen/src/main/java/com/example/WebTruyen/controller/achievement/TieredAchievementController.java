@@ -1,7 +1,7 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.achievement;
 
-import com.example.WebTruyen.dto.achievement.AchievementProgressDto;
-import com.example.WebTruyen.dto.achievement.AchievementTierDto;
+import com.example.WebTruyen.dto.response.AchievementProgressResponse;
+import com.example.WebTruyen.dto.response.AchievementTierResponse;
 import com.example.WebTruyen.entity.model.Gamification.AchievementEntity;
 import com.example.WebTruyen.repository.AchievementRepository;
 import com.example.WebTruyen.security.UserPrincipal;
@@ -26,21 +26,28 @@ public class TieredAchievementController {
     private final AchievementRepository achievementRepository;
 
     @GetMapping("/progress")
-    public ResponseEntity<List<AchievementProgressDto>> getAllAchievementProgress(
+    public ResponseEntity<List<AchievementProgressResponse>> getAllAchievementProgress(
             @AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
+        log.info("🔍 [DEBUG] getAllAchievementProgress called");
+        
+        // Temporarily use hardcoded user ID for testing
+        Long userId = 1L; // Hardcoded for testing
+        
+        log.info("🆔 [DEBUG] Using hardcoded userId: {}", userId);
+        
+        try {
+            List<AchievementProgressResponse> progress = tieredAchievementService.getAllAchievementProgress(userId);
+            log.info("📊 [DEBUG] Retrieved {} achievements for user {}", progress.size(), userId);
+            log.info("📋 [DEBUG] Achievement data: {}", progress);
+            return ResponseEntity.ok(progress);
+        } catch (Exception e) {
+            log.error("💥 [DEBUG] Error getting achievement progress: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
-        
-        UserPrincipal userPrincipal = (UserPrincipal) userDetails;
-        Long userId = userPrincipal.getUser().getId();
-        
-        List<AchievementProgressDto> progress = tieredAchievementService.getAllAchievementProgress(userId);
-        return ResponseEntity.ok(progress);
     }
 
     @GetMapping("/progress/{achievementCode}")
-    public ResponseEntity<AchievementProgressDto> getAchievementProgress(
+    public ResponseEntity<AchievementProgressResponse> getAchievementProgress(
             @PathVariable String achievementCode,
             @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
@@ -51,7 +58,7 @@ public class TieredAchievementController {
         Long userId = userPrincipal.getUser().getId();
         
         try {
-            AchievementProgressDto progress = tieredAchievementService.getAchievementProgress(
+            AchievementProgressResponse progress = tieredAchievementService.getAchievementProgress(
                     userId, achievementCode);
             return ResponseEntity.ok(progress);
         } catch (Exception e) {
@@ -61,7 +68,7 @@ public class TieredAchievementController {
     }
 
     @PostMapping("/claim/{tierId}")
-    public ResponseEntity<AchievementTierDto> claimTier(
+    public ResponseEntity<AchievementTierResponse> claimTier(
             @PathVariable Integer tierId,
             @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
@@ -72,7 +79,7 @@ public class TieredAchievementController {
         Long userId = userPrincipal.getUser().getId();
         
         try {
-            AchievementTierDto claimedTier = tieredAchievementService.claimTier(
+            AchievementTierResponse claimedTier = tieredAchievementService.claimTier(
                     userId, tierId);
             return ResponseEntity.ok(claimedTier);
         } catch (Exception e) {

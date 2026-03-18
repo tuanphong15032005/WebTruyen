@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.reader;
 
 import com.example.WebTruyen.dto.request.CreateBookmarkRequest;
 import com.example.WebTruyen.dto.response.BookmarkResponse;

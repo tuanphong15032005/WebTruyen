@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.user;
 
 import com.example.WebTruyen.dto.request.ChangePasswordRequest;
 import com.example.WebTruyen.dto.request.UpdateProfileRequest;

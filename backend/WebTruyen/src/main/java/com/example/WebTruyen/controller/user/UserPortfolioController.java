@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.user;
 
 import com.example.WebTruyen.dto.response.UserPortfolioResponse;
 import com.example.WebTruyen.dto.response.FollowerResponse;

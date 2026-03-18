@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.story;
 
 import com.example.WebTruyen.entity.model.CommentAndMod.CommentEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;

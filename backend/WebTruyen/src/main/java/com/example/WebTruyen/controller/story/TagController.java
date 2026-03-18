@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.story;
 
 import com.example.WebTruyen.dto.response.TagDto;
 import com.example.WebTruyen.service.TagService;

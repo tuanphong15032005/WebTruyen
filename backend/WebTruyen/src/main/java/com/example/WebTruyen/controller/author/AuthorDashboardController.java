@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.author;
 
 import com.example.WebTruyen.dto.response.DashboardCommentDTO;
 import com.example.WebTruyen.dto.response.DashboardSummaryResponse;

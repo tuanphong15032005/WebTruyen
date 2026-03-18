@@ -1,9 +1,9 @@
 package com.example.WebTruyen.service;
 
-import com.example.WebTruyen.dto.achievement.AchievementCreateDto;
-import com.example.WebTruyen.dto.achievement.AchievementUpdateDto;
-import com.example.WebTruyen.dto.achievement.AchievementTierCreateDto;
-import com.example.WebTruyen.dto.achievement.AchievementTierUpdateDto;
+import com.example.WebTruyen.dto.request.AchievementCreateRequest;
+import com.example.WebTruyen.dto.request.AchievementUpdateRequest;
+import com.example.WebTruyen.dto.request.AchievementTierCreateRequest;
+import com.example.WebTruyen.dto.request.AchievementTierUpdateRequest;
 import com.example.WebTruyen.entity.model.Gamification.AchievementEntity;
 import com.example.WebTruyen.entity.model.Gamification.AchievementTierEntity;
 import com.example.WebTruyen.repository.AchievementRepository;
@@ -41,7 +41,7 @@ public class AchievementAdminService {
     }
 
     @Transactional
-    public AchievementEntity createAchievement(AchievementCreateDto createDto) {
+    public AchievementEntity createAchievement(AchievementCreateRequest createDto) {
         // Check if code already exists
         if (achievementRepository.existsByCode(createDto.getCode())) {
             throw new RuntimeException("Achievement code already exists: " + createDto.getCode());
@@ -66,7 +66,7 @@ public class AchievementAdminService {
     }
 
     @Transactional
-    public AchievementEntity updateAchievement(Integer id, AchievementUpdateDto updateDto) {
+    public AchievementEntity updateAchievement(Integer id, AchievementUpdateRequest updateDto) {
         log.info("Updating achievement {} with data: {}", id, updateDto);
         AchievementEntity existing = getAchievementById(id);
 
@@ -140,7 +140,7 @@ public class AchievementAdminService {
     }
 
     @Transactional
-    public AchievementTierEntity createTier(Integer achievementId, AchievementTierCreateDto createDto) {
+    public AchievementTierEntity createTier(Integer achievementId, AchievementTierCreateRequest createDto) {
         AchievementEntity achievement = getAchievementById(achievementId);
 
         // Check if tier level already exists for this achievement
@@ -165,7 +165,7 @@ public class AchievementAdminService {
     }
 
     @Transactional
-    public AchievementTierEntity updateTier(Integer tierId, AchievementTierUpdateDto updateDto) {
+    public AchievementTierEntity updateTier(Integer tierId, AchievementTierUpdateRequest updateDto) {
         AchievementTierEntity existing = achievementTierRepository.findById(tierId)
                 .orElseThrow(() -> new RuntimeException("Tier not found with id: " + tierId));
 
@@ -218,12 +218,12 @@ public class AchievementAdminService {
     }
 
     @Transactional
-    public List<AchievementTierEntity> createTiersBatch(Integer achievementId, List<AchievementTierCreateDto> createDtos) {
+    public List<AchievementTierEntity> createTiersBatch(Integer achievementId, List<AchievementTierCreateRequest> createDtos) {
         AchievementEntity achievement = getAchievementById(achievementId);
         
         List<AchievementTierEntity> tiers = new ArrayList<>();
         
-        for (AchievementTierCreateDto createDto : createDtos) {
+        for (AchievementTierCreateRequest createDto : createDtos) {
             // Check for duplicate tier levels
             if (achievementTierRepository.existsByAchievementIdAndTierLevel(achievementId, createDto.getTierLevel())) {
                 throw new RuntimeException("Tier level already exists for this achievement: " + createDto.getTierLevel());

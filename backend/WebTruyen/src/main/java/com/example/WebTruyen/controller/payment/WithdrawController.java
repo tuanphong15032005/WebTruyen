@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.payment;
 
 import com.example.WebTruyen.dto.request.WithdrawRequestCreateRequest;
 import com.example.WebTruyen.dto.response.WithdrawRequestHistoryResponse;

@@ -1,4 +1,4 @@
-package com.example.WebTruyen.controller;
+package com.example.WebTruyen.controller.author;
 
 // ===== WebTruyen Author Search Feature START =====
 // REST Controller for author search functionality
