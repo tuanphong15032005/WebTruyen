@@ -30,10 +30,14 @@ public class TieredAchievementController {
             @AuthenticationPrincipal UserDetails userDetails) {
         log.info("🔍 [DEBUG] getAllAchievementProgress called");
         
-        // Temporarily use hardcoded user ID for testing
-        Long userId = 1L; // Hardcoded for testing
+        if (userDetails == null) {
+            log.warn("🚫 [DEBUG] No authentication found");
+            return ResponseEntity.badRequest().build();
+        }
         
-        log.info("🆔 [DEBUG] Using hardcoded userId: {}", userId);
+        UserPrincipal userPrincipal = (UserPrincipal) userDetails;
+        Long userId = userPrincipal.getUser().getId();
+        log.info("🆔 [DEBUG] Using authenticated userId: {}", userId);
         
         try {
             List<AchievementProgressResponse> progress = tieredAchievementService.getAllAchievementProgress(userId);

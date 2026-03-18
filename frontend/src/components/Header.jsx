@@ -396,6 +396,7 @@ function Header() {
               {showDropdown && (
                 <div className='site-user__dropdown'>
                   <Link to='/profile'>Hồ sơ cá nhân</Link>
+                  <Link to='/achievements'>Thành tựu</Link>
                   <Link to='/donation-history'>Lịch sử giao dịch</Link>
                   {hasAnyRole(['READER'], user) && (
                     <Link to='/reader/refund-request'>Yêu cầu hoàn tiền</Link>

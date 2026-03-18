@@ -175,6 +175,7 @@ function MainLayoutWrapper() {
         <Route path='/portfolio/:userId' element={<UserPortfolioPage />} />
         <Route path='/portfolio/username/:username' element={<UserPortfolioPage />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
+        <Route path='/achievements' element={<AchievementsPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route
           path='/reader/refund-request'

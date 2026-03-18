@@ -68,6 +68,9 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/reports").authenticated()
 
+                        // Achievement endpoints - allow for testing
+                        .requestMatchers("/api/tiered-achievements/**").permitAll()
+
                         // Tác giả quản lý bình luận (trả lời, ẩn, xóa) — yêu cầu đăng nhập
                         .requestMatchers("/api/author/**").authenticated()
                         //
