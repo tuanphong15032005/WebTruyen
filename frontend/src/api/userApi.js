@@ -31,6 +31,18 @@ export async function getFollowersList(userId) {
   return Array.isArray(res) ? res : [];
 }
 
+export async function toggleFollow(authorId, currentUserId) {
+  return await api.post(`/users/${authorId}/follow`, null, {
+    params: { currentUserId }
+  });
+}
+
+export async function getFollowStatus(authorId, currentUserId) {
+  return await api.get(`/users/${authorId}/follow-status`, {
+    params: { currentUserId }
+  });
+}
+
 //create a cover upload API function
 export async function uploadCover(userId, formData) {
   return await api.post(`/users/profile/${userId}/upload-cover`, formData, {

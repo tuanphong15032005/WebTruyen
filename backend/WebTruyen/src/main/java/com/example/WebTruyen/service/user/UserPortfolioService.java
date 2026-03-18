@@ -61,10 +61,13 @@ public class UserPortfolioService {
         // 5. Count comments
         Long commentsCount = countCommentsInUserStories(userId);
 
-        // 6. Merge bio logic
+        // 6. Calculate total views from stories
+        Long totalViews = calculateTotalViews(userId);
+
+        // 7. Merge bio logic
         String bio = resolveBio(user, isAuthor);
 
-        // 7. Build response
+        // 8. Build response
         return UserPortfolioResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
@@ -78,6 +81,7 @@ public class UserPortfolioService {
                 .storiesCount(storiesCount)
                 .followersCount(followersCount)
                 .commentsCount(commentsCount)
+                .totalViews(totalViews)  // Add this
                 .build();
     }
 
@@ -91,6 +95,23 @@ public class UserPortfolioService {
 
     public Long countCommentsInUserStories(Long userId) {
         return commentRepository.countCommentsInUserStories(userId);
+    }
+
+    public Long calculateTotalViews(Long userId) {
+        try {
+            // Use native query to sum view_count from all published stories by this author
+            Query query = entityManager.createNativeQuery(
+                "SELECT COALESCE(SUM(s.view_count), 0) FROM stories s " +
+                "WHERE s.author_id = ?1 AND s.status = 'PUBLISHED'"
+            );
+            query.setParameter(1, userId);
+            Long totalViews = ((Number) query.getSingleResult()).longValue();
+            return totalViews;
+        } catch (Exception e) {
+            // If query fails, return 0 as fallback
+            System.err.println("Error calculating total views for user " + userId + ": " + e.getMessage());
+            return 0L;
+        }
     }
 
     public boolean isAuthor(UserEntity user) {
