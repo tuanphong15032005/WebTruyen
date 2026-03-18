@@ -38,7 +38,7 @@ const TagManagementPage = () => {
   const fetchAllTags = async () => {
     try {
       // Fetch all tags without pagination for merge modal
-      const response = await tagService.getTags(0, 1000); // Large size to get all tags
+      const response = await tagService.getTags(0, 100); // Reduced size to avoid timeout
       setAllTagsForMerge(response.content || []);
     } catch (error) {
       toast.error('Không thể tải danh sách tags. Vui lòng thử lại.');
@@ -104,6 +104,12 @@ const TagManagementPage = () => {
       fetchStats();
       setShowTagModal(false);
       setModalError('');
+      
+      // Refresh all tags for merge modal after create
+      setTimeout(async () => {
+        await fetchAllTags();
+      }, 300);
+      
       toast.success('Tạo tag thành công!');
     } catch (error) {
       // Show error in modal instead of toast
@@ -121,6 +127,12 @@ const TagManagementPage = () => {
       setShowTagModal(false);
       setEditingTag(null);
       setModalError('');
+      
+      // Refresh all tags for merge modal after update
+      setTimeout(async () => {
+        await fetchAllTags();
+      }, 300);
+      
       toast.success('Cập nhật tag thành công!');
     } catch (error) {
       // Show error in modal instead of toast
@@ -144,6 +156,12 @@ const TagManagementPage = () => {
       await tagService.deleteTag(confirmDialog.tagId);
       fetchTags();
       fetchStats();
+      
+      // Refresh all tags for merge modal after delete
+      setTimeout(async () => {
+        await fetchAllTags();
+      }, 300);
+      
       setConfirmDialog({ isOpen: false, tagId: null, tagName: '' });
       toast.success('Xóa tag thành công!');
     } catch (error) {
@@ -160,7 +178,12 @@ const TagManagementPage = () => {
       await tagService.mergeTags(data);
       fetchTags(); // Refresh current page tags
       fetchStats(); // Refresh stats
-      await fetchAllTags(); // Refresh all tags for merge modal
+      
+      // Add small delay to ensure backend has processed the merge
+      setTimeout(async () => {
+        await fetchAllTags(); // Refresh all tags for merge modal
+      }, 500);
+      
       setShowMergeModal(false);
       toast.success('Gộp tag thành công!');
     } catch (error) {
