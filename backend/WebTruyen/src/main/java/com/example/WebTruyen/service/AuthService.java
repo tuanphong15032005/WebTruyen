@@ -157,7 +157,6 @@ public class AuthService {
                     .balanceCoinA(0L)
                     .balanceCoinB(0L)
                     .pendingCoinB(0L)
-                    .reservedCoinB(0L)
                     .updatedAt(LocalDateTime.now())
                     .build();
             walletRepository.save(wallet);
