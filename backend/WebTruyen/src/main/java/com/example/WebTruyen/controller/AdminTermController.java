@@ -39,8 +39,7 @@ public class AdminTermController {
     @PutMapping("/{code}")
     public ResponseEntity<Map<String, String>> updateTerm(
             @PathVariable String code,
-            @RequestBody UpdateTermRequest request
-    ) {
+            @RequestBody UpdateTermRequest request) {
         termService.updateTerm(code, request);
         return ResponseEntity.ok(Map.of("message", "Term updated successfully"));
     }

@@ -102,11 +102,20 @@ public class TieredAchievementService {
             throw new RuntimeException("Achievement is not active: " + achievementCode);
         }
         
+        List<UserAchievementClaimEntity> claims = userAchievementClaimRepository
+                .findClaimsByUserIdAndAchievementCode(userId, achievementCode);
+        
+        Set<Integer> claimedTierIds = claims.stream()
+                .map(claim -> claim.getTier().getId())
+                .collect(Collectors.toSet());
+
         List<AchievementTierEntity> allTiers = achievementTierRepository
-                .findByAchievementCode(achievementCode);
+                .findByAchievementCode(achievementCode).stream()
+                .filter(tier -> tier.getIsActive() || claimedTierIds.contains(tier.getId()))
+                .collect(Collectors.toList());
         
         if (allTiers.isEmpty()) {
-            throw new RuntimeException("No tiers found for achievement: " + achievementCode);
+            throw new RuntimeException("No active tiers found for achievement: " + achievementCode);
         }
         
         UserAchievementProgressEntity progress = userAchievementProgressRepository
@@ -118,13 +127,6 @@ public class TieredAchievementService {
                                 .build())
                         .progress(0)
                         .build());
-        
-        List<UserAchievementClaimEntity> claims = userAchievementClaimRepository
-                .findClaimsByUserIdAndAchievementCode(userId, achievementCode);
-        
-        Set<Integer> claimedTierIds = claims.stream()
-                .map(claim -> claim.getTier().getId())
-                .collect(Collectors.toSet());
         
         return buildProgressDto(achievement, allTiers, progress, claimedTierIds);
     }
@@ -155,6 +157,10 @@ public class TieredAchievementService {
         AchievementTierEntity tier = achievementTierRepository.findById(tierId)
                 .orElseThrow(() -> new RuntimeException("Tier not found: " + tierId));
         
+        if (!Boolean.TRUE.equals(tier.getIsActive())) {
+            throw new RuntimeException("Cannot claim an inactive tier: " + tierId);
+        }
+
         if (userAchievementClaimRepository.existsByUserIdAndTierId(userId, tierId)) {
             throw new RuntimeException("Tier already claimed: " + tierId);
         }
@@ -260,6 +266,8 @@ public class TieredAchievementService {
                 .claimed(claimed)
                 .current(current)
                 .visible(visible)
+                .isActive(tier.getIsActive())
+                .createdAt(tier.getCreatedAt())
                 .build();
     }
 

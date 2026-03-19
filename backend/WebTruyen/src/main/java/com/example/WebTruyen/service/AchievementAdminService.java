@@ -9,6 +9,7 @@ import com.example.WebTruyen.entity.model.Gamification.AchievementTierEntity;
 import com.example.WebTruyen.repository.AchievementRepository;
 import com.example.WebTruyen.repository.AchievementTierRepository;
 import com.example.WebTruyen.repository.UserAchievementProgressRepository;
+import com.example.WebTruyen.repository.UserAchievementClaimRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class AchievementAdminService {
     private final AchievementRepository achievementRepository;
     private final AchievementTierRepository achievementTierRepository;
     private final UserAchievementProgressRepository userAchievementProgressRepository;
+    private final UserAchievementClaimRepository userAchievementClaimRepository;
     private final AchievementCodeMappingService achievementCodeMappingService;
 
     // Achievement CRUD operations
@@ -209,8 +211,9 @@ public class AchievementAdminService {
                 .orElseThrow(() -> new RuntimeException("Tier not found with id: " + tierId));
 
         // Check if any user has claimed this tier
-        // Note: You would need to inject UserAchievementClaimRepository for this check
-        // For now, we'll just deactivate if there are dependencies
+        if (userAchievementClaimRepository.existsByTierId(tierId)) {
+            throw new RuntimeException("Không thể xóa Tier đã được người dùng nhận. Vui lòng vô hiệu hóa (inactive) thay vì xóa.");
+        }
         
         // Safe to delete for now
         achievementTierRepository.delete(tier);

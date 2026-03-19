@@ -97,6 +97,17 @@ const AchievementManagementPage = () => {
     }));
   };
 
+  const fetchTiersForAchievement = async (achievementId) => {
+    try {
+      const tiersData = await adminAchievementApi.getTiersByAchievement(achievementId);
+      setTiers(Array.isArray(tiersData) ? tiersData : []);
+    } catch (error) {
+      console.error('Error fetching tiers:', error);
+      notify('Lỗi tải tiers', 'error');
+      setTiers([]);
+    }
+  };
+
   const handleSelectAchievement = async (achievement) => {
     // Nếu achievement đã được chọn, deselect và tắt tiers
     if (selectedAchievement && selectedAchievement.id === achievement.id) {
@@ -107,14 +118,7 @@ const AchievementManagementPage = () => {
     
     // Nếu chưa chọn hoặc chọn achievement khác, hiển thị tiers
     setSelectedAchievement(achievement);
-    try {
-      const tiersData = await adminAchievementApi.getTiersByAchievement(achievement.id);
-      setTiers(Array.isArray(tiersData) ? tiersData : []);
-    } catch (error) {
-      console.error('Error fetching tiers:', error);
-      notify('Lỗi tải tiers', 'error');
-      setTiers([]); // Đặt về mảng rỗng khi có lỗi
-    }
+    await fetchTiersForAchievement(achievement.id);
   };
 
   const handleCreateAchievement = async () => {
@@ -184,7 +188,7 @@ const AchievementManagementPage = () => {
       notify('Tạo tier thành công!', 'success');
       setShowTierModal(false);
       resetTierForm();
-      handleSelectAchievement(selectedAchievement); // Refresh tiers
+      await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error creating tier:', error);
       notify(error.response?.data?.message || 'Lỗi tạo tier', 'error');
@@ -197,7 +201,7 @@ const AchievementManagementPage = () => {
       notify('Cập nhật tier thành công!', 'success');
       setEditingTier(null);
       resetTierForm();
-      handleSelectAchievement(selectedAchievement); // Refresh tiers
+      await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error updating tier:', error);
       notify(error.response?.data?.message || 'Lỗi cập nhật tier', 'error');
@@ -218,7 +222,7 @@ const AchievementManagementPage = () => {
     try {
       await adminAchievementApi.deleteTier(tierId);
       notify('Xóa tier thành công!', 'success');
-      handleSelectAchievement(selectedAchievement); // Refresh tiers
+      await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error deleting tier:', error);
       notify('Lỗi xóa tier', 'error');
