@@ -24,6 +24,32 @@ const CHAPTER_STATUS_LABELS = {
 
 const AUTOSAVE_INTERVAL_MS = 10_000;
 
+const toDateTimeLocalValue = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const getMinimumScheduledPublishValue = () => {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  now.setHours(now.getHours() + 1);
+  return toDateTimeLocalValue(now.toISOString());
+};
+
+const toBackendLocalDateTime = (value) => {
+  if (!value) return null;
+  return value.length === 16 ? `${value}:00` : value;
+};
+
 const CreateChapter = () => {
   const { storyId, volumeId } = useParams();
   const [searchParams] = useSearchParams();
@@ -37,6 +63,7 @@ const CreateChapter = () => {
   const [priceCoin, setPriceCoin] = useState('');
   const [status, setStatus] = useState('draft');
   const [approvalStatus, setApprovalStatus] = useState('');
+  const [scheduledPublishAt, setScheduledPublishAt] = useState('');
   const [content, setContent] = useState('');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -65,6 +92,8 @@ const CreateChapter = () => {
   );
   const canSetPublished =
     String(approvalStatus || '').toLowerCase() === 'approved';
+  const canSchedulePublish = isEditing && canSetPublished && status === 'draft';
+  const minimumScheduledPublishAt = getMinimumScheduledPublishValue();
 
   const formatTime = useCallback((iso) => {
     if (!iso) return '';
@@ -170,11 +199,12 @@ const CreateChapter = () => {
       isFree,
       priceCoin: isFree ? null : Number(priceCoin),
       status,
+      scheduledPublishAt,
       contentHtml,
       contentDelta: delta ? JSON.stringify(delta) : '',
       savedAt: new Date().toISOString(),
     };
-  }, [content, isFree, priceCoin, status, title]);
+  }, [content, isFree, priceCoin, scheduledPublishAt, status, title]);
 
   const saveLocalDraft = useCallback(
     (targetChapterId, snapshot, source = 'fallback') => {
@@ -209,6 +239,11 @@ const CreateChapter = () => {
     if (typeof snapshot.status === 'string' && snapshot.status.trim()) {
       setStatus(snapshot.status.toLowerCase());
     }
+    setScheduledPublishAt(
+      typeof snapshot.scheduledPublishAt === 'string'
+        ? snapshot.scheduledPublishAt
+        : '',
+    );
     const html = snapshot.contentHtml || '';
     const quill = quillRef.current?.getEditor();
     if (quill) {
@@ -236,6 +271,7 @@ const CreateChapter = () => {
           isFree: true,
           priceCoin: null,
           status: 'draft',
+          scheduledPublishAt: '',
           contentHtml: '',
         };
       }
@@ -256,6 +292,10 @@ const CreateChapter = () => {
           typeof snapshot.status === 'string' && snapshot.status.trim()
             ? snapshot.status.toLowerCase()
             : 'draft',
+        scheduledPublishAt:
+          typeof snapshot.scheduledPublishAt === 'string'
+            ? snapshot.scheduledPublishAt
+            : '',
         contentHtml: normalizeCompareHtml(snapshot.contentHtml),
       };
     },
@@ -270,6 +310,7 @@ const CreateChapter = () => {
           isFree: true,
           priceCoin: null,
           status: 'draft',
+          scheduledPublishAt: '',
           contentHtml: '',
         },
       ),
@@ -284,6 +325,7 @@ const CreateChapter = () => {
       isFree,
       priceCoin: isFree ? null : priceCoin,
       status,
+      scheduledPublishAt,
       contentHtml: quill?.root?.innerHTML || content || '',
     });
 
@@ -292,6 +334,7 @@ const CreateChapter = () => {
       baseline.isFree !== current.isFree ||
       baseline.priceCoin !== current.priceCoin ||
       baseline.status !== current.status ||
+      baseline.scheduledPublishAt !== current.scheduledPublishAt ||
       baseline.contentHtml !== current.contentHtml
     );
   }, [
@@ -300,6 +343,7 @@ const CreateChapter = () => {
     isFree,
     normalizeDraftSnapshotForCompare,
     priceCoin,
+    scheduledPublishAt,
     status,
     title,
   ]);
@@ -321,6 +365,7 @@ const CreateChapter = () => {
     );
     setStatus(initialChapterSnapshot.status || 'draft');
     setApprovalStatus(initialChapterSnapshot.approvalStatus || '');
+    setScheduledPublishAt(initialChapterSnapshot.scheduledPublishAt || '');
 
     const html = initialChapterSnapshot.contentHtml || '';
     const quill = quillRef.current?.getEditor();
@@ -639,6 +684,7 @@ const CreateChapter = () => {
     hasManualSavedRef.current = false;
     setDraftStatusText('');
     setApprovalStatus('');
+    setScheduledPublishAt('');
     setInitialChapterSnapshot(null);
     setShowApprovalResetModal(false);
   }, [editChapterId, storyId, volumeId]);
@@ -673,6 +719,7 @@ const CreateChapter = () => {
         } else {
           setApprovalStatus('');
         }
+        setScheduledPublishAt(toDateTimeLocalValue(data.scheduledPublishAt));
         setSavedHtml(data.fullHtml || '');
 
         // Set content in editor when it's ready
@@ -707,6 +754,7 @@ const CreateChapter = () => {
                 data.approvalStatus.trim()
                   ? data.approvalStatus.toLowerCase()
                   : '',
+              scheduledPublishAt: toDateTimeLocalValue(data.scheduledPublishAt),
               contentHtml: loadedHtml,
             });
           } else {
@@ -755,6 +803,12 @@ const CreateChapter = () => {
       setStatus('draft');
     }
   }, [canSetPublished, status]);
+
+  useEffect(() => {
+    if (status === 'published' && scheduledPublishAt) {
+      setScheduledPublishAt('');
+    }
+  }, [scheduledPublishAt, status]);
 
   useEffect(() => {
     if (
@@ -904,6 +958,33 @@ const CreateChapter = () => {
         : status === 'published'
           ? 'published'
           : 'draft';
+      const normalizedScheduledPublishAt =
+        canSetPublished && finalStatus === 'draft' && scheduledPublishAt
+          ? new Date(scheduledPublishAt)
+          : null;
+
+      if (normalizedScheduledPublishAt) {
+        const now = new Date();
+        const nowRounded = new Date(now);
+        nowRounded.setSeconds(0, 0);
+        const minimumSchedule = new Date(nowRounded.getTime() + 60 * 60 * 1000);
+
+        if (Number.isNaN(normalizedScheduledPublishAt.getTime())) {
+          notify('Thời gian lên lịch không hợp lệ.', 'error');
+          return;
+        }
+
+        if (normalizedScheduledPublishAt < nowRounded) {
+          notify('Ngày giờ lên lịch không được ở quá khứ.', 'error');
+          return;
+        }
+
+        if (normalizedScheduledPublishAt < minimumSchedule) {
+          notify('Lịch đăng phải cách thời điểm hiện tại ít nhất 1 giờ.', 'error');
+          return;
+        }
+      }
+
       const payload = {
         title: title.trim(),
         isFree,
@@ -911,6 +992,10 @@ const CreateChapter = () => {
         status: finalStatus,
         contentHtml,
         contentDelta: JSON.stringify(quill?.getContents() || {}),
+        scheduledPublishAt:
+          normalizedScheduledPublishAt && finalStatus === 'draft'
+            ? toBackendLocalDateTime(scheduledPublishAt)
+            : null,
       };
 
       if (shouldForceDraftBySensitiveChange && status !== 'draft') {
@@ -932,6 +1017,10 @@ const CreateChapter = () => {
         priceCoin: isFree ? null : Number(priceCoin),
         status: finalStatus,
         approvalStatus,
+        scheduledPublishAt:
+          normalizedScheduledPublishAt && finalStatus === 'draft'
+            ? scheduledPublishAt
+            : '',
         contentHtml,
       };
       setChapterId(persistedChapterId);
@@ -1043,6 +1132,36 @@ const CreateChapter = () => {
             </span>
           )}
         </div>
+        {canSchedulePublish && (
+          <div className='field'>
+            <span className='field-label'>Lên lịch đăng chương</span>
+            <input
+              className='field-input'
+              type='datetime-local'
+              step='60'
+              min={minimumScheduledPublishAt}
+              value={scheduledPublishAt}
+              onChange={(e) => setScheduledPublishAt(e.target.value)}
+            />
+            <span className='field-hint'>
+              Chỉ dùng cho chapter đã duyệt và vẫn đang ở trạng thái Nháp.
+            </span>
+            <span className='field-hint'>
+              Thời điểm đăng phải từ hiện tại trở đi và cách ít nhất 1 giờ.
+            </span>
+            {scheduledPublishAt && (
+              <div className='form-actions'>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  onClick={() => setScheduledPublishAt('')}
+                >
+                  Xóa lịch đăng
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
         <div className='field'>
           <span className='field-label'>Nội dung</span>
           {errors.content && (

@@ -11,5 +11,6 @@ public record ChapterSummaryResponse(
         String approvalStatus,
         String moderationNote,
         LocalDateTime resubmitAvailableAt,
-        Long resubmitHoursRemaining
+        Long resubmitHoursRemaining,
+        LocalDateTime scheduledPublishAt
 ) {}

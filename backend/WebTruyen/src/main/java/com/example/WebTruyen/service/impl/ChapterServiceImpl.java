@@ -38,6 +38,7 @@ import org.jsoup.select.Elements;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -54,6 +55,7 @@ import java.util.stream.IntStream;
 public class ChapterServiceImpl implements ChapterService {
     private static final int MIN_APPROVAL_WORD_COUNT = 800;
     private static final Duration APPROVAL_RESUBMIT_COOLDOWN = Duration.ofHours(24);
+    private static final Duration SCHEDULE_MIN_LEAD_TIME = Duration.ofHours(1);
 
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
@@ -101,20 +103,27 @@ public class ChapterServiceImpl implements ChapterService {
             nextIndex = (maxIndex == null ? 0 : maxIndex) + 1;
         }
 
+        ChapterStatus requestedStatus = resolveCreateStatus(req);
+
         ChapterEntity chapter = ChapterEntity.builder()
                 .volume(volume)
                 .title(req.getTitle())
                 .sequenceIndex(nextIndex)
                 .free(isFree)
                 .priceCoin(req.getPriceCoin())
-                .status(parseStatus(req.getStatus(), ChapterStatus.draft))
+                .status(requestedStatus)
                 .createdAt(LocalDateTime.now())
                 .lastUpdateAt(LocalDateTime.now())
+                .scheduledPublishAt(resolveScheduledPublishAt(req.getScheduledPublishAt(), requestedStatus, null))
                 .build();
+        chapter.setDraft(null);
 
         ChapterEntity saved = chapterRepository.save(chapter);
         processAndSaveContent(saved, req.getContentHtml());
-        draftRepository.findById(saved.getId()).ifPresent(draftRepository::delete);
+        draftRepository.findById(saved.getId()).ifPresent(draft -> {
+            saved.setDraft(null);
+            draftRepository.delete(draft);
+        });
 
         List<ChapterSegmentEntity> segs =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(saved.getId());
@@ -185,6 +194,12 @@ public class ChapterServiceImpl implements ChapterService {
             );
         }
 
+        LocalDateTime nextScheduledPublishAt = resolveScheduledPublishAt(
+                req.getScheduledPublishAt(),
+                nextStatus,
+                effectiveApprovalStatus
+        );
+
         chapter.setTitle(nextTitle);
         chapter.setFree(nextIsFree);
         chapter.setPriceCoin(nextPriceCoin);
@@ -193,6 +208,8 @@ public class ChapterServiceImpl implements ChapterService {
             chapter.setApprovalStatus(null);
         }
         chapter.setLastUpdateAt(LocalDateTime.now());
+        chapter.setScheduledPublishAt(hasApprovalSensitiveChange ? null : nextScheduledPublishAt);
+        chapter.setDraft(null);
 
         chapterRepository.save(chapter);
 
@@ -202,7 +219,10 @@ public class ChapterServiceImpl implements ChapterService {
             chapterSegmentRepository.flush();
             processAndSaveContent(chapter, req.getContentHtml());
         }
-        draftRepository.findById(chapterId).ifPresent(draftRepository::delete);
+        draftRepository.findById(chapterId).ifPresent(draft -> {
+            chapter.setDraft(null);
+            draftRepository.delete(draft);
+        });
 
         List<ChapterSegmentEntity> segs =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapter.getId());
@@ -600,9 +620,18 @@ public class ChapterServiceImpl implements ChapterService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not owner");
             }
         }
+        if (chapter.getStatus() == ChapterStatus.draft
+                && chapter.getApprovalStatus() != ChapterApprovalStatus.approved) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Chapter must be approved before publishing"
+            );
+        }
 
         chapter.setStatus(ChapterStatus.published);
         chapter.setLastUpdateAt(LocalDateTime.now());
+        chapter.setScheduledPublishAt(null);
+        chapter.setDraft(null);
         chapterRepository.save(chapter);
         return toChapterResponse(chapter);
     }
@@ -632,6 +661,10 @@ public class ChapterServiceImpl implements ChapterService {
         result.put("sequenceIndex", chapter.getSequenceIndex());
         result.put("volumeId", chapter.getVolume() != null ? chapter.getVolume().getId() : null);
         result.put("approvalStatus", chapter.getApprovalStatus() != null ? chapter.getApprovalStatus().toString() : null);
+        result.put(
+                "scheduledPublishAt",
+                chapter.getScheduledPublishAt() != null ? chapter.getScheduledPublishAt().toString() : null
+        );
         
         return result;
     }
@@ -673,7 +706,10 @@ public class ChapterServiceImpl implements ChapterService {
         String normalized = draftContent == null ? "" : draftContent;
 
         if (normalized.isBlank()) {
-            draftRepository.findById(chapterId).ifPresent(draftRepository::delete);
+            draftRepository.findById(chapterId).ifPresent(draft -> {
+                chapter.setDraft(null);
+                draftRepository.delete(draft);
+            });
             return Map.of("hasDraft", false);
         }
 
@@ -682,6 +718,7 @@ public class ChapterServiceImpl implements ChapterService {
         draft.setContent(normalized);
         draft.setCreatedAt(LocalDateTime.now());
         DraftEntity saved = draftRepository.save(draft);
+        chapter.setDraft(saved);
 
         Map<String, Object> result = new HashMap<>();
         result.put("hasDraft", true);
@@ -700,8 +737,11 @@ public class ChapterServiceImpl implements ChapterService {
             Long chapterId,
             Long authorId
     ) {
-        requireOwnedChapter(storyId, volumeId, chapterId, authorId);
-        draftRepository.findById(chapterId).ifPresent(draftRepository::delete);
+        ChapterEntity chapter = requireOwnedChapter(storyId, volumeId, chapterId, authorId);
+        draftRepository.findById(chapterId).ifPresent(draft -> {
+            chapter.setDraft(null);
+            draftRepository.delete(draft);
+        });
     }
 
     @Override
@@ -778,6 +818,78 @@ public class ChapterServiceImpl implements ChapterService {
         }
         return normalized.split("\\s+").length;
     }
+
+    @Scheduled(cron = "0 * * * * ?")
+    @Transactional
+    public void publishScheduledChapters() {
+        LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
+        List<ChapterEntity> dueChapters = chapterRepository.findScheduledChaptersToPublish(
+                ChapterStatus.draft,
+                ChapterApprovalStatus.approved,
+                now
+        );
+
+        for (ChapterEntity chapter : dueChapters) {
+            chapter.setStatus(ChapterStatus.published);
+            chapter.setScheduledPublishAt(null);
+            chapter.setLastUpdateAt(now);
+            chapterRepository.save(chapter);
+
+            log.info("Auto-published scheduled chapter {}", chapter.getId());
+            // TODO: notify followers with notify_new_chapter = true for the parent story.
+        }
+    }
+
+    private ChapterStatus resolveCreateStatus(CreateChapterRequest req) {
+        ChapterStatus requestedStatus = parseStatus(req.getStatus(), ChapterStatus.draft);
+        if (requestedStatus == ChapterStatus.published) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Chapter must be approved before publishing"
+            );
+        }
+        return requestedStatus;
+    }
+
+    private LocalDateTime resolveScheduledPublishAt(
+            LocalDateTime scheduledPublishAt,
+            ChapterStatus targetStatus,
+            ChapterApprovalStatus approvalStatus
+    ) {
+        if (scheduledPublishAt == null) {
+            return null;
+        }
+        if (targetStatus != ChapterStatus.draft) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Scheduled publish is only supported for draft chapters"
+            );
+        }
+        if (approvalStatus != ChapterApprovalStatus.approved) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only approved draft chapters can be scheduled for publishing"
+            );
+        }
+
+        LocalDateTime normalizedSchedule = scheduledPublishAt.withSecond(0).withNano(0);
+        LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
+        if (normalizedSchedule.isBefore(now)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Scheduled publish time cannot be in the past"
+            );
+        }
+
+        LocalDateTime minAllowedTime = now.plus(SCHEDULE_MIN_LEAD_TIME);
+        if (normalizedSchedule.isBefore(minAllowedTime)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Scheduled publish time must be at least 1 hour from now"
+            );
+        }
+        return normalizedSchedule;
+    }
 //<<<<<<< HEAD
 
     private ChapterResponse toChapterResponse(ChapterEntity chapter) {
@@ -799,7 +911,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .sequenceIndex(chapter.getSequenceIndex())
                 .createdAt(chapter.getCreatedAt())
                 .lastUpdateAt(chapter.getLastUpdateAt())
-                .scheduledPublishAt(null)
+                .scheduledPublishAt(chapter.getScheduledPublishAt())
                 .build();
     }
 

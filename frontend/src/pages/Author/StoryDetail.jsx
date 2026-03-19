@@ -94,6 +94,35 @@ const formatRemainingTime = (availableAt, fallbackHours, nowMs = Date.now()) => 
   return `${hours} giờ`;
 };
 
+const formatScheduledPublishCountdown = (scheduledPublishAt, nowMs = Date.now()) => {
+  if (!scheduledPublishAt) return '';
+
+  const targetMs = new Date(scheduledPublishAt).getTime();
+  if (!Number.isFinite(targetMs)) return '';
+
+  const diffMs = targetMs - nowMs;
+  if (diffMs <= 0) return '';
+
+  const totalMinutes = Math.max(1, Math.ceil(diffMs / 60000));
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    return hours > 0
+      ? `còn ${days} ngày ${hours} giờ nữa chương của bạn sẽ được đăng công khai`
+      : `còn ${days} ngày nữa chương của bạn sẽ được đăng công khai`;
+  }
+
+  if (hours > 0) {
+    return minutes > 0
+      ? `còn ${hours} giờ ${minutes} phút nữa chương của bạn sẽ được đăng công khai`
+      : `còn ${hours} giờ nữa chương của bạn sẽ được đăng công khai`;
+  }
+
+  return `còn ${totalMinutes} phút nữa chương của bạn sẽ được đăng công khai`;
+};
+
 const htmlToText = (html) => {
   if (!html) return '';
   return html
@@ -1153,6 +1182,14 @@ const StoryDetail = () => {
                               chapter.resubmitHoursRemaining,
                               countdownNow,
                             );
+                            const chapterScheduledPublishText =
+                              approvalStatusKey === 'approved' &&
+                              chapterStatusKey === 'draft'
+                                ? formatScheduledPublishCountdown(
+                                    chapter.scheduledPublishAt,
+                                    countdownNow,
+                                  )
+                                : '';
                             const showChapterCooldown =
                               approvalStatusKey === 'rejected' &&
                               Boolean(chapterCooldownText);
@@ -1208,11 +1245,10 @@ const StoryDetail = () => {
                                         className={`story-detail__approval-badge story-detail__approval-badge--${approvalStatusKey}`}
                                       >
                                         <span className='story-detail__approval-dot' />
-                                        {
+                                        {chapterScheduledPublishText ||
                                           CHAPTER_APPROVAL_LABELS[
                                             approvalStatusKey
-                                          ]
-                                        }
+                                          ]}
                                       </span>
                                     </div>
                                   )}

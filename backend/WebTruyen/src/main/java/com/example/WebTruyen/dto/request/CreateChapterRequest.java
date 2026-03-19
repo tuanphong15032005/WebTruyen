@@ -3,6 +3,8 @@ package com.example.WebTruyen.dto.request;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 
 @Data
 public class CreateChapterRequest {
@@ -21,4 +23,6 @@ public class CreateChapterRequest {
     private String contentDelta;  // optional
 
     private String status = "DRAFT";
+
+    private LocalDateTime scheduledPublishAt;
 }

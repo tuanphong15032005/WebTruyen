@@ -204,6 +204,7 @@ public class VolumeService {
                             c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null,
                             null,
                             null,
+                            null,
                             null
                     ))
                     .toList();
@@ -245,7 +246,8 @@ public class VolumeService {
                 effectiveApprovalStatus != null ? effectiveApprovalStatus.name() : null,
                 moderationNote,
                 resubmitAvailableAt,
-                resubmitHoursRemaining
+                resubmitHoursRemaining,
+                chapter.getScheduledPublishAt()
         );
     }
 
