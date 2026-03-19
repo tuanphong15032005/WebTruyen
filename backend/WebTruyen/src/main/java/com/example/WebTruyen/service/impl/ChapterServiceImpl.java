@@ -42,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,6 +53,7 @@ import java.util.stream.IntStream;
 @Slf4j
 public class ChapterServiceImpl implements ChapterService {
     private static final int MIN_APPROVAL_WORD_COUNT = 800;
+    private static final Duration APPROVAL_RESUBMIT_COOLDOWN = Duration.ofHours(24);
 
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
@@ -112,6 +114,7 @@ public class ChapterServiceImpl implements ChapterService {
 
         ChapterEntity saved = chapterRepository.save(chapter);
         processAndSaveContent(saved, req.getContentHtml());
+        draftRepository.findById(saved.getId()).ifPresent(draftRepository::delete);
 
         List<ChapterSegmentEntity> segs =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(saved.getId());
@@ -199,6 +202,7 @@ public class ChapterServiceImpl implements ChapterService {
             chapterSegmentRepository.flush();
             processAndSaveContent(chapter, req.getContentHtml());
         }
+        draftRepository.findById(chapterId).ifPresent(draftRepository::delete);
 
         List<ChapterSegmentEntity> segs =
                 chapterSegmentRepository.findByChapter_IdOrderBySeqAsc(chapter.getId());
@@ -710,8 +714,18 @@ public class ChapterServiceImpl implements ChapterService {
         ChapterEntity chapter = chapterRepository.findByIdAndVolume_Story_Author_Id(chapterId, authorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
 
-        if (chapter.getApprovalStatus() != null) {
+        ChapterApprovalStatus approvalStatus = chapter.getApprovalStatus();
+        if (approvalStatus == ChapterApprovalStatus.pending || approvalStatus == ChapterApprovalStatus.approved) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Chapter already submitted for review");
+        }
+        if (approvalStatus == ChapterApprovalStatus.rejected) {
+            long hoursRemaining = computeResubmitHoursRemaining(chapter.getLastUpdateAt());
+            if (hoursRemaining > 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Chương bị từ chối duyệt. Vui lòng gửi lại sau " + hoursRemaining + " giờ"
+                );
+            }
         }
 
         int wordCount = countChapterWordCount(chapterId);
@@ -727,6 +741,18 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
         return chapter.getApprovalStatus();
+    }
+
+    private long computeResubmitHoursRemaining(LocalDateTime lastUpdateAt) {
+        if (lastUpdateAt == null) {
+            return 0L;
+        }
+        Duration remaining = Duration.between(LocalDateTime.now(), lastUpdateAt.plus(APPROVAL_RESUBMIT_COOLDOWN));
+        if (remaining.isZero() || remaining.isNegative()) {
+            return 0L;
+        }
+        long minutesRemaining = remaining.toMinutes();
+        return Math.max(1L, (minutesRemaining + 59L) / 60L);
     }
 
     private int countChapterWordCount(Long chapterId) {

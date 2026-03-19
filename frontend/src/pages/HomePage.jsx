@@ -335,6 +335,9 @@ function HomePage() {
   const deferredHydrationRequestRef = useRef(0);
 
   const activeHeroStory = heroStories[activeHeroIndex] || null;
+  const showRecommendSection =
+    Boolean(String(recommendTagName || '').trim()) &&
+    recommendedStories.length > 0;
 
   const startDeferredSectionsLoad = useCallback(async () => {
     if (deferredLoadStartedRef.current || allPublicStories.length === 0) {
@@ -512,6 +515,8 @@ function HomePage() {
         setSavedRankingStories([]);
         setCommunityComments([]);
         setChapterMetaByStoryId({});
+        setRecommendedStories([]);
+        setRecommendTagName('');
         setDeferredSectionsVisible(false);
         setDeferredHydrationLoading(false);
         setDeferredHydrationError(null);
@@ -543,29 +548,28 @@ function HomePage() {
         setHeroDragOffset(0);
 
         const loggedIn = hasAuthSession();
-        let recommendPool = publicStories;
         let dominantTag = null;
+        let recommendList = [];
         if (loggedIn) {
           try {
             const libraryStories = await storyService.getLibraryStories();
             dominantTag = getDominantTagFromLibrary(libraryStories);
             if (dominantTag) {
-              recommendPool = publicStories.filter((story) => {
+              recommendList = getTopRatedStories(
+                publicStories.filter((story) => {
                 const tags = Array.isArray(story?.tags) ? story.tags : [];
                 return tags.some(
                   (tag) =>
                     String(tag?.id || '') === String(dominantTag?.id || ''),
                 );
-              });
+                }),
+                RECOMMEND_COUNT,
+              );
             }
           } catch {
             dominantTag = null;
           }
         }
-        const recommendList = getTopRatedStories(
-          recommendPool.length > 0 ? recommendPool : publicStories,
-          RECOMMEND_COUNT,
-        );
         setRecommendedStories(recommendList);
         setRecommendTagName(dominantTag?.name || '');
 
@@ -1158,26 +1162,26 @@ function HomePage() {
                 </div>
               </section>
 
-              <section className='home-section home-section--recommend'>
-                <div className='home-section__head'>
-                  <h2>
-                    <Star
-                      size={24}
-                      className='home-section__icon home-section__icon--recommend'
-                      fill='currentColor'
-                    />
-                    Gợi ý cho bạn
-                  </h2>
-                  {recommendTagName && (
+              {showRecommendSection && (
+                <section className='home-section home-section--recommend'>
+                  <div className='home-section__head'>
+                    <h2>
+                      <Star
+                        size={24}
+                        className='home-section__icon home-section__icon--recommend'
+                        fill='currentColor'
+                      />
+                      Gợi ý cho bạn
+                    </h2>
                     <span className='home-section__meta'>
                       Danh mục ưu tiên: {recommendTagName}
                     </span>
-                  )}
-                </div>
-                <div className='home-story-grid'>
-                  {renderStoryTiles(recommendedStories)}
-                </div>
-              </section>
+                  </div>
+                  <div className='home-story-grid'>
+                    {renderStoryTiles(recommendedStories)}
+                  </div>
+                </section>
+              )}
 
               {deferredSectionsVisible ? (
                 <>

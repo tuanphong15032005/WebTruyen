@@ -21,7 +21,7 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(88, 152, 98, 0.78) transparent;
+  scrollbar-color: transparent transparent;
   border-radius: 28px;
   border: 1px solid rgba(75, 134, 84, 0.18);
   background:
@@ -31,6 +31,13 @@
     0 28px 70px rgba(19, 45, 24, 0.18),
     0 10px 30px rgba(49, 111, 63, 0.1);
   color: #1f3925;
+  transition: scrollbar-color 180ms ease;
+}
+
+.story-library-modal__panel:hover,
+.story-library-modal__panel:focus-within,
+.story-library-modal__panel.story-library-modal__panel--scroll-active {
+  scrollbar-color: rgba(88, 152, 98, 0.42) transparent;
 }
 
 .story-library-modal__panel::-webkit-scrollbar {
@@ -43,12 +50,19 @@
 
 .story-library-modal__panel::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(121, 180, 130, 0.95), rgba(73, 143, 86, 0.95));
+  background: linear-gradient(180deg, rgba(121, 180, 130, 0), rgba(73, 143, 86, 0));
   border: 2px solid rgba(255, 255, 255, 0.94);
+  transition: background 180ms ease;
+}
+
+.story-library-modal__panel:hover::-webkit-scrollbar-thumb,
+.story-library-modal__panel:focus-within::-webkit-scrollbar-thumb,
+.story-library-modal__panel.story-library-modal__panel--scroll-active::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(121, 180, 130, 0.6), rgba(73, 143, 86, 0.6));
 }
 
 .story-library-modal__panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(98, 168, 109, 0.98), rgba(57, 126, 71, 0.98));
+  background: linear-gradient(180deg, rgba(98, 168, 109, 0.76), rgba(57, 126, 71, 0.76));
 }
 
 .story-library-modal__panel::-webkit-scrollbar-button {

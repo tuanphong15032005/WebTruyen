@@ -49,6 +49,7 @@ const CreateChapter = () => {
   const [initialChapterSnapshot, setInitialChapterSnapshot] = useState(null);
   const isEditing = Boolean(editChapterId);
   const autosaveInFlightRef = useRef(false);
+  const manualSaveInFlightRef = useRef(false);
   const hasManualSavedRef = useRef(false);
   const dirtyRef = useRef(false);
   const initialLoadDoneRef = useRef(false);
@@ -497,6 +498,7 @@ const CreateChapter = () => {
   const persistDraft = useCallback(
     async ({ reason = 'autosave' } = {}) => {
       if (
+        manualSaveInFlightRef.current ||
         hasManualSavedRef.current ||
         !initialLoadDoneRef.current ||
         !dirtyRef.current
@@ -560,6 +562,7 @@ const CreateChapter = () => {
 
   const flushDraftOnExit = useCallback(() => {
     if (
+      manualSaveInFlightRef.current ||
       hasManualSavedRef.current ||
       !initialLoadDoneRef.current ||
       !dirtyRef.current
@@ -892,6 +895,7 @@ const CreateChapter = () => {
     }
 
     try {
+      manualSaveInFlightRef.current = true;
       setSaving(true);
       const quill = quillRef.current?.getEditor();
       const contentHtml = quill?.root?.innerHTML || content;
@@ -976,6 +980,9 @@ const CreateChapter = () => {
         'error',
       );
     } finally {
+      if (!hasManualSavedRef.current) {
+        manualSaveInFlightRef.current = false;
+      }
       setSaving(false);
     }
   };

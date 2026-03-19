@@ -44,6 +44,7 @@ const CHAPTER_STATUS_LABELS = {
 const CHAPTER_APPROVAL_LABELS = {
   pending: 'Đang chờ duyệt',
   approved: 'duyệt thành công, giờ có thể đăng công khai',
+  rejected: 'Bị từ chối duyệt',
 };
 
 const VOLUMES_PAGE_SIZE = 3;
@@ -67,6 +68,30 @@ const formatDateTime = (value) => {
   if (!value) return 'Chưa cập nhật';
   const date = new Date(value);
   return date.toLocaleString('vi-VN');
+};
+
+const formatRemainingTime = (availableAt, fallbackHours, nowMs = Date.now()) => {
+  if (availableAt) {
+    const targetMs = new Date(availableAt).getTime();
+    if (Number.isFinite(targetMs)) {
+      const diffMs = targetMs - nowMs;
+      if (diffMs <= 0) return '';
+
+      const totalMinutes = Math.max(1, Math.ceil(diffMs / 60000));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours <= 0) {
+        return `${totalMinutes} phút`;
+      }
+
+      return minutes > 0 ? `${hours} giờ ${minutes} phút` : `${hours} giờ`;
+    }
+  }
+
+  const hours = Number(fallbackHours || 0);
+  if (!Number.isFinite(hours) || hours <= 0) return '';
+  return `${hours} giờ`;
 };
 
 const htmlToText = (html) => {
@@ -107,6 +132,20 @@ const StoryDetail = () => {
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
   const [detailPanelHeight, setDetailPanelHeight] = useState(0);
   const [volumePage, setVolumePage] = useState(1);
+  const [noteDialog, setNoteDialog] = useState({
+    open: false,
+    title: '',
+    note: '',
+  });
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const fetchStory = useCallback(async () => {
     try {
@@ -247,6 +286,12 @@ const StoryDetail = () => {
   const storyApprovalBadgeClass = STORY_APPROVAL_LABELS[storyApprovalStatusKey]
     ? `story-detail__approval-badge--${storyApprovalStatusKey}`
     : 'story-detail__approval-badge--pending';
+  const storyModerationNote = String(story?.moderationNote || '').trim();
+  const storyCooldownText = formatRemainingTime(
+    story?.resubmitAvailableAt,
+    story?.resubmitHoursRemaining,
+    countdownNow,
+  );
   const showStoryApprovalStatus =
     Boolean(storyApprovalStatusLabel) &&
     !(
@@ -256,6 +301,9 @@ const StoryDetail = () => {
   const canSubmitStoryApproval =
     !hasStoryApprovalStatusValue &&
     String(story?.status || '').toLowerCase() === 'draft';
+  const showStoryCooldown =
+    storyApprovalStatusKey === 'rejected' && Boolean(storyCooldownText);
+  const showStoryNoteButton = Boolean(storyModerationNote);
 
   const toggleVolume = (volumeId) => {
     setExpandedVolumes((prev) => {
@@ -436,6 +484,18 @@ const StoryDetail = () => {
     navigate(`/stories/${storyId}/metadata`);
   };
 
+  const openNoteDialog = (title, note) => {
+    setNoteDialog({
+      open: true,
+      title,
+      note: String(note || '').trim(),
+    });
+  };
+
+  const closeNoteDialog = () => {
+    setNoteDialog({ open: false, title: '', note: '' });
+  };
+
   const updateTabIndicator = useCallback(() => {
     const activeButton =
       activeTab === 'volumes' ? volumesTabRef.current : infoTabRef.current;
@@ -542,37 +602,54 @@ const StoryDetail = () => {
     <div className='story-detail'>
       <div className='story-detail__top'>
         <h2 className='story-detail__title'>Chi tiết truyện</h2>
+        <div className='story-detail__top-actions'>
+          <button
+            type='button'
+            className='story-detail__page-close'
+            onClick={() => navigate('/authordashboard')}
+            aria-label='Quay về trang tác giả'
+            title='Quay về trang tác giả'
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      <div className='story-detail__tabs-bar'>
+        <div className='story-detail__tabs' ref={tabsRef}>
+          <button
+            ref={infoTabRef}
+            type='button'
+            className={`story-detail__tab ${activeTab === 'info' ? 'active' : ''}`}
+            onClick={() => setActiveTab('info')}
+          >
+            Thông tin
+          </button>
+          <button
+            ref={volumesTabRef}
+            type='button'
+            className={`story-detail__tab ${activeTab === 'volumes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('volumes')}
+          >
+            Danh sách Tập & Chương
+          </button>
+          <span
+            className='story-detail__tab-indicator'
+            style={{
+              transform: `translateX(${tabIndicator.left}px)`,
+              width: `${tabIndicator.width}px`,
+            }}
+          />
+        </div>
         {activeTab === 'volumes' && (
-          <Button type='button' onClick={() => setShowCreateVolume((s) => !s)}>
+          <Button
+            type='button'
+            className='story-detail__tabs-create'
+            onClick={() => setShowCreateVolume((s) => !s)}
+          >
             {showCreateVolume ? 'Đóng' : 'Tạo tập mới'}
           </Button>
         )}
-      </div>
-
-      <div className='story-detail__tabs' ref={tabsRef}>
-        <button
-          ref={infoTabRef}
-          type='button'
-          className={`story-detail__tab ${activeTab === 'info' ? 'active' : ''}`}
-          onClick={() => setActiveTab('info')}
-        >
-          Thông tin
-        </button>
-        <button
-          ref={volumesTabRef}
-          type='button'
-          className={`story-detail__tab ${activeTab === 'volumes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('volumes')}
-        >
-          Danh sách Tập & Chương
-        </button>
-        <span
-          className='story-detail__tab-indicator'
-          style={{
-            transform: `translateX(${tabIndicator.left}px)`,
-            width: `${tabIndicator.width}px`,
-          }}
-        />
       </div>
       {activeTab === 'info' && (
         <div className='story-detail__info'>
@@ -812,6 +889,25 @@ const StoryDetail = () => {
                   </div>
                   {(canSubmitStoryApproval || showStoryApprovalStatus) && (
                     <div className='story-detail__summary-approval'>
+                      {showStoryNoteButton && (
+                        <button
+                          type='button'
+                          className='story-detail__note-button'
+                          onClick={() =>
+                            openNoteDialog(
+                              'Chú thích từ quản trị viên',
+                              storyModerationNote,
+                            )
+                          }
+                        >
+                          Chú thích
+                        </button>
+                      )}
+                      {showStoryCooldown && (
+                        <span className='story-detail__cooldown'>
+                          Còn lại: {storyCooldownText}
+                        </span>
+                      )}
                       {canSubmitStoryApproval && (
                         <button
                           type='button'
@@ -1049,6 +1145,19 @@ const StoryDetail = () => {
                             const isSubmittingApproval =
                               submittingApprovalChapterId ===
                               String(chapter.id);
+                            const chapterModerationNote = String(
+                              chapter.moderationNote || '',
+                            ).trim();
+                            const chapterCooldownText = formatRemainingTime(
+                              chapter.resubmitAvailableAt,
+                              chapter.resubmitHoursRemaining,
+                              countdownNow,
+                            );
+                            const showChapterCooldown =
+                              approvalStatusKey === 'rejected' &&
+                              Boolean(chapterCooldownText);
+                            const showChapterNoteButton =
+                              Boolean(chapterModerationNote);
 
                             return (
                               <div
@@ -1067,6 +1176,32 @@ const StoryDetail = () => {
                                     {CHAPTER_STATUS_LABELS[chapterStatusKey] ||
                                       'Nháp'}
                                   </div>
+                                  {(showChapterNoteButton ||
+                                    showChapterCooldown) && (
+                                    <div className='story-detail__chapter-moderation'>
+                                      {showChapterNoteButton && (
+                                        <button
+                                          type='button'
+                                          className='story-detail__note-button story-detail__note-button--chapter'
+                                          onClick={() =>
+                                            openNoteDialog(
+                                              chapter.sequenceIndex
+                                                ? `Chú thích chương ${chapter.sequenceIndex}`
+                                                : 'Chú thích từ quản trị viên',
+                                              chapterModerationNote,
+                                            )
+                                          }
+                                        >
+                                          Chú thích
+                                        </button>
+                                      )}
+                                      {showChapterCooldown && (
+                                        <div className='story-detail__cooldown story-detail__cooldown--chapter'>
+                                          Còn lại: {chapterCooldownText}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                   {showApprovalStatus && (
                                     <div className='story-detail__chapter-approval'>
                                       <span
@@ -1156,6 +1291,32 @@ const StoryDetail = () => {
               )}
             </>
           )}
+        </div>
+      )}
+      {noteDialog.open && (
+        <div
+          className='story-detail__note-backdrop'
+          onClick={closeNoteDialog}
+        >
+          <div
+            className='story-detail__note-dialog'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className='story-detail__note-header'>
+              <h3 className='story-detail__note-title'>{noteDialog.title}</h3>
+              <button
+                type='button'
+                className='story-detail__note-close'
+                onClick={closeNoteDialog}
+                aria-label='Đóng chú thích'
+              >
+                ×
+              </button>
+            </div>
+            <div className='story-detail__note-content'>
+              <p>{noteDialog.note || 'Quản trị viên chưa để lại chú thích.'}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

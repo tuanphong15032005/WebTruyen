@@ -55,6 +55,40 @@ const previewSegment = (html) => {
   return /<img\b/i.test(html || '') ? '[Hình ảnh]' : '[Segment]';
 };
 
+const buildSegmentImageAlt = (chapterTitle, imageIndex) => {
+  const safeTitle = String(chapterTitle || '').trim();
+  if (safeTitle) {
+    return `Ảnh minh họa trong ${safeTitle} (${imageIndex})`;
+  }
+  return `Ảnh minh họa chương (${imageIndex})`;
+};
+
+const enhanceSegmentHtml = (html, chapterTitle) => {
+  const rawHtml = String(html || '');
+  if (!rawHtml || !/<img\b/i.test(rawHtml)) {
+    return rawHtml;
+  }
+
+  const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
+  let imageIndex = 0;
+
+  doc.body.querySelectorAll('img').forEach((img) => {
+    imageIndex += 1;
+    const currentAlt = String(img.getAttribute('alt') || '').trim();
+    if (!currentAlt) {
+      img.setAttribute('alt', buildSegmentImageAlt(chapterTitle, imageIndex));
+    }
+    if (!img.getAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+    }
+    if (!img.getAttribute('decoding')) {
+      img.setAttribute('decoding', 'async');
+    }
+  });
+
+  return doc.body.innerHTML;
+};
+
 const formatTime = (value) => {
   if (!value) return '';
   const date = new Date(value);
@@ -888,7 +922,17 @@ const ChapterPage = () => {
     () => (Array.isArray(chapter?.segments) ? chapter.segments : []),
     [chapter?.segments],
   );
-  const visibleSegments = useMemo(() => segments, [segments]);
+  const visibleSegments = useMemo(
+    () =>
+      segments.map((segment) => ({
+        ...segment,
+        segmentText: enhanceSegmentHtml(
+          segment?.segmentText,
+          chapter?.title || '',
+        ),
+      })),
+    [chapter?.title, segments],
+  );
   const resumeSegmentId = useMemo(() => {
     const raw = Number(searchParams.get('segmentId') || 0);
     return Number.isFinite(raw) && raw > 0 ? raw : null;
