@@ -236,7 +236,9 @@ const StoryDetail = () => {
     () => htmlToText(story?.summaryHtml || story?.summary || ''),
     [story],
   );
-  const storyApprovalStatusKey = String(story?.approvalStatus || '').toLowerCase();
+  const storyApprovalStatusKey = String(
+    story?.approvalStatus || '',
+  ).toLowerCase();
   const hasStoryApprovalStatusValue =
     story?.approvalStatus != null && String(story.approvalStatus).trim() !== '';
   const storyApprovalStatusLabel =
@@ -485,7 +487,10 @@ const StoryDetail = () => {
   }, [story, loadingStory]);
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PAGE_SIZE));
+    const totalPages = Math.max(
+      1,
+      Math.ceil(volumes.length / VOLUMES_PAGE_SIZE),
+    );
     setVolumePage((prev) => Math.min(prev, totalPages));
   }, [volumes.length]);
 
@@ -814,7 +819,9 @@ const StoryDetail = () => {
                           onClick={handleSubmitStoryApproval}
                           disabled={submittingApprovalStory || !story}
                         >
-                          {submittingApprovalStory ? 'Đang gửi...' : 'Gửi duyệt'}
+                          {submittingApprovalStory
+                            ? 'Đang gửi...'
+                            : 'Gửi duyệt'}
                         </button>
                       )}
                       {showStoryApprovalStatus && (
@@ -841,7 +848,10 @@ const StoryDetail = () => {
       )}
 
       {activeTab === 'volumes' && (
-        <div className='story-detail__volumes story-detail__panel' style={detailPanelStyle}>
+        <div
+          className='story-detail__volumes story-detail__panel'
+          style={detailPanelStyle}
+        >
           {showCreateVolume && (
             <CreateVolume
               storyId={storyId}
@@ -883,217 +893,234 @@ const StoryDetail = () => {
             <>
               <div className='story-detail__volumes-list'>
                 {pagedVolumes.map((volume) => {
-            const id = String(volume.id || volume.volumeId);
-            const isOpen = expandedVolumes.has(id);
-            const coverUrl = String(volume?.coverUrl || '').trim();
-            const chapters = Array.isArray(volume.chapters)
-              ? [...volume.chapters].sort(
-                  (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
-                )
-              : [];
+                  const id = String(volume.id || volume.volumeId);
+                  const isOpen = expandedVolumes.has(id);
+                  const coverUrl = String(volume?.coverUrl || '').trim();
+                  const chapters = Array.isArray(volume.chapters)
+                    ? [...volume.chapters].sort(
+                        (a, b) =>
+                          (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
+                      )
+                    : [];
                   return (
                     <div key={id} className='story-detail__volume'>
-                <div className='story-detail__volume-header'>
-                  <div className='story-detail__volume-cover-wrap'>
-                    {coverUrl ? (
-                      <img
-                        className='story-detail__volume-cover'
-                        src={coverUrl}
-                        alt={
-                          volume.title || `Tập ${volume.sequenceIndex || ''}`
-                        }
-                      />
-                    ) : (
-                      <div className='story-detail__volume-cover-placeholder'>
-                        No cover
-                      </div>
-                    )}
-                  </div>
-                  <div className='story-detail__volume-meta'>
-                    {editingVolumeId === id ? (
-                      <div className='story-detail__volume-edit-row'>
-                        <input
-                          type='text'
-                          className='story-detail__volume-input'
-                          value={editingVolumeTitle}
-                          onChange={(event) =>
-                            setEditingVolumeTitle(event.target.value)
-                          }
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault();
-                              saveEditVolume(id);
-                            }
-                            if (event.key === 'Escape') {
-                              cancelEditVolume();
-                            }
-                          }}
-                          placeholder='Nhập tên tập'
-                          maxLength={300}
-                        />
-                        <button
-                          type='button'
-                          className='story-detail__volume-edit-action story-detail__volume-edit-action--save'
-                          disabled={savingVolumeId === id}
-                          onClick={() => saveEditVolume(id)}
-                        >
-                          {savingVolumeId === id ? 'Đang lưu...' : 'Lưu'}
-                        </button>
-                        <button
-                          type='button'
-                          className='story-detail__volume-edit-action story-detail__volume-edit-action--cancel'
-                          disabled={savingVolumeId === id}
-                          onClick={cancelEditVolume}
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          type='button'
-                          className='story-detail__volume-toggle'
-                          onClick={() => toggleVolume(id)}
-                        >
-                          <span>
-                            {volume.title ||
-                              `Tập ${volume.sequenceIndex || ''}`}
-                          </span>
-                          <span className='story-detail__muted'>
-                            {volume.chapterCount ?? chapters.length} chương
-                          </span>
-                        </button>
-                        <div className='story-detail__volume-actions'>
-                          <input
-                            ref={(node) => {
-                              if (node) {
-                                volumeCoverInputRefs.current[id] = node;
-                              } else {
-                                delete volumeCoverInputRefs.current[id];
+                      <div className='story-detail__volume-header'>
+                        <div className='story-detail__volume-cover-wrap'>
+                          {coverUrl ? (
+                            <img
+                              className='story-detail__volume-cover'
+                              src={coverUrl}
+                              alt={
+                                volume.title ||
+                                `Tập ${volume.sequenceIndex || ''}`
                               }
-                            }}
-                            className='story-detail__volume-cover-input'
-                            type='file'
-                            accept='image/*'
-                            onChange={(event) =>
-                              handleVolumeCoverFileChange(id, event)
-                            }
-                          />
-                          <button
-                            type='button'
-                            className='story-detail__volume-edit-btn'
-                            onClick={() => startEditVolume(volume)}
-                          >
-                            Sửa tên tập
-                          </button>
-                          <button
-                            type='button'
-                            className='story-detail__volume-cover-btn'
-                            onClick={() => openVolumeCoverPicker(id)}
-                            disabled={uploadingVolumeCoverId === id}
-                          >
-                            {uploadingVolumeCoverId === id
-                              ? 'Đang tải cover...'
-                              : 'Tạo cover'}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <Link
-                    className='story-detail__chapter-link'
-                    to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}`}
-                  >
-                    + Thêm chương mới
-                  </Link>
-                </div>
-
-                {isOpen && (
-                  <div className='story-detail__chapters'>
-                    {chapters.length === 0 && (
-                      <p className='story-detail__muted'>Chưa có chương nào.</p>
-                    )}
-                    {chapters.map((chapter) => {
-                      const approvalStatusKey = String(
-                        chapter.approvalStatus || '',
-                      ).toLowerCase();
-                      const hasApprovalStatusValue =
-                        chapter.approvalStatus != null &&
-                        String(chapter.approvalStatus).trim() !== '';
-                      const chapterStatusKey = String(
-                        chapter.status || '',
-                      ).toLowerCase();
-                      const showApprovalStatus =
-                        Boolean(CHAPTER_APPROVAL_LABELS[approvalStatusKey]) &&
-                        !(
-                          approvalStatusKey === 'approved' &&
-                          chapterStatusKey === 'published'
-                        );
-                      const isSubmittingApproval =
-                        submittingApprovalChapterId === String(chapter.id);
-
-                      return (
-                        <div key={chapter.id} className='story-detail__chapter'>
-                          <div>
-                            <span>
-                              {chapter.sequenceIndex
-                                ? `Chương ${chapter.sequenceIndex}: `
-                                : ''}
-                              {chapter.title}
-                            </span>
-                            <div className='story-detail__chapter-status'>
-                              Trạng thái:{' '}
-                              {CHAPTER_STATUS_LABELS[
-                                chapterStatusKey
-                              ] || 'Nháp'}
+                            />
+                          ) : (
+                            <div className='story-detail__volume-cover-placeholder'>
+                              No cover
                             </div>
-                            {showApprovalStatus && (
-                              <div className='story-detail__chapter-approval'>
-                                <span
-                                  className={`story-detail__approval-badge story-detail__approval-badge--${approvalStatusKey}`}
-                                >
-                                  <span className='story-detail__approval-dot' />
-                                  {CHAPTER_APPROVAL_LABELS[approvalStatusKey]}
-                                </span>
-                              </div>
-                            )}
-                            {chapter.lastUpdateAt && (
-                              <div className='story-detail__muted'>
-                                Cập nhật:{' '}
-                                {new Date(
-                                  chapter.lastUpdateAt,
-                                ).toLocaleDateString()}
-                              </div>
-                            )}
-                          </div>
-                          <div className='story-detail__chapter-actions'>
-                            {!hasApprovalStatusValue && (
+                          )}
+                        </div>
+                        <div className='story-detail__volume-meta'>
+                          {editingVolumeId === id ? (
+                            <div className='story-detail__volume-edit-row'>
+                              <input
+                                type='text'
+                                className='story-detail__volume-input'
+                                value={editingVolumeTitle}
+                                onChange={(event) =>
+                                  setEditingVolumeTitle(event.target.value)
+                                }
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    saveEditVolume(id);
+                                  }
+                                  if (event.key === 'Escape') {
+                                    cancelEditVolume();
+                                  }
+                                }}
+                                placeholder='Nhập tên tập'
+                                maxLength={300}
+                              />
                               <button
                                 type='button'
-                                className='story-detail__chapter-submit'
-                                onClick={() =>
-                                  handleSubmitChapterApproval(id, chapter.id)
-                                }
-                                disabled={isSubmittingApproval}
+                                className='story-detail__volume-edit-action story-detail__volume-edit-action--save'
+                                disabled={savingVolumeId === id}
+                                onClick={() => saveEditVolume(id)}
                               >
-                                {isSubmittingApproval
-                                  ? 'Đang gửi...'
-                                  : 'Gửi duyệt'}
+                                {savingVolumeId === id ? 'Đang lưu...' : 'Lưu'}
                               </button>
-                            )}
-                            <Link
-                              className='story-detail__chapter-edit'
-                              to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
-                            >
-                              Sửa chương
-                            </Link>
-                          </div>
+                              <button
+                                type='button'
+                                className='story-detail__volume-edit-action story-detail__volume-edit-action--cancel'
+                                disabled={savingVolumeId === id}
+                                onClick={cancelEditVolume}
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                type='button'
+                                className='story-detail__volume-toggle'
+                                onClick={() => toggleVolume(id)}
+                              >
+                                <span>
+                                  {volume.title ||
+                                    `Tập ${volume.sequenceIndex || ''}`}
+                                </span>
+                                <span className='story-detail__muted'>
+                                  {volume.chapterCount ?? chapters.length}{' '}
+                                  chương
+                                </span>
+                              </button>
+                              <div className='story-detail__volume-actions'>
+                                <input
+                                  ref={(node) => {
+                                    if (node) {
+                                      volumeCoverInputRefs.current[id] = node;
+                                    } else {
+                                      delete volumeCoverInputRefs.current[id];
+                                    }
+                                  }}
+                                  className='story-detail__volume-cover-input'
+                                  type='file'
+                                  accept='image/*'
+                                  onChange={(event) =>
+                                    handleVolumeCoverFileChange(id, event)
+                                  }
+                                />
+                                <button
+                                  type='button'
+                                  className='story-detail__volume-edit-btn'
+                                  onClick={() => startEditVolume(volume)}
+                                >
+                                  Sửa tên tập
+                                </button>
+                                <button
+                                  type='button'
+                                  className='story-detail__volume-cover-btn'
+                                  onClick={() => openVolumeCoverPicker(id)}
+                                  disabled={uploadingVolumeCoverId === id}
+                                >
+                                  {uploadingVolumeCoverId === id
+                                    ? 'Đang tải cover...'
+                                    : 'Tạo cover'}
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        <Link
+                          className='story-detail__chapter-link'
+                          to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}`}
+                        >
+                          + Thêm chương mới
+                        </Link>
+                      </div>
+
+                      {isOpen && (
+                        <div className='story-detail__chapters'>
+                          {chapters.length === 0 && (
+                            <p className='story-detail__muted'>
+                              Chưa có chương nào.
+                            </p>
+                          )}
+                          {chapters.map((chapter) => {
+                            const approvalStatusKey = String(
+                              chapter.approvalStatus || '',
+                            ).toLowerCase();
+                            const hasApprovalStatusValue =
+                              chapter.approvalStatus != null &&
+                              String(chapter.approvalStatus).trim() !== '';
+                            const chapterStatusKey = String(
+                              chapter.status || '',
+                            ).toLowerCase();
+                            const showApprovalStatus =
+                              Boolean(
+                                CHAPTER_APPROVAL_LABELS[approvalStatusKey],
+                              ) &&
+                              !(
+                                approvalStatusKey === 'approved' &&
+                                chapterStatusKey === 'published'
+                              );
+                            const isSubmittingApproval =
+                              submittingApprovalChapterId ===
+                              String(chapter.id);
+
+                            return (
+                              <div
+                                key={chapter.id}
+                                className='story-detail__chapter'
+                              >
+                                <div>
+                                  <span>
+                                    {chapter.sequenceIndex
+                                      ? `Chương ${chapter.sequenceIndex}: `
+                                      : ''}
+                                    {chapter.title}
+                                  </span>
+                                  <div className='story-detail__chapter-status'>
+                                    Trạng thái:{' '}
+                                    {CHAPTER_STATUS_LABELS[chapterStatusKey] ||
+                                      'Nháp'}
+                                  </div>
+                                  {showApprovalStatus && (
+                                    <div className='story-detail__chapter-approval'>
+                                      <span
+                                        className={`story-detail__approval-badge story-detail__approval-badge--${approvalStatusKey}`}
+                                      >
+                                        <span className='story-detail__approval-dot' />
+                                        {
+                                          CHAPTER_APPROVAL_LABELS[
+                                            approvalStatusKey
+                                          ]
+                                        }
+                                      </span>
+                                    </div>
+                                  )}
+                                  {chapter.lastUpdateAt && (
+                                    <div className='story-detail__muted'>
+                                      Cập nhật:{' '}
+                                      {new Date(
+                                        chapter.lastUpdateAt,
+                                      ).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className='story-detail__chapter-actions'>
+                                  {!hasApprovalStatusValue && (
+                                    <button
+                                      type='button'
+                                      className='story-detail__chapter-submit'
+                                      onClick={() =>
+                                        handleSubmitChapterApproval(
+                                          id,
+                                          chapter.id,
+                                        )
+                                      }
+                                      disabled={isSubmittingApproval}
+                                    >
+                                      {isSubmittingApproval
+                                        ? 'Đang gửi...'
+                                        : 'Gửi duyệt'}
+                                    </button>
+                                  )}
+                                  <Link
+                                    className='story-detail__chapter-edit'
+                                    to={`/author/stories/${storyId}/volumes/${id}/create-chapter?tab=volumes&volumeId=${id}&chapterId=${chapter.id}`}
+                                  >
+                                    Sửa chương
+                                  </Link>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -1103,7 +1130,9 @@ const StoryDetail = () => {
                   <button
                     type='button'
                     className='story-detail__pagination-btn'
-                    onClick={() => setVolumePage((prev) => Math.max(1, prev - 1))}
+                    onClick={() =>
+                      setVolumePage((prev) => Math.max(1, prev - 1))
+                    }
                     disabled={volumePage === 1}
                   >
                     Trước
