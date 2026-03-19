@@ -58,7 +58,7 @@ export default function DonatePage() {
     // Check if user is trying to donate to themselves
     const currentUserId = localStorage.getItem('userId')
     if (currentUserId && currentUserId === userId) {
-      navigate(`/user/${userId}`)
+      navigate(`/portfolio/${userId}`)
     }
   }, [navigate, userId])
 
@@ -188,7 +188,7 @@ export default function DonatePage() {
               Thử lại
             </button>
             <button
-              onClick={() => navigate(`/user/${userId}`)}
+              onClick={() => navigate(`/portfolio/${userId}`)}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >
               Về trang cá nhân
@@ -205,7 +205,7 @@ export default function DonatePage() {
         <div className="text-center">
           <p className="text-red-600">Người dùng này không phải là tác giả và không thể nhận ủng hộ</p>
           <button
-            onClick={() => navigate(`/user/${userId}`)}
+            onClick={() => navigate(`/portfolio/${userId}`)}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Về trang cá nhân
@@ -226,7 +226,7 @@ export default function DonatePage() {
               <p className="text-gray-600 mt-1">Ủng hộ {authorData.displayName || authorData.username} bằng đồng xu của bạn</p>
             </div>
             <button
-              onClick={() => navigate(`/user/${userId}`)}
+              onClick={() => navigate(`/portfolio/${userId}`)}
               className="px-4 py-2 text-gray-600 hover:text-gray-900"
             >
               ← Về trang cá nhân

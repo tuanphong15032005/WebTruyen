@@ -646,6 +646,34 @@
   }
 }
 
+/* Album Info Styles */
+.library-stories__album-info {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.library-stories__album-stats {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.library-stories__album-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.library-stories__album-stat svg {
+  flex-shrink: 0;
+}
+
 @media (max-width: 420px) {
   .library-page__title {
     font-size: 1.7rem;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import adminAchievementApi from '../../services/adminAchievementApi';
 import useNotify from '../../hooks/useNotify';
+import ConfirmActionModal from '../../components/ConfirmActionModal';
 import { 
   Plus, 
   Edit, 
@@ -29,6 +30,13 @@ const AchievementManagementPage = () => {
   const [editingTier, setEditingTier] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState(null); // 'active', 'inactive', or null
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: ''
+  });
   const { notify } = useNotify();
 
   // Form states
@@ -89,6 +97,17 @@ const AchievementManagementPage = () => {
     }));
   };
 
+  const fetchTiersForAchievement = async (achievementId) => {
+    try {
+      const tiersData = await adminAchievementApi.getTiersByAchievement(achievementId);
+      setTiers(Array.isArray(tiersData) ? tiersData : []);
+    } catch (error) {
+      console.error('Error fetching tiers:', error);
+      notify('Lỗi tải tiers', 'error');
+      setTiers([]);
+    }
+  };
+
   const handleSelectAchievement = async (achievement) => {
     // Nếu achievement đã được chọn, deselect và tắt tiers
     if (selectedAchievement && selectedAchievement.id === achievement.id) {
@@ -99,14 +118,7 @@ const AchievementManagementPage = () => {
     
     // Nếu chưa chọn hoặc chọn achievement khác, hiển thị tiers
     setSelectedAchievement(achievement);
-    try {
-      const tiersData = await adminAchievementApi.getTiersByAchievement(achievement.id);
-      setTiers(Array.isArray(tiersData) ? tiersData : []);
-    } catch (error) {
-      console.error('Error fetching tiers:', error);
-      notify('Lỗi tải tiers', 'error');
-      setTiers([]); // Đặt về mảng rỗng khi có lỗi
-    }
+    await fetchTiersForAchievement(achievement.id);
   };
 
   const handleCreateAchievement = async () => {
@@ -149,8 +161,16 @@ const AchievementManagementPage = () => {
   };
 
   const handleDeleteAchievement = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa thành tựu này?')) return;
-    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc muốn xóa thành tựu này?',
+      confirmText: 'Xóa',
+      onConfirm: () => deleteAchievement(id)
+    });
+  };
+
+  const deleteAchievement = async (id) => {
     try {
       await adminAchievementApi.deleteAchievement(id);
       notify('Xóa thành công!', 'success');
@@ -159,6 +179,7 @@ const AchievementManagementPage = () => {
       console.error('Error deleting achievement:', error);
       notify('Lỗi xóa thành tựu', 'error');
     }
+    setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' });
   };
 
   const handleCreateTier = async () => {
@@ -167,7 +188,7 @@ const AchievementManagementPage = () => {
       notify('Tạo tier thành công!', 'success');
       setShowTierModal(false);
       resetTierForm();
-      handleSelectAchievement(selectedAchievement); // Refresh tiers
+      await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error creating tier:', error);
       notify(error.response?.data?.message || 'Lỗi tạo tier', 'error');
@@ -180,7 +201,7 @@ const AchievementManagementPage = () => {
       notify('Cập nhật tier thành công!', 'success');
       setEditingTier(null);
       resetTierForm();
-      handleSelectAchievement(selectedAchievement); // Refresh tiers
+      await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error updating tier:', error);
       notify(error.response?.data?.message || 'Lỗi cập nhật tier', 'error');
@@ -188,16 +209,25 @@ const AchievementManagementPage = () => {
   };
 
   const handleDeleteTier = async (tierId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa tier này?')) return;
-    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc muốn xóa tier này?',
+      confirmText: 'Xóa',
+      onConfirm: () => deleteTier(tierId)
+    });
+  };
+
+  const deleteTier = async (tierId) => {
     try {
       await adminAchievementApi.deleteTier(tierId);
       notify('Xóa tier thành công!', 'success');
-      handleSelectAchievement(selectedAchievement); // Refresh tiers
+      await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error deleting tier:', error);
       notify('Lỗi xóa tier', 'error');
     }
+    setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' });
   };
 
   const resetAchievementForm = () => {
@@ -699,9 +729,21 @@ const AchievementManagementPage = () => {
           </div>
         </div>
       )}
-      </div>
     </div>
-  );
+      
+      {/* Confirm Action Modal */}
+      {confirmModal.isOpen && (
+        <ConfirmActionModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText || 'Xóa'}
+          onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' })}
+          onConfirm={confirmModal.onConfirm}
+        />
+      )}
+  </div>
+);
 };
 
 export default AchievementManagementPage;

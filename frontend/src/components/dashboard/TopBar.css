@@ -1,0 +1,74 @@
+/**
+ * TopBar.css
+ * Styles for the dashboard top bar component
+ */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.topbar-left {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.topbar-center {
+  flex: 0 0 auto;
+  margin: 0 2rem;
+}
+
+.create-story-btn {
+  background-color: #5C67F2;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-story-btn:hover {
+  background-color: #4c56e2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(92, 103, 242, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 1rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .topbar-center {
+    margin: 0 1rem;
+  }
+  
+  .create-story-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}

@@ -1,9 +1,9 @@
 package com.example.WebTruyen.controller.admin;
 
-import com.example.WebTruyen.dto.achievement.AchievementCreateDto;
-import com.example.WebTruyen.dto.achievement.AchievementUpdateDto;
-import com.example.WebTruyen.dto.achievement.AchievementTierCreateDto;
-import com.example.WebTruyen.dto.achievement.AchievementTierUpdateDto;
+import com.example.WebTruyen.dto.request.AchievementCreateRequest;
+import com.example.WebTruyen.dto.request.AchievementUpdateRequest;
+import com.example.WebTruyen.dto.request.AchievementTierCreateRequest;
+import com.example.WebTruyen.dto.request.AchievementTierUpdateRequest;
 import com.example.WebTruyen.entity.model.Gamification.AchievementEntity;
 import com.example.WebTruyen.entity.model.Gamification.AchievementTierEntity;
 import com.example.WebTruyen.service.AchievementAdminService;
@@ -43,7 +43,7 @@ public class AchievementAdminController {
     }
 
     @PostMapping
-    public ResponseEntity<AchievementEntity> createAchievement(@Valid @RequestBody AchievementCreateDto createDto) {
+    public ResponseEntity<AchievementEntity> createAchievement(@Valid @RequestBody AchievementCreateRequest createDto) {
         log.info("Admin creating new achievement: {}", createDto.getName());
         AchievementEntity created = achievementAdminService.createAchievement(createDto);
         return ResponseEntity.ok(created);
@@ -52,7 +52,7 @@ public class AchievementAdminController {
     @PutMapping("/{id}")
     public ResponseEntity<AchievementEntity> updateAchievement(
             @PathVariable Integer id,
-            @Valid @RequestBody AchievementUpdateDto updateDto) {
+            @Valid @RequestBody AchievementUpdateRequest updateDto) {
         log.info("Admin updating achievement with id: {}", id);
         AchievementEntity updated = achievementAdminService.updateAchievement(id, updateDto);
         return ResponseEntity.ok(updated);
@@ -76,7 +76,7 @@ public class AchievementAdminController {
     @PostMapping("/{achievementId}/tiers")
     public ResponseEntity<AchievementTierEntity> createTier(
             @PathVariable Integer achievementId,
-            @Valid @RequestBody AchievementTierCreateDto createDto) {
+            @Valid @RequestBody AchievementTierCreateRequest createDto) {
         log.info("Admin creating tier for achievement: {}", achievementId);
         AchievementTierEntity created = achievementAdminService.createTier(achievementId, createDto);
         return ResponseEntity.ok(created);
@@ -85,7 +85,7 @@ public class AchievementAdminController {
     @PutMapping("/tiers/{tierId}")
     public ResponseEntity<AchievementTierEntity> updateTier(
             @PathVariable Integer tierId,
-            @Valid @RequestBody AchievementTierUpdateDto updateDto) {
+            @Valid @RequestBody AchievementTierUpdateRequest updateDto) {
         log.info("Admin updating tier with id: {}", tierId);
         AchievementTierEntity updated = achievementAdminService.updateTier(tierId, updateDto);
         return ResponseEntity.ok(updated);
@@ -102,7 +102,7 @@ public class AchievementAdminController {
     @PostMapping("/{achievementId}/tiers/batch")
     public ResponseEntity<List<AchievementTierEntity>> createTiersBatch(
             @PathVariable Integer achievementId,
-            @Valid @RequestBody List<AchievementTierCreateDto> createDtos) {
+            @Valid @RequestBody List<AchievementTierCreateRequest> createDtos) {
         log.info("Admin creating {} tiers for achievement: {}", createDtos.size(), achievementId);
         List<AchievementTierEntity> created = achievementAdminService.createTiersBatch(achievementId, createDtos);
         return ResponseEntity.ok(created);

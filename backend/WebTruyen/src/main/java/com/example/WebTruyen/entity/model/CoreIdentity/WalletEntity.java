@@ -30,9 +30,6 @@ public class WalletEntity {
     @Column(name = "pending_coin_b", nullable = false)
     private Long pendingCoinB;
 
-    @Column(name = "reserved_coin_b", nullable = false)
-    private Long reservedCoinB;
-
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 }

@@ -96,6 +96,18 @@ const dailyMissionAdminApi = {
     }
   },
 
+  // Regenerate missions from templates (only update missions without user progress)
+  regenerateMissionsFromTemplates: async (date) => {
+    try {
+      const response = await api.post(`/admin/daily-missions/regenerate/${date}`, {});
+      return response.data;
+    } catch (error) {
+      console.error('Error regenerating missions for date:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to regenerate missions';
+      throw new Error(errorMessage);
+    }
+  },
+
   // Get mission statistics
   getMissionStats: async () => {
     try {
@@ -176,6 +188,22 @@ const dailyMissionAdminApi = {
     } catch (error) {
       console.error('Error deleting template:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to delete template';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Batch delete missions without user progress
+  batchDeleteMissionsWithoutProgress: async (date) => {
+    try {
+      console.log('Making API call to: `/admin/daily-missions/batch-delete/${date}`');
+      const response = await api.delete(`/admin/daily-missions/batch-delete/${date}`);
+      console.log('Raw API response:', response);
+      console.log('Response data:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error batch deleting missions:', error);
+      console.error('Error response:', error.response);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to batch delete missions';
       throw new Error(errorMessage);
     }
   },

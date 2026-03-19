@@ -57,14 +57,14 @@ public class AchievementTierEntity {
 
     // Helper methods
     public String getName() {
-        return achievement != null ? achievement.getName() : null;
+        return this.name;
     }
 
     public String getDescription() {
-        return achievement != null ? achievement.getDescription() : null;
+        return this.description;
     }
 
     public String getCode() {
-        return achievement != null ? achievement.getCode() : null;
+        return this.code;
     }
 }

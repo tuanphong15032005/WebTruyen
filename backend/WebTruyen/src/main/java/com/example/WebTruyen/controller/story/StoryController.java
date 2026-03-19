@@ -1,0 +1,764 @@
+package com.example.WebTruyen.controller.story;
+
+
+import com.example.WebTruyen.dto.request.CreateChapterRequest;
+import com.example.WebTruyen.dto.request.CreateCommentRequest;
+import com.example.WebTruyen.dto.request.CreateStoryRequest;
+import com.example.WebTruyen.dto.request.CreateVolumeRequest;
+import com.example.WebTruyen.dto.request.UpdateStoryLibraryRequest;
+import com.example.WebTruyen.dto.request.UpsertStoryReviewRequest;
+import com.example.WebTruyen.dto.response.CommentResponse;
+import com.example.WebTruyen.dto.response.CreateChapterResponse;
+import com.example.WebTruyen.dto.response.CreateVolumeResponse;
+import com.example.WebTruyen.dto.response.HomeCommunityCommentResponse;
+import com.example.WebTruyen.dto.response.LibraryStoryResponse;
+import com.example.WebTruyen.dto.response.PagedResponse;
+import com.example.WebTruyen.dto.response.StoryReviewResponse;
+import com.example.WebTruyen.dto.response.StoryLibraryDialogResponse;
+import com.example.WebTruyen.dto.response.StoryResumePointResponse;
+import com.example.WebTruyen.dto.response.StoryResponse;
+import com.example.WebTruyen.dto.response.StorySidebarResponse;
+import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
+import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
+import com.example.WebTruyen.dto.response.AuthorCommentResponse;
+import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
+import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
+import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.security.UserPrincipal;
+import com.example.WebTruyen.security.JwtTokenProvider;
+import com.example.WebTruyen.service.ChapterService;
+import com.example.WebTruyen.service.CommentService;
+import com.example.WebTruyen.service.SimpleDailyTaskService;
+import com.example.WebTruyen.service.StoryReviewService;
+import com.example.WebTruyen.service.StoryService;
+import com.example.WebTruyen.service.VolumeService;
+import com.example.WebTruyen.service.TieredAchievementIntegrationService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.Map;
+import java.util.List;
+import org.springframework.http.HttpStatus;
+import java.util.Objects;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@Slf4j
+public class StoryController {
+
+    private final StoryService storyService;
+    private final VolumeService volumeService;
+    private final ChapterService chapterService;
+    private final CommentService commentService;
+    private final StoryReviewService storyReviewService;
+    private final SimpleDailyTaskService simpleDailyTaskService;
+
+    private final TieredAchievementIntegrationService achievementIntegrationService;
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+
+    private UserEntity requireUser(UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return userPrincipal.getUser();
+    }
+
+    private Long resolveUserIdFromToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        String normalized = token.trim();
+        if (normalized.startsWith("Bearer ")) {
+            normalized = normalized.substring("Bearer ".length()).trim();
+        }
+        if (!jwtTokenProvider.validateToken(normalized)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return jwtTokenProvider.getUserIdFromToken(normalized);
+    }
+
+    @PostMapping(value = "/stories", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public StoryResponse createStory(
+            @RequestPart("data") String dataJson,
+            @RequestPart(value = "cover", required = false) MultipartFile cover,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) throws Exception {
+        CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
+        UserEntity currentUser = requireUser(userPrincipal);
+        StoryResponse response = storyService.createStory(currentUser, data, cover);
+        
+        return response;
+    }
+
+    // Lấy thông tin chi tiết truyện theo id
+    @GetMapping("/stories/{storyId}")
+    public StoryResponse getStory(@PathVariable Integer storyId) {
+        return storyService.getStoryById(storyId);
+    }
+
+    @GetMapping("/public/stories/{storyId}")
+    public StoryResponse getPublicStory(@PathVariable Integer storyId) {
+        return storyService.getPublishedStoryById(storyId);
+    }
+
+    // Muc dich: Endpoint tra du lieu sidebar cho trang story metadata reader. Hieuson + 10h30
+    @GetMapping("/public/stories/{storyId}/sidebar")
+    public StorySidebarResponse getPublicStorySidebar(@PathVariable Integer storyId) {
+        return storyService.getPublicStorySidebar(storyId);
+    }
+
+    @GetMapping("/stories/{storyId}/resume-point")
+    public ResponseEntity<StoryResumePointResponse> getStoryResumePoint(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        StoryResumePointResponse response = storyService.getStoryResumePoint(currentUser, storyId);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/public/stories")
+    // Hieu Son - ngay 26/02/2026 | v1.0.0-search | branch: minhfinal2
+    // Sua ham: mo rong API danh sach truyen cong khai, ho tro tim kiem nang cao theo ten, tac gia, tinh trang va tag (AND).
+    public java.util.List<StoryResponse> getPublicStories(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "lastUpdatedAt,desc") String sort,
+            @RequestParam(required = false) String q, //keyword 
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String kind,
+            @RequestParam(required = false) String completionStatus,
+            @RequestParam(required = false) String tagIds,
+            @RequestParam(required = false) String excludeTagIds
+    ) {
+        return storyService.getPublishedStories(
+                page,
+                size,
+                sort,
+                q,
+                author,
+                kind,
+                completionStatus,
+                parseTagIdsCsv(tagIds),
+                parseTagIdsCsv(excludeTagIds)
+        );
+    }
+
+    // Hieuson - 24/2 + Tra ve danh sach phan hoi cong dong moi nhat cho HomePage.
+    @GetMapping("/public/comments/latest")
+    public List<HomeCommunityCommentResponse> getLatestPublicComments(
+            @RequestParam(defaultValue = "3") Integer size
+    ) {
+        return commentService.listLatestPublicComments(size);
+    }
+
+    @GetMapping("/stories/my")
+    public java.util.List<StoryResponse> getMyStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getStoriesByAuthor(currentUser);
+    }
+
+    @GetMapping("/stories/library")
+    public java.util.List<LibraryStoryResponse> getLibraryStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getLibraryStories(currentUser);
+    }
+
+    @GetMapping("/stories/{storyId}/notify-status")
+    public Map<String, Boolean> getNotifyStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        boolean enabled = storyService.getNotifyNewChapterStatus(currentUser, storyId);
+        return Map.of("enabled", enabled);
+    }
+
+    @PostMapping("/stories/{storyId}/notify-status/toggle")
+    public Map<String, Boolean> toggleNotifyStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        boolean enabled = storyService.toggleNotifyNewChapter(currentUser, storyId);
+        return Map.of("enabled", enabled);
+    }
+
+    @GetMapping("/stories/{storyId}/library-status")
+    public Map<String, Boolean> getLibraryStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        return storyService.getLibraryStatus(currentUser, storyId);
+    }
+
+    @GetMapping("/stories/{storyId}/library-dialog")
+    public StoryLibraryDialogResponse getStoryLibraryDialog(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.getStoryLibraryDialog(currentUser, storyId);
+    }
+
+    @PutMapping("/stories/{storyId}/library-dialog")
+    public StoryLibraryDialogResponse updateStoryLibraryDialog(
+            @PathVariable Long storyId,
+            @Valid @RequestBody UpdateStoryLibraryRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.updateStoryLibraryDialog(currentUser, storyId, request);
+    }
+
+    @PostMapping("/stories/{storyId}/library/toggle")
+    public Map<String, Boolean> toggleLibraryStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.toggleLibraryStatus(currentUser, storyId);
+    }
+
+    @PostMapping("/stories/{storyId}/favorite/toggle")
+    public Map<String, Boolean> toggleLibraryFavoriteStatus(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.toggleLibraryFavoriteStatus(currentUser, storyId);
+    }
+
+    // C?p nh?t truy?n theo id
+    @PutMapping(value = "/stories/{storyId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public StoryResponse updateStory(
+            @PathVariable Integer storyId,
+            @RequestPart("data") String dataJson,
+            @RequestPart(value = "cover", required = false) MultipartFile cover,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) throws Exception {
+        CreateStoryRequest data = new ObjectMapper().readValue(dataJson, CreateStoryRequest.class);
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyService.updateStory(currentUser, storyId, data, cover);
+    }
+
+    @PostMapping("/stories/{storyId}/submit-approval")
+    public ResponseEntity<Map<String, String>> submitStoryApproval(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Long userId = (userPrincipal != null && userPrincipal.getUser() != null)
+                ? userPrincipal.getUser().getId()
+                : null;
+
+        try {
+            StoryApprovalStatus approvalStatus = storyService.submitStoryForApproval(storyId, userId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Story submitted for review",
+                    "approvalStatus", approvalStatus.name()
+            ));
+        } catch (ResponseStatusException ex) {
+            String message = ex.getReason() != null && !ex.getReason().isBlank()
+                    ? ex.getReason()
+                    : "gửi duyệt truyện thất bại";
+            return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
+        }
+    }
+
+    // L?y danh s?ch volume v? chapter theo story
+    @GetMapping("/stories/{storyId}/volumes")
+    public java.util.List<VolumeSummaryResponse> getVolumes(@PathVariable Long storyId) {
+        return volumeService.listVolumesWithChapters(storyId);
+    }
+
+    @GetMapping("/public/stories/{storyId}/volumes")
+    public java.util.List<VolumeSummaryResponse> getPublicVolumes(@PathVariable Long storyId) {
+        return volumeService.listPublishedVolumesWithPublishedChapters(storyId);
+    }
+
+    @GetMapping("/public/stories/{storyId}/reviews")
+    public PagedResponse<StoryReviewResponse> getPublicStoryReviews(
+            @PathVariable Integer storyId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "8") Integer size
+    ) {
+        return storyReviewService.listPublishedStoryReviews(storyId, page, size);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/reviews", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public StoryReviewResponse upsertStoryReview(
+            @PathVariable Integer storyId,
+            @RequestBody UpsertStoryReviewRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return storyReviewService.createReview(currentUser, storyId, req);
+    }
+
+    @GetMapping("/public/stories/{storyId}/comments")
+    public PagedResponse<CommentResponse> getPublicStoryComments(
+            @PathVariable Integer storyId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "8") Integer size
+    ) {
+        return commentService.listPublishedStoryComments(storyId, page, size);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse createStoryComment(
+            @PathVariable Integer storyId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        CommentResponse response = commentService.createStoryComment(currentUser, storyId, req);
+        
+        // Track comment for daily task
+        try {
+            simpleDailyTaskService.updateTaskProgress(currentUser.getId(), "MAKE_COMMENTS", null);
+            log.info("Successfully tracked comment for daily task");
+        } catch (Exception e) {
+            // Don't fail the comment creation if daily task tracking fails
+            log.warn("Failed to track comment for daily task - user: {}, story: {}", currentUser.getId(), storyId, e);
+        }
+        
+        // Trigger achievement event for comment creation
+        try {
+
+            achievementIntegrationService.onCommentCreated(currentUser.getId());
+            log.info("Achievement event triggered successfully for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("Failed to trigger achievement event for user {}: {}", currentUser.getId(), e.getMessage(), e);
+        }
+        
+        return response;
+    }
+
+    @PutMapping(value = "/stories/{storyId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse updateStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.updateStoryComment(currentUser, storyId, commentId, req);
+    }
+
+    @DeleteMapping("/stories/{storyId}/comments/{commentId}")
+    public Map<String, Boolean> deleteStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteStoryComment(currentUser, storyId, commentId);
+        return Map.of("deleted", true);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/comments/{commentId}/report", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Boolean> reportStoryComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long commentId,
+            @RequestBody(required = false) Map<String, String> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String reason = payload != null ? payload.getOrDefault("reason", "") : "";
+        commentService.reportStoryComment(currentUser, storyId, commentId, reason);
+        return Map.of("reported", true);
+    }
+
+    @GetMapping("/public/stories/{storyId}/chapters/{chapterId}/comments")
+    public PagedResponse<CommentResponse> getPublicChapterComments(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "8") Integer size
+    ) {
+        return commentService.listPublishedChapterComments(storyId, chapterId, page, size);
+    }
+
+    @PostMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse createChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        CommentResponse response = commentService.createChapterComment(currentUser, storyId, chapterId, req);
+        
+        // Track comment for daily task
+        try {
+            log.info("Tracking chapter comment for daily task - user: {}, story: {}, chapter: {}", currentUser.getId(), storyId, chapterId);
+            simpleDailyTaskService.updateTaskProgress(currentUser.getId(), "MAKE_COMMENTS", null);
+            log.info("Successfully tracked chapter comment for daily task");
+        } catch (Exception e) {
+            // Don't fail the comment creation if daily task tracking fails
+            log.warn("Failed to track chapter comment for daily task - user: {}, story: {}, chapter: {}", currentUser.getId(), storyId, chapterId, e);
+        }
+        
+        // Trigger achievement event for comment creation
+        try {
+            log.info("DEBUG: About to trigger achievement event for user: {}", currentUser.getId());
+            achievementIntegrationService.onCommentCreated(currentUser.getId());
+            log.info("DEBUG: Achievement event triggered successfully for user: {}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("DEBUG: Failed to trigger achievement event for user {}: {}", currentUser.getId(), e.getMessage(), e);
+        }
+        
+        return response;
+    }
+    //phong sua conflict merge muatruyen voi admin1
+//<<<<<<< HEAD
+    @PutMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments/{commentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CommentResponse updateChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @PathVariable Long commentId,
+            @RequestBody CreateCommentRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.updateChapterComment(currentUser, storyId, chapterId, commentId, req);
+    }
+
+    @DeleteMapping("/stories/{storyId}/chapters/{chapterId}/comments/{commentId}")
+    public Map<String, Boolean> deleteChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+                commentService.deleteChapterComment(currentUser, storyId, chapterId, commentId);
+        return Map.of("deleted", true);
+    }
+
+//=======
+    @GetMapping("/author/comments/stories")
+    public List<AuthorStoryOptionResponse> getAuthorCommentStories(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorStories(currentUser.getId());
+    }
+
+    @GetMapping("/author/comments/stories/{storyId}/chapters")
+    public List<AuthorChapterOptionResponse> getAuthorCommentChapters(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.listAuthorChapters(currentUser.getId(), storyId);
+    }
+
+    @GetMapping("/author/comments")
+    public List<AuthorCommentResponse> getAuthorComments(
+            @RequestParam Integer storyId,
+            @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) java.time.Instant fromDate,
+            @RequestParam(required = false) java.time.Instant toDate,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        java.time.LocalDateTime from = fromDate != null ? fromDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        java.time.LocalDateTime to = toDate != null ? toDate.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime() : null;
+        return commentService.listAuthorComments(currentUser.getId(), storyId, chapterId, from, to);
+    }
+
+    @PostMapping(value = "/author/comments/{parentCommentId}/reply", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public AuthorCommentResponse replyAuthorComment(
+            @PathVariable Long parentCommentId,
+            @RequestBody AuthorReplyRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return commentService.replyAsAuthor(currentUser, parentCommentId, req.content());
+    }
+
+//    @PostMapping("/author/comments/{commentId}/hide")
+//    public Map<String, String> hideAuthorComment(
+////>>>>>>> origin/minhfinal1
+//            //phong sua conflict merge muatruyen voi admin1
+//            @PathVariable Long commentId,
+//            @AuthenticationPrincipal UserPrincipal userPrincipal
+//    ) {
+//        UserEntity currentUser = requireUser(userPrincipal);
+//        //phong sua conflict merge muatruyen voi admin1
+////<<<<<<< HEAD
+//        commentService.deleteChapterComment(currentUser, storyId, chapterId, commentId);
+//        return Map.of("deleted", true);
+//    }
+
+    @PostMapping(value = "/stories/{storyId}/chapters/{chapterId}/comments/{commentId}/report", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Boolean> reportChapterComment(
+            @PathVariable Integer storyId,
+            @PathVariable Long chapterId,
+            @PathVariable Long commentId,
+            @RequestBody(required = false) Map<String, String> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String reason = payload != null ? payload.getOrDefault("reason", "") : "";
+        commentService.reportChapterComment(currentUser, storyId, chapterId, commentId, reason);
+        return Map.of("reported", true);
+//=======
+//        commentService.hideAuthorComment(currentUser.getId(), commentId);
+//        return Map.of("message", "Comment hidden");
+    }
+    @PostMapping("/author/comments/{commentId}/hide")
+    public Map<String, String> hideAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.hideAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment hidden");
+    }
+
+    @PostMapping("/author/comments/{commentId}/unhide")
+    public Map<String, String> unhideAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.unhideAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment unhidden");
+    }
+
+    @DeleteMapping("/author/comments/{commentId}")
+    public Map<String, String> deleteAuthorComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        commentService.deleteAuthorComment(currentUser.getId(), commentId);
+        return Map.of("message", "Comment deleted");
+//>>>>>>> origin/minhfinal1
+        //phong sua conflict merge muatruyen voi admin1
+    }
+
+    @PostMapping(value = "/stories/{storyId}/volumes", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CreateVolumeResponse createVolume(
+            @PathVariable("storyId") Integer storyId,
+            @RequestBody CreateVolumeRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return volumeService.createVolume(currentUser, storyId, req);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CreateVolumeResponse updateVolume(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @RequestBody CreateVolumeRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return volumeService.updateVolumeTitle(currentUser, storyId, volumeId, req);
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CreateVolumeResponse updateVolumeCover(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @RequestPart("cover") MultipartFile cover,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return volumeService.updateVolumeCover(currentUser, storyId, volumeId, cover);
+    }
+
+    /**
+     * Endpoint: Tạo chapter mới trong volume
+     * POST /api/stories/{storyId}/volumes/{volumeId}/chapters
+     * - Body: CreateChapterRequest { title, sequenceIndex, isFree, priceCoin, content, status }
+     * - Hành vi: create chapter row, split content thành segments và lưu vào chapter_segments.
+     */
+    @PostMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CreateChapterResponse createChapter(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @RequestBody CreateChapterRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        CreateChapterResponse response = chapterService.createChapterFromHtml(currentUser, storyId, volumeId, req);
+        
+        // Trigger achievement event only for published chapters
+        try {
+            // Check if the created chapter is published from request
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                achievementIntegrationService.onChapterCreated(currentUser.getId());
+                log.info("Triggered chapter creation achievement for published chapter - user: {}", currentUser.getId());
+            } else {
+                log.info("Chapter created but not published - no achievement triggered - user: {}, status: {}", 
+                    currentUser.getId(), req != null ? req.getStatus() : "null");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to trigger chapter creation achievement: {}", e.getMessage());
+        }
+        
+        return response;
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public CreateChapterResponse updateChapter(
+            @PathVariable("storyId") Long storyId,
+            @PathVariable("volumeId") Long volumeId,
+            @PathVariable("chapterId") Long chapterId,
+            @RequestBody CreateChapterRequest req,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        
+        // Get current chapter status before update
+        try {
+            // Check if this is a status change to published
+            if (req != null && req.getStatus() != null && 
+                "published".equalsIgnoreCase(req.getStatus())) {
+                
+                // Check if chapter was previously not published
+                var currentChapter = chapterService.getChapterById(chapterId);
+                if (currentChapter != null && currentChapter.getStatus() != null && 
+                    !"published".equals(currentChapter.getStatus().toString())) {
+                    
+                    log.info("Chapter status changing to published - triggering achievement for user: {}", currentUser.getId());
+                    achievementIntegrationService.onChapterCreated(currentUser.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to check chapter status for achievement: {}", e.getMessage());
+        }
+        
+        return chapterService.updateChapterFromHtml(currentUser, storyId, volumeId, chapterId, req);
+    }
+    
+    @GetMapping("/stories/{storyId}/chapters/{chapterId}/content")
+    public Map<String, Object> getChapterContent(
+            @PathVariable Long storyId,
+            @PathVariable Long chapterId
+    ) {
+        return chapterService.getChapterContent(chapterId);
+    }
+
+    @GetMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Object> getChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return chapterService.getChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId()
+        );
+    }
+
+    @PutMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> saveChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @RequestBody(required = false) Map<String, Object> payload,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        String draftContent = payload != null ? Objects.toString(payload.get("draftContent"), "") : "";
+        return chapterService.saveChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId(),
+                draftContent
+        );
+    }
+
+    @PostMapping(value = "/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft/beacon", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> saveChapterDraftByBeacon(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @RequestParam("token") String token,
+            @RequestBody(required = false) Map<String, Object> payload
+    ) {
+        Long userId = resolveUserIdFromToken(token);
+        String draftContent = payload != null ? Objects.toString(payload.get("draftContent"), "") : "";
+        return chapterService.saveChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                userId,
+                draftContent
+        );
+    }
+
+    @DeleteMapping("/stories/{storyId}/volumes/{volumeId}/chapters/{chapterId}/draft")
+    public Map<String, Boolean> deleteChapterDraft(
+            @PathVariable Long storyId,
+            @PathVariable Long volumeId,
+            @PathVariable Long chapterId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        chapterService.deleteChapterDraft(
+                storyId,
+                volumeId,
+                chapterId,
+                currentUser.getId()
+        );
+        return Map.of("deleted", true);
+    }
+
+    public record AuthorReplyRequest(String content) {}
+
+    // Hieu Son - ngay 26/02/2026
+    // Ham ho tro parse chuoi tagIds CSV thanh danh sach Long de dung cho tim kiem nang cao.
+    private List<Long> parseTagIdsCsv(String tagIdsCsv) {
+        if (tagIdsCsv == null || tagIdsCsv.isBlank()) {
+            return List.of();
+        }
+
+        return java.util.Arrays.stream(tagIdsCsv.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(value -> {
+                    try {
+                        return Long.parseLong(value);
+                    } catch (NumberFormatException ex) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+}
+

@@ -1,68 +1,153 @@
 import React from 'react';
+import { Sparkles, Heart, MessageCircle } from 'lucide-react';
 
-const UserPortfolioStats = ({ data }) => {
+const UserPortfolioStats = ({ data, onShowFollowers, followersCount: propFollowersCount }) => {
+    // Debug: Check if data is passed correctly
+    console.log('🔍 Props received:', { data, onShowFollowers });
+    console.log('🔍 Data type:', typeof data);
+    console.log('🔍 Data is null:', data === null);
+    console.log('🔍 Data is undefined:', data === undefined);
+    
+    const totalStories = data?.storiesCount || 0;
+    
+    // Format number function (same as AuthorCard)
+    const formatNumber = (num) => {
+        if (num === '--' || num === null || num === undefined) return '--';
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num?.toString() || '0';
+    };
+    
+    // Calculate total views from multiple possible sources
+    const calculateTotalViews = () => {
+        // Debug: Log full API response to help debug backend
+        console.log('🔍 Full API Response:', data);
+        console.log('🔍 FullData:', data?.fullData);
+        console.log('🔍 TotalViews value:', data?.totalViews);
+        console.log('🔍 TotalStories value:', data?.totalStories);
+        console.log('🔍 TotalFollowers value:', data?.totalFollowers);
+        
+        // Check if backend is returning the new fields
+        if (data?.totalViews !== undefined) {
+            console.log('✅ Backend has totalViews:', data.totalViews);
+        } else {
+            console.log('❌ Backend missing totalViews field');
+        }
+        
+        // Priority 1: Direct totalViews field (same as AuthorCard)
+        if (data?.totalViews) return data.totalViews;
+        
+        // Priority 1.5: Check fullData for views (same as AuthorSearchPage)
+        if (data?.fullData?.totalViews) return data.fullData.totalViews;
+        
+        // Priority 2: Alternative field names
+        if (data?.viewsCount) return data.viewsCount;
+        if (data?.profileViews) return data.profileViews;
+        if (data?.totalProfileViews) return data.totalProfileViews;
+        if (data?.views) return data.views;
+        if (data?.reads) return data.reads;
+        if (data?.readCount) return data.readCount;
+        if (data?.totalReads) return data.totalReads;
+        if (data?.likes) return data.likes;
+        if (data?.likesCount) return data.likesCount;
+        
+        // Check common alternative field names in fullData
+        if (data?.fullData?.viewsCount) return data.fullData.viewsCount;
+        if (data?.fullData?.profileViews) return data.fullData.profileViews;
+        if (data?.fullData?.totalProfileViews) return data.fullData.totalProfileViews;
+        if (data?.fullData?.views) return data.fullData.views;
+        if (data?.fullData?.reads) return data.fullData.reads;
+        if (data?.fullData?.readCount) return data.fullData.readCount;
+        if (data?.fullData?.totalReads) return data.fullData.totalReads;
+        if (data?.fullData?.likes) return data.fullData.likes;
+        if (data?.fullData?.likesCount) return data.fullData.likesCount;
+        if (data?.fullData?.viewCount) return data.fullData.viewCount;
+        if (data?.fullData?.read_count) return data.fullData.read_count;
+        if (data?.fullData?.total_reads) return data.fullData.total_reads;
+        if (data?.fullData?.total_views) return data.fullData.total_views;
+        
+        // Priority 3: Calculate from stories array (most reliable)
+        if (data?.stories && Array.isArray(data.stories)) {
+            const storyViews = data.stories.reduce((total, story) => total + (story.views || story.reads || 0), 0);
+            console.log('📚 Stories data:', data.stories);
+            console.log('📚 Story views calculation:', storyViews);
+            console.log('📚 First story views:', data.stories[0]?.views);
+            if (storyViews > 0) return storyViews;
+        }
+        
+        // Priority 4: Calculate from stories in fullData
+        if (data?.fullData?.stories && Array.isArray(data.fullData.stories)) {
+            const storyViews = data.fullData.stories.reduce((total, story) => total + (story.views || story.reads || 0), 0);
+            console.log('📚 FullData stories:', data.fullData.stories);
+            console.log('📚 FullData story views calculation:', storyViews);
+            console.log('📚 FullData first story views:', data.fullData.stories[0]?.views);
+            if (storyViews > 0) return storyViews;
+        }
+        
+        // Priority 5: Calculate from albums if available
+        if (data?.albums && Array.isArray(data.albums)) {
+            const albumViews = data.albums.reduce((total, album) => total + (album.views || 0), 0);
+            return albumViews;
+        }
+        
+        // Priority 6: Try nested data structures
+        if (data?.userData?.totalViews) return data.userData.totalViews;
+        if (data?.userStats?.totalViews) return data.userStats.totalViews;
+        if (data?.profile?.totalViews) return data.profile.totalViews;
+        
+        // If no views data available, use commentsCount as temporary fallback
+        if (data?.commentsCount !== undefined) {
+            console.log('🔄 Using commentsCount as views fallback:', data.commentsCount);
+            return data.commentsCount;
+        }
+        return '--';
+    };
+    
+    const totalViews = calculateTotalViews();
+    const totalFollowers = propFollowersCount !== undefined ? propFollowersCount : (data?.followersCount || 0);
+    
+    // Debug: Log final calculated values
+    console.log('📊 Final Stats:', {
+        totalStories,
+        totalViews,
+        totalFollowers,
+        commentsCount: data?.commentsCount,
+        storiesCount: data?.storiesCount
+    });
+
     return (
-        <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Thống kê</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Stories Card */}
-                <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                        </div>
-                        <div className="ml-4">
-                            <div className="text-2xl font-bold text-blue-900">{data.storiesCount}</div>
-                            <div className="text-sm text-blue-700">Truyện đã đăng</div>
-                        </div>
-                    </div>
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="p-6 bg-white rounded-2xl border border-gray-100 flex items-center gap-5 shadow-sm">
+                <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+                    <Sparkles size={24} />
                 </div>
-                
-                {/* Followers Card */}
-                <div className="bg-green-50 rounded-lg p-4">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                        </div>
-                        <div className="ml-4">
-                            <div className="text-2xl font-bold text-green-900">{data.followersCount}</div>
-                            <div className="text-sm text-green-700">Người theo dõi</div>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Comments Card */}
-                <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <svg className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                        </div>
-                        <div className="ml-4">
-                            <div className="text-2xl font-bold text-purple-900">{data.commentsCount}</div>
-                            <div className="text-sm text-purple-700">Bình luận nhận được</div>
-                        </div>
-                    </div>
+                <div>
+                    <p className="text-gray-500 text-sm font-semibold uppercase tracking-wide">Stories</p>
+                    <p className="text-2xl font-extrabold text-gray-900">{formatNumber(totalStories)}</p>
                 </div>
             </div>
-            
-            {/* Additional Info */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="text-sm text-gray-600">
-                    {data.isAuthor ? (
-                        <p>Tác giả này đã đăng {data.storiesCount} truyện và nhận được {data.commentsCount} bình luận từ độc giả.</p>
-                    ) : (
-                        <p>Người dùng này là người đọc tích cực và thành viên cộng đồng.</p>
-                    )}
+            <div 
+                className="p-6 bg-white rounded-2xl border border-gray-100 flex items-center gap-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={onShowFollowers}
+            >
+                <div className="w-14 h-14 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600">
+                    <Heart size={24} />
+                </div>
+                <div>
+                    <p className="text-gray-500 text-sm font-semibold uppercase tracking-wide">Followers</p>
+                    <p className="text-2xl font-extrabold text-gray-900">{formatNumber(totalFollowers)}</p>
                 </div>
             </div>
-        </div>
+            <div className="p-6 bg-white rounded-2xl border border-gray-100 flex items-center gap-5 shadow-sm">
+                <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                    <MessageCircle size={24} />
+                </div>
+                <div>
+                    <p className="text-gray-500 text-sm font-semibold uppercase tracking-wide">Views</p>
+                    <p className="text-2xl font-extrabold text-gray-900">{formatNumber(totalViews)}</p>
+                </div>
+            </div>
+        </section>
     );
 };
 

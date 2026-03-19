@@ -88,6 +88,9 @@ public class WalletService {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
     @Lazy
     private SimpleDailyTaskService simpleDailyTaskService;
 
@@ -116,7 +119,6 @@ public class WalletService {
                 .balanceCoinA(0L)
                 .balanceCoinB(0L)
                 .pendingCoinB(0L)
-                .reservedCoinB(0L)
                 .updatedAt(LocalDateTime.now())
                 .build();
 
@@ -1132,6 +1134,18 @@ public class WalletService {
         // Auto-track daily task for topup only (donation is tracked separately)
         if (reason == LedgerReason.TOPUP) {
             trackTopupDailyTask(user.getId(), amount);
+            
+            // Send topup notification
+            String message = String.format("Bạn đã nạp thành công %d Coin B vào tài khoản.", amount);
+            notificationService.createNotification(
+                user.getId(),
+                "topup",
+                "Nạp tiền thành công",
+                message,
+                null,
+                null,
+                null
+            );
         }
     }
 

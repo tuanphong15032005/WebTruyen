@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   User,
   MessageSquare,
@@ -12,13 +12,17 @@ import {
   Trophy,
   Bookmark,
   CheckSquare,
+  Shield,
+  Settings as AdminIcon,
 } from 'lucide-react';
-import { dailyCheckIn, getUserProfileById, uploadAvatar, uploadCover } from '../api/userApi';
+import { dailyCheckIn, getUserProfileById, getUserProfileByUsername, uploadAvatar, uploadCover } from '../api/userApi';
+import { hasAnyRole, getStoredUser } from '../utils/helpers';
 import './UserProfile.css';
 
 export default function UserProfile({ userData }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { username: urlUsername } = useParams(); // Get username from URL
 
   // State variables
   const [displayName, setDisplayName] = useState('');
@@ -28,6 +32,7 @@ export default function UserProfile({ userData }) {
   const [nameMessage, setNameMessage] = useState('');
   const [profileData, setProfileData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [userRoles, setUserRoles] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
@@ -58,9 +63,14 @@ export default function UserProfile({ userData }) {
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
+      setError('');
       try {
+        // Get current user from localStorage for role checking
+        const currentUser = getStoredUser();
+        
+        // If we have userData passed as prop, use it
         if (userData && userData.email) {
-          setProfileData(userData);
+          setProfileData({ ...userData, roles: currentUser?.roles || [] });
           setDisplayName(userData.displayName || userData.username || '');
           setFavoriteQuote(userData.bio || '');
           setTempName(userData.displayName || userData.username || '');
@@ -70,37 +80,88 @@ export default function UserProfile({ userData }) {
           return;
         }
 
-        const token = localStorage.getItem('accessToken');
-        const userId = localStorage.getItem('userId');
-        const response = await fetch(
-          `http://localhost:8081/api/users/profile/${userId}`,
-          {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-          },
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setProfileData(data);
+        // If we have username from URL, fetch by username
+        if (urlUsername) {
+          console.log('Fetching profile by username:', urlUsername);
+          const data = await getUserProfileByUsername(urlUsername);
+          console.log('Profile data received:', data);
+          
+          setProfileData({ ...data, roles: currentUser?.roles || [] });
           setDisplayName(data.displayName || data.username || '');
           setFavoriteQuote(data.bio || '');
           setTempName(data.displayName || data.username || '');
           setExistingAvatarUrl(data.avatarUrl || '');
           setExistingCoverUrl(data.coverUrl || '');
+          setLoading(false);
+          return;
         }
+
+        // Fallback to current user from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          console.error('No userId found in localStorage');
+          setError('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching profile for userId:', userId);
+        const data = await getUserProfileById(userId);
+        console.log('Profile data received:', data);
+        
+        setProfileData({ ...data, roles: currentUser?.roles || [] });
+        setDisplayName(data.displayName || data.username || '');
+        setFavoriteQuote(data.bio || '');
+        setTempName(data.displayName || data.username || '');
+        setExistingAvatarUrl(data.avatarUrl || '');
+        setExistingCoverUrl(data.coverUrl || '');
       } catch (error) {
         console.error('Error fetching profile:', error);
+        setError('Không thể tải dữ liệu trang cá nhân. ' + (error.message || 'Vui lòng thử lại sau.'));
+        
+        // Fallback to fetch if API fails
+        try {
+          let url;
+          if (urlUsername) {
+            url = `http://localhost:8081/api/users/profile/username/${urlUsername}`;
+          } else {
+            const userId = localStorage.getItem('userId');
+            url = `http://localhost:8081/api/users/profile/${userId}`;
+          }
+          
+          const token = localStorage.getItem('accessToken');
+          const response = await fetch(url, {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const currentUser = getStoredUser();
+            setProfileData({ ...data, roles: currentUser?.roles || [] });
+            setDisplayName(data.displayName || data.username || '');
+            setFavoriteQuote(data.bio || '');
+            setTempName(data.displayName || data.username || '');
+            setExistingAvatarUrl(data.avatarUrl || '');
+            setExistingCoverUrl(data.coverUrl || '');
+            setError(''); // Clear error on success
+          } else {
+            setError('Không thể tải dữ liệu trang cá nhân. Server trả về lỗi: ' + response.status);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback fetch also failed:', fallbackError);
+          setError('Không thể tải dữ liệu trang cá nhân. Vui lòng kiểm tra kết nối mạng.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [userData]);
+  }, [userData, urlUsername]);
 
   // Fetch user roles
   useEffect(() => {
@@ -176,6 +237,22 @@ export default function UserProfile({ userData }) {
     } else {
       return 'Thành viên';
     }
+  };
+
+  const hasReviewerRole = () => {
+    if (!userRoles || userRoles.length === 0) {
+      return false;
+    }
+    const roleCodes = userRoles
+      .map((userRole) => userRole?.roleCode || '')
+      .filter(Boolean);
+    
+    // Debug: Log roles to console
+    console.log('🔍 User roles:', userRoles);
+    console.log('🔍 Role codes:', roleCodes);
+    console.log('🔍 Has reviewer role:', roleCodes.includes('ADMIN') || roleCodes.includes('MOD') || roleCodes.includes('REVIEWER'));
+    
+    return roleCodes.includes('ADMIN') || roleCodes.includes('MOD') || roleCodes.includes('REVIEWER');
   };
 
   const handleUpdateQuote = async () => {
@@ -460,6 +537,33 @@ export default function UserProfile({ userData }) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="user-profile-container">
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '20px' }}>
+          <div style={{ backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '8px', padding: '20px', maxWidth: '500px', textAlign: 'center' }}>
+            <h3 style={{ color: '#c33', marginBottom: '10px' }}>Lỗi tải dữ liệu</h3>
+            <p style={{ color: '#666', marginBottom: '20px' }}>{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="user-profile-container">
       <div style={{ display: 'flex' }}>
@@ -497,6 +601,12 @@ export default function UserProfile({ userData }) {
               </button>
             </li>
             <li>
+              <button className={`sidebar-menu-item ${location.pathname === '/reviewer-area' ? 'active' : ''}`} onClick={() => navigate('/reviewer-area')}>
+                <Shield className="icon" />
+                Khu vực reviewer
+              </button>
+            </li>
+            <li>
               <button className={`sidebar-menu-item ${location.pathname === '/messages' ? 'active' : ''}`} onClick={() => navigate('/messages')}>
                 <MessageSquare className="icon" />
                 Tin nhắn
@@ -508,6 +618,14 @@ export default function UserProfile({ userData }) {
                 Tủ truyện
               </button>
             </li>
+            {hasAnyRole(['ADMIN', 'MOD'], getStoredUser()) && (
+              <li>
+                <button className={`sidebar-menu-item ${location.pathname === '/admin/dashboard' ? 'active' : ''}`} onClick={() => navigate('/admin/dashboard')}>
+                  <AdminIcon className="icon" />
+                  Dashboard quản trị
+                </button>
+              </li>
+            )}
           </ul>
         </aside>
 

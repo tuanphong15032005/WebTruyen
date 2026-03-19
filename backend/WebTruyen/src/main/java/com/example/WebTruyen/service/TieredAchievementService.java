@@ -1,7 +1,7 @@
 package com.example.WebTruyen.service;
 
-import com.example.WebTruyen.dto.achievement.AchievementProgressDto;
-import com.example.WebTruyen.dto.achievement.AchievementTierDto;
+import com.example.WebTruyen.dto.response.AchievementProgressResponse;
+import com.example.WebTruyen.dto.response.AchievementTierResponse;
 import com.example.WebTruyen.entity.enums.CoinType;
 import com.example.WebTruyen.entity.enums.LedgerReason;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
@@ -26,6 +26,7 @@ public class TieredAchievementService {
     private final UserAchievementProgressRepository userAchievementProgressRepository;
     private final UserAchievementClaimRepository userAchievementClaimRepository;
     private final WalletService walletService;
+    private final NotificationService notificationService;
 
     @Transactional
     public void updateProgress(Long userId, String achievementCode, Integer incrementValue) {
@@ -91,7 +92,7 @@ public class TieredAchievementService {
         log.info("Set progress for user {} achievement {}: {}", userId, achievementCode, progress.getProgress());
     }
 
-    public AchievementProgressDto getAchievementProgress(Long userId, String achievementCode) {
+    public AchievementProgressResponse getAchievementProgress(Long userId, String achievementCode) {
         log.info("Getting achievement progress for user {} and achievement {}", userId, achievementCode);
         
         AchievementEntity achievement = achievementRepository.findByCode(achievementCode)
@@ -102,11 +103,20 @@ public class TieredAchievementService {
             throw new RuntimeException("Achievement is not active: " + achievementCode);
         }
         
+        List<UserAchievementClaimEntity> claims = userAchievementClaimRepository
+                .findClaimsByUserIdAndAchievementCode(userId, achievementCode);
+        
+        Set<Integer> claimedTierIds = claims.stream()
+                .map(claim -> claim.getTier().getId())
+                .collect(Collectors.toSet());
+
         List<AchievementTierEntity> allTiers = achievementTierRepository
-                .findByAchievementCode(achievementCode);
+                .findByAchievementCode(achievementCode).stream()
+                .filter(tier -> tier.getIsActive() || claimedTierIds.contains(tier.getId()))
+                .collect(Collectors.toList());
         
         if (allTiers.isEmpty()) {
-            throw new RuntimeException("No tiers found for achievement: " + achievementCode);
+            throw new RuntimeException("No active tiers found for achievement: " + achievementCode);
         }
         
         UserAchievementProgressEntity progress = userAchievementProgressRepository
@@ -119,26 +129,19 @@ public class TieredAchievementService {
                         .progress(0)
                         .build());
         
-        List<UserAchievementClaimEntity> claims = userAchievementClaimRepository
-                .findClaimsByUserIdAndAchievementCode(userId, achievementCode);
-        
-        Set<Integer> claimedTierIds = claims.stream()
-                .map(claim -> claim.getTier().getId())
-                .collect(Collectors.toSet());
-        
         return buildProgressDto(achievement, allTiers, progress, claimedTierIds);
     }
 
-    public List<AchievementProgressDto> getAllAchievementProgress(Long userId) {
+    public List<AchievementProgressResponse> getAllAchievementProgress(Long userId) {
         log.info("Getting all achievement progress for user {}", userId);
         
         // Get all active achievements
         List<AchievementEntity> activeAchievements = achievementRepository.findByIsActive(true);
-        List<AchievementProgressDto> result = new ArrayList<>();
+        List<AchievementProgressResponse> result = new ArrayList<>();
         
         for (AchievementEntity achievement : activeAchievements) {
             try {
-                AchievementProgressDto progress = getAchievementProgress(userId, achievement.getCode());
+                AchievementProgressResponse progress = getAchievementProgress(userId, achievement.getCode());
                 result.add(progress);
             } catch (Exception e) {
                 log.warn("Could not get progress for achievement {}: {}", achievement.getCode(), e.getMessage());
@@ -149,12 +152,16 @@ public class TieredAchievementService {
     }
 
     @Transactional
-    public AchievementTierDto claimTier(Long userId, Integer tierId) {
+    public AchievementTierResponse claimTier(Long userId, Integer tierId) {
         log.info("User {} claiming tier {}", userId, tierId);
         
         AchievementTierEntity tier = achievementTierRepository.findById(tierId)
                 .orElseThrow(() -> new RuntimeException("Tier not found: " + tierId));
         
+        if (!Boolean.TRUE.equals(tier.getIsActive())) {
+            throw new RuntimeException("Cannot claim an inactive tier: " + tierId);
+        }
+
         if (userAchievementClaimRepository.existsByUserIdAndTierId(userId, tierId)) {
             throw new RuntimeException("Tier already claimed: " + tierId);
         }
@@ -177,18 +184,33 @@ public class TieredAchievementService {
         
         grantReward(userId, tier);
         
+        // Send achievement notification
+        String message = String.format("Chúc mừng! Bạn đã mở khóa thành tựu \"%s\" và nhận được %d %s!", 
+            tier.getAchievement().getName(), 
+            tier.getRewardCoin(),
+            tier.getRewardCoinType() == CoinType.A ? "Coin A" : "Coin B");
+        notificationService.createNotification(
+            userId,
+            "system",
+            "Thành tựu mới",
+            message,
+            tier.getId() != null ? tier.getId().longValue() : null,
+            null,
+            null
+        );
+        
         log.info("User {} successfully claimed tier {} with reward {} coins", userId, tierId, tier.getRewardCoin());
         
         return convertToTierDto(tier, progress.getProgress(), Set.of(tierId), true);
     }
 
-    private AchievementProgressDto buildProgressDto(AchievementEntity achievement, 
+    private AchievementProgressResponse buildProgressDto(AchievementEntity achievement, 
                                                   List<AchievementTierEntity> allTiers,
                                                   UserAchievementProgressEntity progress,
                                                   Set<Integer> claimedTierIds) {
         
         // Only include visible tiers (current and claimed) in the response
-        List<AchievementTierDto> visibleTierDtos = allTiers.stream()
+        List<AchievementTierResponse> visibleTierDtos = allTiers.stream()
                 .map(tier -> convertToTierDto(tier, progress.getProgress(), claimedTierIds, false))
                 .filter(tierDto -> tierDto.getVisible())
                 .collect(Collectors.toList());
@@ -204,7 +226,7 @@ public class TieredAchievementService {
                 ? (Math.min(progress.getProgress(), nextTier.getRequirement()) * 100.0 / nextTier.getRequirement())
                 : 100.0;
         
-        return AchievementProgressDto.builder()
+        return AchievementProgressResponse.builder()
                 .achievementCode(achievement.getCode())
                 .achievementName(achievement.getName())
                 .description(achievement.getDescription())
@@ -237,7 +259,7 @@ public class TieredAchievementService {
                 .orElse(null);
     }
 
-    private AchievementTierDto convertToTierDto(AchievementTierEntity tier, 
+    private AchievementTierResponse convertToTierDto(AchievementTierEntity tier, 
                                               Integer currentProgress, 
                                               Set<Integer> claimedTierIds,
                                               Boolean isClaimed) {
@@ -247,7 +269,7 @@ public class TieredAchievementService {
         // Only show current tier (completed but not claimed) and claimed tiers
         Boolean visible = current || claimed;
         
-        return AchievementTierDto.builder()
+        return AchievementTierResponse.builder()
                 .id(tier.getId())
                 .tierLevel(tier.getTierLevel())
                 .requirement(tier.getRequirement())
@@ -260,6 +282,8 @@ public class TieredAchievementService {
                 .claimed(claimed)
                 .current(current)
                 .visible(visible)
+                .isActive(tier.getIsActive())
+                .createdAt(tier.getCreatedAt())
                 .build();
     }
 

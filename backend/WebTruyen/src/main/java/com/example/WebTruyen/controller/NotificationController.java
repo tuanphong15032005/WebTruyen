@@ -20,6 +20,35 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
+    @GetMapping("/public/test")
+    public ResponseEntity<String> publicTest() {
+        return ResponseEntity.ok("Notifications API working - " + System.currentTimeMillis());
+    }
+
+    @PostMapping("/public/create-test")
+    public ResponseEntity<String> createTestNotification() {
+        // Create a test notification for user ID 1 (assuming it exists)
+        try {
+            notificationService.createNotification(
+                1L, // userId
+                "system", 
+                "Test Notification",
+                "Đây là thông báo test để verify system hoạt động",
+                null, // referenceId
+                null, // storyId  
+                null  // chapterId
+            );
+            return ResponseEntity.ok("Test notification created successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Notifications API working");
+    }
+
     @GetMapping
     public ResponseEntity<NotificationListResponseDto> getNotifications(
             @RequestParam(required = false) String category,

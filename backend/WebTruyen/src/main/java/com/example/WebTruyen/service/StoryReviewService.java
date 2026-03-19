@@ -18,8 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -114,13 +112,8 @@ public class StoryReviewService {
         story.setRatingSum(ratingSum);
         story.setRatingCount(ratingCount);
         if (ratingCount == 0) {
-            story.setRatingAvg(null);
             return;
         }
-        story.setRatingAvg(
-                BigDecimal.valueOf(ratingSum)
-                        .divide(BigDecimal.valueOf(ratingCount), 2, RoundingMode.HALF_UP)
-        );
     }
 
     private StoryReviewResponse toResponse(StoryReviewEntity review) {

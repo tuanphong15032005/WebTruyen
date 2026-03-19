@@ -5,8 +5,8 @@ export const notificationService = {
   getNotifications: async (category = null, page = 0, size = 20) => {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
-    params.append('page', page.toString());
-    params.append('size', size.toString());
+    if (page !== null && page !== undefined) params.append('page', page.toString());
+    if (size !== null && size !== undefined) params.append('size', size.toString());
 
     const response = await api.get(`/notifications?${params.toString()}`);
     return response;

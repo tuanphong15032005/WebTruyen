@@ -12,22 +12,24 @@ function NotificationBell() {
   const dropdownRef = useRef(null);
   const user = getStoredUser();
 
+  // Fetch function outside effect to prevent closure issues
+  const fetchUnreadCountAPI = async (userId) => {
+    try {
+      const count = await notificationService.getUnreadCount(userId);
+      setUnreadCount(count.totalCount || 0);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+      setUnreadCount(0);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
 
-    const fetchUnreadCount = async () => {
-      try {
-        const count = await notificationService.getUnreadCount();
-        setUnreadCount(count.totalCount || 0);
-      } catch (error) {
-        console.error('Failed to fetch unread count:', error);
-      }
-    };
-
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Refresh every 30 seconds
+    fetchUnreadCountAPI(user.id);
+    const interval = setInterval(() => fetchUnreadCountAPI(user.id), 30000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

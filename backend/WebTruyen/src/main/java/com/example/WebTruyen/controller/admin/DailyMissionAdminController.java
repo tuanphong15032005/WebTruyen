@@ -143,11 +143,89 @@ public class DailyMissionAdminController {
 
     // Create missions for a specific date
     @PostMapping("/generate/{date}")
-    public ResponseEntity<List<DailyMissionEntity>> generateMissionsForDate(
+    public ResponseEntity<?> generateMissionsForDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        log.info("Admin generating missions for date: {}", date);
-        List<DailyMissionEntity> missions = dailyMissionAdminService.generateMissionsForDate(date);
-        return ResponseEntity.ok(missions);
+        try {
+            log.info("Admin generating missions for date: {}", date);
+            
+            // Get existing missions before generation
+            List<DailyMissionEntity> existingMissions = dailyMissionAdminService.getMissionsByDate(date);
+            int existingCount = existingMissions.size();
+            
+            List<DailyMissionEntity> missions = dailyMissionAdminService.generateMissionsForDate(date);
+            int finalCount = missions.size();
+            
+            // Determine what action was taken
+            String message;
+            String actionType;
+            
+            if (existingCount == 0) {
+                message = "Đã tạo thành công " + finalCount + " nhiệm vụ cho ngày " + date;
+                actionType = "created_all";
+            } else if (existingCount >= 6) {
+                message = "Đã có đủ 6 nhiệm vụ cho ngày " + date + ". Không tạo thêm nhiệm vụ mới.";
+                actionType = "already_complete";
+            } else {
+                int addedCount = finalCount - existingCount;
+                message = "Đã tạo thêm " + addedCount + " nhiệm vụ còn thiếu cho ngày " + date + ". Tổng cộng: " + finalCount + " nhiệm vụ.";
+                actionType = "added_missing";
+            }
+            
+            log.info("Mission generation completed for date: {} - Action: {}, Missions: {}", 
+                    date, actionType, finalCount);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", message,
+                "missions", missions,
+                "actionType", actionType,
+                "existingCount", existingCount,
+                "finalCount", finalCount,
+                "addedCount", Math.max(0, finalCount - existingCount)
+            ));
+        } catch (Exception e) {
+            log.error("Error generating missions for date: {}", date, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Regenerate missions from templates (only update missions without user progress)
+    @PostMapping("/regenerate/{date}")
+    public ResponseEntity<?> regenerateMissionsFromTemplates(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            log.info("Admin regenerating missions from templates for date: {}", date);
+            
+            // Get existing missions before regeneration
+            List<DailyMissionEntity> existingMissions = dailyMissionAdminService.getMissionsByDate(date);
+            int existingCount = existingMissions.size();
+            
+            List<DailyMissionEntity> missions = dailyMissionAdminService.regenerateMissionsFromTemplates(date);
+            int finalCount = missions.size();
+            
+            // Calculate statistics
+            int createdCount = Math.max(0, finalCount - existingCount);
+            int updatedCount = Math.max(0, existingCount - (finalCount - createdCount));
+            
+            String message = "Đã tạo lại nhiệm vụ từ templates cho ngày " + date + 
+                           ". Tạo mới: " + createdCount + ", Cập nhật: " + updatedCount + 
+                           ". Các nhiệm vụ có người đang làm sẽ được giữ nguyên.";
+            
+            log.info("Mission regeneration completed for date: {} - Created: {}, Updated: {}, Total: {}", 
+                    date, createdCount, updatedCount, finalCount);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", message,
+                "missions", missions,
+                "actionType", "regenerated",
+                "existingCount", existingCount,
+                "finalCount", finalCount,
+                "createdCount", createdCount,
+                "updatedCount", updatedCount
+            ));
+        } catch (Exception e) {
+            log.error("Error regenerating missions for date: {}", date, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // Get mission statistics
@@ -166,6 +244,26 @@ public class DailyMissionAdminController {
         log.info("Admin copying missions from {} to {}", fromDate, toDate);
         Map<String, Object> result = dailyMissionAdminService.copyMissionsToDate(fromDate, toDate);
         return ResponseEntity.ok(result);
+    }
+
+    // Batch delete missions without user progress
+    @DeleteMapping("/batch-delete/{date}")
+    public ResponseEntity<?> batchDeleteMissionsWithoutProgress(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            log.info("Admin batch deleting missions without user progress for date: {}", date);
+            
+            Map<String, Object> result = dailyMissionAdminService.batchDeleteMissionsWithoutProgress(date);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "Đã xóa thành công " + result.get("deletedCount") + " nhiệm vụ chưa có người làm",
+                "deletedCount", result.get("deletedCount"),
+                "skippedCount", result.get("skippedCount")
+            ));
+        } catch (Exception e) {
+            log.error("Error batch deleting missions for date: {}", date, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // DTO classes

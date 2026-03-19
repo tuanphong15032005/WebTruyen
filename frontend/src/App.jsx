@@ -7,9 +7,12 @@ import {
   useParams,
 } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import DocsLayout from './layouts/DocsLayout';
 import HomePage from './pages/HomePage';
+import { ToastProvider, ToastContainer } from './hooks/useToast';
 
 import SearchPage from './pages/SearchPage';
+import AuthorSearchPage from './pages/AuthorSearchPage';
 
 import Login from './pages/Authentication/Login';
 import Register from './pages/Authentication/Register';
@@ -35,6 +38,7 @@ import BookmarkDetailPage from './pages/BookmarkDetailPage';
 import ReadingHistoryPage from './pages/ReadingHistoryPage';
 
 import LibraryAlbumDetail from './pages/LibraryAlbumDetail';
+import PublicAlbumDetail from './pages/PublicAlbumDetail';
 
 import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
@@ -53,8 +57,14 @@ import WithdrawalRequestPage from './pages/Author/WithdrawalRequestPage';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ContentModeration from './pages/Admin/ContentModeration';
 import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
+import AdminTermsPage from './pages/Admin/AdminTermsPage';
+import DynamicPage from './pages/docs/DynamicPage';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
+import DailyMissionManagement from './pages/Admin/DailyMissionManagement';
+import ApplicationManagementPage from './pages/Admin/ApplicationManagementPage';
+import TagManagementPage from './pages/Admin/TagManagementPage';
+import ReviewerArea from './pages/Reviewer/ReviewerArea';
 import { getStoredUser, hasAnyRole } from './utils/helpers';
 import AuthorRankingPage from './pages/Ranking/AuthorRankingPage';
 import RecentlyUpdatedStoriesPage from './pages/Ranking/RecentlyUpdatedStoriesPage';
@@ -121,13 +131,14 @@ function StoryReportRoute() {
   return <Navigate to={`/report-story?storyId=${encodeURIComponent(storyId)}`} replace />;
 }
 
-function App() {
+function MainLayoutWrapper() {
   return (
     <MainLayout>
       <RouteScrollManager />
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/search' element={<SearchPage />} />
+        <Route path='/authors' element={<AuthorSearchPage />} />
         <Route path='/ranking' element={<RankingPage />} />
         <Route
           path='/ranking/authors'
@@ -150,19 +161,23 @@ function App() {
         <Route path='/payment/success' element={<PaymentSuccessPage />} />
         <Route path='/wallet/topup' element={<WalletTopupPage />} />
         <Route path='/stories/:storyId/report' element={<StoryReportRoute />} />
+
         <Route
-          path='/wallet/confirmation/:id'
+          path='wallet/confirmation/:id'
           element={<PaymentConfirmationPage />}
         />
         <Route
-          path='/donation-history'
+          path='donation-history'
           element={<CoinTransactionHistoryPage />}
         />
+
         <Route path='/profile' element={<UserProfile />} />
         <Route path='/notifications' element={<NotificationPage />} />
+        <Route path='/user/:username' element={<UserProfile />} />
+        <Route path='/portfolio/:userId' element={<UserPortfolioPage />} />
+        <Route path='/portfolio/username/:username' element={<UserPortfolioPage />} />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
         <Route path='/achievements' element={<AchievementsPage />} />
-        <Route path='/user/:userId' element={<UserPortfolioPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
         <Route
           path='/reader/refund-request'
@@ -184,9 +199,15 @@ function App() {
         />
         <Route path='/reading-history' element={<ReadingHistoryPage />} />
 
+        <Route path='/reviewer-area' element={<ReviewerArea />} />
+
         <Route
           path='/library/albums/:albumId'
           element={<LibraryAlbumDetail />}
+        />
+        <Route
+          path='/library/albums/public/:albumId'
+          element={<PublicAlbumDetail />}
         />
 
         <Route path='/author/create-story' element={<CreateStory />} />
@@ -195,7 +216,7 @@ function App() {
         <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
         <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
         <Route
-          path='/stories/:storyId/chapters/:chapterId'
+          path='stories/:storyId/chapters/:chapterId'
           element={<ChapterPage />}
         />
         <Route path='/report' element={<ReportChapterPage />} />
@@ -203,11 +224,11 @@ function App() {
         <Route path='/report-comment' element={<ReportCommentPage />} />
         <Route path='/reader' element={<ChapterPage />} />
         <Route
-          path='/author/stories/:storyId/volumes/:volumeId/create-chapter'
+          path='author/stories/:storyId/volumes/:volumeId/create-chapter'
           element={<CreateChapter />}
         />
         <Route
-          path='/author/comments'
+          path='author/comments'
           element={
             <RoleProtectedRoute allowedRoles={['AUTHOR']}>
               <CommentManagement />
@@ -215,7 +236,7 @@ function App() {
           }
         />
         <Route
-          path='/author/performance-analytics'
+          path='author/performance-analytics'
           element={
             <RoleProtectedRoute allowedRoles={['AUTHOR']}>
               <PerformanceAnalytics />
@@ -243,6 +264,11 @@ function App() {
           <Route path='reports' element={<ViolationReportManagement />} />
           <Route path='achievements' element={<AchievementManagementPage />} />
           <Route path='finance' element={<FinanceManagementPage />} />
+          <Route path='daily-missions' element={<DailyMissionManagement />} />
+          <Route path='achievement-management' element={<AchievementManagementPage />} />
+          <Route path='applications' element={<ApplicationManagementPage />} />
+          <Route path='tags' element={<TagManagementPage />} />
+
         </Route>
         <Route
           path='/admin/content-moderation'
@@ -260,8 +286,38 @@ function App() {
           path='/admin/finance'
           element={<Navigate to='/admin/dashboard/finance' replace />}
         />
+        <Route
+          path='admin/terms'
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+              <AdminTermsPage />
+            </RoleProtectedRoute>
+          }
+        />
       </Routes>
     </MainLayout>
+  );
+}
+
+function App() {
+  const location = useLocation();
+
+  return (
+    <ToastProvider>
+      <Routes>
+        {/* Documentation Routes */}
+        <Route path="/policy" element={<DocsLayout />}>
+          <Route index element={<DynamicPage code="terms" />} />
+          <Route path="terms-of-service" element={<DynamicPage code="terms" />} />
+          <Route path="privacy-policy" element={<DynamicPage code="privacy" />} />
+          <Route path="upload-rule" element={<DynamicPage code="author-rules" />} />
+        </Route>
+
+        {/* Main Routes with Layout */}
+        <Route path="/*" element={<MainLayoutWrapper />} />
+      </Routes>
+      <ToastContainer />
+    </ToastProvider>
   );
 }
 

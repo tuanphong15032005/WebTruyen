@@ -12,6 +12,8 @@ public interface FollowStoryRepository extends JpaRepository<FollowStoryEntity, 
 
     Optional<FollowStoryEntity> findByUser_IdAndStory_Id(Long userId, Long storyId);
     long countByStory_Id(Long storyId);
+    
+    List<FollowStoryEntity> findByStory_IdAndNotifyNewChapterTrue(Long storyId);
 
     @Query("""
             select function('date', fs.createdAt), count(fs)

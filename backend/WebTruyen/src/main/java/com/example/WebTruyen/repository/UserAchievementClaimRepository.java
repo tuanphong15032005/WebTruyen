@@ -18,4 +18,6 @@ public interface UserAchievementClaimRepository extends JpaRepository<UserAchiev
     List<UserAchievementClaimEntity> findClaimsByUserIdAndAchievementCode(@Param("userId") Long userId, @Param("achievementCode") String achievementCode);
     
     boolean existsByUserIdAndTierId(Long userId, Integer tierId);
+    
+    boolean existsByTierId(Integer tierId);
 }

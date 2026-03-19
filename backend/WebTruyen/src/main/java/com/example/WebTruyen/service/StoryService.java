@@ -1491,6 +1491,7 @@ public class StoryService {
         boolean allowed = userId != null && (
                 userRoleRepository.existsByUser_IdAndRole_Code(userId, "ADMIN")
                         || userRoleRepository.existsByUser_IdAndRole_Code(userId, "MOD")
+                        || userRoleRepository.existsByUser_IdAndRole_Code(userId, "REVIEWER")
         );
 
         if (!allowed) {

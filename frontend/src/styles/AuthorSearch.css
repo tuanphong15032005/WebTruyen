@@ -1,0 +1,80 @@
+/* ===== WebTruyen Author Search Feature START ===== */
+/* CSS for Author Search Page components */
+/* ===== WebTruyen Author Search Feature END ===== */
+
+/* Line clamp utility for text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for suggestions dropdown */
+.author-search-suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.author-search-suggestions::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.author-search-suggestions::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.author-search-suggestions::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Hover effects for author cards */
+.author-card {
+  transition: all 0.3s ease;
+}
+
+.author-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Loading skeleton animation */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background-color: #e2e5e7;
+  background-image: linear-gradient(
+    90deg,
+    #e2e5e7 0px,
+    #f0f3f5 40px,
+    #e2e5e7 80px
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .author-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .author-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .author-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

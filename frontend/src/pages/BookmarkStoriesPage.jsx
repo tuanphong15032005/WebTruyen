@@ -74,7 +74,7 @@ const BookmarkStoriesPage = () => {
               <BookMarked size={20} />
               <span>Bookmark</span>
             </div>
-            <div className="menu-item" onClick={() => navigate('/search')}>
+            <div className="menu-item" onClick={() => navigate('/authors')}>
               <Search size={20} />
               <span>Tìm kiếm tác giả</span>
             </div>

@@ -1,0 +1,518 @@
+.reviewer-application-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.reviewer-application-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.reviewer-application-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reviewer-application-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.reviewer-application-body {
+  padding: 24px;
+}
+
+.loading-check {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.eligibility-check {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.eligibility-icon {
+  margin-bottom: 20px;
+}
+
+.eligibility-icon .warning {
+  color: #f59e0b;
+}
+
+.eligibility-check h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.eligibility-check p {
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.days-remaining {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.days-count {
+  font-size: 48px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.days-text {
+  font-size: 18px;
+  color: #6b7280;
+}
+
+.come-back {
+  font-weight: 500;
+  color: #374151;
+  background: #f9fafb;
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.alert-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.benefits-section {
+  margin-bottom: 32px;
+}
+
+.benefits-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.benefit-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.benefit-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.benefit-item h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.benefit-item p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.application-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group textarea {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group textarea::placeholder {
+  color: #9ca3af;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-submit {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-submit .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  margin: 0;
+}
+
+.reviewer-status-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.status-card {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.status-card.success {
+  border-left: 4px solid #10b981;
+}
+
+.status-card.pending {
+  border-left: 4px solid #f59e0b;
+}
+
+.status-card.rejected {
+  border-left: 4px solid #ef4444;
+}
+
+.status-card.not-eligible {
+  border-left: 4px solid #f59e0b;
+}
+
+.status-card.eligible {
+  border-left: 4px solid #3b82f6;
+}
+
+.status-icon {
+  margin-bottom: 20px;
+}
+
+.status-icon .success {
+  color: #10b981;
+}
+
+.status-icon .warning {
+  color: #f59e0b;
+}
+
+.status-icon .error {
+  color: #ef4444;
+}
+
+.status-icon .primary {
+  color: #3b82f6;
+}
+
+.status-card h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.status-card p {
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.application-details {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.application-details p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.rejection-reason {
+  background: #fef2f2;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #fecaca;
+}
+
+.rejection-reason p {
+  color: #dc2626;
+  margin: 0;
+}
+
+.btn-apply-again,
+.btn-apply-now {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-apply-again:hover,
+.btn-apply-now:hover {
+  background: #2563eb;
+}
+
+.btn-refresh {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.btn-refresh:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.benefits-preview {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.benefits-preview h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.benefits-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.benefits-preview li {
+  padding: 8px 0;
+  color: #6b7280;
+  position: relative;
+  padding-left: 20px;
+}
+
+.benefits-preview li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: bold;
+}
+
+.benefits-section {
+  margin: 24px 0;
+  text-align: left;
+}
+
+.benefits-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.benefit-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.benefit-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.benefit-item h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.benefit-item p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .reviewer-status-container {
+    padding: 0 16px;
+  }
+  
+  .status-card {
+    padding: 24px 16px;
+  }
+  
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+}

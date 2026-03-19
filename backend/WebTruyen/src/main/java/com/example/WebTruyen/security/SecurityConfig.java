@@ -63,8 +63,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/uploads/image").permitAll()
                         .requestMatchers("/api/tags").permitAll()
                         .requestMatchers("/api/v1/tags").permitAll()
-                        .requestMatchers("/api/achievements/debug/**").permitAll()
+                        .requestMatchers("/api/notifications/**").permitAll()
+
+                        .requestMatchers("/api/author-application/check-pen-name").permitAll()
+
                         .requestMatchers("/api/reports").authenticated()
+
+                        // Achievement endpoints - allow for testing
+                        .requestMatchers("/api/tiered-achievements/**").permitAll()
 
                         // Tác giả quản lý bình luận (trả lời, ẩn, xóa) — yêu cầu đăng nhập
                         .requestMatchers("/api/author/**").authenticated()

@@ -16,19 +16,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    
+    // Simple cache for unread counts (userId -> (count, timestamp))
+    private final Map<Long, Pair<Long, LocalDateTime>> unreadCountCache = new ConcurrentHashMap<>();
+    private static final long CACHE_DURATION_MINUTES = 5;
 
     public NotificationListResponseDto getNotificationsByCategory(Long userId, NotificationCategory category, Pageable pageable) {
         List<NotificationKind> kinds = getKindsByCategory(category);
-        Page<NotificationEntity> notificationPage = notificationRepository.findByUserIdAndKindInOrderByCreatedAtDesc(userId, kinds, pageable);
+        // Use simple query without JOIN FETCH to prevent N+1 queries
+        Page<NotificationEntity> notificationPage = notificationRepository.findByUserIdAndKindInOrderByCreatedAtDescSimple(userId, kinds, pageable);
         
         List<NotificationResponseDto> notifications = notificationPage.getContent().stream()
                 .map(entity -> mapToResponseDto(entity, true)) // All notifications are considered unread for now
@@ -45,7 +53,8 @@ public class NotificationService {
     }
 
     public NotificationListResponseDto getAllNotifications(Long userId, Pageable pageable) {
-        Page<NotificationEntity> notificationPage = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        // Use simple query without JOIN FETCH to prevent N+1 queries
+        Page<NotificationEntity> notificationPage = notificationRepository.findByUserIdOrderByCreatedAtDescSimple(userId, pageable);
         
         List<NotificationResponseDto> notifications = notificationPage.getContent().stream()
                 .map(entity -> mapToResponseDto(entity, true)) // All notifications are considered unread for now
@@ -62,12 +71,41 @@ public class NotificationService {
     }
 
     public UnreadNotificationCountDto getUnreadCount(Long userId) {
-        long storyCount = notificationRepository.countByUserIdAndKinds(userId, getKindsByCategory(NotificationCategory.STORY));
-        long interactionCount = notificationRepository.countByUserIdAndKinds(userId, getKindsByCategory(NotificationCategory.INTERACTION));
-        long achievementCount = notificationRepository.countByUserIdAndKinds(userId, getKindsByCategory(NotificationCategory.ACHIEVEMENT));
-        long transactionCount = notificationRepository.countByUserIdAndKinds(userId, getKindsByCategory(NotificationCategory.TRANSACTION));
+        // Check cache first
+        Pair<Long, LocalDateTime> cached = unreadCountCache.get(userId);
+        LocalDateTime now = LocalDateTime.now();
+        
+        if (cached != null && cached.getRight().plusMinutes(CACHE_DURATION_MINUTES).isAfter(now)) {
+            // Return cached count
+            long count = cached.getLeft();
+            return new UnreadNotificationCountDto(count, count, 0, 0, 0); // Simplified for cache
+        }
+        
+        // Cache miss or expired, fetch from DB
+        List<Object[]> results = notificationRepository.countNotificationsByKindForUser(userId);
+        
+        long storyCount = 0, interactionCount = 0, achievementCount = 0, transactionCount = 0;
+        
+        for (Object[] result : results) {
+            NotificationKind kind = (NotificationKind) result[0];
+            Long count = (Long) result[1];
+            
+            if (kind == NotificationKind.new_chapter) {
+                storyCount += count;
+                interactionCount += count; // new_chapter also counts as interaction
+            } else if (kind == NotificationKind.report) {
+                interactionCount += count;
+            } else if (kind == NotificationKind.system) {
+                achievementCount += count;
+            } else if (kind == NotificationKind.topup) {
+                transactionCount += count;
+            }
+        }
         
         long totalCount = storyCount + interactionCount + achievementCount + transactionCount;
+        
+        // Update cache
+        unreadCountCache.put(userId, Pair.of(totalCount, now));
 
         return new UnreadNotificationCountDto(totalCount, storyCount, interactionCount, achievementCount, transactionCount);
     }
@@ -84,6 +122,7 @@ public class NotificationService {
         System.out.println("Marking all notifications as read for user: " + userId + " in category: " + category);
     }
 
+    @Transactional
     public void createNotification(Long userId, String type, String title, String message, 
                                   Long referenceId, Long storyId, Long chapterId) {
         NotificationKind kind;
@@ -108,6 +147,9 @@ public class NotificationService {
                 .build();
 
         notificationRepository.save(notification);
+        
+        // Clear cache for this user since they have a new notification
+        unreadCountCache.remove(userId);
     }
 
     private NotificationResponseDto mapToResponseDto(NotificationEntity entity, boolean isRead) {

@@ -24,7 +24,7 @@ import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.UserRoleRepository;
-
+import com.example.WebTruyen.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -37,6 +37,7 @@ public class ReportModerationService {
     private final CommentRepository commentRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<AdminViolationReportResponse> listReports(UserEntity currentUser) {
@@ -55,6 +56,21 @@ public class ReportModerationService {
         report.setAction("DISMISS_REPORT");
         report.setResolvedAt(LocalDateTime.now());
         reportRepository.save(report);
+        
+        // Send notification to the reporter
+        if (report.getReporter() != null) {
+            String message = String.format("Báo cáo của bạn về %s đã được xem xét và bị bác bỏ.", 
+                getTargetDescription(report));
+            notificationService.createNotification(
+                report.getReporter().getId(),
+                "report",
+                "Báo cáo bị bác bỏ",
+                message,
+                report.getId(),
+                report.getStory() != null ? report.getStory().getId() : null,
+                null
+            );
+        }
     }
 
     @Transactional
@@ -116,7 +132,7 @@ public class ReportModerationService {
         }
         if (report.getTargetKind() == ReportEntity.ReportTargetKind.comment && report.getComment() != null) {
             CommentEntity comment = report.getComment();
-            deleteCommentAndDescendants(comment);
+            hideCommentSubtree(comment);
             resolveReport(report, currentUser, "REMOVE_COMMENT");
             return;
         }
@@ -143,12 +159,12 @@ public class ReportModerationService {
         resolveReport(report, currentUser, "WARN_USER");
     }
 
-    private void deleteCommentAndDescendants(CommentEntity comment) {
-        reportRepository.deleteByComment_Id(comment.getId());
+    private void hideCommentSubtree(CommentEntity comment) {
+        comment.setIsHidden(true);
+        commentRepository.save(comment);
         for (CommentEntity child : commentRepository.findByParentComment_Id(comment.getId())) {
-            deleteCommentAndDescendants(child);
+            hideCommentSubtree(child);
         }
-        commentRepository.delete(comment);
     }
 
     private UserEntity resolveViolatingUser(ReportEntity report) {
@@ -170,6 +186,21 @@ public class ReportModerationService {
         report.setAction(action);
         report.setResolvedAt(LocalDateTime.now());
         reportRepository.save(report);
+        
+        // Send notification to the reporter
+        if (report.getReporter() != null) {
+            String message = String.format("Báo cáo của bạn về %s đã được xử lý. Hành động: %s", 
+                getTargetDescription(report), getActionDescription(action));
+            notificationService.createNotification(
+                report.getReporter().getId(),
+                "report",
+                "Báo cáo đã được xử lý",
+                message,
+                report.getId(),
+                report.getStory() != null ? report.getStory().getId() : null,
+                null
+            );
+        }
     }
 
     private ReportEntity requireReport(Long reportId) {
@@ -183,7 +214,8 @@ public class ReportModerationService {
         }
         Long userId = currentUser.getId();
         boolean allowed = userRoleRepository.existsByUser_IdAndRole_Code(userId, "ADMIN")
-                || userRoleRepository.existsByUser_IdAndRole_Code(userId, "MOD");
+                || userRoleRepository.existsByUser_IdAndRole_Code(userId, "MOD")
+                || userRoleRepository.existsByUser_IdAndRole_Code(userId, "REVIEWER");
         if (!allowed) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
@@ -319,6 +351,31 @@ public class ReportModerationService {
         if (normalized.contains("REMOVE")) return "REMOVED_CONTENT";
         if (normalized.contains("WARN_USER")) return "WARNED_USER";
         return normalized;
+    }
+    
+    private String getTargetDescription(ReportEntity report) {
+        switch (report.getTargetKind()) {
+            case story:
+                return report.getStory() != null ? 
+                    "truyện \"" + report.getStory().getTitle() + "\"" : "truyện";
+            case chapter:
+                return report.getChapter() != null ? 
+                    "chương \"" + report.getChapter().getTitle() + "\"" : "chương";
+            case comment:
+                return "bình luận";
+            default:
+                return "nội dung";
+        }
+    }
+    
+    private String getActionDescription(String action) {
+        return switch (action) {
+            case "HIDE_STORY", "HIDE_CHAPTER", "HIDE_COMMENT" -> "Ẩn nội dung";
+            case "REMOVE_STORY", "REMOVE_CHAPTER", "REMOVE_COMMENT" -> "Xóa nội dung";
+            case "BAN_USER" -> "Khóa tài khoản người vi phạm";
+            case "WARN_USER" -> "Cảnh báo người vi phạm";
+            default -> "Đã xử lý";
+        };
     }
 
     @Transactional

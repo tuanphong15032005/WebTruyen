@@ -14,6 +14,7 @@ import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.ReadingHistoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
 import com.example.WebTruyen.repository.BookmarkRepository;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
@@ -23,7 +24,9 @@ import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import com.example.WebTruyen.repository.VolumeRepository;
 import com.example.WebTruyen.repository.ChapterUnlockRepository;
+import com.example.WebTruyen.repository.FollowStoryRepository;
 import com.example.WebTruyen.service.ChapterService;
+import com.example.WebTruyen.service.NotificationService;
 import com.example.WebTruyen.service.StorageService;
 
 import lombok.RequiredArgsConstructor;
@@ -61,8 +64,10 @@ public class ChapterServiceImpl implements ChapterService {
     private final ChapterUnlockRepository chapterUnlockRepository;
     private final ReadingHistoryRepository readingHistoryRepository;
     private final BookmarkRepository bookmarkRepository;
+    private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final DraftRepository draftRepository;
+    private final FollowStoryRepository followStoryRepository;
     private static final Set<String> SEGMENT_BLOCK_TAGS = Set.of(
             "p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "li", "div"
     );
@@ -600,6 +605,25 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setStatus(ChapterStatus.published);
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
+        
+        // Send notifications to followers who have enabled new chapter notifications
+        StoryEntity story = chapter.getVolume().getStory();
+        List<FollowStoryEntity> followers = followStoryRepository.findByStory_IdAndNotifyNewChapterTrue(story.getId());
+        
+        for (FollowStoryEntity follow : followers) {
+            String message = String.format("Truyện \"%s\" đã có chương mới: \"%s\"", 
+                story.getTitle(), chapter.getTitle());
+            notificationService.createNotification(
+                follow.getUser().getId(),
+                "new_chapter",
+                "Chương mới",
+                message,
+                chapter.getId(),
+                story.getId(),
+                chapter.getId()
+            );
+        }
+        
         return toChapterResponse(chapter);
     }
 

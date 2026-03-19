@@ -8,7 +8,7 @@ const BASE_URL =
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // ==========================
@@ -95,7 +95,7 @@ api.interceptors.response.use(
     const err = new Error(message);
     err.response = error.response;
 
-    return Promise.reject(new Error(message));
+    return Promise.reject(err);
   },
 );
 

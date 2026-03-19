@@ -1,9 +1,11 @@
 package com.example.WebTruyen.service.user;
 
 import com.example.WebTruyen.dto.response.UserPortfolioResponse;
+import com.example.WebTruyen.dto.response.FollowerResponse;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowUserEntity;
+import com.example.WebTruyen.entity.enums.StoryStatus;
 import com.example.WebTruyen.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,19 @@ public class UserPortfolioService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        return buildPortfolioResponse(user, userId);
+    }
+
+    public UserPortfolioResponse getUserPortfolioByUsername(String username) {
+        // 1. Load user by username
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+
+        return buildPortfolioResponse(user, user.getId());
+    }
+
+    private UserPortfolioResponse buildPortfolioResponse(UserEntity user, Long userId) {
+
         // 2. Detect isAuthor
         boolean isAuthor = isAuthor(user);
 
@@ -46,10 +61,13 @@ public class UserPortfolioService {
         // 5. Count comments
         Long commentsCount = countCommentsInUserStories(userId);
 
-        // 6. Merge bio logic
+        // 6. Calculate total views from stories
+        Long totalViews = calculateTotalViews(userId);
+
+        // 7. Merge bio logic
         String bio = resolveBio(user, isAuthor);
 
-        // 7. Build response
+        // 8. Build response
         return UserPortfolioResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
@@ -63,11 +81,12 @@ public class UserPortfolioService {
                 .storiesCount(storiesCount)
                 .followersCount(followersCount)
                 .commentsCount(commentsCount)
+                .totalViews(totalViews)  // Add this
                 .build();
     }
 
     public Long countStories(Long userId) {
-        return storyRepository.countByAuthor_Id(userId);
+        return storyRepository.countByAuthor_IdAndStatus(userId, StoryStatus.published);
     }
 
     public Long countFollowers(Long userId) {
@@ -78,14 +97,31 @@ public class UserPortfolioService {
         return commentRepository.countCommentsInUserStories(userId);
     }
 
+    public Long calculateTotalViews(Long userId) {
+        try {
+            // Use native query to sum view_count from all published stories by this author
+            Query query = entityManager.createNativeQuery(
+                "SELECT COALESCE(SUM(s.view_count), 0) FROM stories s " +
+                "WHERE s.author_id = ?1 AND s.status = 'PUBLISHED'"
+            );
+            query.setParameter(1, userId);
+            Long totalViews = ((Number) query.getSingleResult()).longValue();
+            return totalViews;
+        } catch (Exception e) {
+            // If query fails, return 0 as fallback
+            System.err.println("Error calculating total views for user " + userId + ": " + e.getMessage());
+            return 0L;
+        }
+    }
+
     public boolean isAuthor(UserEntity user) {
         // Check if user has author pen name
         if (user.getAuthorPenName() != null && !user.getAuthorPenName().trim().isEmpty()) {
             return true;
         }
         
-        // Check if user has any stories (user.id appears in stories.author_id)
-        Long storiesCount = storyRepository.countByAuthor_Id(user.getId());
+        // Check if user has any published stories (user.id appears in stories.author_id with status = published)
+        Long storiesCount = storyRepository.countByAuthor_IdAndStatus(user.getId(), StoryStatus.published);
         return storiesCount > 0;
     }
 
@@ -165,5 +201,17 @@ public class UserPortfolioService {
                     return storyMap;
                 })
                 .collect(Collectors.toList());
+    }
+
+    // Get followers list with user details
+    public List<FollowerResponse> getFollowersList(Long userId) {
+        try {
+            List<Object[]> results = followUserRepository.findFollowersWithDetails(userId);
+            return results.stream()
+                    .map(FollowerResponse::from)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch followers list: " + e.getMessage());
+        }
     }
 }

@@ -11,9 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -266,11 +264,94 @@ public class DailyMissionAdminService {
     public List<DailyMissionEntity> generateMissionsForDate(LocalDate date) {
         // Check if missions already exist for this date
         List<DailyMissionEntity> existingMissions = dailyMissionRepository.findByDate(date);
-        if (!existingMissions.isEmpty()) {
-            log.warn("Missions already exist for date: {}, returning existing missions", date);
-            return existingMissions;
+        
+        // Get all templates from database
+        List<DailyMissionEntity> templates = dailyMissionRepository.findByDateIsNull();
+        
+        // If no templates found, create with minimal default rewards
+        if (templates.isEmpty()) {
+            log.warn("No templates found, creating minimal default missions for date: {}", date);
+            templates = createMinimalDefaultMissions(date);
         }
 
+        // Define all required mission codes
+        Set<String> requiredMissionCodes = Set.of(
+            TASK_LOGIN, TASK_READ_CHAPTERS, TASK_UNLOCK_CHAPTER, 
+            TASK_COMMENT, TASK_DONATE, TASK_TOPUP
+        );
+        
+        // Get existing mission codes
+        Set<String> existingMissionCodes = existingMissions.stream()
+                .map(DailyMissionEntity::getMissionCode)
+                .collect(Collectors.toSet());
+        
+        List<DailyMissionEntity> resultMissions = new ArrayList<>();
+        
+        if (existingMissions.isEmpty()) {
+            // Case 1: No missions exist - create all 6
+            log.info("No missions exist for date: {}, creating all 6 missions", date);
+            
+            List<DailyMissionEntity> newMissions = templates.stream()
+                    .map(template -> DailyMissionEntity.builder()
+                            .date(date)
+                            .missionCode(template.getMissionCode())
+                            .description(template.getDescription())
+                            .target(template.getTarget())
+                            .rewardCoin(template.getRewardCoin())
+                            .rewardCoinType(template.getRewardCoinType())
+                            .build())
+                    .collect(Collectors.toList());
+
+            resultMissions = dailyMissionRepository.saveAll(newMissions);
+            log.info("Created {} new missions for date: {}", resultMissions.size(), date);
+            
+        } else if (existingMissions.size() >= 6) {
+            // Case 2: Already have 6+ missions - return existing, don't create more
+            log.info("Already have {} missions for date: {}, no new missions needed", existingMissions.size(), date);
+            resultMissions = existingMissions;
+            
+        } else {
+            // Case 3: Have some missions but less than 6 - create missing ones
+            log.info("Have {} missions for date: {}, creating missing missions", existingMissions.size(), date);
+            
+            // Find missing mission codes
+            Set<String> missingMissionCodes = new HashSet<>(requiredMissionCodes);
+            missingMissionCodes.removeAll(existingMissionCodes);
+            
+            // Add existing missions to result
+            resultMissions.addAll(existingMissions);
+            
+            // Create missing missions from templates
+            List<DailyMissionEntity> missingMissions = templates.stream()
+                    .filter(template -> missingMissionCodes.contains(template.getMissionCode()))
+                    .map(template -> DailyMissionEntity.builder()
+                            .date(date)
+                            .missionCode(template.getMissionCode())
+                            .description(template.getDescription())
+                            .target(template.getTarget())
+                            .rewardCoin(template.getRewardCoin())
+                            .rewardCoinType(template.getRewardCoinType())
+                            .build())
+                    .collect(Collectors.toList());
+            
+            List<DailyMissionEntity> savedMissingMissions = dailyMissionRepository.saveAll(missingMissions);
+            resultMissions.addAll(savedMissingMissions);
+            
+            log.info("Added {} missing missions for date: {}, total now: {}", 
+                    savedMissingMissions.size(), resultMissions.size(), date);
+        }
+        
+        return resultMissions;
+    }
+
+    /**
+     * Regenerate missions from templates - only update missions without user progress
+     */
+    @Transactional
+    public List<DailyMissionEntity> regenerateMissionsFromTemplates(LocalDate date) {
+        // Get existing missions for this date
+        List<DailyMissionEntity> existingMissions = dailyMissionRepository.findByDate(date);
+        
         // Get templates from database
         List<DailyMissionEntity> templates = dailyMissionRepository.findByDateIsNull();
         
@@ -280,24 +361,82 @@ public class DailyMissionAdminService {
             templates = createMinimalDefaultMissions(date);
         }
 
-        // Create new missions for the target date based on templates
-        List<DailyMissionEntity> newMissions = templates.stream()
-                .map(template -> DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(template.getMissionCode())
-                        .description(template.getDescription())
-                        .target(template.getTarget())
-                        .rewardCoin(template.getRewardCoin())
-                        .rewardCoinType(template.getRewardCoinType())
-                        .build())
-                .collect(Collectors.toList());
-
-        return dailyMissionRepository.saveAll(newMissions);
+        // Define all required mission codes
+        Set<String> requiredMissionCodes = Set.of(
+            TASK_LOGIN, TASK_READ_CHAPTERS, TASK_UNLOCK_CHAPTER, 
+            TASK_COMMENT, TASK_DONATE, TASK_TOPUP
+        );
+        
+        // Get existing mission codes
+        Set<String> existingMissionCodes = existingMissions.stream()
+                .map(DailyMissionEntity::getMissionCode)
+                .collect(Collectors.toSet());
+        
+        // Find missing mission codes
+        Set<String> missingMissionCodes = new HashSet<>(requiredMissionCodes);
+        missingMissionCodes.removeAll(existingMissionCodes);
+        
+        List<DailyMissionEntity> resultMissions = new ArrayList<>();
+        int updatedCount = 0;
+        int createdCount = 0;
+        
+        // Create missing missions first
+        if (!missingMissionCodes.isEmpty()) {
+            List<DailyMissionEntity> newMissions = templates.stream()
+                    .filter(template -> missingMissionCodes.contains(template.getMissionCode()))
+                    .map(template -> DailyMissionEntity.builder()
+                            .date(date)
+                            .missionCode(template.getMissionCode())
+                            .description(template.getDescription())
+                            .target(template.getTarget())
+                            .rewardCoin(template.getRewardCoin())
+                            .rewardCoinType(template.getRewardCoinType())
+                            .build())
+                    .collect(Collectors.toList());
+            
+            List<DailyMissionEntity> savedNewMissions = dailyMissionRepository.saveAll(newMissions);
+            resultMissions.addAll(savedNewMissions);
+            createdCount = savedNewMissions.size();
+            log.info("Created {} missing missions for date: {}", createdCount, date);
+        }
+        
+        // Update existing missions that have no user progress
+        for (DailyMissionEntity existingMission : existingMissions) {
+            // Check if any user has progress for this mission
+            Long userProgressCount = userDailyStatusRepository.countUsersByMissionId(existingMission.getId().longValue());
+            boolean hasUserProgress = userProgressCount != null && userProgressCount > 0;
+            
+            if (!hasUserProgress) {
+                // Find corresponding template
+                Optional<DailyMissionEntity> template = templates.stream()
+                        .filter(t -> t.getMissionCode().equals(existingMission.getMissionCode()))
+                        .findFirst();
+                
+                if (template.isPresent()) {
+                    DailyMissionEntity tmpl = template.get();
+                    // Update mission with template data
+                    existingMission.setDescription(tmpl.getDescription());
+                    existingMission.setTarget(tmpl.getTarget());
+                    existingMission.setRewardCoin(tmpl.getRewardCoin());
+                    existingMission.setRewardCoinType(tmpl.getRewardCoinType());
+                    
+                    DailyMissionEntity saved = dailyMissionRepository.save(existingMission);
+                    resultMissions.add(saved);
+                    updatedCount++;
+                    log.info("Updated mission {} from template for date: {}", existingMission.getMissionCode(), date);
+                }
+            } else {
+                // Keep existing mission as-is (has user progress)
+                resultMissions.add(existingMission);
+                log.info("Kept mission {} unchanged (has user progress) for date: {}", existingMission.getMissionCode(), date);
+            }
+        }
+        
+        log.info("Mission regeneration completed for date: {} - Created: {}, Updated: {}, Total: {}", 
+                date, createdCount, updatedCount, resultMissions.size());
+        
+        return resultMissions;
     }
-
-    /**
-     * Create minimal default missions if no reference found
-     */
     private List<DailyMissionEntity> createMinimalDefaultMissions(LocalDate date) {
         return List.of(
                 DailyMissionEntity.builder()
@@ -436,6 +575,47 @@ public class DailyMissionAdminService {
                 "toDate", toDate,
                 "missionsCopied", savedMissions.size(),
                 "message", "Đã copy " + savedMissions.size() + " nhiệm vụ từ " + fromDate + " sang " + toDate
+        );
+    }
+
+    /**
+     * Batch delete missions that don't have any user progress
+     */
+    @Transactional
+    public Map<String, Object> batchDeleteMissionsWithoutProgress(LocalDate date) {
+        List<DailyMissionEntity> missions = dailyMissionRepository.findByDate(date);
+        
+        if (missions.isEmpty()) {
+            return Map.of(
+                    "deletedCount", 0,
+                    "skippedCount", 0,
+                    "message", "Không có nhiệm vụ nào cho ngày " + date
+            );
+        }
+
+        int deletedCount = 0;
+        int skippedCount = 0;
+
+        for (DailyMissionEntity mission : missions) {
+            // Check if any user has progress for this mission
+            List<UserDailyStatusEntity> userProgress = userDailyStatusRepository.findByMissionId(mission.getId().longValue());
+            
+            if (userProgress.isEmpty()) {
+                // No user progress, safe to delete
+                dailyMissionRepository.delete(mission);
+                deletedCount++;
+                log.info("Deleted mission {} ({}) - no user progress", mission.getId(), mission.getMissionCode());
+            } else {
+                // Has user progress, skip deletion
+                skippedCount++;
+                log.info("Skipped deletion of mission {} ({}) - has user progress", mission.getId(), mission.getMissionCode());
+            }
+        }
+
+        return Map.of(
+                "deletedCount", deletedCount,
+                "skippedCount", skippedCount,
+                "message", "Đã xóa " + deletedCount + " nhiệm vụ, bỏ qua " + skippedCount + " nhiệm vụ có người làm"
         );
     }
 }

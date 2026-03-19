@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react';
+import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { BookOpen, MessageCircle, Trophy, Coins, Check, RefreshCw } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
@@ -18,6 +18,7 @@ const NotificationPage = () => {
   
   const user = getStoredUser();
   const pageSize = 20;
+  const debounceTimeoutRef = useRef(null);
 
   const tabs = [
     { id: 'all', label: 'Tất cả', icon: MessageCircle },
@@ -30,68 +31,67 @@ const NotificationPage = () => {
   useEffect(() => {
     if (!user) return;
     
-    fetchUnreadCount();
-    fetchNotifications();
-  }, [user, activeTab]); // Remove function dependencies
+    fetchUnreadCountAPI(user.id);
+    fetchNotificationsAPI(user.id, currentPage, activeTab);
+  }, [user?.id, currentPage, activeTab]); // Clear dependencies
 
-  useEffect(() => {
-    if (!user) return;
-    
-    if (activeTab === 'transaction') {
-      fetchTransactions();
-    } else {
-      fetchNotifications();
-    }
-  }, [currentPage, activeTab]); // Remove function dependencies
+  // Remove old useEffect that causes conflicts
 
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const count = await notificationService.getUnreadCount();
-      setUnreadCount(count.totalCount || 0);
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
-    }
-  }, []);
-
-  const fetchNotifications = useCallback(async () => {
-    if (activeTab === 'transaction') {
-      return; // Skip if transaction tab
+  // Fetch functions outside effects to prevent closure issues
+  const fetchNotificationsAPI = async (userId, page, tab) => {
+    if (tab === 'transaction') {
+      try {
+        const response = await notificationService.getTransactionHistory(page, pageSize);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setTransactions(response.content || []);
+        setTotalPages(response.totalPages || 0);
+        setTotalElements(response.totalElements || 0);
+      } catch (error) {
+        setError('Không thể tải lịch sử giao dịch. Vui lòng thử lại.');
+        console.error('Failed to fetch transactions:', error);
+        setTransactions([]);
+        setTotalPages(0);
+        setTotalElements(0);
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
 
     setLoading(true);
     setError(null);
     
     try {
-      const category = activeTab === 'all' ? null : activeTab.toUpperCase();
-      const response = await notificationService.getNotifications(category, currentPage, pageSize);
+      const category = tab === 'all' ? null : tab.toUpperCase();
+      const response = await notificationService.getNotifications(category, page, pageSize);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       setNotifications(response.notifications || []);
       setTotalPages(response.totalPages || 0);
       setTotalElements(response.totalElements || 0);
+      console.log('Notifications fetched:', response.notifications?.length || 0);
     } catch (error) {
       setError('Không thể tải thông báo. Vui lòng thử lại.');
       console.error('Failed to fetch notifications:', error);
+      setNotifications([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, currentPage]);
+  };
 
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
+  const fetchUnreadCountAPI = async (userId) => {
     try {
-      const response = await notificationService.getTransactionHistory(currentPage, pageSize);
-      setTransactions(response.content || []);
-      setTotalPages(response.totalPages || 0);
-      setTotalElements(response.totalElements || 0);
+      const count = await notificationService.getUnreadCount(userId);
+      setUnreadCount(count.totalCount || 0);
+      console.log('Unread count fetched:', count.totalCount);
     } catch (error) {
-      setError('Không thể tải lịch sử giao dịch. Vui lòng thử lại.');
-      console.error('Failed to fetch transactions:', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch unread count:', error);
+      setUnreadCount(0);
     }
-  }, [currentPage]);
+  };
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -99,7 +99,7 @@ const NotificationPage = () => {
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
       );
-      fetchUnreadCount();
+      fetchUnreadCountAPI(user?.id);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -112,10 +112,21 @@ const NotificationPage = () => {
       setNotifications(prev => 
         prev.map(n => ({ ...n, isRead: true }))
       );
-      fetchUnreadCount();
+      fetchUnreadCountAPI(user?.id);
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
+  };
+
+  const handleTabChange = (newTab) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      setActiveTab(newTab);
+      setCurrentPage(0);
+    }, 200);
   };
 
   const handlePageChange = (newPage) => {
@@ -199,10 +210,7 @@ const NotificationPage = () => {
               <button
                 key={tab.id}
                 className={`notification-page__tab ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setCurrentPage(0);
-                }}
+                onClick={() => handleTabChange(tab.id)}
               >
                 <Icon size={18} />
                 {tab.label}
@@ -223,7 +231,7 @@ const NotificationPage = () => {
           ) : error ? (
             <div className="notification-page__error">
               <p>{error}</p>
-              <button onClick={activeTab === 'transaction' ? fetchTransactions : fetchNotifications}>
+              <button onClick={() => fetchNotificationsAPI(user?.id, currentPage, activeTab)}>
                 Thử lại
               </button>
             </div>
