@@ -3,11 +3,14 @@ import com.example.WebTruyen.dto.request.CreateVolumeRequest;
 import com.example.WebTruyen.dto.response.CreateVolumeResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.dto.response.ChapterSummaryResponse;
+import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
+import com.example.WebTruyen.entity.model.CommentAndMod.ModerationActionEntity;
 import com.example.WebTruyen.entity.model.Content.VolumeEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.enums.StoryStatus;
+import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.VolumeRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.ChapterRepository;
@@ -18,6 +21,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -26,10 +31,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class VolumeService {
+    private static final Duration APPROVAL_RESUBMIT_COOLDOWN = Duration.ofHours(24);
 
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
+    private final ModerationActionRepository moderationActionRepository;
     private final StorageService storageService;
 
     /**
@@ -158,14 +165,7 @@ public class VolumeService {
         for (VolumeEntity volume : volumes) {
             List<ChapterEntity> chapters = chapterRepository.findByVolume_IdOrderBySequenceIndexAsc(volume.getId());
             List<ChapterSummaryResponse> chapterDtos = chapters.stream()
-                    .map(c -> new ChapterSummaryResponse(
-                            c.getId(),
-                            c.getTitle(),
-                            c.getSequenceIndex(),
-                            c.getLastUpdateAt(),
-                            c.getStatus() != null ? c.getStatus().name() : null,
-                            c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null
-                    ))
+                    .map(this::toAuthorChapterSummaryResponse)
                     .toList();
             result.add(new VolumeSummaryResponse(
                     volume.getId(),
@@ -201,9 +201,16 @@ public class VolumeService {
                             c.getSequenceIndex(),
                             c.getLastUpdateAt(),
                             c.getStatus().name(),
-                            c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null
+                            c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null,
+                            null,
+                            null,
+                            null,
+                            null
                     ))
                     .toList();
+            if (chapterDtos.isEmpty()) {
+                continue;
+            }
             result.add(new VolumeSummaryResponse(
                     volume.getId(),
                     volume.getStory().getId(),
@@ -215,5 +222,90 @@ public class VolumeService {
             ));
         }
         return result;
+    }
+
+    private ChapterSummaryResponse toAuthorChapterSummaryResponse(ChapterEntity chapter) {
+        ModerationActionEntity latestAction = resolveLatestModerationAction(chapter.getId());
+        ChapterApprovalStatus rawApprovalStatus = chapter.getApprovalStatus();
+        ChapterApprovalStatus effectiveApprovalStatus = resolveEffectiveApprovalStatus(
+                rawApprovalStatus,
+                chapter.getLastUpdateAt()
+        );
+        String moderationNote = resolveRejectedModerationNote(rawApprovalStatus, latestAction);
+        LocalDateTime resubmitAvailableAt = computeResubmitAvailableAt(chapter.getLastUpdateAt());
+        Long resubmitHoursRemaining = rawApprovalStatus == ChapterApprovalStatus.rejected
+                ? computeResubmitHoursRemaining(chapter.getLastUpdateAt())
+                : null;
+
+        return new ChapterSummaryResponse(
+                chapter.getId(),
+                chapter.getTitle(),
+                chapter.getSequenceIndex(),
+                chapter.getLastUpdateAt(),
+                chapter.getStatus() != null ? chapter.getStatus().name() : null,
+                effectiveApprovalStatus != null ? effectiveApprovalStatus.name() : null,
+                moderationNote,
+                resubmitAvailableAt,
+                resubmitHoursRemaining,
+                chapter.getScheduledPublishAt()
+        );
+    }
+
+    private ModerationActionEntity resolveLatestModerationAction(Long chapterId) {
+        if (chapterId == null) {
+            return null;
+        }
+        return moderationActionRepository
+                .findTopByTargetKindAndTargetIdOrderByCreatedAtDesc(
+                        ModerationActionEntity.ModerationTargetKind.chapter,
+                        chapterId
+                )
+                .orElse(null);
+    }
+
+    private ChapterApprovalStatus resolveEffectiveApprovalStatus(
+            ChapterApprovalStatus approvalStatus,
+            LocalDateTime lastUpdateAt
+    ) {
+        if (approvalStatus == ChapterApprovalStatus.rejected
+                && computeResubmitHoursRemaining(lastUpdateAt) == 0L) {
+            return null;
+        }
+        return approvalStatus;
+    }
+
+    private String resolveRejectedModerationNote(
+            ChapterApprovalStatus approvalStatus,
+            ModerationActionEntity action
+    ) {
+        if (approvalStatus != ChapterApprovalStatus.rejected || action == null) {
+            return null;
+        }
+        String actionType = action.getActionType() == null ? "" : action.getActionType().trim().toLowerCase();
+        if (!actionType.contains("reject")) {
+            return null;
+        }
+        String note = action.getNotes();
+        return note == null || note.isBlank() ? null : note.trim();
+    }
+
+    private LocalDateTime computeResubmitAvailableAt(LocalDateTime lastUpdateAt) {
+        if (lastUpdateAt == null) {
+            return null;
+        }
+        return lastUpdateAt.plus(APPROVAL_RESUBMIT_COOLDOWN);
+    }
+
+    private long computeResubmitHoursRemaining(LocalDateTime lastUpdateAt) {
+        LocalDateTime availableAt = computeResubmitAvailableAt(lastUpdateAt);
+        if (availableAt == null) {
+            return 0L;
+        }
+        Duration remaining = Duration.between(LocalDateTime.now(), availableAt);
+        if (remaining.isZero() || remaining.isNegative()) {
+            return 0L;
+        }
+        long minutesRemaining = remaining.toMinutes();
+        return Math.max(1L, (minutesRemaining + 59L) / 60L);
     }
 }

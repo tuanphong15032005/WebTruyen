@@ -61,8 +61,19 @@ public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
             """)
     List<ChapterEntity> findByStoryId(@Param("storyId") Long storyId);
 
-    @Query("SELECT c FROM ChapterEntity c WHERE c.status = :status AND c.createdAt <= :now")
-    List<ChapterEntity> findScheduledChaptersToPublish(@Param("status") ChapterStatus status, @Param("now") LocalDateTime now);
+    @Query("""
+            SELECT c
+            FROM ChapterEntity c
+            WHERE c.status = :status
+              AND c.approvalStatus = :approvalStatus
+              AND c.scheduledPublishAt IS NOT NULL
+              AND c.scheduledPublishAt <= :now
+            """)
+    List<ChapterEntity> findScheduledChaptersToPublish(
+            @Param("status") ChapterStatus status,
+            @Param("approvalStatus") ChapterApprovalStatus approvalStatus,
+            @Param("now") LocalDateTime now
+    );
     List<ChapterEntity> findByStatusOrderByCreatedAtDesc(ChapterStatus status);
     List<ChapterEntity> findByApprovalStatusOrderByCreatedAtDesc(ChapterApprovalStatus approvalStatus);
 

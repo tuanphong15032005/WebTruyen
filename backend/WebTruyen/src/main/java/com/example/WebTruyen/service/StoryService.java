@@ -3,6 +3,7 @@ package com.example.WebTruyen.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.Normalizer;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,6 +76,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class StoryService {
+    private static final Duration APPROVAL_RESUBMIT_COOLDOWN = Duration.ofHours(24);
 
     private final StoryRepository storyRepository;
     private final TagRepository tagRepository;
@@ -729,8 +731,18 @@ public class StoryService {
         StoryEntity story = storyRepository.findByIdAndAuthorId(rawStoryId, authorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
 
-        if (story.getApprovalStatus() != null) {
+        StoryApprovalStatus approvalStatus = story.getApprovalStatus();
+        if (approvalStatus == StoryApprovalStatus.pending || approvalStatus == StoryApprovalStatus.approved) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Story already submitted for review");
+        }
+        if (approvalStatus == StoryApprovalStatus.rejected) {
+            long hoursRemaining = computeResubmitHoursRemaining(story.getApprovalUpdatedAt());
+            if (hoursRemaining > 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Truyện bị từ chối duyệt. Vui lòng gửi lại sau " + hoursRemaining + " giờ"
+                );
+            }
         }
 
         story.setApprovalStatus(StoryApprovalStatus.pending);
@@ -758,6 +770,21 @@ public class StoryService {
         String translatorPenName = story.getKind() == StoryKind.translated ? authorPenName : null;
         Long originalAuthorUserId = story.getOriginalAuthorUser() != null ? story.getOriginalAuthorUser().getId() : null;
 
+        ModerationActionEntity latestAction = resolveLatestModerationAction(
+                ModerationActionEntity.ModerationTargetKind.story,
+                story.getId()
+        );
+        StoryApprovalStatus rawApprovalStatus = story.getApprovalStatus();
+        StoryApprovalStatus effectiveApprovalStatus = resolveEffectiveApprovalStatus(
+                rawApprovalStatus,
+                story.getApprovalUpdatedAt()
+        );
+        String moderationNote = resolveRejectedModerationNote(rawApprovalStatus, latestAction);
+        LocalDateTime resubmitAvailableAt = computeResubmitAvailableAt(story.getApprovalUpdatedAt());
+        Long resubmitHoursRemaining = rawApprovalStatus == StoryApprovalStatus.rejected
+                ? computeResubmitHoursRemaining(story.getApprovalUpdatedAt())
+                : null;
+
         return new StoryResponse(
                 story.getId(),
                 story.getAuthor() != null ? story.getAuthor().getId() : null,
@@ -767,7 +794,10 @@ public class StoryService {
                 story.getSummary(),
                 story.getCoverUrl(),
                 story.getStatus() != null ? story.getStatus().name() : null,
-                story.getApprovalStatus() != null ? story.getApprovalStatus().name() : null,
+                effectiveApprovalStatus != null ? effectiveApprovalStatus.name() : null,
+                moderationNote,
+                resubmitAvailableAt,
+                resubmitHoursRemaining,
                 story.getKind() != null ? story.getKind().name() : null,
                 story.getCompletionStatus() != null ? story.getCompletionStatus().name() : null,
                 story.getCompletedAt(),
@@ -1146,6 +1176,60 @@ public class StoryService {
         }
         return userRepository.findById(originalAuthorUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "originalAuthorUserId not found"));
+    }
+
+    ModerationActionEntity resolveLatestModerationAction(
+            ModerationActionEntity.ModerationTargetKind targetKind,
+            Long targetId
+    ) {
+        if (targetId == null) {
+            return null;
+        }
+        return moderationActionRepository
+                .findTopByTargetKindAndTargetIdOrderByCreatedAtDesc(targetKind, targetId)
+                .orElse(null);
+    }
+
+    String resolveRejectedModerationNote(StoryApprovalStatus approvalStatus, ModerationActionEntity action) {
+        if (approvalStatus != StoryApprovalStatus.rejected || action == null) {
+            return null;
+        }
+        String actionType = action.getActionType() == null ? "" : action.getActionType().trim().toLowerCase(Locale.ROOT);
+        if (!actionType.contains("reject")) {
+            return null;
+        }
+        return trimToNull(action.getNotes());
+    }
+
+    StoryApprovalStatus resolveEffectiveApprovalStatus(
+            StoryApprovalStatus approvalStatus,
+            LocalDateTime approvalUpdatedAt
+    ) {
+        if (approvalStatus == StoryApprovalStatus.rejected
+                && computeResubmitHoursRemaining(approvalUpdatedAt) == 0L) {
+            return null;
+        }
+        return approvalStatus;
+    }
+
+    LocalDateTime computeResubmitAvailableAt(LocalDateTime approvalUpdatedAt) {
+        if (approvalUpdatedAt == null) {
+            return null;
+        }
+        return approvalUpdatedAt.plus(APPROVAL_RESUBMIT_COOLDOWN);
+    }
+
+    long computeResubmitHoursRemaining(LocalDateTime approvalUpdatedAt) {
+        LocalDateTime availableAt = computeResubmitAvailableAt(approvalUpdatedAt);
+        if (availableAt == null) {
+            return 0L;
+        }
+        Duration remaining = Duration.between(LocalDateTime.now(), availableAt);
+        if (remaining.isZero() || remaining.isNegative()) {
+            return 0L;
+        }
+        long minutesRemaining = remaining.toMinutes();
+        return Math.max(1L, (minutesRemaining + 59L) / 60L);
     }
 
     private List<TagDto> syncStoryTags(StoryEntity story, List<Long> tagIds, boolean replaceExisting) {

@@ -525,6 +525,9 @@ export default function UserProfile({ userData }) {
   };
 
   const username = profileData?.username || '';
+  const portfolioUserId =
+    profileData?.id || localStorage.getItem('userId') || '';
+  const portfolioHref = portfolioUserId ? `/portfolio/${portfolioUserId}` : '';
   const hasAvatar = Boolean(avatarPreviewUrl || existingAvatarUrl);
 
   if (loading) {
@@ -690,6 +693,15 @@ export default function UserProfile({ userData }) {
                   <h1>{displayName || username || 'Người dùng'}</h1>
                   <div className="profile-role-badge">{getUserRoleDisplay()}</div>
                   <div className="profile-username">@{username}</div>
+                  {portfolioHref && (
+                    <button
+                      type="button"
+                      className="profile-portfolio-button"
+                      onClick={() => navigate(portfolioHref)}
+                    >
+                      Xem trang cá nhân
+                    </button>
+                  )}
                 </div>
               </div>
 

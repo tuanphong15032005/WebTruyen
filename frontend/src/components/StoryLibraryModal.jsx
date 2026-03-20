@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ConfirmActionModal from './ConfirmActionModal';
 import SkeletonBlock from './SkeletonBlock';
 import storyService from '../services/storyService';
@@ -43,7 +43,9 @@ const StoryLibraryModal = ({
   const [albumForm, setAlbumForm] = useState(DEFAULT_ALBUM_FORM);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [hydratedStoryId, setHydratedStoryId] = useState(null);
+  const [isScrollActive, setIsScrollActive] = useState(false);
   const currentStoryId = story?.id == null ? null : String(story.id);
+  const scrollActivityTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -56,6 +58,7 @@ const StoryLibraryModal = ({
       setAlbumForm(DEFAULT_ALBUM_FORM);
       setShowRemoveConfirm(false);
       setHydratedStoryId(null);
+      setIsScrollActive(false);
       return undefined;
     }
 
@@ -93,6 +96,14 @@ const StoryLibraryModal = ({
   }, [currentStoryId, isOpen, notify, onClose, story?.id]);
 
   useEffect(() => {
+    return () => {
+      if (scrollActivityTimeoutRef.current) {
+        window.clearTimeout(scrollActivityTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return undefined;
 
     const handleEscape = (event) => {
@@ -106,6 +117,16 @@ const StoryLibraryModal = ({
   }, [isOpen, onClose, saving]);
 
   if (!isOpen || !story) return null;
+
+  const handlePanelScroll = () => {
+    setIsScrollActive(true);
+    if (scrollActivityTimeoutRef.current) {
+      window.clearTimeout(scrollActivityTimeoutRef.current);
+    }
+    scrollActivityTimeoutRef.current = window.setTimeout(() => {
+      setIsScrollActive(false);
+    }, 900);
+  };
 
   const handleAlbumToggle = (albumId) => {
     if (readingStatus === 'none' || saving) return;
@@ -268,8 +289,9 @@ const StoryLibraryModal = ({
         onClick={() => !saving && onClose?.()}
       >
         <div
-          className='story-library-modal__panel'
+          className={`story-library-modal__panel${isScrollActive ? ' story-library-modal__panel--scroll-active' : ''}`}
           onClick={(event) => event.stopPropagation()}
+          onScroll={handlePanelScroll}
         >
           <div className='story-library-modal__header'>
             <div>

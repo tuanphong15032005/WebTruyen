@@ -1,9 +1,3 @@
 package com.example.WebTruyen.entity.enums;
 
-public enum NotificationKind {
-    new_chapter, 
-    topup, 
-    report, 
-    system,
-    chapter_comment
-}
+public enum NotificationKind {new_chapter, topup, report, system}

@@ -8,5 +8,9 @@ public record ChapterSummaryResponse(
         Integer sequenceIndex,
         LocalDateTime lastUpdateAt,
         String status,
-        String approvalStatus
+        String approvalStatus,
+        String moderationNote,
+        LocalDateTime resubmitAvailableAt,
+        Long resubmitHoursRemaining,
+        LocalDateTime scheduledPublishAt
 ) {}

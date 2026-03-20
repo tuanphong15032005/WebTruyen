@@ -10,6 +10,7 @@ import java.util.*;
 @Table(name = "chapters",
         indexes = {
                 @Index(name = "ix_chapters_volume", columnList = "volume_id"),
+                @Index(name = "ix_chapters_scheduled_publish_at", columnList = "scheduled_publish_at")
         }
 )
 @Getter @Setter
@@ -52,6 +53,9 @@ public class ChapterEntity {
 
     @Column(name = "last_update_at")
     private LocalDateTime lastUpdateAt;
+
+    @Column(name = "scheduled_publish_at")
+    private LocalDateTime scheduledPublishAt;
 
     @OneToMany(mappedBy = "chapter", fetch = FetchType.LAZY)
     @Builder.Default
