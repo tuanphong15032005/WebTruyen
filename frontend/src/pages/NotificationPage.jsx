@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { BookOpen, MessageCircle, Trophy, Coins, Check, RefreshCw } from 'lucide-react';
+import { BookOpen, MessageCircle, Trophy, Coins, RefreshCw } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
 import NotificationItem from '../components/NotificationItem';
@@ -93,31 +93,6 @@ const NotificationPage = () => {
     }
   };
 
-  const handleMarkAsRead = async (notificationId) => {
-    try {
-      await notificationService.markAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
-      );
-      fetchUnreadCountAPI(user?.id);
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      const category = activeTab === 'all' ? null : activeTab.toUpperCase();
-      await notificationService.markAllAsRead(category);
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, isRead: true }))
-      );
-      fetchUnreadCountAPI(user?.id);
-    } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
-    }
-  };
-
   const handleTabChange = (newTab) => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -186,15 +161,6 @@ const NotificationPage = () => {
             )}
           </div>
           
-          {activeTab !== 'transaction' && notifications.length > 0 && (
-            <button
-              className="notification-page__mark-all-read"
-              onClick={handleMarkAllAsRead}
-            >
-              <Check size={16} />
-              Đánh dấu đã đọc tất cả
-            </button>
-          )}
         </div>
 
         <div className="notification-page__tabs">
@@ -285,7 +251,6 @@ const NotificationPage = () => {
                     <NotificationItem
                       key={notification.id}
                       notification={notification}
-                      onMarkAsRead={handleMarkAsRead}
                     />
                   ))}
                 </div>

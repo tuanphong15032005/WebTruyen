@@ -1,12 +1,16 @@
 import React from 'react';
 import { BookOpen, MessageCircle, Trophy, Coins, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const NotificationItem = ({ notification, onMarkAsRead }) => {
+const NotificationItem = ({ notification }) => {
+  const navigate = useNavigate();
   const getNotificationIcon = (type) => {
     switch (type?.toLowerCase()) {
       case 'new_chapter':
       case 'report':
         return <BookOpen size={20} />;
+      case 'comment':
+        return <MessageCircle size={20} />;
       case 'system':
         return <Trophy size={20} />;
       case 'topup':
@@ -21,6 +25,8 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
       case 'new_chapter':
       case 'report':
         return 'text-blue-600 bg-blue-100';
+      case 'comment':
+        return 'text-purple-600 bg-purple-100';
       case 'system':
         return 'text-yellow-600 bg-yellow-100';
       case 'topup':
@@ -50,8 +56,16 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
   };
 
   const handleClick = () => {
-    if (notification.isRead) return;
-    onMarkAsRead && onMarkAsRead(notification.id);
+    // Navigate to comment location if it's a comment notification
+    if (notification.type?.toLowerCase() === 'comment') {
+      if (notification.chapterId && notification.storyId) {
+        // Navigate to chapter page with comment section
+        navigate(`/stories/${notification.storyId}/chapters/${notification.chapterId}#comments`);
+      } else if (notification.storyId) {
+        // Navigate to story metadata page with comment section
+        navigate(`/stories/${notification.storyId}/metadata#comments`);
+      }
+    }
   };
 
   return (

@@ -82,37 +82,4 @@ public class NotificationController {
         UnreadNotificationCountDto response = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(response);
     }
-
-    @PutMapping("/{id}/read")
-    public ResponseEntity<Void> markNotificationAsRead(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        Long userId = userPrincipal.getUser().getId();
-        notificationService.markNotificationAsRead(id, userId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/read-all")
-    public ResponseEntity<Void> markAllNotificationsAsRead(
-            @RequestParam(required = false) String category,
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        Long userId = userPrincipal.getUser().getId();
-        if (category != null && !category.isEmpty()) {
-            try {
-                NotificationCategory notificationCategory = NotificationCategory.valueOf(category.toUpperCase());
-                notificationService.markAllNotificationsAsRead(userId, notificationCategory);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid category: " + category);
-            }
-        } else {
-            // Mark all notifications as read by calling for each category
-            for (NotificationCategory notificationCategory : NotificationCategory.values()) {
-                notificationService.markAllNotificationsAsRead(userId, notificationCategory);
-            }
-        }
-
-        return ResponseEntity.ok().build();
-    }
 }

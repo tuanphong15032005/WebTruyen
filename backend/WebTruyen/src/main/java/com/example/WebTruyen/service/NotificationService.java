@@ -95,6 +95,8 @@ public class NotificationService {
                 interactionCount += count; // new_chapter also counts as interaction
             } else if (kind == NotificationKind.report) {
                 interactionCount += count;
+            } else if (kind == NotificationKind.comment) {
+                interactionCount += count;
             } else if (kind == NotificationKind.system) {
                 achievementCount += count;
             } else if (kind == NotificationKind.topup) {
@@ -108,18 +110,6 @@ public class NotificationService {
         unreadCountCache.put(userId, Pair.of(totalCount, now));
 
         return new UnreadNotificationCountDto(totalCount, storyCount, interactionCount, achievementCount, transactionCount);
-    }
-
-    public void markNotificationAsRead(Long notificationId, Long userId) {
-        // Since we can't modify the schema, we'll just log this for now
-        // In a real implementation, you might need a separate table to track read status
-        System.out.println("Marking notification as read: " + notificationId + " for user: " + userId);
-    }
-
-    public void markAllNotificationsAsRead(Long userId, NotificationCategory category) {
-        // Since we can't modify the schema, we'll just log this for now
-        // In a real implementation, you might need a separate table to track read status
-        System.out.println("Marking all notifications as read for user: " + userId + " in category: " + category);
     }
 
     @Transactional
@@ -172,7 +162,7 @@ public class NotificationService {
             case topup -> "Transaction";
             case report -> "Report";
             case system -> "System";
-            case chapter_comment -> "New Comment";
+            case comment -> "New Comment";
             default -> "Notification";
         };
     }
@@ -180,7 +170,7 @@ public class NotificationService {
     private List<NotificationKind> getKindsByCategory(NotificationCategory category) {
         return switch (category) {
             case STORY -> List.of(NotificationKind.new_chapter); // Chỉ thông báo truyện
-            case INTERACTION -> List.of(NotificationKind.report, NotificationKind.chapter_comment); // Bao gồm cmt, report...
+            case INTERACTION -> List.of(NotificationKind.report, NotificationKind.comment); // Bao gồm cmt, report...
             case ACHIEVEMENT -> List.of(NotificationKind.system); // Chỉ bao gồm achievement, không phải daily tasks
             case TRANSACTION -> List.of(NotificationKind.topup); // Giao dịch tăng giảm coin
         };

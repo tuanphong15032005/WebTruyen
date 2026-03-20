@@ -145,7 +145,7 @@ public class CommentService {
             try {
                 notificationService.createNotification(
                         chapter.getVolume().getStory().getAuthor().getId(),
-                        "chapter_comment",
+                        "comment",
                         "Bình luận mới",
                         currentUser.getUsername() + " đã bình luận: \"" + content.substring(0, Math.min(50, content.length())) + "...\"",
                         null,
@@ -284,7 +284,7 @@ public class CommentService {
             try {
                 notificationService.createNotification(
                         story.getAuthor().getId(),
-                        "chapter_comment",
+                        "comment",
                         "Bình luận mới",
                         currentUser.getUsername() + " đã bình luận: \"" + content.substring(0, Math.min(50, content.length())) + "...\"",
                         null,
