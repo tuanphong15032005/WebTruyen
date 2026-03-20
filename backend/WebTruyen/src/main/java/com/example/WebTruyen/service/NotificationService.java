@@ -172,16 +172,17 @@ public class NotificationService {
             case topup -> "Transaction";
             case report -> "Report";
             case system -> "System";
+            case chapter_comment -> "New Comment";
             default -> "Notification";
         };
     }
 
     private List<NotificationKind> getKindsByCategory(NotificationCategory category) {
         return switch (category) {
-            case STORY -> List.of(NotificationKind.new_chapter, NotificationKind.report);
-            case INTERACTION -> List.of(NotificationKind.report);
-            case ACHIEVEMENT -> List.of(NotificationKind.system);
-            case TRANSACTION -> List.of(NotificationKind.topup);
+            case STORY -> List.of(NotificationKind.new_chapter); // Chỉ thông báo truyện
+            case INTERACTION -> List.of(NotificationKind.report, NotificationKind.chapter_comment); // Bao gồm cmt, report...
+            case ACHIEVEMENT -> List.of(NotificationKind.system); // Chỉ bao gồm achievement, không phải daily tasks
+            case TRANSACTION -> List.of(NotificationKind.topup); // Giao dịch tăng giảm coin
         };
     }
 }

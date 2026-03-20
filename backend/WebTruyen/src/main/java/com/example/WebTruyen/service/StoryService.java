@@ -57,6 +57,7 @@ import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.service.NotificationService;
 import com.example.WebTruyen.repository.LibraryAlbumItemRepository;
 import com.example.WebTruyen.repository.LibraryAlbumRepository;
 import com.example.WebTruyen.repository.LibraryEntryRepository;
@@ -83,6 +84,7 @@ public class StoryService {
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final FollowStoryRepository followStoryRepository;
+    private final NotificationService notificationService;
 //<<<<<<< HEAD
     private final LibraryEntryRepository libraryEntryRepository;
 //=======

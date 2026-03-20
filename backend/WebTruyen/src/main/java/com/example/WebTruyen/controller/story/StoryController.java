@@ -1,6 +1,7 @@
 package com.example.WebTruyen.controller.story;
 
 
+import com.example.WebTruyen.dto.request.AuthorReplyRequest;
 import com.example.WebTruyen.dto.request.CreateChapterRequest;
 import com.example.WebTruyen.dto.request.CreateCommentRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
@@ -38,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -736,8 +738,6 @@ public class StoryController {
         );
         return Map.of("deleted", true);
     }
-
-    public record AuthorReplyRequest(String content) {}
 
     // Hieu Son - ngay 26/02/2026
     // Ham ho tro parse chuoi tagIds CSV thanh danh sach Long de dung cho tim kiem nang cao.

@@ -19,6 +19,7 @@ import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.CommentRepository;
 import com.example.WebTruyen.repository.ReportRepository;
 import com.example.WebTruyen.repository.StoryRepository;
+import com.example.WebTruyen.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +45,7 @@ public class CommentService {
     private final ChapterRepository chapterRepository;
     private final CommentRepository commentRepository;
     private final ReportRepository reportRepository;
+    private final NotificationService notificationService;
 
     // =========================================================================
     // PHẦN 1: LOGIC TỪ NHÁNH author-create-content (API, DTO, Pagination)
@@ -134,7 +136,29 @@ public class CommentService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        return toResponse(commentRepository.save(comment), List.of());
+        CommentEntity savedComment = commentRepository.save(comment);
+        
+        // Send notification to chapter author
+        if (chapter.getVolume() != null && chapter.getVolume().getStory() != null && 
+            chapter.getVolume().getStory().getAuthor() != null && 
+            !chapter.getVolume().getStory().getAuthor().getId().equals(currentUser.getId())) {
+            try {
+                notificationService.createNotification(
+                        chapter.getVolume().getStory().getAuthor().getId(),
+                        "chapter_comment",
+                        "Bình luận mới",
+                        currentUser.getUsername() + " đã bình luận: \"" + content.substring(0, Math.min(50, content.length())) + "...\"",
+                        null,
+                        chapter.getVolume().getStory().getId(),
+                        chapter.getId()
+                );
+            } catch (Exception e) {
+                // Log error but don't fail comment creation
+                System.err.println("Failed to create notification: " + e.getMessage());
+            }
+        }
+
+        return toResponse(savedComment, List.of());
     }
 
     @Transactional
@@ -221,16 +245,19 @@ public class CommentService {
             Integer storyId,
             CreateCommentRequest req
     ) {
-        StoryEntity story = requirePublishedStory(storyId);
-        Integer targetStoryId = Math.toIntExact(story.getId());
-        String content = normalizeContent(req);
+        System.out.println("DEBUG: Creating story comment - User: " + currentUser.getUsername() + ", Story ID: " + storyId);
+        try {
+            StoryEntity story = requirePublishedStory(storyId);
+            System.out.println("DEBUG: Story found: " + story.getTitle());
+            Long targetStoryId = story.getId();
+            String content = normalizeContent(req);
 
         CommentEntity parentComment = null;
         CommentEntity rootComment = null;
         int depth = 0;
         if (req.parentCommentId() != null) {
             parentComment = commentRepository
-                    .findByIdAndStory_IdAndIsHiddenFalse(req.parentCommentId(), targetStoryId)
+                    .findByIdAndStory_IdAndIsHiddenFalse(req.parentCommentId(), Math.toIntExact(targetStoryId))
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent comment not found"));
             rootComment = parentComment.getRootComment() != null ? parentComment.getRootComment() : parentComment;
             depth = Math.min(parentComment.getDepth() + 1, 5);
@@ -249,7 +276,36 @@ public class CommentService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        return toResponse(commentRepository.save(comment), List.of());
+        CommentEntity savedComment = commentRepository.save(comment);
+        System.out.println("DEBUG: Comment saved successfully with ID: " + savedComment.getId());
+        
+        // Send notification to story author
+        if (story.getAuthor() != null && !story.getAuthor().getId().equals(currentUser.getId())) {
+            try {
+                notificationService.createNotification(
+                        story.getAuthor().getId(),
+                        "chapter_comment",
+                        "Bình luận mới",
+                        currentUser.getUsername() + " đã bình luận: \"" + content.substring(0, Math.min(50, content.length())) + "...\"",
+                        null,
+                        story.getId(),
+                        null
+                );
+                System.out.println("DEBUG: Notification sent successfully");
+            } catch (Exception e) {
+                // Log error but don't fail comment creation
+                System.err.println("Failed to create notification: " + e.getMessage());
+            }
+        }
+
+        CommentResponse response = toResponse(savedComment, List.of());
+        System.out.println("DEBUG: Comment response created successfully");
+        return response;
+        } catch (Exception e) {
+            System.err.println("ERROR in createStoryComment: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Transactional
@@ -606,7 +662,24 @@ public class CommentService {
     private CommentResponse toResponse(CommentEntity comment, List<CommentEntity> replies) {
         UserEntity user = comment.getUser();
         CommentEntity parentComment = comment.getParentComment();
-        UserEntity parentUser = parentComment != null ? parentComment.getUser() : null;
+        
+        // Safely get parent user info to avoid LazyInitializationException
+        Long parentUserId = null;
+        String parentUsername = null;
+        if (parentComment != null) {
+            try {
+                UserEntity parentUser = parentComment.getUser();
+                if (parentUser != null) {
+                    parentUserId = parentUser.getId();
+                    parentUsername = parentUser.getUsername();
+                }
+            } catch (Exception e) {
+                // Log error but don't fail the response
+                System.err.println("Error accessing parent user: " + e.getMessage());
+                parentUsername = "Unknown";
+            }
+        }
+        
         List<CommentResponse> replyResponses = replies.stream()
                 .map(reply -> toResponse(reply, List.of()))
                 .toList();
@@ -621,8 +694,8 @@ public class CommentService {
                 comment.isSpoiler(),
                 comment.getCreatedAt(),
                 parentComment != null ? parentComment.getId() : null,
-                parentUser != null ? parentUser.getId() : null,
-                parentUser != null ? parentUser.getUsername() : null,
+                parentUserId,
+                parentUsername,
                 comment.getDepth(),
                 replyResponses
         );
