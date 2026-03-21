@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -531,8 +530,9 @@ public class SimpleDailyTaskService {
         List<DailyMissionEntity> templates = dailyMissionRepository.findByDateIsNull();
         
         if (templates.isEmpty()) {
-            log.warn("No templates found in database! Using fallback hardcoded missions.");
-            createFallbackDailyMissionsForDate(date, existingMissionCodes);
+            log.error("CRITICAL: No mission templates found in database (date IS NULL rows). "
+                    + "Please insert template rows into daily_missions table. "
+                    + "No missions will be created for date: {}", date);
             return;
         }
         
@@ -558,79 +558,7 @@ public class SimpleDailyTaskService {
             log.info("No new missions to create for date {}, all mission types already exist", date);
         }
     }
-    
-    /**
-     * Fallback method using hardcoded missions (for backward compatibility)
-     */
-    private void createFallbackDailyMissionsForDate(LocalDate date, Set<String> existingMissionCodes) {
-        DailyMissionEntity[] allMissions = {
-                DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(TASK_LOGIN)
-                        .description("Đăng nhập 1 lần")
-                        .target("1")
-                        .rewardCoin(10L)
-                        .rewardCoinType(DailyMissionEntity.CoinType.A)
-                        .build(),
-                
-                DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(TASK_READ_CHAPTERS)
-                        .description("Đọc tổng 5 chương")
-                        .target("5")
-                        .rewardCoin(10L)
-                        .rewardCoinType(DailyMissionEntity.CoinType.A)
-                        .build(),
-                
-                DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(TASK_UNLOCK_CHAPTER)
-                        .description("Unlock 1 chapter trả phí")
-                        .target("1")
-                        .rewardCoin(10L)
-                        .rewardCoinType(DailyMissionEntity.CoinType.A)
-                        .build(),
-                
-                DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(TASK_COMMENT)
-                        .description("Comment 3 lần")
-                        .target("3")
-                        .rewardCoin(10L)
-                        .rewardCoinType(DailyMissionEntity.CoinType.A)
-                        .build(),
-                
-                DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(TASK_DONATE)
-                        .description("Thực hiện 1 Donate")
-                        .target("1")
-                        .rewardCoin(10L)
-                        .rewardCoinType(DailyMissionEntity.CoinType.A)
-                        .build(),
-                
-                DailyMissionEntity.builder()
-                        .date(date)
-                        .missionCode(TASK_TOPUP)
-                        .description("Thực hiện 1 lần nạp tiền")
-                        .target("1")
-                        .rewardCoin(10L)
-                        .rewardCoinType(DailyMissionEntity.CoinType.A)
-                        .build()
-        };
-        
-        // Filter out missions that already exist
-        List<DailyMissionEntity> newMissions = Arrays.stream(allMissions)
-                .filter(mission -> !existingMissionCodes.contains(mission.getMissionCode()))
-                .collect(Collectors.toList());
-        
-        if (!newMissions.isEmpty()) {
-            dailyMissionRepository.saveAll(newMissions);
-            log.info("Created {} fallback daily missions for date {}", newMissions.size(), date);
-        } else {
-            log.info("No new fallback missions to create for date {}, all mission types already exist", date);
-        }
-    }
+
 
     /**
      * Update progress based on task type
