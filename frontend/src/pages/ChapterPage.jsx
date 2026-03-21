@@ -1361,12 +1361,16 @@ const ChapterPage = () => {
   }, []);
 
   useEffect(() => {
+    document.documentElement.classList.add('chapter-reading-scroll-enabled');
     document.body.classList.add('chapter-reading-active');
+    document.body.classList.add('chapter-reading-scroll-enabled');
     document.body.style.setProperty('--chapter-reader-bg', settings.bgColor);
     document.body.style.backgroundColor = settings.bgColor;
     document.body.style.color = settings.textColor;
     return () => {
+      document.documentElement.classList.remove('chapter-reading-scroll-enabled');
       document.body.classList.remove('chapter-reading-active');
+      document.body.classList.remove('chapter-reading-scroll-enabled');
       document.body.style.removeProperty('--chapter-reader-bg');
       document.body.style.backgroundColor = '';
       document.body.style.color = '';

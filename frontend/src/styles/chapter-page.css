@@ -1,6 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;600&family=Spectral:wght@400;600&display=swap');
 
 /* Chapter Reader Container - Scope all styles to prevent conflicts */
+html.chapter-reading-scroll-enabled,
+body.chapter-reading-scroll-enabled {
+  scrollbar-gutter: stable;
+}
+
+html.chapter-reading-scroll-enabled {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(122, 95, 61, 0.78) rgba(122, 95, 61, 0.14);
+}
+
+html.chapter-reading-scroll-enabled::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html.chapter-reading-scroll-enabled::-webkit-scrollbar-track {
+  background: rgba(122, 95, 61, 0.14);
+}
+
+html.chapter-reading-scroll-enabled::-webkit-scrollbar-thumb {
+  background: rgba(122, 95, 61, 0.78);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 248, 220, 0.72);
+}
+
+html.chapter-reading-scroll-enabled::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 77, 46, 0.9);
+}
+
 .chapter-reader-container {
   width: 100%;
   min-height: 100vh;
