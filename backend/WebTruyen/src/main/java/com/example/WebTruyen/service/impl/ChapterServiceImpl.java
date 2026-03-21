@@ -6,6 +6,7 @@ import com.example.WebTruyen.dto.response.ChapterResponse;
 import com.example.WebTruyen.dto.response.CreateChapterResponse;
 import com.example.WebTruyen.entity.enums.ChapterApprovalStatus;
 import com.example.WebTruyen.entity.enums.ChapterStatus;
+import com.example.WebTruyen.entity.enums.NotificationKind;
 import com.example.WebTruyen.entity.keys.ReadingHistoryId;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterSegmentEntity;
@@ -48,6 +49,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -59,6 +61,8 @@ public class ChapterServiceImpl implements ChapterService {
     private static final int MIN_APPROVAL_WORD_COUNT = 800;
     private static final Duration APPROVAL_RESUBMIT_COOLDOWN = Duration.ofHours(24);
     private static final Duration SCHEDULE_MIN_LEAD_TIME = Duration.ofHours(1);
+    private static final DateTimeFormatter SCHEDULE_NOTIFICATION_FORMAT =
+            DateTimeFormatter.ofPattern("HH:mm 'ngay' dd/MM/yyyy");
 
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
@@ -164,6 +168,7 @@ public class ChapterServiceImpl implements ChapterService {
         String previousContentSignature = buildContentSignature(previousContentHtml);
         ChapterApprovalStatus currentApprovalStatus = chapter.getApprovalStatus();
         ChapterStatus previousStatus = chapter.getStatus() == null ? ChapterStatus.draft : chapter.getStatus();
+        LocalDateTime previousScheduledPublishAt = chapter.getScheduledPublishAt();
 
         boolean nextIsFree = req.getIsFree() == null ? chapter.isFree() : req.getIsFree();
         Long nextPriceCoin = nextIsFree ? null : req.getPriceCoin();
@@ -237,12 +242,125 @@ public class ChapterServiceImpl implements ChapterService {
         resp.setSegmentIds(segs.stream().map(ChapterSegmentEntity::getId).toList());
         resp.setSegmentCount(segs.size());
 
+        if (previousStatus != ChapterStatus.published && chapter.getStatus() == ChapterStatus.published) {
+            notificationService.deleteNotificationsByKindAndChapterId(NotificationKind.chapter_schedule, chapter.getId());
+            sendNewChapterNotifications(chapter);
+        } else {
+            syncScheduleNotifications(chapter, previousScheduledPublishAt, chapter.getScheduledPublishAt());
+        }
+
         return resp;
     }
 
     private void clearSegmentReferences(Long chapterId) {
         readingHistoryRepository.clearLastSegmentByLastChapterId(chapterId);
         bookmarkRepository.deleteAllByChapterId(chapterId);
+    }
+
+    private void syncScheduleNotifications(
+            ChapterEntity chapter,
+            LocalDateTime previousScheduledPublishAt,
+            LocalDateTime nextScheduledPublishAt
+    ) {
+        if (chapter == null || chapter.getId() == null) {
+            return;
+        }
+
+        if (Objects.equals(previousScheduledPublishAt, nextScheduledPublishAt)) {
+            return;
+        }
+
+        notificationService.deleteNotificationsByKindAndChapterId(NotificationKind.chapter_schedule, chapter.getId());
+
+        if (nextScheduledPublishAt == null) {
+            if (previousScheduledPublishAt != null) {
+                sendScheduleStatusNotifications(chapter, null, true);
+            }
+            return;
+        }
+
+        sendScheduleStatusNotifications(chapter, nextScheduledPublishAt, previousScheduledPublishAt != null);
+    }
+
+    private void sendScheduleStatusNotifications(
+            ChapterEntity chapter,
+            LocalDateTime scheduledPublishAt,
+            boolean updated
+    ) {
+        StoryEntity story = chapter.getVolume().getStory();
+        List<FollowStoryEntity> followers = followStoryRepository.findByStory_IdAndNotifyNewChapterTrue(story.getId());
+        if (followers.isEmpty()) {
+            return;
+        }
+
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank() ? "truyen khong ten" : story.getTitle();
+        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank() ? "chuong khong ten" : chapter.getTitle();
+
+        for (FollowStoryEntity follow : followers) {
+            if (follow.getUser() == null || follow.getUser().getId() == null) {
+                continue;
+            }
+
+            String message = scheduledPublishAt == null
+                    ? String.format(
+                            "Lich phat hanh chuong \"%s\" cua truyen \"%s\" da bi huy.",
+                            chapterTitle,
+                            storyTitle
+                    )
+                    : String.format(
+                            updated
+                                    ? "Lich phat hanh chuong \"%s\" cua truyen \"%s\" da duoc cap nhat thanh %s."
+                                    : "Chuong \"%s\" cua truyen \"%s\" du kien phat hanh vao luc %s.",
+                            chapterTitle,
+                            storyTitle,
+                            formatScheduledPublishAt(scheduledPublishAt)
+                    );
+
+            notificationService.createNotification(
+                    follow.getUser().getId(),
+                    "chapter_schedule",
+                    updated ? "Cap nhat lich chuong" : "Lich phat hanh chuong",
+                    message,
+                    chapter.getId(),
+                    story.getId(),
+                    chapter.getId()
+            );
+        }
+    }
+
+    private String formatScheduledPublishAt(LocalDateTime scheduledPublishAt) {
+        return scheduledPublishAt == null ? "" : scheduledPublishAt.format(SCHEDULE_NOTIFICATION_FORMAT);
+    }
+
+    private void sendNewChapterNotifications(ChapterEntity chapter) {
+        if (chapter == null || chapter.getId() == null || chapter.getVolume() == null || chapter.getVolume().getStory() == null) {
+            return;
+        }
+
+        StoryEntity story = chapter.getVolume().getStory();
+        List<FollowStoryEntity> followers = followStoryRepository.findByStory_IdAndNotifyNewChapterTrue(story.getId());
+        if (followers.isEmpty()) {
+            return;
+        }
+
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank() ? "truyen khong ten" : story.getTitle();
+        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank() ? "chuong khong ten" : chapter.getTitle();
+
+        for (FollowStoryEntity follow : followers) {
+            if (follow.getUser() == null || follow.getUser().getId() == null) {
+                continue;
+            }
+
+            notificationService.createNotification(
+                    follow.getUser().getId(),
+                    "new_chapter",
+                    "Chuong moi",
+                    String.format("Truyen \"%s\" da co chuong moi: \"%s\"", storyTitle, chapterTitle),
+                    chapter.getId(),
+                    story.getId(),
+                    chapter.getId()
+            );
+        }
     }
 
     // ============================================================
@@ -638,6 +756,12 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setScheduledPublishAt(null);
         chapter.setDraft(null);
         chapterRepository.save(chapter);
+
+        notificationService.deleteNotificationsByKindAndChapterId(NotificationKind.chapter_schedule, chapter.getId());
+        if (chapter.getId() != null) {
+            sendNewChapterNotifications(chapter);
+            return toChapterResponse(chapter);
+        }
         
         // Send notifications to followers who have enabled new chapter notifications
         StoryEntity story = chapter.getVolume().getStory();
@@ -860,7 +984,27 @@ public class ChapterServiceImpl implements ChapterService {
             chapterRepository.save(chapter);
 
             log.info("Auto-published scheduled chapter {}", chapter.getId());
-            // TODO: notify followers with notify_new_chapter = true for the parent story.
+            notificationService.deleteNotificationsByKindAndChapterId(NotificationKind.chapter_schedule, chapter.getId());
+            if (chapter.getId() != null) {
+                sendNewChapterNotifications(chapter);
+                continue;
+            }
+            StoryEntity story = chapter.getVolume().getStory();
+            List<FollowStoryEntity> followers = followStoryRepository.findByStory_IdAndNotifyNewChapterTrue(story.getId());
+
+            for (FollowStoryEntity follow : followers) {
+                String message = String.format("Truyen \"%s\" da co chuong moi: \"%s\"",
+                        story.getTitle(), chapter.getTitle());
+                notificationService.createNotification(
+                        follow.getUser().getId(),
+                        "new_chapter",
+                        "Chuong moi",
+                        message,
+                        chapter.getId(),
+                        story.getId(),
+                        chapter.getId()
+                );
+            }
         }
     }
 

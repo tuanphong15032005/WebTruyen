@@ -326,6 +326,16 @@ public class WalletService {
         response.put("chapterUnlockId", savedUnlock.getId());
         response.put("holdUntil", holdUntil);
         response.put("authorPendingCoinB", newAuthorPendingCoinB);
+        notificationService.createNotification(
+                userId,
+                "transaction",
+                "Mua chuong thanh cong",
+                "Ban da mua chuong \"" + chapter.getTitle() + "\" cua truyen \"" + story.getTitle()
+                        + "\" voi gia " + actualChapterPrice + " coin.",
+                savedUnlock.getId(),
+                story.getId(),
+                chapter.getId()
+        );
         response.put("message", "Mua chương thành công!");
         
         return response;
@@ -994,7 +1004,7 @@ public class WalletService {
                                               LocalDateTime createdAt) {
         NotificationEntity notification = NotificationEntity.builder()
                 .user(author)
-                .kind(NotificationKind.system)
+                .kind(NotificationKind.transaction)
                 .message("Doanh thu chương \"" + unlock.getChapter().getTitle() + "\" đã được cộng " + amount + " Coin B vào ví.")
                 .refType("CHAPTER_SETTLEMENT")
                 .refId(unlock.getId())

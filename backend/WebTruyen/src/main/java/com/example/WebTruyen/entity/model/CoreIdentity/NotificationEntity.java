@@ -28,7 +28,7 @@ public class NotificationEntity {
     private UserEntity user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private NotificationKind kind;
 
     @Column(nullable = false, length = 1000)
