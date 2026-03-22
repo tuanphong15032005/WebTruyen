@@ -2,15 +2,16 @@
   display: grid;
   justify-items: center;
   padding: 0 16px;
+  color: var(--theme-text-primary);
 }
 
 .story-reviews__frame {
   width: min(50vw, 760px);
   max-width: 100%;
-  background: #ffffff;
-  border: 1px solid #b7d9b1;
+  background: var(--theme-surface-raised);
+  border: 1px solid var(--theme-border);
   border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-md);
   padding: 18px;
 }
 
@@ -23,33 +24,33 @@
 
 .story-reviews__header h2 {
   margin: 0;
-  color: #22365a;
+  color: var(--theme-text-primary);
 }
 
 .story-reviews__back {
-  color: #3d67b8;
+  color: var(--theme-accent-text);
   font-weight: 600;
 }
 
 .story-reviews__story-title {
   margin: 8px 0 0;
-  color: #2d4773;
+  color: var(--theme-text-secondary);
   font-size: 1.1rem;
 }
 
 .story-reviews__form {
   margin-top: 14px;
-  border: 1px solid #d4dfef;
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
   padding: 12px;
-  background: #fcfeff;
+  background: var(--theme-surface-muted);
   display: grid;
   gap: 8px;
 }
 
 .story-reviews__form p {
   margin: 0;
-  color: #536887;
+  color: var(--theme-text-secondary);
 }
 
 .story-reviews__stars {
@@ -73,18 +74,31 @@
 
 .story-reviews__form textarea {
   min-height: 120px;
-  border: 1px solid #c2ccdd;
-  border-radius: 8px;
+  border: 1px solid var(--theme-input-border);
+  border-radius: 0;
   padding: 10px;
+  background: var(--theme-input-bg);
+  color: var(--theme-text-primary);
   font: inherit;
   resize: vertical;
+  box-shadow: none;
+}
+
+.story-reviews__form textarea::placeholder {
+  color: var(--theme-input-placeholder);
+}
+
+.story-reviews__form textarea:focus {
+  outline: none;
+  border-color: var(--theme-input-border-focus);
+  box-shadow: none;
 }
 
 .story-reviews__spoiler-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #5c6f8d;
+  color: var(--theme-text-secondary);
   font-size: 0.92rem;
   font-weight: 600;
 }
@@ -98,7 +112,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #7b8faa;
+  color: var(--theme-text-muted);
   font-size: 0.85rem;
 }
 
@@ -125,9 +139,9 @@
 }
 
 .story-reviews__item {
-  border: 1px solid #d4dfef;
+  border: 1px solid var(--theme-border);
   border-radius: 10px;
-  background: #fcfeff;
+  background: var(--theme-surface-muted);
   padding: 12px;
 }
 
@@ -142,20 +156,20 @@
   height: 42px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #c4d1e6;
+  border: 1px solid var(--theme-border);
 }
 
 .story-reviews__avatar-fallback {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #eaf1ff;
-  color: #2f4f7b;
+  background: var(--theme-accent-soft);
+  color: var(--theme-accent-text);
   font-weight: 700;
 }
 
 .story-reviews__item-head strong {
-  color: #213a62;
+  color: var(--theme-text-primary);
 }
 
 .story-reviews__item-stars {
@@ -169,12 +183,12 @@
 }
 
 .story-reviews__item-head small {
-  color: #7b8ea8;
+  color: var(--theme-text-muted);
 }
 
 .story-reviews__item p {
   margin: 10px 0 0;
-  color: #2d4367;
+  color: var(--theme-text-primary);
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
@@ -189,7 +203,8 @@
 .story-reviews__content-mask,
 .story-reviews__item p.story-reviews__content-mask {
   margin: 0;
-  color: rgba(92, 111, 141, 0.72);
+  color: var(--theme-text-muted);
+  opacity: 0.86;
   font-family: Georgia, 'Times New Roman', serif;
   font-style: italic;
   font-weight: 400;
@@ -198,9 +213,9 @@
 
 .story-reviews__reveal-btn {
   width: fit-content;
-  border: 1px solid #c8d6ea;
-  background: #ffffff;
-  color: #3f6fbe;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface-base);
+  color: var(--theme-accent-text);
   border-radius: 999px;
   padding: 0.42rem 0.9rem;
   font-size: 0.86rem;
@@ -209,18 +224,23 @@
 }
 
 .story-reviews__reveal-btn:hover {
-  background: #eef5ff;
+  background: var(--theme-surface-hover);
 }
 
 .story-reviews__load-more {
   margin-top: 14px;
   height: 38px;
   border-radius: 8px;
-  border: 1px solid #4a99ea;
-  background: #ffffff;
-  color: #2d8ce8;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface-base);
+  color: var(--theme-accent-text);
   font-weight: 600;
   cursor: pointer;
+}
+
+.story-reviews__load-more:hover:not(:disabled) {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-border-strong);
 }
 
 @media (max-width: 1024px) {

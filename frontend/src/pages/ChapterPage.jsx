@@ -37,7 +37,7 @@ import PurchaseConfirmationModal from '../components/PurchaseConfirmationModal';
 import PurchaseSuccessModal from '../components/PurchaseSuccessModal';
 import PurchaseErrorModal from '../components/PurchaseErrorModal';
 import ScrollTopButton from '../components/ScrollTopButton';
-import chapterPageCss from '../styles/chapter-page.css?raw';
+import '../styles/chapter-page.css';
 import '../styles/story-metadata.css';
 
 const INITIAL_CHAPTER_ID = 1;
@@ -128,25 +128,45 @@ const hasAuthSession = () => {
   }
 };
 
+const sanitizeErrorMessage = (message, fallbackMessage) => {
+  if (typeof message !== 'string') {
+    return fallbackMessage;
+  }
+
+  const normalized = message.trim();
+  if (!normalized || normalized === '[object Object]') {
+    return fallbackMessage;
+  }
+
+  if (
+    /could not execute statement/i.test(normalized) ||
+    /data truncated for column/i.test(normalized) ||
+    /insert into\s+[a-z_]+/i.test(normalized) ||
+    /hibernate/i.test(normalized) ||
+    /jdbc/i.test(normalized)
+  ) {
+    return fallbackMessage;
+  }
+
+  return normalized;
+};
+
 const getErrorMessage = (error, fallbackMessage) => {
   const direct = error?.message;
-  if (
-    typeof direct === 'string' &&
-    direct.trim() &&
-    direct.trim() !== '[object Object]'
-  ) {
-    return direct.trim();
+  const sanitizedDirect = sanitizeErrorMessage(direct, fallbackMessage);
+  if (sanitizedDirect !== fallbackMessage) {
+    return sanitizedDirect;
   }
 
   const responseData = error?.response?.data;
   if (typeof responseData === 'string' && responseData.trim()) {
-    return responseData.trim();
+    return sanitizeErrorMessage(responseData, fallbackMessage);
   }
   if (responseData && typeof responseData === 'object') {
     const nestedMessage =
       responseData.message || responseData.error || responseData.detail;
     if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
-      return nestedMessage.trim();
+      return sanitizeErrorMessage(nestedMessage, fallbackMessage);
     }
   }
 
@@ -342,10 +362,10 @@ const VerticalToolbar = ({
   hasPrev,
   hasNext,
 }) => (
-  <div className='vertical-toolbar'>
+  <div className='chapter-vertical-toolbar'>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onPrevChapter}
       disabled={!hasPrev}
       title='Chương trước'
@@ -354,7 +374,7 @@ const VerticalToolbar = ({
     </button>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onHome}
       title='Trang chủ'
     >
@@ -362,7 +382,7 @@ const VerticalToolbar = ({
     </button>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onSettings}
       title='Tùy chỉnh'
     >
@@ -370,7 +390,7 @@ const VerticalToolbar = ({
     </button>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onBackToMetadata}
       title='Về trang truyện'
     >
@@ -378,7 +398,7 @@ const VerticalToolbar = ({
     </button>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onBookmarks}
       title='Bookmarks'
     >
@@ -386,7 +406,7 @@ const VerticalToolbar = ({
     </button>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onReport}
       title='Báo lỗi'
     >
@@ -394,7 +414,7 @@ const VerticalToolbar = ({
     </button>
     <button
       type='button'
-      className='toolbar-btn'
+      className='chapter-toolbar-btn'
       onClick={onNextChapter}
       disabled={!hasNext}
       title='Chương sau'
@@ -1320,25 +1340,6 @@ const ChapterPage = () => {
       persistQualifiedProgress({ chapterIdOverride: currentChapterId });
     };
   }, [chapter?.id, isLocked, persistQualifiedProgress]);
-
-  useEffect(() => {
-    const styleId = 'chapter-page-style';
-    let styleEl = document.getElementById(styleId);
-
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = styleId;
-      styleEl.textContent = chapterPageCss;
-      document.head.appendChild(styleEl);
-    }
-
-    return () => {
-      const mountedStyle = document.getElementById(styleId);
-      if (mountedStyle) {
-        mountedStyle.remove();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const hostMain = document.querySelector('main.main-content');

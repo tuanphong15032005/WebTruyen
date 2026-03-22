@@ -75,12 +75,12 @@ main.main-content.chapter-layout-host {
   background: #0b0b0b;
 }
 
-.vertical-toolbar {
+.chapter-reader-container .chapter-vertical-toolbar {
   position: fixed;
   right: 24px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 100;
+  z-index: 1201;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -88,13 +88,15 @@ main.main-content.chapter-layout-host {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  opacity: 1;
+  visibility: visible;
 }
 
-.theme-dark .vertical-toolbar {
+.chapter-reader-container.theme-dark .chapter-vertical-toolbar {
   background: rgba(19, 19, 21, 0.94);
 }
 
-.toolbar-btn {
+.chapter-reader-container .chapter-toolbar-btn {
   width: 56px;
   height: 56px;
   padding: 0;
@@ -108,7 +110,7 @@ main.main-content.chapter-layout-host {
   color: #2b3a4e;
 }
 
-.toolbar-btn svg {
+.chapter-reader-container .chapter-toolbar-btn svg {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
@@ -117,11 +119,11 @@ main.main-content.chapter-layout-host {
   stroke-width: 1.5px !important;
 }
 
-.theme-dark .toolbar-btn {
+.chapter-reader-container.theme-dark .chapter-toolbar-btn {
   color: #f2f3f5;
 }
 
-.toolbar-btn:disabled {
+.chapter-reader-container .chapter-toolbar-btn:disabled {
   opacity: 0.3;
   pointer-events: none;
 }
@@ -839,7 +841,7 @@ main.main-content.chapter-layout-host {
 }
 
 @media (max-width: 1024px) {
-  .vertical-toolbar {
+  .chapter-reader-container .chapter-vertical-toolbar {
     right: 12px;
     padding: 14px 9px;
   }
@@ -848,12 +850,12 @@ main.main-content.chapter-layout-host {
     padding: 44px 18px 86px;
   }
 
-  .toolbar-btn {
+  .chapter-reader-container .chapter-toolbar-btn {
     width: 52px;
     height: 52px;
   }
 
-  .toolbar-btn svg {
+  .chapter-reader-container .chapter-toolbar-btn svg {
     width: 20px;
     height: 20px;
   }

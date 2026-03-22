@@ -7,6 +7,21 @@ import ReviewerApplicationStatus from './ReviewerApplicationStatus';
 import '../../styles/admin-content-moderation.css';
 import '../../styles/reviewer-area.css';
 
+const htmlToText = (html) => {
+  if (!html) return '';
+  return String(html)
+    .replace(/<img[^>]*>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const toPreviewText = (value, maxLength = 160) => {
+  const text = htmlToText(value);
+  if (!text) return '';
+  return text.length > maxLength ? `${text.slice(0, maxLength).trim()}...` : text;
+};
+
 function ReviewerArea() {
   const navigate = useNavigate();
   const [hasAccess, setHasAccess] = useState(null);
@@ -161,7 +176,7 @@ function ReviewerArea() {
 
     try {
       if (item.contentType === 'story') {
-        const story = await storyService.getStory(item.storyId);
+        const story = await storyService.getStory(item.contentId || item.storyId);
         setDemoContent(story || null);
       } else {
         const content = await storyService.getChapterContent(item.storyId, item.contentId);
@@ -192,6 +207,28 @@ function ReviewerArea() {
     if (contentType === 'chapter') return 'Chương';
     return contentType || 'Nội dung';
   };
+
+  const isStoryDemo = demoItem?.contentType === 'story';
+  const demoModalTitle = isStoryDemo ? 'Xem nội dung truyện' : 'Xem nội dung chương';
+  const demoTitle = !demoItem
+    ? ''
+    : isStoryDemo
+      ? demoContent?.title ||
+        demoContent?.data?.title ||
+        demoItem.storyTitle ||
+        `Truyện #${demoItem.contentId}`
+      : demoContent?.title || `Chương #${demoItem.contentId}`;
+  const demoDescription = isStoryDemo
+    ? toPreviewText(demoContent?.summaryHtml || demoContent?.summary || demoItem?.description || '')
+    : '';
+  const demoModerationNote = String(
+    demoItem?.moderationNote ||
+      demoItem?.note ||
+      demoItem?.rejectionNote ||
+      demoContent?.moderationNote ||
+      demoContent?.note ||
+      '',
+  ).trim();
 
   console.log('🔍 Rendering ReviewerArea - hasAccess:', hasAccess, 'loading:', loading, 'moderationItems.length:', moderationItems.length);
 
@@ -336,12 +373,12 @@ function ReviewerArea() {
             <table>
               <thead>
                 <tr>
-                  <th>Loại</th>
+                  <th className="admin-moderation__col--type">Loại</th>
                   <th>Tên truyện</th>
-                  <th>Tác giả</th>
+                  <th className="admin-moderation__col--author">Tác giả</th>
                   <th>Thể loại</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th className="admin-moderation__col--status">Trạng thái</th>
+                  <th className="admin-moderation__col--actions">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -366,24 +403,26 @@ function ReviewerArea() {
                       const isBusy = busyKey === approveKey || busyKey === rejectKey;
                       return (
                         <tr key={`${item.contentType}-${item.contentId}`}>
-                          <td>{contentTypeLabel(item.contentType)}</td>
+                          <td className="admin-moderation__col--type">{contentTypeLabel(item.contentType)}</td>
                           <td>{item.storyTitle}</td>
-                          <td>{item.authorName}</td>
+                          <td className="admin-moderation__col--author">{item.authorName}</td>
                           <td>{item.genre}</td>
-                          <td>
+                          <td className="admin-moderation__col--status">
                             <span className={`admin-moderation__status admin-moderation__status--${displayStatus(item) || 'processed'}`}>
                               {statusLabel(displayStatus(item))}
                             </span>
                           </td>
-                          <td className="admin-moderation__actions">
-                            <button
-                              type="button"
-                              className="demo"
-                              disabled={isBusy}
-                              onClick={() => handleViewDemo(item)}
-                            >
-                              Xem demo
-                            </button>
+                          <td className="admin-moderation__col--actions">
+                            <div className="admin-moderation__actions">
+                              <button
+                                type="button"
+                                className="demo"
+                                disabled={isBusy}
+                                onClick={() => handleViewDemo(item)}
+                              >
+                                Xem demo
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -402,9 +441,14 @@ function ReviewerArea() {
         <div className="admin-moderation__modal-backdrop" onClick={closeDemoModal}>
           <div className="admin-moderation__modal" onClick={(event) => event.stopPropagation()}>
             <div className="admin-moderation__modal-head">
-              <h2>{demoItem.contentType === 'story' ? 'Xem nội dung truyện' : 'Xem nội dung chương'}</h2>
-              <button type="button" onClick={closeDemoModal} aria-label="Đóng popup demo">
-                x
+              <h2>{demoModalTitle}</h2>
+              <button
+                type="button"
+                className="admin-moderation__modal-close"
+                onClick={closeDemoModal}
+                aria-label="Đóng popup demo"
+              >
+                ×
               </button>
             </div>
 
@@ -420,19 +464,33 @@ function ReviewerArea() {
 
             {!demoLoading && !demoError && (
               <div className="admin-moderation__modal-content">
-                <h3>
-                  {demoItem.contentType === 'story'
-                    ? demoContent?.title || demoContent?.data?.title || demoItem.storyTitle || `Truyện #${demoItem.contentId}`
-                    : demoContent?.title || `Chương #${demoItem.contentId}`}
-                </h3>
-                <p className="admin-moderation__modal-meta">
-                  Truyện: {demoItem.storyTitle || '—'}
-                </p>
+                {isStoryDemo && demoContent?.coverUrl && (
+                  <div className="admin-moderation__modal-cover">
+                    <img
+                      src={demoContent.coverUrl}
+                      alt={`Bìa: ${demoTitle || 'Truyện'}`}
+                    />
+                  </div>
+                )}
+                <h3>{demoTitle}</h3>
+                {!isStoryDemo && (
+                  <p className="admin-moderation__modal-meta">
+                    {`Truyện: ${demoItem.storyTitle || '—'}`}
+                  </p>
+                )}
                 <p className="admin-moderation__modal-meta">
                   Tác giả: {demoItem.authorName || 'Không có'}
                 </p>
+                {displayStatus(demoItem) === 'rejected' && demoModerationNote && (
+                  <div className="admin-moderation__modal-note">
+                    <h4 className="admin-moderation__modal-note-title">
+                      Note từ admin
+                    </h4>
+                    <p>{demoModerationNote}</p>
+                  </div>
+                )}
                 <div className="admin-moderation__modal-summary admin-moderation__modal-chapter-body">
-                  {demoItem.contentType === 'story' ? (
+                  {isStoryDemo ? (
                     demoContent?.summaryHtml ? (
                       <div
                         className="admin-moderation__chapter-content"

@@ -12,10 +12,14 @@ import './StatsGrid.css';
 const StatsGrid = ({ summary }) => {
   if (!summary) {
     return (
-      <div className="stats-grid loading">
-        <div className="loading-skeleton"></div>
-        <div className="loading-skeleton"></div>
-        <div className="loading-skeleton"></div>
+      <div className="stats-grid stats-grid--dashboard loading">
+        <div className="stats-grid__main">
+          <div className="loading-skeleton"></div>
+          <div className="loading-skeleton"></div>
+        </div>
+        <div className="stats-grid__side">
+          <div className="loading-skeleton"></div>
+        </div>
       </div>
     );
   }
@@ -45,17 +49,28 @@ const StatsGrid = ({ summary }) => {
   ];
 
   return (
-    <div className="stats-grid">
-      {stats.map((stat, index) => (
+    <div className="stats-grid stats-grid--dashboard">
+      <div className="stats-grid__main">
+        {stats.slice(0, 2).map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            growth={stat.growth}
+            icon={stat.icon}
+            color={stat.color}
+          />
+        ))}
+      </div>
+      <div className="stats-grid__side">
         <StatCard
-          key={index}
-          title={stat.title}
-          value={stat.value}
-          growth={stat.growth}
-          icon={stat.icon}
-          color={stat.color}
+          title={stats[2].title}
+          value={stats[2].value}
+          growth={stats[2].growth}
+          icon={stats[2].icon}
+          color={stats[2].color}
         />
-      ))}
+      </div>
     </div>
   );
 };

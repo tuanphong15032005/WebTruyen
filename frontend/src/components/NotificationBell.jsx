@@ -63,11 +63,17 @@ function NotificationBell() {
   const getNotificationIcon = (type) => {
     switch (type?.toLowerCase()) {
       case 'new_chapter':
+      case 'new_story':
+      case 'story_moderation':
+      case 'chapter_schedule':
       case 'report':
         return <BookOpen size={16} />;
+      case 'comment':
+        return <MessageCircle size={16} />;
       case 'system':
         return <Trophy size={16} />;
       case 'topup':
+      case 'transaction':
         return <Coins size={16} />;
       default:
         return <Bell size={16} />;

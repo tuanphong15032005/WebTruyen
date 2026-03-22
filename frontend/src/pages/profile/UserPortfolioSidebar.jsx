@@ -1,31 +1,34 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
+import './UserPortfolioSidebar.css';
 
-const UserPortfolioSidebar = ({ data, isPrivate, onTogglePrivacy }) => {
-    return (
-        <section className="mt-8">
-            <div className="p-5 bg-white/70 backdrop-blur-md rounded-2xl flex items-center justify-between border border-gray-100">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                        <Lock size={20} />
-                    </div>
-                    <div>
-                        <p className="font-bold text-gray-900">Khóa Portfolio (Privacy Mode)</p>
-                        <p className="text-sm text-gray-500">Toggle to lock or unlock your public portfolio visibility.</p>
-                    </div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                        checked={isPrivate} 
-                        onChange={onTogglePrivacy}
-                        className="sr-only peer" 
-                        type="checkbox" 
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                </label>
-            </div>
-        </section>
-    );
+const UserPortfolioSidebar = ({ isPrivate, onTogglePrivacy }) => {
+  return (
+    <section className='user-portfolio-privacy'>
+      <div className='user-portfolio-privacy__card'>
+        <div className='user-portfolio-privacy__content'>
+          <div className='user-portfolio-privacy__icon'>
+            <Lock size={20} />
+          </div>
+          <div className='user-portfolio-privacy__text'>
+            <p className='user-portfolio-privacy__title'>
+              Khóa Portfolio (Privacy Mode)
+            </p>
+            <p className='user-portfolio-privacy__description'>
+              Toggle to lock or unlock your public portfolio visibility.
+            </p>
+          </div>
+        </div>
+
+        <label className='user-portfolio-privacy__switch' aria-label='Toggle portfolio privacy'>
+          <input checked={isPrivate} onChange={onTogglePrivacy} type='checkbox' />
+          <span className='user-portfolio-privacy__track' aria-hidden='true'>
+            <span className='user-portfolio-privacy__thumb' />
+          </span>
+        </label>
+      </div>
+    </section>
+  );
 };
 
 export default UserPortfolioSidebar;

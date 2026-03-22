@@ -2,13 +2,23 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/PurchaseErrorModal.css';
 
-const PurchaseErrorModal = ({ isOpen, onClose, errorMessage, chapterPrice, currentBalance }) => {
+const PurchaseErrorModal = ({
+  isOpen,
+  onClose,
+  errorMessage,
+  chapterPrice,
+  currentBalance,
+}) => {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
+  const safeChapterPrice = Number(chapterPrice || 0);
+  const safeCurrentBalance = Number(currentBalance || 0);
+  const isInsufficientBalance = safeChapterPrice > safeCurrentBalance;
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
       onClose();
     }
   };
@@ -18,34 +28,30 @@ const PurchaseErrorModal = ({ isOpen, onClose, errorMessage, chapterPrice, curre
     navigate('/wallet/topup');
   };
 
-  const calculateNeededAmount = () => {
-    if (!chapterPrice || !currentBalance) return 0;
-    const needed = chapterPrice - currentBalance;
-    return needed > 0 ? needed : 0;
-  };
-
-  const neededAmount = calculateNeededAmount();
-
   return (
     <div className="error-modal-overlay" onClick={handleBackdropClick}>
       <div className="error-modal">
-        <h2>Xin lỗi bạn không đủ tài chính</h2>
-        
+        <h2>
+          {isInsufficientBalance
+            ? 'Xin l\u1ed7i b\u1ea1n kh\u00f4ng \u0111\u1ee7 t\u00e0i ch\u00ednh'
+            : 'Kh\u00f4ng th\u1ec3 mua ch\u01b0\u01a1ng'}
+        </h2>
+
         <div className="chapter-price">
-          <div className="price-label">Giá chương</div>
-          <div className="price-value">{chapterPrice || 0} Coin</div>
+          <div className="price-label">Gi\u00e1 ch\u01b0\u01a1ng</div>
+          <div className="price-value">{safeChapterPrice} Coin</div>
         </div>
-        
-        <div className="error-message">
-          {errorMessage}
-        </div>
-        
+
+        <div className="error-message">{errorMessage}</div>
+
         <div className="modal-actions">
-          <button className="top-up-btn" onClick={handleTopUp}>
-            Nạp thêm
-          </button>
+          {isInsufficientBalance && (
+            <button className="top-up-btn" onClick={handleTopUp}>
+              N\u1ea1p th\u00eam
+            </button>
+          )}
           <button className="close-btn" onClick={onClose}>
-            Đóng
+            \u0110\u00f3ng
           </button>
         </div>
       </div>

@@ -8,12 +8,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: var(--theme-surface-raised);
+  border-bottom: 1px solid var(--theme-border);
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .topbar-left {
@@ -23,7 +23,7 @@
 .page-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #2d3748;
+  color: var(--theme-text-primary);
   margin: 0;
 }
 
@@ -32,41 +32,71 @@
   margin: 0 2rem;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .create-story-btn {
-  background-color: #5C67F2;
-  color: #ffffff;
+  background: var(--gradient-brand);
+  color: var(--theme-text-inverse);
   border: none;
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.performance-report-btn {
+  background-color: var(--theme-surface-raised);
+  color: var(--theme-accent-text);
+  border: 1px solid var(--theme-accent-border);
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.performance-report-btn:hover {
+  background-color: var(--theme-accent-soft);
+  border-color: var(--theme-accent);
 }
 
 .create-story-btn:hover {
-  background-color: #4c56e2;
+  background-color: var(--theme-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(92, 103, 242, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .topbar {
     padding: 1rem;
   }
-  
+
   .page-title {
     font-size: 1.5rem;
   }
-  
+
   .topbar-center {
     margin: 0 1rem;
   }
-  
+
+  .topbar-actions {
+    gap: 0.5rem;
+  }
+
+  .performance-report-btn,
   .create-story-btn {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;

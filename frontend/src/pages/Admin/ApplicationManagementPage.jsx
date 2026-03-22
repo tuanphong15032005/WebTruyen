@@ -449,7 +449,7 @@ function ApplicationManagementPage() {
                         lineHeight: '1.5',
                         minHeight: '60px'
                       }}>
-                        <span style={{color: '#000', fontWeight: 'bold'}}>
+                        <span style={{ color: 'var(--theme-text-primary)', fontWeight: 'bold' }}>
                           {selectedApplication.penName || '-'}
                         </span>
                       </div>
@@ -474,7 +474,7 @@ function ApplicationManagementPage() {
                       }}>
                         {selectedApplication.bio && selectedApplication.bio.trim() !== '' ? 
                           selectedApplication.bio : 
-                          <span style={{color: '#000', fontStyle: 'italic'}}>Không có tiểu sử</span>
+                          <span style={{ color: 'var(--theme-text-secondary)', fontStyle: 'italic' }}>Không có tiểu sử</span>
                         }
                       </div>
                     </div>
@@ -483,7 +483,7 @@ function ApplicationManagementPage() {
                   {activeTab === 'author' && (
                     <>
                       <div className="detail-item full-width" style={{padding: '10px', borderRadius: '5px'}}>
-                        <strong style={{color: '#000', fontSize: '16px'}}>Kinh nghiệm viết:</strong>
+                        <strong style={{ color: 'var(--theme-text-primary)', fontSize: '16px' }}>Kinh nghiệm viết:</strong>
                         <div style={{marginTop: '10px'}}>
                           {selectedApplication.experience ? (
                             <div className="bio-content" style={{
@@ -502,7 +502,7 @@ function ApplicationManagementPage() {
                               {selectedApplication.experience}
                             </div>
                           ) : (
-                            <div style={{color: '#000', fontStyle: 'italic', padding: '15px', borderRadius: '5px', fontWeight: 'bold'}}>
+                            <div style={{ color: 'var(--theme-text-secondary)', fontStyle: 'italic', padding: '15px', borderRadius: '5px', fontWeight: 'bold' }}>
                               Không có kinh nghiệm
                             </div>
                           )}
@@ -510,7 +510,7 @@ function ApplicationManagementPage() {
                       </div>
                       
                       <div className="detail-item full-width" style={{padding: '10px', borderRadius: '5px'}}>
-                        <strong style={{color: '#000', fontSize: '16px'}}>Lý do muốn trở thành tác giả:</strong>
+                        <strong style={{ color: 'var(--theme-text-primary)', fontSize: '16px' }}>Lý do muốn trở thành tác giả:</strong>
                         <div style={{marginTop: '10px'}}>
                           {selectedApplication.motivation ? (
                             <div className="bio-content" style={{
@@ -529,7 +529,7 @@ function ApplicationManagementPage() {
                               {selectedApplication.motivation}
                             </div>
                           ) : (
-                            <div style={{color: '#000', fontStyle: 'italic', padding: '15px', borderRadius: '5px', fontWeight: 'bold'}}>
+                            <div style={{ color: 'var(--theme-text-secondary)', fontStyle: 'italic', padding: '15px', borderRadius: '5px', fontWeight: 'bold' }}>
                               Không có lý do
                             </div>
                           )}

@@ -1239,3 +1239,112 @@
     grid-template-columns: 1fr;
   }
 }
+
+html[data-theme='dark'] .home-dashboard {
+  --home-bg-rgb: 11, 18, 32;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .home-dashboard__loading,
+html[data-theme='dark'] .home-section,
+html[data-theme='dark'] .home-story-card,
+html[data-theme='dark'] .home-ranking,
+html[data-theme='dark'] .home-community-item {
+  background: var(--theme-surface-raised);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .home-section--recommend {
+  background: var(--theme-surface-base);
+}
+
+html[data-theme='dark'] .home-section__head,
+html[data-theme='dark'] .home-ranking__head {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .home-section__head h2,
+html[data-theme='dark'] .home-ranking__head h2,
+html[data-theme='dark'] .home-story-card__title,
+html[data-theme='dark'] .home-ranking__story a,
+html[data-theme='dark'] .home-ranking__comment strong,
+html[data-theme='dark'] .home-community-item__head strong,
+html[data-theme='dark'] .home-community-item__content {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .home-dashboard__loading,
+html[data-theme='dark'] .home-section__meta,
+html[data-theme='dark'] .home-story-card__author,
+html[data-theme='dark'] .home-story-card__summary,
+html[data-theme='dark'] .home-story-card__stat,
+html[data-theme='dark'] .home-ranking__story small,
+html[data-theme='dark'] .home-ranking__comment-story,
+html[data-theme='dark'] .home-ranking__comment small,
+html[data-theme='dark'] .home-community-item__head small,
+html[data-theme='dark'] .home-community-item__story {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .home-story-grid__empty,
+html[data-theme='dark'] .home-ranking__empty,
+html[data-theme='dark'] .home-section__lazy-state {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .home-section__lazy-text {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .home-section__lazy-button,
+html[data-theme='dark'] .home-hero__actions button,
+html[data-theme='dark'] .home-hero__actions a {
+  background: var(--gradient-brand);
+  color: #fff;
+}
+
+html[data-theme='dark'] .home-story-card__category {
+  background: var(--theme-accent-soft);
+  border-color: var(--theme-accent-border);
+  color: var(--theme-accent-text);
+}
+
+html[data-theme='dark'] .home-story-card__cover-empty,
+html[data-theme='dark'] .home-story-card__cover-empty--lazy,
+html[data-theme='dark'] .home-community-item__avatar img,
+html[data-theme='dark'] .home-community-item__avatar span {
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text-muted);
+  border-color: var(--theme-border);
+}
+
+html[data-theme='dark'] .home-story-card__status.ongoing {
+  background: var(--theme-success-soft);
+  color: var(--theme-success-text);
+}
+
+html[data-theme='dark'] .home-story-card__status.completed {
+  background: var(--theme-warning-soft);
+  color: var(--theme-warning-text);
+}
+
+html[data-theme='dark'] .home-story-card__status.cancelled {
+  background: var(--theme-danger-soft);
+  color: var(--theme-danger-text);
+}
+
+html[data-theme='dark'] .home-ranking__list li {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .home-ranking__index {
+  color: var(--theme-text-soft);
+}
+
+html[data-theme='dark'] .home-ranking__head span,
+html[data-theme='dark'] .home-community-item__story a {
+  color: var(--theme-accent-text);
+}

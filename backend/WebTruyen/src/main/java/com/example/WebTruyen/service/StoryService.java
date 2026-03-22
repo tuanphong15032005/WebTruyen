@@ -52,12 +52,14 @@ import com.example.WebTruyen.entity.model.Content.StoryTagEntity;
 import com.example.WebTruyen.entity.model.Content.TagEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.FollowStoryEntity;
+import com.example.WebTruyen.entity.model.SocialLibrary.FollowUserEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.LibraryAlbumItemEntity;
 import com.example.WebTruyen.entity.model.SocialLibrary.LibraryEntryEntity;
 import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.ChapterSegmentRepository;
 import com.example.WebTruyen.repository.FollowStoryRepository;
+import com.example.WebTruyen.repository.FollowUserRepository;
 import com.example.WebTruyen.service.NotificationService;
 import com.example.WebTruyen.repository.LibraryAlbumItemRepository;
 import com.example.WebTruyen.repository.LibraryAlbumRepository;
@@ -86,6 +88,7 @@ public class StoryService {
     private final ChapterRepository chapterRepository;
     private final ChapterSegmentRepository chapterSegmentRepository;
     private final FollowStoryRepository followStoryRepository;
+    private final FollowUserRepository followUserRepository;
     private final NotificationService notificationService;
 //<<<<<<< HEAD
     private final LibraryEntryRepository libraryEntryRepository;
@@ -709,6 +712,9 @@ public class StoryService {
 
         StoryEntity saved = storyRepository.save(story);
         List<TagDto> tagDtos = syncStoryTags(saved, normalizeIds(req.tagIds()), true);
+        if (previousStatus != StoryStatus.published && saved.getStatus() == StoryStatus.published) {
+            notifyAuthorFollowersAboutNewStory(saved);
+        }
         return toResponse(saved, tagDtos, false);
     }
 
@@ -1393,6 +1399,7 @@ public class StoryService {
         story.setApprovalUpdatedAt(LocalDateTime.now());
         storyRepository.save(story);
         saveModerationAction(currentUser, "approve", ModerationActionEntity.ModerationTargetKind.story, storyId, null);
+        notifyAuthorStoryModeration(story, true, null);
     }
 
     @Transactional
@@ -1403,6 +1410,7 @@ public class StoryService {
         story.setApprovalUpdatedAt(LocalDateTime.now());
         storyRepository.save(story);
         saveModerationAction(currentUser, "reject", ModerationActionEntity.ModerationTargetKind.story, storyId, note);
+        notifyAuthorStoryModeration(story, false, note);
     }
 
     @Transactional
@@ -1421,6 +1429,7 @@ public class StoryService {
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
         saveModerationAction(currentUser, "approve", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, null);
+        notifyAuthorChapterModeration(chapter, true, null);
     }
 
     @Transactional
@@ -1432,6 +1441,7 @@ public class StoryService {
         chapter.setLastUpdateAt(LocalDateTime.now());
         chapterRepository.save(chapter);
         saveModerationAction(currentUser, "reject", ModerationActionEntity.ModerationTargetKind.chapter, chapterId, note);
+        notifyAuthorChapterModeration(chapter, false, note);
     }
 
     @Transactional
@@ -1537,6 +1547,111 @@ public class StoryService {
                 .createdAt(LocalDateTime.now())
                 .build();
         moderationActionRepository.save(action);
+    }
+
+    private void notifyAuthorFollowersAboutNewStory(StoryEntity story) {
+        if (story.getAuthor() == null || story.getAuthor().getId() == null) {
+            return;
+        }
+
+        Long authorId = story.getAuthor().getId();
+        String authorName = resolveAuthorName(story);
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank()
+                ? "truyện không tên"
+                : story.getTitle();
+
+        for (FollowUserEntity follow : followUserRepository.findByTargetUser_Id(authorId)) {
+            if (follow.getUser() == null || follow.getUser().getId() == null || Objects.equals(follow.getUser().getId(), authorId)) {
+                continue;
+            }
+
+            String message = String.format(
+                    "Tác giả \"%s\" vừa có truyện mới: \"%s\".",
+                    authorName,
+                    storyTitle
+            );
+
+            notificationService.createNotification(
+                    follow.getUser().getId(),
+                    "new_story",
+                    "Truyện mới",
+                    message,
+                    story.getId(),
+                    story.getId(),
+                    null
+            );
+        }
+    }
+
+    private void notifyAuthorStoryModeration(StoryEntity story, boolean approved, String note) {
+        if (story.getAuthor() == null || story.getAuthor().getId() == null) {
+            return;
+        }
+
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank()
+                ? "truyện không tên"
+                : story.getTitle();
+        String moderationNote = note == null ? null : note.trim();
+
+        String message = approved
+                ? String.format("Truyện \"%s\" của bạn đã được duyệt.", storyTitle)
+                : String.format(
+                        "Truyện \"%s\" của bạn đã bị từ chối.%s",
+                        storyTitle,
+                        moderationNote == null || moderationNote.isBlank() ? "" : " Ghi chú từ admin: " + moderationNote
+                );
+
+        notificationService.createNotification(
+                story.getAuthor().getId(),
+                "story_moderation",
+                approved ? "Truyện đã duyệt" : "Truyện bị từ chối",
+                message,
+                story.getId(),
+                story.getId(),
+                null
+        );
+    }
+
+    private void notifyAuthorChapterModeration(ChapterEntity chapter, boolean approved, String note) {
+        if (chapter.getVolume() == null || chapter.getVolume().getStory() == null) {
+            return;
+        }
+
+        StoryEntity story = chapter.getVolume().getStory();
+        if (story.getAuthor() == null || story.getAuthor().getId() == null) {
+            return;
+        }
+
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank()
+                ? "truyện không tên"
+                : story.getTitle();
+        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank()
+                ? "chương không tên"
+                : chapter.getTitle();
+        String moderationNote = note == null ? null : note.trim();
+
+        String message = approved
+                ? String.format(
+                        "Chương \"%s\" của truyện \"%s\" của bạn đã được duyệt.",
+                        chapterTitle,
+                        storyTitle
+                )
+                : String.format(
+                        "Chương \"%s\" của truyện \"%s\" của bạn đã bị từ chối.%s",
+                        chapterTitle,
+                        storyTitle,
+                        moderationNote == null || moderationNote.isBlank() ? "" : " Ghi chú từ admin: " + moderationNote
+                );
+
+        notificationService.createNotification(
+                story.getAuthor().getId(),
+                "story_moderation",
+                approved ? "Chương đã duyệt" : "Chương bị từ chối",
+                message,
+                chapter.getId(),
+                story.getId(),
+                chapter.getId()
+        );
     }
 
     private String resolveAuthorName(StoryEntity story) {

@@ -3,16 +3,15 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   User,
   MessageSquare,
-  Library,
   Settings,
   Lock,
   Camera,
   Edit3,
-  Save,
   Trophy,
   Bookmark,
   CheckSquare,
   Shield,
+  Wallet,
   Settings as AdminIcon,
 } from 'lucide-react';
 import { dailyCheckIn, getUserProfileById, getUserProfileByUsername, uploadAvatar, uploadCover } from '../api/userApi';
@@ -533,8 +532,8 @@ export default function UserProfile({ userData }) {
   if (loading) {
     return (
       <div className="user-profile-container">
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ fontSize: '18px', color: '#666' }}>Đang tải...</p>
+        <div className="profile-loading-state">
+          <p className="profile-loading-text">Đang tải...</p>
         </div>
       </div>
     );
@@ -543,21 +542,13 @@ export default function UserProfile({ userData }) {
   if (error) {
     return (
       <div className="user-profile-container">
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '20px' }}>
-          <div style={{ backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '8px', padding: '20px', maxWidth: '500px', textAlign: 'center' }}>
-            <h3 style={{ color: '#c33', marginBottom: '10px' }}>Lỗi tải dữ liệu</h3>
-            <p style={{ color: '#666', marginBottom: '20px' }}>{error}</p>
+        <div className="profile-error-state">
+          <div className="profile-error-card">
+            <h3>Lỗi tải dữ liệu</h3>
+            <p>{error}</p>
             <button 
               onClick={() => window.location.reload()} 
-              style={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="btn-primary"
             >
               Thử lại
             </button>
@@ -598,11 +589,28 @@ export default function UserProfile({ userData }) {
               </button>
             </li>
             <li>
+              <button className={`sidebar-menu-item ${location.pathname === '/donation-history' ? 'active' : ''}`} onClick={() => navigate('/donation-history')}>
+                <Wallet className="icon" />
+                Lịch sử giao dịch
+              </button>
+            </li>
+            <li>
               <button className={`sidebar-menu-item ${location.pathname === '/authordashboard' ? 'active' : ''}`} onClick={() => navigate('/authordashboard')}>
                 <Edit3 className="icon" />
                 Khu vực tác giả
               </button>
             </li>
+            {hasAnyRole(['AUTHOR'], getStoredUser()) && (
+              <li>
+                <button
+                  className={`sidebar-menu-item ${location.pathname === '/author/withdrawal-request' ? 'active' : ''}`}
+                  onClick={() => navigate('/author/withdrawal-request')}
+                >
+                  <Wallet className="icon" />
+                  Yêu cầu rút tiền
+                </button>
+              </li>
+            )}
             <li>
               <button className={`sidebar-menu-item ${location.pathname === '/reviewer-area' ? 'active' : ''}`} onClick={() => navigate('/reviewer-area')}>
                 <Shield className="icon" />
@@ -610,15 +618,9 @@ export default function UserProfile({ userData }) {
               </button>
             </li>
             <li>
-              <button className={`sidebar-menu-item ${location.pathname === '/messages' ? 'active' : ''}`} onClick={() => navigate('/messages')}>
+              <button className={`sidebar-menu-item ${location.pathname === '/notifications' ? 'active' : ''}`} onClick={() => navigate('/notifications')}>
                 <MessageSquare className="icon" />
                 Tin nhắn
-              </button>
-            </li>
-            <li>
-              <button className={`sidebar-menu-item ${location.pathname === '/library' ? 'active' : ''}`} onClick={() => navigate('/library')}>
-                <Library className="icon" />
-                Tủ truyện
               </button>
             </li>
             {hasAnyRole(['ADMIN', 'MOD'], getStoredUser()) && (
@@ -642,16 +644,13 @@ export default function UserProfile({ userData }) {
               <div className="profile-banner" />
             )}
             {/* Cover Upload Button */}
-            <div className="cover-upload-container" style={{position: 'absolute', top: '16px', left: '16px', zIndex: 10}}>
+            <div className="cover-upload-container">
               <button 
                 className="cover-upload-btn"
                 onClick={() => coverInputRef.current?.click()}
                 title="Thay đổi ảnh bìa"
-                style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(0, 0, 0, 0.6)', color: 'white', border: 'none', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.3s ease', backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'}}
-                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
               >
-                <Camera className="icon" style={{width: '16px', height: '16px'}} />
+                <Camera className="icon" />
                 <span>Thay đổi ảnh bìa</span>
               </button>
               <input
@@ -720,10 +719,10 @@ export default function UserProfile({ userData }) {
 
             {/* Avatar Upload Preview */}
             {avatarFile && (
-              <div style={{ marginTop: '16px' }}>
+              <div className="profile-preview-block">
                 <div className="message info">
                   <span>Ảnh mới đã chọn</span>
-                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                  <div className="profile-preview-actions">
                     <button
                       onClick={handleAvatarUpload}
                       disabled={uploadingAvatar}
@@ -734,8 +733,7 @@ export default function UserProfile({ userData }) {
                     <button
                       onClick={handleCancelAvatarUpload}
                       disabled={uploadingAvatar}
-                      className="btn-primary"
-                      style={{ backgroundColor: '#6b7280' }}
+                      className="btn-secondary"
                     >
                       Hủy
                     </button>
@@ -753,24 +751,22 @@ export default function UserProfile({ userData }) {
 
             {/* Cover Upload Preview */}
             {coverFile && (
-              <div style={{ marginTop: '16px' }}>
-                <div className="message info" style={{padding: '16px'}}>
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                    <span style={{color: '#1e40af', fontWeight: '500'}}>Ảnh bìa mới đã chọn</span>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div className="profile-preview-block">
+                <div className="message info">
+                  <div className="profile-preview-actions--column">
+                    <span className="profile-preview-title">Ảnh bìa mới đã chọn</span>
+                    <div className="profile-preview-actions">
                       <button
                         onClick={handleCoverUpload}
                         disabled={uploadingCover}
                         className="btn-primary"
-                        style={{fontSize: '14px', padding: '8px 16px'}}
                       >
                         {uploadingCover ? 'Đang tải...' : 'Lưu ảnh bìa'}
                       </button>
                       <button
                         onClick={handleCancelCoverUpload}
                         disabled={uploadingCover}
-                        className="btn-primary"
-                        style={{backgroundColor: '#6b7280', fontSize: '14px', padding: '8px 16px'}}
+                        className="btn-secondary"
                       >
                         Hủy
                       </button>

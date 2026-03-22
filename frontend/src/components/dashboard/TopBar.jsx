@@ -14,23 +14,23 @@ const TopBar = () => {
     navigate('/author/create-story');
   };
 
-  const handleProfileClick = () => {
-    navigate('/profile');
+  const handleViewPerformance = () => {
+    navigate('/author/performance-analytics');
   };
 
   return (
-    <div className="topbar">
-      <div className="topbar-left">
-        <h1 className="page-title">Author Dashboard</h1>
-      </div>
-      
-      <div className="topbar-center">
-        <button 
-          className="create-story-btn"
-          onClick={handleCreateStory}
-        >
-          + Tạo truyện mới
-        </button>
+    <div className='topbar'>
+      <div className='topbar-left'></div>
+
+      <div className='topbar-center'>
+        <div className='topbar-actions'>
+          <button className='performance-report-btn' onClick={handleViewPerformance}>
+            Báo cáo hiệu suất
+          </button>
+          <button className='create-story-btn' onClick={handleCreateStory}>
+            + Tạo truyện mới
+          </button>
+        </div>
       </div>
     </div>
   );

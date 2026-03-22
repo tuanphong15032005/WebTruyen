@@ -9,7 +9,6 @@ const FILTERS = [
   { value: 'all', label: 'Tất cả' },
   { value: 'ongoing', label: 'Đang tiến hành' },
   { value: 'completed', label: 'Hoàn thành' },
-  { value: 'archived', label: 'Lưu trữ' },
 ];
 
 const COMPLETION_LABELS = {
@@ -47,8 +46,6 @@ const getCategoryTag = (story) => {
 };
 
 const getCompletionLabel = (story) => {
-  const status = String(story?.status || '').toLowerCase();
-  if (status === 'archived') return 'Lưu trữ';
   const completion = String(story?.completionStatus || '').toLowerCase();
   return COMPLETION_LABELS[completion] || 'Đang tiến hành';
 };
@@ -59,11 +56,11 @@ const getSummaryText = (story) => {
 };
 
 const matchesFilter = (story, filter) => {
-  if (filter === 'all') return true;
   const status = String(story?.status || '').toLowerCase();
+  if (status === 'archived') return false;
+  if (filter === 'all') return true;
   const completion = String(story?.completionStatus || '').toLowerCase();
-  if (filter === 'archived') return status === 'archived';
-  return status !== 'archived' && completion === filter;
+  return completion === filter;
 };
 
 const ManageStories = () => {
@@ -128,10 +125,9 @@ const ManageStories = () => {
           {filteredStories.map((story) => {
             const categoryTag = getCategoryTag(story);
             const completionLabel = getCompletionLabel(story);
-            const storyStatusClass =
-              String(story?.status || '').toLowerCase() === 'archived'
-                ? 'archived'
-                : String(story?.completionStatus || '').toLowerCase();
+            const storyStatusClass = String(
+              story?.completionStatus || '',
+            ).toLowerCase();
 
             return (
               <article key={story.id} className='story-card story-hub__card'>

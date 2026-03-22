@@ -8,15 +8,10 @@ const MyStories = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Gọi API khi component được load
     const fetchStories = async () => {
       try {
         const response = await storyService.getMyStories();
-        // Kiểm tra log xem dữ liệu trả về dạng nào
-        console.log('API Response:', response);
-
-        // API service đã unwrap response.data ở interceptor
-        setStories(response || []);
+        setStories(Array.isArray(response) ? response : []);
       } catch (error) {
         console.error('Lỗi gọi API:', error);
       }
@@ -25,30 +20,37 @@ const MyStories = () => {
     fetchStories();
   }, []);
 
+  const visibleStories = stories.filter(
+    (story) => String(story?.status || '').toLowerCase() !== 'archived',
+  );
+
   return (
     <div className='my-stories-page'>
       <h2>Danh sách truyện của tôi</h2>
       <div className='story-list'>
-        {stories.length === 0 ? <p>Bạn chưa có truyện nào.</p> : null}
+        {visibleStories.length === 0 ? <p>Bạn chưa có truyện nào.</p> : null}
 
-        {stories.map((story) => (
-          <div
-            key={story.id}
-            className='story-item'
-            style={{
-              border: '1px solid #ccc',
-              margin: '10px',
-              padding: '10px',
-            }}
-          >
-            <h3>{story.title}</h3>
-            <p>Trạng thái: {story.status}</p>
-            {/* Nút để vào sửa truyện */}
-            <Button onClick={() => navigate(`/author/stories/${story.id}`)}>
-              Sửa / Quản lý chương
-            </Button>
-          </div>
-        ))}
+        {visibleStories.map((story) => {
+          const storyId = story?.id ?? story?.storyId;
+
+          return (
+            <div
+              key={storyId}
+              className='story-item'
+              style={{
+                border: '1px solid var(--theme-border)',
+                margin: '10px',
+                padding: '10px',
+              }}
+            >
+              <h3>{story.title}</h3>
+              <p>Trạng thái: {story.status}</p>
+              <Button onClick={() => navigate(`/author/stories/${storyId}`)}>
+                Sửa / Quản lý chương
+              </Button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

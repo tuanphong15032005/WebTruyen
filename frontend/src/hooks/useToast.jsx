@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 
 const ToastContext = createContext();
 
@@ -16,23 +16,22 @@ export const ToastProvider = ({ children }) => {
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now();
     const newToast = { id, message, type };
-    setToasts(prev => [...prev, newToast]);
-    
-    // Auto remove after 3 seconds
+    setToasts((prev) => [...prev, newToast]);
+
     setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 3000);
   }, []);
 
   const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
   const toast = {
     success: (message) => addToast(message, 'success'),
     error: (message) => addToast(message, 'error'),
     info: (message) => addToast(message, 'info'),
-    warning: (message) => addToast(message, 'warning')
+    warning: (message) => addToast(message, 'warning'),
   };
 
   return (
@@ -44,62 +43,25 @@ export const ToastProvider = ({ children }) => {
 
 export const ToastContainer = () => {
   const context = useContext(ToastContext);
-  
+
   if (!context || !context.toasts) {
     return null;
   }
 
   const { toasts, removeToast } = context;
 
-  const getTypeStyles = (type) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-500 text-white';
-      case 'error':
-        return 'bg-red-500 text-white';
-      case 'warning':
-        return 'bg-yellow-500 text-white';
-      default:
-        return 'bg-blue-500 text-white';
-    }
-  };
-
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'success':
-        return '✓';
-      case 'error':
-        return '✕';
-      case 'warning':
-        return '⚠';
-      default:
-        return 'ℹ';
-    }
-  };
-
   return (
-    <div className="fixed top-20 right-4 z-50 space-y-2">
+    <div className='toast-container toast-container--managed'>
       {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`
-            flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg
-            transform transition-all duration-300 ease-in-out
-            ${getTypeStyles(toast.type)}
-            min-w-[300px] max-w-md
-          `}
-        >
-          <span className="text-lg font-semibold">
-            {getTypeIcon(toast.type)}
-          </span>
-          <span className="flex-1">
-            {toast.message}
-          </span>
+        <div key={toast.id} className={`toast toast--managed toast-${toast.type}`}>
+          <span className='toast__message'>{toast.message}</span>
           <button
+            type='button'
             onClick={() => removeToast(toast.id)}
-            className="ml-3 hover:opacity-80 transition-opacity"
+            className='toast__close'
+            aria-label='Close toast'
           >
-            ✕
+            x
           </button>
         </div>
       ))}

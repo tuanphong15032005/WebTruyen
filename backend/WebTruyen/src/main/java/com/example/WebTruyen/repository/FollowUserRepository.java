@@ -18,6 +18,8 @@ public interface FollowUserRepository extends JpaRepository<FollowUserEntity, Lo
     
     @Query(value = "SELECT COUNT(*) FROM follows_users WHERE target_user_id = :targetUserId", nativeQuery = true)
     long countByTargetUserId(@Param("targetUserId") Long targetUserId);
+
+    List<FollowUserEntity> findByTargetUser_Id(Long targetUserId);
     
     @Modifying
     @Transactional

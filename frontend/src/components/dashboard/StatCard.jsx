@@ -40,20 +40,24 @@ const StatCard = ({ title, value, growth, icon, color }) => {
 
   return (
     <div className={`stat-card ${color}`}>
-      <div className="stat-icon-wrapper">
-        {icon}
-      </div>
-      
-      <div className="stat-content">
-        <div className="stat-title">
-          {title}
+      <div className="stat-card__header">
+        <div className="stat-content">
+          <div className="stat-title">
+            {title}
+          </div>
+          <div className="stat-value">
+            {formatValue(value)}
+          </div>
         </div>
-        <div className="stat-value">
-          {formatValue(value)}
+
+        <div className="stat-card__aside">
+          <div className="stat-icon-wrapper">
+            {icon}
+          </div>
+
+          {growth !== undefined && growth !== null && formatGrowth(growth)}
         </div>
       </div>
-      
-      {growth !== undefined && growth !== null && formatGrowth(growth)}
     </div>
   );
 };

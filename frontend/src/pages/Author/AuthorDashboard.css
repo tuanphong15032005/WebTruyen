@@ -1,19 +1,37 @@
 /* AuthorDashboard.css - Modern Design */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-:root {
-  --bg-slate-50: #f8fafc;
-  --bg-white: #ffffff;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+.dashboard-author {
+  --bg-slate-50: var(--theme-page-bg-alt);
+  --bg-white: var(--theme-surface-raised);
+  --text-primary: var(--theme-text-primary);
+  --text-secondary: var(--theme-text-secondary);
+  --border-color: var(--theme-border);
+  --border-strong: var(--theme-border-strong);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
   --rounded-2xl: 1rem;
-  --indigo-600: #4f46e5;
-  --indigo-700: #4338ca;
-  --green-500: #10b981;
-  --yellow-500: #f59e0b;
+  --indigo-600: var(--theme-accent);
+  --indigo-700: var(--theme-accent-hover);
+  --green-500: var(--theme-success);
+  --yellow-500: var(--theme-warning);
+  --danger-500: var(--theme-danger);
+  --danger-600: var(--theme-danger-hover);
+  --success-soft: var(--theme-success-soft-strong);
+  --success-text: var(--theme-success-text);
+  --warning-soft: var(--theme-warning-soft-strong);
+  --warning-text: var(--theme-warning-text);
+  --warning-border: var(--theme-warning-border);
+  --danger-soft: var(--theme-danger-soft-strong);
+  --danger-bg: var(--theme-danger-soft);
+  --danger-text: var(--theme-danger-text);
+  --danger-border: var(--theme-danger-border);
+  --panel-muted-bg: var(--theme-surface-muted);
+  --panel-subtle-bg: var(--theme-surface-subtle);
+  --panel-hover-bg: var(--theme-surface-hover);
+  --brand-gradient: var(--gradient-brand);
+  --warning-gradient: var(--gradient-warning);
+  --danger-gradient: var(--gradient-danger);
 }
 
 /* Status card styles - giống reviewer application */
@@ -23,20 +41,20 @@
 }
 
 .status-card {
-  background: white;
+  background: var(--bg-white);
   border-radius: 12px;
   padding: 40px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
   margin-bottom: 24px;
   border-left: 4px solid;
 }
 
 .status-card.pending {
-  border-left-color: #f59e0b;
+  border-left-color: var(--yellow-500);
 }
 
 .status-card.rejected {
-  border-left-color: #ef4444;
+  border-left-color: var(--danger-500);
 }
 
 .status-icon {
@@ -44,28 +62,28 @@
 }
 
 .status-icon .warning {
-  color: #f59e0b;
+  color: var(--yellow-500);
 }
 
 .status-icon .error {
-  color: #ef4444;
+  color: var(--danger-500);
 }
 
 .status-card h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .status-card p {
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 20px;
   line-height: 1.5;
 }
 
 .application-details {
-  background: #f9fafb;
+  background: var(--panel-muted-bg);
   border-radius: 8px;
   padding: 16px;
   margin-top: 16px;
@@ -73,7 +91,7 @@
 
 .application-details p {
   margin-bottom: 8px;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .application-details p:last-child {
@@ -81,20 +99,20 @@
 }
 
 .rejection-reason {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: 8px;
   padding: 16px;
   margin-top: 16px;
 }
 
 .rejection-reason strong {
-  color: #991b1b;
+  color: var(--danger-text);
 }
 
 .retry-btn {
-  background: #ef4444;
-  color: white;
+  background: var(--danger-500);
+  color: var(--theme-text-inverse);
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
@@ -104,7 +122,7 @@
 }
 
 .retry-btn:hover {
-  background: #dc2626;
+  background: var(--danger-600);
 }
 
 @media (max-width: 640px) {
@@ -202,7 +220,12 @@
 }
 
 .loading-skeleton {
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background: linear-gradient(
+    90deg,
+    var(--panel-subtle-bg) 25%,
+    var(--border-color) 50%,
+    var(--panel-subtle-bg) 75%
+  );
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
   border-radius: var(--rounded-2xl);
@@ -224,7 +247,7 @@
 .dashboard-panel-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: #fafbfc;
+  background: var(--panel-muted-bg);
 }
 
 .dashboard-panel-header h3 {
@@ -298,23 +321,23 @@
 }
 
 .status-draft {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--warning-soft);
+  color: var(--warning-text);
 }
 
 .status-published {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--success-soft);
+  color: var(--success-text);
 }
 
 .status-completed {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: var(--theme-accent-soft);
+  color: var(--theme-accent-text);
 }
 
 .status-paused {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--panel-subtle-bg);
+  color: var(--text-secondary);
 }
 
 .chapter-count {
@@ -360,13 +383,13 @@
 }
 
 .secondary-btn {
-  background-color: #f3f4f6;
+  background-color: var(--panel-subtle-bg);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
 .secondary-btn:hover {
-  background-color: #e5e7eb;
+  background-color: var(--border-color);
 }
 
 .dashboard-panel-footer {
@@ -433,9 +456,9 @@
 
 /* Error and Loading States */
 .dashboard-error-message {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
   padding: 1rem;
   border-radius: 0.5rem;
   margin-bottom: 1rem;
@@ -445,8 +468,8 @@
 }
 
 .dashboard-retry-btn {
-  background-color: #dc2626;
-  color: white;
+  background-color: var(--danger-600);
+  color: var(--theme-text-inverse);
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
@@ -465,7 +488,7 @@
 .dashboard-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #e5e7eb;
+  border: 4px solid var(--border-color);
   border-top: 4px solid var(--indigo-600);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -483,16 +506,16 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f8f9fa;
+  background: var(--bg-slate-50);
   padding: 2rem;
   position: relative;
 }
 
 .dashboard-reader-content {
-  background: #ffffff;
+  background: var(--bg-white);
   padding: 3rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   max-width: 600px;
   width: 100%;
   text-align: center;
@@ -501,12 +524,12 @@
 .dashboard-reader-content h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 1rem;
 }
 
 .dashboard-reader-info p {
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
   line-height: 1.6;
   font-size: 1rem;
@@ -518,7 +541,7 @@
 }
 
 .dashboard-benefits h3 {
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 2rem;
   font-size: 1.3rem;
   font-weight: 600;
@@ -535,7 +558,7 @@
   transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--brand-gradient);
   border-radius: 2px;
 }
 
@@ -570,9 +593,9 @@
   align-items: center;
   gap: 1.5rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, var(--panel-muted-bg) 0%, var(--panel-subtle-bg) 100%);
   border-radius: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--theme-accent-border);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -586,15 +609,15 @@
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--brand-gradient);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .benefit-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: var(--shadow-md);
+  border-color: var(--theme-accent-border);
 }
 
 .benefit-item:hover::before {
@@ -614,9 +637,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--brand-gradient);
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: var(--shadow-sm);
   position: relative;
   transition: transform 0.3s ease;
   margin: 0 auto;
@@ -629,7 +652,7 @@
 }
 
 .benefit-content h4 {
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -637,7 +660,7 @@
 }
 
 .benefit-content p {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
@@ -645,8 +668,8 @@
 
 
 .dashboard-apply-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
+  background: var(--brand-gradient);
+  color: var(--theme-text-inverse);
   border: none;
   padding: 1rem 3rem;
   border-radius: 2rem;
@@ -654,7 +677,7 @@
   font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
@@ -675,7 +698,7 @@
 
 .dashboard-apply-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
+  box-shadow: var(--shadow-lg);
 }
 
 .dashboard-apply-btn:hover::before {
@@ -697,13 +720,13 @@
 }
 
 .application-status.pending {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: var(--warning-gradient);
+  border: 1px solid var(--warning-border);
 }
 
 .application-status.rejected {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--danger-gradient);
+  border: 1px solid var(--danger-border);
 }
 
 .application-status h3 {
@@ -713,11 +736,11 @@
 }
 
 .application-status.pending h3 {
-  color: #92400e;
+  color: var(--warning-text);
 }
 
 .application-status.rejected h3 {
-  color: #991b1b;
+  color: var(--danger-text);
 }
 
 .application-status p {
@@ -726,57 +749,57 @@
 }
 
 .rejection-reason {
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-white) 84%, transparent);
   padding: 1rem;
   border-radius: 0.5rem;
   margin: 1rem 0;
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--danger-600);
   text-align: left;
 }
 
 .retry-btn {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--danger-500) 0%, var(--danger-600) 100%);
+  color: var(--theme-text-inverse);
   border: none;
   padding: 0.75rem 2rem;
   border-radius: 2rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 .retry-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.6);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Eligibility Warning */
 .eligibility-warning {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--warning-gradient);
   padding: 2rem;
   border-radius: 1rem;
   margin-bottom: 2rem;
   text-align: center;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--warning-border);
   position: relative;
 }
 
 .eligibility-warning h3 {
-  color: #92400e;
+  color: var(--warning-text);
   margin-bottom: 1rem;
   font-size: 1.3rem;
   font-weight: 600;
 }
 
 .eligibility-warning p {
-  color: #78350f;
+  color: var(--warning-text);
   line-height: 1.6;
   margin-bottom: 0.5rem;
 }
 
 .eligibility-warning strong {
-  color: #92400e;
+  color: var(--warning-text);
   font-weight: 700;
 }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FileText, Shield, BookOpen } from 'lucide-react';
 import { sitePageService } from '../../services/sitePageService';
+import { inferPolicyCategory } from '../../utils/policyPages';
 
 function DocsSidebar() {
   const location = useLocation();
@@ -12,69 +13,46 @@ function DocsSidebar() {
     const fetchPages = async () => {
       try {
         const allPages = await sitePageService.getAllPages();
-        console.log('Raw API response:', allPages);
-        
-        // Filter chỉ các trang policy và sắp xếp theo thứ tự
-        const policyPages = allPages.filter(page => {
-          const code = page.code;
-          return code.startsWith('term') || code.startsWith('privacy') || code.startsWith('author-rules');
-        }).sort((a, b) => {
-          // Group by base type and sort by number
-          const getBaseCode = (code) => {
-            if (code.startsWith('term')) return 'terms';
-            if (code.startsWith('privacy')) return 'privacy';
-            if (code.startsWith('author-rules')) return 'author-rules';
-            return code;
-          };
-          
-          const getNumber = (code) => {
-            const match = code.match(/\d+/);
-            return match ? parseInt(match[0]) : 0;
-          };
-          
-          const aBase = getBaseCode(a.code);
-          const bBase = getBaseCode(b.code);
-          
-          if (aBase !== bBase) {
+        const policyPages = allPages
+          .map((page) => ({
+            ...page,
+            policyCategory: inferPolicyCategory(page),
+          }))
+          .filter((page) => page.policyCategory)
+          .sort((a, b) => {
             const order = ['terms', 'privacy', 'author-rules'];
-            return order.indexOf(aBase) - order.indexOf(bBase);
-          }
-          
-          return getNumber(a.code) - getNumber(b.code);
-        });
-        
-        // Group by base code and get only the first item of each group for sidebar
+            return (
+              order.indexOf(a.policyCategory) - order.indexOf(b.policyCategory)
+            );
+          });
+
         const uniquePages = [];
         const seen = new Set();
-        
+
         for (const page of policyPages) {
-          const baseCode = page.code.replace(/\d+/, '');
-          // Fix: ensure proper base code mapping
-          const normalizedCode = baseCode === 'term' ? 'terms' : 
-                                 baseCode === 'privacy' ? 'privacy' : 
-                                 baseCode === 'author-rule' ? 'author-rules' : baseCode;
-          
+          const normalizedCode = page.policyCategory;
+
           if (!seen.has(normalizedCode)) {
             seen.add(normalizedCode);
             uniquePages.push({
               ...page,
-              code: normalizedCode, // Use normalized code for routing
-              title: normalizedCode === 'terms' ? 'Điều khoản dịch vụ' :
-                     normalizedCode === 'privacy' ? 'Chính sách bảo mật' :
-                     normalizedCode === 'author-rules' ? 'Rule đăng truyện' : page.title
+              code: normalizedCode,
+              title:
+                normalizedCode === 'terms'
+                  ? 'Điều khoản dịch vụ'
+                  : normalizedCode === 'privacy'
+                    ? 'Chính sách bảo mật'
+                    : normalizedCode === 'author-rules'
+                      ? 'Rule đăng truyện'
+                      : page.title,
             });
           }
         }
-        
+
         setPages(uniquePages);
       } catch (error) {
         console.error('Failed to fetch pages:', error);
-        // Fallback to hardcoded menu if API fails
-        setPages([
-          { code: 'terms', title: 'Điều khoản dịch vụ' },
-          { code: 'privacy', title: 'Chính sách bảo mật' },
-          { code: 'author-rules', title: 'Rule đăng truyện' }
-        ]);
+        setPages([]);
       } finally {
         setLoading(false);
       }
@@ -109,7 +87,7 @@ function DocsSidebar() {
         <div className="space-y-1">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse">
-              <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+              <div className="h-10 rounded-lg mb-2 bg-[var(--theme-surface-subtle)] border border-[var(--theme-border-subtle)]"></div>
             </div>
           ))}
         </div>
@@ -131,8 +109,8 @@ function DocsSidebar() {
               to={href}
               className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-[var(--theme-accent-soft)] text-[var(--theme-accent-text)] border-l-4 border-[var(--theme-accent)]'
+                  : 'text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-primary)]'
               }`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />

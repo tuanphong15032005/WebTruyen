@@ -182,7 +182,7 @@
 }
 
 .admin-moderation__grid {
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   border-radius: 12px;
   background: #fff;
@@ -192,14 +192,15 @@
 
 .admin-moderation__grid table {
   width: 100%;
+  min-width: 1040px;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 .admin-moderation__grid th,
 .admin-moderation__grid td {
   text-align: left;
-  padding: 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: top;
   word-break: break-word;
@@ -226,12 +227,29 @@
   background: #f9fafb;
   color: #374151;
   font-size: 14px;
+  white-space: nowrap;
 }
 
-.admin-moderation__grid th:last-child,
-.admin-moderation__grid td:last-child {
-  width: 190px;
-  min-width: 190px;
+.admin-moderation__col--type {
+  width: 88px;
+}
+
+.admin-moderation__col--author {
+  width: 132px;
+}
+
+.admin-moderation__col--processed {
+  width: 132px;
+}
+
+.admin-moderation__col--status {
+  width: 96px;
+  text-align: center !important;
+}
+
+.admin-moderation__col--actions {
+  width: 136px;
+  text-align: center !important;
 }
 
 .admin-moderation__empty {
@@ -241,9 +259,9 @@
 }
 
 .admin-moderation__actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
 
@@ -260,7 +278,7 @@
   cursor: pointer;
   color: #fff;
   width: 100%;
-  height: 100%;
+  min-height: 40px;
   white-space: normal;
   text-align: center;
 }
@@ -340,35 +358,52 @@
   width: min(760px, 100%);
   max-height: min(88vh, 860px);
   overflow: auto;
-  border-radius: 12px;
+  border-radius: 0;
   background: #fff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
 }
 
 .admin-moderation__modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  height: 44px;
+  border-bottom: 1px solid rgba(29, 78, 216, 0.16);
 }
 
 .admin-moderation__modal-head h2 {
   margin: 0;
-  font-size: 20px;
-  color: #111827;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #1e3a8a;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
-.admin-moderation__modal-head button {
-  width: 32px;
-  height: 32px;
+.admin-moderation__modal-close {
+  width: 44px;
+  height: 100%;
   border: none;
-  border-radius: 999px;
-  background: #e5e7eb;
-  color: #111827;
-  font-size: 16px;
+  background: #e10600;
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 700;
   cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  box-sizing: border-box;
+}
+
+.admin-moderation__modal-close:hover {
+  background: #b80500;
 }
 
 .admin-moderation__modal-content {
@@ -447,6 +482,28 @@
   border-top: 1px solid #f3f4f6;
   color: #1f2937;
   line-height: 1.6;
+}
+
+.admin-moderation__modal-note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+}
+
+.admin-moderation__modal-note-title {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.admin-moderation__modal-note p {
+  margin: 0;
+  color: #7f1d1d;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .admin-moderation__modal-chapter-body {
@@ -590,4 +647,81 @@
 .admin-moderation__pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+html[data-theme='dark'] .admin-moderation {
+  background: transparent;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-moderation__header h1,
+html[data-theme='dark'] .admin-moderation__modal-content h3,
+html[data-theme='dark'] .admin-moderation__modal-summary,
+html[data-theme='dark'] .admin-moderation__chapter-content {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-moderation__header p,
+html[data-theme='dark'] .admin-moderation__filter-label,
+html[data-theme='dark'] .admin-moderation__empty,
+html[data-theme='dark'] .admin-moderation__modal-meta,
+html[data-theme='dark'] .admin-moderation__pagination-info {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .admin-moderation__card,
+html[data-theme='dark'] .admin-moderation__grid,
+html[data-theme='dark'] .admin-moderation__modal,
+html[data-theme='dark'] .admin-moderation__modal-actions {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .admin-moderation__grid thead th,
+html[data-theme='dark'] .admin-moderation__pagination {
+  background: var(--theme-surface-muted);
+}
+
+html[data-theme='dark'] .admin-moderation__grid th,
+html[data-theme='dark'] .admin-moderation__grid td,
+html[data-theme='dark'] .admin-moderation__modal-actions,
+html[data-theme='dark'] .admin-moderation__pagination {
+  border-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .admin-moderation__grid thead th,
+html[data-theme='dark'] .admin-moderation__grid td,
+html[data-theme='dark'] .admin-moderation__grid th {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-moderation__select,
+html[data-theme='dark'] .admin-moderation__type-tabs button,
+html[data-theme='dark'] .admin-moderation__status-tabs button,
+html[data-theme='dark'] .admin-moderation__pagination-btn {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-moderation__select:hover,
+html[data-theme='dark'] .admin-moderation__select:focus,
+html[data-theme='dark'] .admin-moderation__type-tabs button:hover:not(.active),
+html[data-theme='dark'] .admin-moderation__status-tabs button:hover:not(.active),
+html[data-theme='dark'] .admin-moderation__pagination-btn:hover:not(:disabled) {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-input-border-hover);
+}
+
+html[data-theme='dark'] .admin-moderation__modal-head {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .admin-moderation__modal-cover {
+  background: var(--theme-surface-subtle);
+}
+
+html[data-theme='dark'] .admin-moderation__modal-summary {
+  border-top-color: var(--theme-divider);
 }

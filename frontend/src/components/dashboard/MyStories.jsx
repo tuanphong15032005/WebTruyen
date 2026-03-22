@@ -11,39 +11,56 @@ import './MyStories.css';
 const MyStories = ({ stories }) => {
   const navigate = useNavigate();
 
-  const handleEditStory = (storyId) => {
+  const visibleStories = Array.isArray(stories)
+    ? stories.filter(
+        (story) => String(story?.status || '').toLowerCase() !== 'archived',
+      )
+    : [];
+
+  const handleViewAnalytics = () => {
     navigate('/author/performance-analytics');
   };
 
-  const handleAddChapter = (storyId) => {
+  const handleViewStoryDetail = (storyId) => {
+    if (!storyId) return;
+    navigate(`/author/stories/${storyId}`);
+  };
+
+  const handleManageStories = () => {
     navigate('/author/my-stories');
   };
 
   const getStatusText = (status) => {
+    const normalizedStatus = String(status || '').toLowerCase();
     const statusMap = {
-      'draft': 'Bản nháp',
-      'published': 'Đã xuất bản',
-      'completed': 'Hoàn thành',
-      'paused': 'Tạm dừng'
+      draft: 'Bản nháp',
+      published: 'Đã xuất bản',
+      completed: 'Hoàn thành',
+      paused: 'Tạm dừng',
     };
-    return statusMap[status] || status;
+    return statusMap[normalizedStatus] || status;
   };
 
-  const getStatusClass = (status) => {
-    return `status-${status}`;
-  };
+  const getStatusClass = (status) => `status-${String(status || '').toLowerCase()}`;
 
-  if (!stories || stories.length === 0) {
+  if (visibleStories.length === 0) {
     return (
-      <div className="dashboard-my-stories">
-        <div className="dashboard-panel-header">
+      <div className='dashboard-my-stories'>
+        <div className='dashboard-panel-header'>
           <h3>Truyện của tôi</h3>
+          <button
+            type='button'
+            className='view-all-btn'
+            onClick={handleManageStories}
+          >
+            Quản lý truyện
+          </button>
         </div>
-        <div className="empty-state">
-          <div className="empty-icon">📚</div>
+        <div className='empty-state'>
+          <div className='empty-icon'>📚</div>
           <p>Bạn chưa có truyện nào</p>
-          <button 
-            className="create-first-story-btn"
+          <button
+            className='create-first-story-btn'
             onClick={() => navigate('/author/create-story')}
           >
             Tạo truyện đầu tiên
@@ -54,64 +71,66 @@ const MyStories = ({ stories }) => {
   }
 
   return (
-    <div className="dashboard-my-stories">
-      <div className="dashboard-panel-header">
+    <div className='dashboard-my-stories'>
+      <div className='dashboard-panel-header'>
         <h3>Truyện của tôi</h3>
-      </div>
-      
-      <div className="stories-list">
-        {stories.map((story) => (
-          <div key={story.storyId} className="story-item">
-            <div className="story-cover">
-              <img 
-                src={story.coverUrl || 'https://via.placeholder.com/120x160'} 
-                alt={story.title}
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/120x160';
-                }}
-              />
-            </div>
-            
-            <div className="story-info">
-              <h4 className="dashboard-story-title">{story.title}</h4>
-              <div className="story-meta">
-                <span className={`story-status ${getStatusClass(story.status)}`}>
-                  {getStatusText(story.status)}
-                </span>
-                <span className="chapter-count">
-                  {story.chapterCount} chương
-                </span>
-              </div>
-              <div className="story-updated">
-                Cập nhật: {formatRelativeTime(story.updatedAt)}
-              </div>
-            </div>
-            
-            <div className="story-actions">
-              <button 
-                className="dashboard-action-btn primary-btn"
-                onClick={() => handleEditStory(story.storyId)}
-              >
-                Xem thống kê
-              </button>
-              <button 
-                className="dashboard-action-btn secondary-btn"
-                onClick={() => handleAddChapter(story.storyId)}
-              >
-                Quản lý truyện
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="dashboard-panel-footer">
-        <button 
-          className="view-all-btn"
-          onClick={() => navigate('/author/my-stories')}
+        <button
+          type='button'
+          className='view-all-btn'
+          onClick={handleManageStories}
         >
-          Xem tất cả
+          Quản lý truyện
         </button>
+      </div>
+
+      <div className='stories-list'>
+        {visibleStories.map((story) => {
+          const storyId = story?.storyId ?? story?.id;
+
+          return (
+            <div key={storyId} className='story-item'>
+              <div className='story-cover'>
+                <img
+                  src={story.coverUrl || 'https://via.placeholder.com/120x160'}
+                  alt={story.title}
+                  onError={(event) => {
+                    event.currentTarget.src = 'https://via.placeholder.com/120x160';
+                  }}
+                />
+              </div>
+
+              <div className='story-info'>
+                <h4 className='dashboard-story-title'>{story.title}</h4>
+                <div className='story-meta'>
+                  <span className={`story-status ${getStatusClass(story.status)}`}>
+                    {getStatusText(story.status)}
+                  </span>
+                  <span className='chapter-count'>{story.chapterCount} chương</span>
+                </div>
+                <div className='story-updated'>
+                  Cập nhật: {formatRelativeTime(story.updatedAt)}
+                </div>
+              </div>
+
+              <div className='story-actions'>
+                <button
+                  type='button'
+                  className='dashboard-action-btn primary-btn'
+                  onClick={() => handleViewAnalytics(storyId)}
+                >
+                  Xem thống kê
+                </button>
+                <button
+                  type='button'
+                  className='dashboard-action-btn secondary-btn'
+                  onClick={() => handleViewStoryDetail(storyId)}
+                >
+                  Chi tiết
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

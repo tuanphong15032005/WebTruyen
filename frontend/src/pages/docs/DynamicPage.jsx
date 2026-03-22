@@ -1,10 +1,26 @@
-
-import React, { useState, useEffect } from 'react';
-import { sitePageService } from '../../services/sitePageService';
-import { getAllTerms, getTermDetail } from '../../api/termApi';
+import React, { useEffect, useState } from 'react';
 import { Home } from 'lucide-react';
 import PolicyNavigation from '../../components/docs/PolicyNavigation';
-import DocsToc from '../../components/docs/DocsToc';
+import { sitePageService } from '../../services/sitePageService';
+import { inferPolicyCategory, sortPolicyBlocks } from '../../utils/policyPages';
+
+const POLICY_CODES = ['terms', 'privacy', 'author-rules'];
+
+const getPageTitle = (code, page) => {
+  if (code === 'terms') return 'Điều khoản dịch vụ';
+  if (code === 'privacy') return 'Chính sách bảo mật';
+  if (code === 'author-rules') return 'Quy định đăng truyện';
+  return page?.[0]?.title || 'Trang thông tin';
+};
+
+const getErrorMessage = (code) => {
+  if (code === 'terms') return 'Không tìm thấy điều khoản dịch vụ.';
+  if (code === 'privacy') return 'Không tìm thấy chính sách bảo mật.';
+  if (code === 'author-rules') {
+    return 'Không tìm thấy quy định đăng truyện. Vui lòng liên hệ quản trị viên.';
+  }
+  return 'Không tìm thấy trang này.';
+};
 
 function DynamicPage({ code }) {
   const [page, setPage] = useState(null);
@@ -15,62 +31,31 @@ function DynamicPage({ code }) {
     const fetchPage = async () => {
       try {
         setLoading(true);
-        console.log('DynamicPage - fetching page with code:', code);
-        
+        setError(null);
+
         let pageData;
-        
-        // Use terms API for author-rules
-        if (code === 'author-rules') {
-          console.log('DynamicPage - using terms API for author-rules');
-          const allTerms = await getAllTerms();
-          // Filter only terms with code starting with 'author-rules'
-          pageData = allTerms.filter(term => term.code && term.code.startsWith('author-rules'));
-          console.log('DynamicPage - filtered author-rules data:', pageData);
+
+        if (POLICY_CODES.includes(code)) {
+          const allPages = await sitePageService.getAllPages();
+          pageData = sortPolicyBlocks(
+            allPages.filter((entry) => inferPolicyCategory(entry) === code),
+          );
         } else {
-          pageData = await sitePageService.getPageByCode(code);
-          console.log('DynamicPage - received pageData:', pageData);
+          const response = await sitePageService.getPageByCode(code);
+          pageData = Array.isArray(response) ? response : response ? [response] : [];
         }
-        
-        console.log('DynamicPage - pageData type:', typeof pageData);
-        console.log('DynamicPage - is pageData array?', Array.isArray(pageData));
-        
-        // Set the page data
-        if (code === 'author-rules') {
-          // Check if pageData exists and has content
-          if (!pageData || pageData.length === 0) {
-            throw new Error('No author rules data found');
-          }
-          // Sort by code to maintain order (author-rules1, author-rules2, etc.)
-          pageData.sort((a, b) => {
-            const extractNumber = (code) => {
-              const match = code.match(/author-rules(\d+)/);
-              return match ? parseInt(match[1]) : 0;
-            };
-            return extractNumber(a.code) - extractNumber(b.code);
-          });
-          setPage(pageData);
-        } else {
-          setPage(pageData);
+
+        if (!Array.isArray(pageData) || pageData.length === 0) {
+          throw new Error(`No page blocks found for code: ${code}`);
         }
-        
-        // Debug: Log order of received data
-        console.log('=== DEBUG: Page order received ===');
-        pageData.forEach((item, index) => {
-          console.log(`${index}: ${item.code} - ${item.title}`);
-        });
-        
-        // Save to localStorage for DocsToc
+
+        setPage(pageData);
         localStorage.setItem('currentPageBlocks', JSON.stringify(pageData));
       } catch (err) {
-        console.error('DynamicPage - error:', err);
-        console.error('DynamicPage - error response:', err.response);
-        console.error('DynamicPage - error status:', err.response?.status);
-        
-        if (code === 'author-rules') {
-          setError('Không tìm thấy quy định đăng truyện. Vui lòng liên hệ quản trị viên.');
-        } else {
-          setError('Không tìm thấy trang này');
-        }
+        console.error('DynamicPage error:', err);
+        setPage(null);
+        localStorage.removeItem('currentPageBlocks');
+        setError(getErrorMessage(code));
       } finally {
         setLoading(false);
       }
@@ -78,106 +63,116 @@ function DynamicPage({ code }) {
 
     if (code) {
       fetchPage();
+    } else {
+      setLoading(false);
+      setPage(null);
+      setError('Không tìm thấy trang.');
+      localStorage.removeItem('currentPageBlocks');
     }
   }, [code]);
 
   if (!code) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-600 text-xl mb-4">Không tìm thấy trang</div>
-        <p className="text-gray-500">Đường dẫn không hợp lệ.</p>
+      <div className='text-center py-12'>
+        <div className='text-[var(--theme-text-secondary)] text-xl mb-4'>
+          Không tìm thấy trang
+        </div>
+        <p className='text-[var(--theme-text-muted)]'>Đường dẫn không hợp lệ.</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className='flex justify-center items-center h-64'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-accent)]' />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-600 text-xl mb-4">{error}</div>
-        <p className="text-gray-600">Vui lòng kiểm tra lại đường dẫn hoặc quay lại trang chủ.</p>
+      <div className='text-center py-12'>
+        <div className='text-[var(--theme-danger-text)] text-xl mb-4'>{error}</div>
+        <p className='text-[var(--theme-text-secondary)]'>
+          Vui lòng kiểm tra lại đường dẫn hoặc quay lại trang chủ.
+        </p>
       </div>
     );
   }
 
   if (!page || page.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-600 text-xl mb-4">Trang không tồn tại</div>
-        <p className="text-gray-500">Trang bạn tìm kiếm không có trên hệ thống.</p>
+      <div className='text-center py-12'>
+        <div className='text-[var(--theme-text-secondary)] text-xl mb-4'>
+          Trang không tồn tại
+        </div>
+        <p className='text-[var(--theme-text-muted)]'>
+          Trang bạn tìm kiếm không có trên hệ thống.
+        </p>
       </div>
     );
   }
 
-  const pageTitle = code === 'author-rules' 
-    ? 'Quy định đăng truyện' 
-    : (page[0]?.title || 'Trang thông tin');
+  const pageTitle = getPageTitle(code, page);
   const lastUpdated = page[0]?.updatedAt;
-  
-  console.log('DynamicPage - pageTitle:', pageTitle);
-  console.log('DynamicPage - page length:', page?.length);
-  console.log('DynamicPage - page data:', page);
 
   return (
-    <div className="prose prose-gray dark:prose-invert max-w-none">
-      {/* Breadcrumb */}
-      <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-        <Home className="w-4 h-4" />
-        <span className="text-gray-500">{'>'}</span>
+    <div className='max-w-none text-[var(--theme-text-secondary)] leading-7'>
+      <nav className='flex items-center space-x-2 text-sm text-[var(--theme-text-secondary)] mb-6'>
+        <Home className='w-4 h-4' />
+        <span className='text-[var(--theme-text-muted)]'>{'>'}</span>
         <span>{pageTitle}</span>
       </nav>
 
-      {/* Title */}
-      <div className="flex items-center space-x-3 mb-6">
-        <span className="text-4xl">📖</span>
-        <h1 className="text-4xl font-bold text-gray-900">
+      <div className='flex items-center space-x-3 mb-6'>
+        <span className='text-4xl'>📖</span>
+        <h1 className='text-4xl font-bold text-[var(--theme-text-primary)]'>
           {pageTitle}
         </h1>
       </div>
 
-      {/* Last Updated */}
-      <p className="text-sm text-gray-600 mb-8">
-        Cập nhật lần cuối: {new Date(lastUpdated).toLocaleDateString('vi-VN')}
-      </p>
+      {lastUpdated && (
+        <p className='text-sm text-[var(--theme-text-muted)] mb-8'>
+          Cập nhật lần cuối: {new Date(lastUpdated).toLocaleDateString('vi-VN')}
+        </p>
+      )}
 
-      {/* Content - Render all blocks */}
-      <div className="page-content">
+      <div className='page-content space-y-8'>
         {page.map((block, index) => {
-          const sectionId = block.code || block.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
-          
-          // Remove title from content if it exists to avoid duplication
-          let cleanContent = block.content;
+          const sectionId =
+            block.code ||
+            String(block.title || '')
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '-')
+              .replace(/-+/g, '-');
+
+          let cleanContent = block.content || '';
           if (block.title) {
-            // Create a regex to match the title in various HTML formats
+            const escapedTitle = block.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const titleRegex = new RegExp(
-              `<h[1-6][^>]*>${block.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}<\\/h[1-6]>`,
-              'gi'
+              `<h[1-6][^>]*>${escapedTitle}<\\/h[1-6]>`,
+              'gi',
             );
-            cleanContent = block.content.replace(titleRegex, '');
+            cleanContent = cleanContent.replace(titleRegex, '');
           }
-          
+
           return (
-            <div key={index} id={sectionId} className="mb-8">
-              {/* Show title for each section */}
+            <section key={`${block.code || index}-${index}`} id={sectionId} className='mb-8'>
               {block.title && (
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                <h2 className='text-2xl font-bold text-[var(--theme-text-primary)] mb-4'>
                   {block.title}
                 </h2>
               )}
-              <div dangerouslySetInnerHTML={{ __html: cleanContent }} />
-            </div>
+              <div
+                className='[&_a]:text-[var(--theme-accent-text)] [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--theme-border)] [&_blockquote]:pl-4 [&_blockquote]:text-[var(--theme-text-secondary)] [&_h1]:text-[var(--theme-text-primary)] [&_h2]:text-[var(--theme-text-primary)] [&_h3]:text-[var(--theme-text-primary)] [&_h4]:text-[var(--theme-text-primary)] [&_li]:text-[var(--theme-text-secondary)] [&_ol]:pl-5 [&_p]:text-[var(--theme-text-secondary)] [&_strong]:text-[var(--theme-text-primary)] [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-[var(--theme-border)] [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-[var(--theme-border)] [&_th]:bg-[var(--theme-surface-subtle)] [&_th]:px-3 [&_th]:py-2 [&_ul]:pl-5'
+                dangerouslySetInnerHTML={{ __html: cleanContent }}
+              />
+            </section>
           );
         })}
       </div>
 
-      {/* Navigation */}
       <PolicyNavigation currentPageCode={code} />
     </div>
   );

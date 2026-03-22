@@ -1,7 +1,8 @@
 .reading-history-page {
   min-height: 100vh;
-  background: #f8fafc;
   padding: 20px;
+  background: var(--theme-page-bg);
+  color: var(--theme-text-primary);
 }
 
 .reading-history-container {
@@ -11,11 +12,11 @@
 
 .loading-spinner {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   height: 200px;
+  color: var(--theme-text-secondary);
   font-size: 16px;
-  color: #64748b;
 }
 
 .history-list {
@@ -23,31 +24,33 @@
 }
 
 .empty-history {
-  text-align: center;
   padding: 60px 20px;
-  background: white;
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-surface-raised);
+  text-align: center;
 }
 
 .empty-history p {
-  color: #64748b;
-  font-size: 16px;
   margin-bottom: 20px;
+  color: var(--theme-text-secondary);
+  font-size: 16px;
 }
 
 .browse-stories-btn {
-  background: #f97316;
-  color: white;
-  border: none;
   padding: 12px 24px;
+  border: 1px solid transparent;
   border-radius: 8px;
+  background: var(--gradient-brand);
+  color: #fff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .browse-stories-btn:hover {
-  background: #ea580c;
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }

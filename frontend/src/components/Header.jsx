@@ -1,21 +1,21 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Bookmark,
   Eye,
   Gem,
+  Menu,
   Search,
   Star,
-  Users,
 } from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
-import { getStoredUser, hasAnyRole } from '../utils/helpers';
+import { getStoredUser } from '../utils/helpers';
 import storyService from '../services/storyService';
 import NotificationBell from './NotificationBell.jsx';
 import '../styles/site-shell.css';
 
-function Header() {
+function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
   // phần này thay thế bằng phần anh note 1234
   //   const [user, setUser] = useState(() => {
   //     const storedUser = localStorage.getItem('user');
@@ -27,14 +27,12 @@ function Header() {
   //     }
   //   });
 
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef(null);
   const searchRef = useRef(null);
   const searchRequestRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === '/';
-  const { wallet, refreshWallet, isLoggedIn } = useContext(WalletContext);
+  const { wallet, isLoggedIn } = useContext(WalletContext);
   const [searchValue, setSearchValue] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -72,9 +70,6 @@ function Header() {
   useEffect(() => {
     // Hieuson - 24/2 + Tu dong dong menu user khi click ra ngoai dropdown.
     const handleOutsideClick = (event) => {
-      if (!dropdownRef.current?.contains(event.target)) {
-        setShowDropdown(false);
-      }
       if (!searchRef.current?.contains(event.target)) {
         setShowSearchSuggestions(false);
         setIsSearchOpen(false);
@@ -125,45 +120,68 @@ function Header() {
     return () => window.clearTimeout(timer);
   }, [searchValue]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isHomePage) {
       setIsHeaderScrolled(false);
       return undefined;
     }
 
-    const sentinel = document.getElementById('home-hero-sentinel');
-    if (!sentinel) {
-      setIsHeaderScrolled(false);
-      return undefined;
-    }
+    let mountFrameId = 0;
+    let scrollFrameId = 0;
+    let cancelled = false;
 
-    const headerHeightCss = getComputedStyle(
-      document.documentElement,
-    ).getPropertyValue('--site-header-height');
-    const headerHeight = Number.parseFloat(headerHeightCss) || 72;
+    const syncHomeHeaderState = () => {
+      if (cancelled) return false;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsHeaderScrolled(!entry.isIntersecting);
-      },
-      {
-        threshold: 0,
-        rootMargin: `-${headerHeight}px 0px 0px 0px`,
-      },
-    );
+      const heroElement = document.querySelector('.home-hero');
+      if (!heroElement) {
+        setIsHeaderScrolled(false);
+        return false;
+      }
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [isHomePage]);
+      const headerHeightCss = getComputedStyle(
+        document.documentElement,
+      ).getPropertyValue('--site-header-height');
+      const headerHeight = Number.parseFloat(headerHeightCss) || 72;
+      const heroBottom = heroElement.getBoundingClientRect().bottom;
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('accessToken');
-    setUser(null);
-    setShowDropdown(false);
-    refreshWallet();
-    navigate('/login');
-  };
+      setIsHeaderScrolled(heroBottom <= headerHeight);
+      return true;
+    };
+
+    const mountSync = () => {
+      if (cancelled) return;
+      const heroFound = syncHomeHeaderState();
+      if (!heroFound) {
+        mountFrameId = window.requestAnimationFrame(mountSync);
+      }
+    };
+
+    const handleViewportChange = () => {
+      if (scrollFrameId) {
+        window.cancelAnimationFrame(scrollFrameId);
+      }
+      scrollFrameId = window.requestAnimationFrame(() => {
+        syncHomeHeaderState();
+      });
+    };
+
+    mountSync();
+    window.addEventListener('scroll', handleViewportChange, { passive: true });
+    window.addEventListener('resize', handleViewportChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('scroll', handleViewportChange);
+      window.removeEventListener('resize', handleViewportChange);
+      if (mountFrameId) {
+        window.cancelAnimationFrame(mountFrameId);
+      }
+      if (scrollFrameId) {
+        window.cancelAnimationFrame(scrollFrameId);
+      }
+    };
+  }, [isHomePage, location.pathname]);
 
   const handleSearchSubmit = (event) => {
     if (event) event.preventDefault();
@@ -224,6 +242,20 @@ function Header() {
     >
       <div className='site-header__inner'>
         <div className='site-header__lead'>
+          {user && (
+            <button
+              type='button'
+              className={`site-menu-toggle ${
+                isHomePage && !isHeaderScrolled
+                  ? 'site-menu-toggle--light'
+                  : 'site-menu-toggle--dark'
+              } ${isSidebarOpen ? 'site-menu-toggle--hidden' : ''}`}
+              onClick={onMenuToggle}
+              aria-label='Mở menu điều hướng'
+            >
+              <Menu size={28} strokeWidth={2.4} />
+            </button>
+          )}
           <Link to='/' className='site-brand'>
             <span className='site-brand__logo'>
               <BookOpen size={18} />
@@ -247,6 +279,14 @@ function Header() {
               }
             >
               Tác giả
+            </NavLink>
+            <NavLink
+              to='/library'
+              className={({ isActive }) =>
+                `site-nav__item ${isActive ? 'active' : ''}`
+              }
+            >
+              Tủ truyện
             </NavLink>
           </nav>
         </div>
@@ -377,12 +417,12 @@ function Header() {
           )}
 
           {user ? (
-            <div className='site-user' ref={dropdownRef}>
+            <div className='site-user'>
               <button
                 type='button'
                 className='site-user__trigger'
-                onClick={() => setShowDropdown((prev) => !prev)}
-                aria-label='Mở menu tài khoản'
+                onClick={() => navigate('/profile')}
+                aria-label='Hồ sơ cá nhân'
               >
                 {user.avatarUrl ? (
                   <img
@@ -398,34 +438,6 @@ function Header() {
                   </span>
                 )}
               </button>
-              {showDropdown && (
-                <div className='site-user__dropdown'>
-                  <Link to='/profile'>Hồ sơ cá nhân</Link>
-                  <Link to='/achievements'>Thành tựu</Link>
-                  <Link to='/donation-history'>Lịch sử giao dịch</Link>
-                  {hasAnyRole(['READER'], user) && (
-                    <Link to='/reader/refund-request'>Yêu cầu hoàn tiền</Link>
-                  )}
-
-                  {hasAnyRole(['AUTHOR'], user) && (
-                    <>
-                      <Link to='/author/comments'>Quản lý bình luận</Link>
-                      <Link to='/author/performance-analytics'>
-                        Báo cáo hiệu suất truyện
-                      </Link>
-                      <Link to='/author/withdrawal-request'>Yêu cầu rút tiền</Link>
-                    </>
-                  )}
-
-                  {hasAnyRole(['ADMIN', 'MOD'], user) && (
-                      <Link to='/admin/terms'>Quản lý điều khoản</Link>
-                  )}
-
-                  <button type='button' onClick={handleLogout}>
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
             </div>
           ) : (
             <div className='site-auth'>

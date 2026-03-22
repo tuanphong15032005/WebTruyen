@@ -692,3 +692,94 @@
     font-size: 0.9rem;
   }
 }
+
+html[data-theme='dark'] .ranking-page {
+  background: var(--theme-page-bg);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .ranking-page__header .ranking-page__title,
+html[data-theme='dark'] .ranking-page__section-label,
+html[data-theme='dark'] .author-ranking-item__name,
+html[data-theme='dark'] .recent-story-card__title,
+html[data-theme='dark'] .story-ranking-item__title {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .ranking-page__header .ranking-page__subtitle,
+html[data-theme='dark'] .ranking-page__empty,
+html[data-theme='dark'] .ranking-page__error,
+html[data-theme='dark'] .author-ranking-item__followers,
+html[data-theme='dark'] .recent-story-card__meta,
+html[data-theme='dark'] .recent-story-card__stats,
+html[data-theme='dark'] .story-ranking-item__author {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .ranking-page__empty,
+html[data-theme='dark'] .ranking-page__tabs,
+html[data-theme='dark'] .ranking-hub__switcher,
+html[data-theme='dark'] .author-ranking-item,
+html[data-theme='dark'] .recent-story-card,
+html[data-theme='dark'] .story-ranking-item,
+html[data-theme='dark'] .story-ranking-item__cover-wrap {
+  background: var(--theme-surface-raised);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .ranking-page__empty {
+  border-style: dashed;
+}
+
+html[data-theme='dark'] .ranking-hub__switcher-item,
+html[data-theme='dark'] .ranking-page__tab {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .ranking-hub__switcher-item:hover,
+html[data-theme='dark'] .ranking-page__tab:hover {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-border-strong);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .ranking-hub__switcher-item.active,
+html[data-theme='dark'] .ranking-page__tab--active {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  color: #fff;
+}
+
+html[data-theme='dark'] .author-ranking-item:hover,
+html[data-theme='dark'] .recent-story-card:hover,
+html[data-theme='dark'] .story-ranking-item:hover {
+  border-color: var(--theme-border-strong);
+}
+
+html[data-theme='dark'] .author-ranking-item__rank,
+html[data-theme='dark'] .story-ranking-item__rank,
+html[data-theme='dark'] .story-ranking-item__metric {
+  background: var(--theme-accent-soft);
+  color: var(--theme-accent-text);
+}
+
+html[data-theme='dark'] .author-ranking-item__avatar-wrap,
+html[data-theme='dark'] .story-ranking-item__cover-wrap {
+  border-color: var(--theme-border);
+}
+
+html[data-theme='dark'] .author-ranking-item__avatar-placeholder,
+html[data-theme='dark'] .recent-story-card__cover-wrap,
+html[data-theme='dark'] .story-ranking-item__cover-placeholder {
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text-muted);
+}
+
+html[data-theme='dark'] .recent-story-card__status,
+html[data-theme='dark'] .story-ranking-item__status {
+  background: var(--theme-surface-active);
+  color: var(--theme-text-secondary);
+}
