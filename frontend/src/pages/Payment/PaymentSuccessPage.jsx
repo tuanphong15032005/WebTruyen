@@ -49,7 +49,7 @@ export default function PaymentSuccessPage() {
             Thanh toán thành công!
           </h2>
           <p className="text-gray-600 mb-6">
-            Giao dịch đã được hoàn tất. Coin B sẽ được cộng vào tài khoản của bạn.
+            Giao dịch đã được hoàn tất. Kim Cương đã được cộng vào tài khoản của bạn.
           </p>
 
           {/* Balance Refresh Status */}
@@ -81,7 +81,7 @@ export default function PaymentSuccessPage() {
 
           {/* Additional Info */}
           <div className="mt-6 text-xs text-gray-500">
-            <p>Mã giao dịch sẽ được gửi đến email của bạn.</p>
+            <p>Mã giao dịch sẽ được lưu trong chi tiết lịch sử giao dịch.</p>
             <p>Nếu có vấn đề, vui lòng liên hệ hỗ trợ.</p>
           </div>
         </div>

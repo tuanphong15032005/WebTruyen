@@ -90,7 +90,7 @@ export default function WalletTopupPage() {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Nạp 💎 (Coin B)</h1>
+        <h1 className="text-2xl font-bold">Nạp 💎 </h1>
         <button
           type="button"
           className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]"
