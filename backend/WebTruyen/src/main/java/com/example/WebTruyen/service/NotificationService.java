@@ -5,9 +5,13 @@ import com.example.WebTruyen.dto.notification.NotificationResponseDto;
 import com.example.WebTruyen.dto.notification.UnreadNotificationCountDto;
 import com.example.WebTruyen.entity.enums.NotificationCategory;
 import com.example.WebTruyen.entity.enums.NotificationKind;
+import com.example.WebTruyen.entity.model.Content.ChapterEntity;
+import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.NotificationEntity;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
+import com.example.WebTruyen.repository.ChapterRepository;
 import com.example.WebTruyen.repository.NotificationRepository;
+import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
@@ -16,8 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,9 +33,13 @@ public class NotificationService {
 
     private static final long CACHE_DURATION_MINUTES = 5;
     private static final String LEGACY_SETTLEMENT_REF_TYPE = "chapter_settlement";
+    private static final DateTimeFormatter SCHEDULE_NOTIFICATION_FORMAT =
+            DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy");
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final StoryRepository storyRepository;
+    private final ChapterRepository chapterRepository;
 
     // Simple cache for unread counts (userId -> (count, timestamp))
     private final Map<Long, Pair<Long, LocalDateTime>> unreadCountCache = new ConcurrentHashMap<>();
@@ -185,7 +193,7 @@ public class NotificationService {
                 entity.getId(),
                 entity.getKind().name(),
                 generateTitle(entity.getKind(), entity.getRefType()),
-                normalizeNotificationText(entity.getMessage()),
+                resolveNotificationMessage(entity),
                 isRead,
                 entity.getCreatedAt(),
                 entity.getRefId(),
@@ -215,9 +223,7 @@ public class NotificationService {
             return value;
         }
 
-        String normalized = repairMojibake(value);
-
-        return normalized
+        return value
                 .replace("Thong bao", "Thông báo")
                 .replace("Tac gia", "Tác giả")
                 .replace("Truyen", "Truyện")
@@ -246,24 +252,208 @@ public class NotificationService {
                 .replace("Binh luan", "Bình luận");
     }
 
-    private String repairMojibake(String value) {
-        if (!looksLikeMojibake(value)) {
-            return value;
+    private String resolveNotificationMessage(NotificationEntity entity) {
+        String fallback = normalizeNotificationText(entity.getMessage());
+
+        return switch (entity.getKind()) {
+            case new_chapter -> buildNewChapterMessage(entity, fallback);
+            case story_moderation -> buildStoryModerationMessage(entity, fallback);
+            case new_story -> buildNewStoryMessage(entity, fallback);
+            case chapter_schedule -> buildChapterScheduleMessage(entity, fallback);
+            case transaction -> buildTransactionMessage(entity, fallback);
+            default -> fallback;
+        };
+    }
+
+    private String buildNewChapterMessage(NotificationEntity entity, String fallback) {
+        ChapterEntity chapter = findChapter(entity.getChapterId());
+        StoryEntity story = findStory(entity.getStoryId());
+
+        if (chapter == null && story == null) {
+            return fallback;
         }
 
+        String storyTitle = safeStoryTitle(story);
+        String chapterTitle = safeChapterTitle(chapter);
+        return String.format("Truyện \"%s\" đã có chương mới: \"%s\"", storyTitle, chapterTitle);
+    }
+
+    private String buildStoryModerationMessage(NotificationEntity entity, String fallback) {
+        StoryEntity story = findStory(entity.getStoryId());
+        ChapterEntity chapter = findChapter(entity.getChapterId());
+        if (story == null && chapter == null) {
+            return fallback;
+        }
+
+        boolean approved = !containsIgnoreCase(fallback, "từ chối");
+        String adminNote = extractAdminNote(fallback);
+
+        if (chapter != null) {
+            String base = approved
+                    ? String.format(
+                            "Chương \"%s\" của truyện \"%s\" của bạn đã được duyệt.",
+                            safeChapterTitle(chapter),
+                            safeStoryTitle(story != null ? story : chapter.getVolume().getStory())
+                    )
+                    : String.format(
+                            "Chương \"%s\" của truyện \"%s\" của bạn đã bị từ chối.",
+                            safeChapterTitle(chapter),
+                            safeStoryTitle(story != null ? story : chapter.getVolume().getStory())
+                    );
+            return appendAdminNote(base, adminNote);
+        }
+
+        String base = approved
+                ? String.format("Truyện \"%s\" của bạn đã được duyệt.", safeStoryTitle(story))
+                : String.format("Truyện \"%s\" của bạn đã bị từ chối.", safeStoryTitle(story));
+        return appendAdminNote(base, adminNote);
+    }
+
+    private String buildNewStoryMessage(NotificationEntity entity, String fallback) {
+        StoryEntity story = findStory(entity.getStoryId());
+        if (story == null) {
+            return fallback;
+        }
+
+        return String.format(
+                "Tác giả \"%s\" vừa có truyện mới: \"%s\".",
+                resolveAuthorName(story),
+                safeStoryTitle(story)
+        );
+    }
+
+    private String buildChapterScheduleMessage(NotificationEntity entity, String fallback) {
+        ChapterEntity chapter = findChapter(entity.getChapterId());
+        StoryEntity story = findStory(entity.getStoryId());
+        if (chapter == null || chapter.getScheduledPublishAt() == null) {
+            return fallback;
+        }
+
+        boolean cancelled = containsIgnoreCase(fallback, "bị hủy");
+        boolean updated = containsIgnoreCase(fallback, "cập nhật");
+        String storyTitle = safeStoryTitle(story != null ? story : chapter.getVolume().getStory());
+        String chapterTitle = safeChapterTitle(chapter);
+
+        if (cancelled) {
+            return String.format(
+                    "Lịch phát hành chương \"%s\" của truyện \"%s\" đã bị hủy.",
+                    chapterTitle,
+                    storyTitle
+            );
+        }
+
+        if (updated) {
+            return String.format(
+                    "Lịch phát hành chương \"%s\" của truyện \"%s\" đã được cập nhật thành %s.",
+                    chapterTitle,
+                    storyTitle,
+                    chapter.getScheduledPublishAt().format(SCHEDULE_NOTIFICATION_FORMAT)
+            );
+        }
+
+        return String.format(
+                "Chương \"%s\" của truyện \"%s\" dự kiến phát hành vào lúc %s.",
+                chapterTitle,
+                storyTitle,
+                chapter.getScheduledPublishAt().format(SCHEDULE_NOTIFICATION_FORMAT)
+        );
+    }
+
+    private String buildTransactionMessage(NotificationEntity entity, String fallback) {
+        ChapterEntity chapter = findChapter(entity.getChapterId());
+        StoryEntity story = findStory(entity.getStoryId());
+        if (chapter == null || story == null || !containsIgnoreCase(fallback, "mua chương")) {
+            return fallback;
+        }
+
+        String priceSuffix = "";
+        int priceIndex = fallback.toLowerCase().indexOf(" với giá ");
+        if (priceIndex >= 0) {
+            priceSuffix = fallback.substring(priceIndex);
+        }
+
+        return String.format(
+                "Bạn đã mua chương \"%s\" của truyện \"%s\"%s",
+                safeChapterTitle(chapter),
+                safeStoryTitle(story),
+                priceSuffix
+        );
+    }
+
+    private StoryEntity findStory(Long storyId) {
+        if (storyId == null) {
+            return null;
+        }
         try {
-            return new String(value.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-        } catch (Exception ignored) {
-            return value;
+            return storyRepository.findById(Math.toIntExact(storyId)).orElse(null);
+        } catch (ArithmeticException ignored) {
+            return null;
         }
     }
 
-    private boolean looksLikeMojibake(String value) {
-        return value.contains("Ã")
-                || value.contains("Ä")
-                || value.contains("Â")
-                || value.contains("â")
-                || value.contains("áº")
-                || value.contains("á»");
+    private ChapterEntity findChapter(Long chapterId) {
+        if (chapterId == null) {
+            return null;
+        }
+        return chapterRepository.findById(chapterId).orElse(null);
+    }
+
+    private String safeStoryTitle(StoryEntity story) {
+        if (story == null || story.getTitle() == null || story.getTitle().isBlank()) {
+            return "truyện không tên";
+        }
+        return story.getTitle();
+    }
+
+    private String safeChapterTitle(ChapterEntity chapter) {
+        if (chapter == null || chapter.getTitle() == null || chapter.getTitle().isBlank()) {
+            return "chương không tên";
+        }
+        return chapter.getTitle();
+    }
+
+    private String resolveAuthorName(StoryEntity story) {
+        if (story == null || story.getAuthor() == null) {
+            return "Không rõ tác giả";
+        }
+        String penName = story.getAuthor().getAuthorPenName();
+        if (penName != null && !penName.isBlank()) {
+            return penName;
+        }
+        String displayName = story.getAuthor().getDisplayName();
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
+        }
+        String username = story.getAuthor().getUsername();
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return "Không rõ tác giả";
+    }
+
+    private boolean containsIgnoreCase(String value, String needle) {
+        return value != null && needle != null && value.toLowerCase().contains(needle.toLowerCase());
+    }
+
+    private String extractAdminNote(String message) {
+        if (message == null || message.isBlank()) {
+            return "";
+        }
+
+        String[] markers = {"Ghi chú từ admin:", "Ghi chu tu admin:"};
+        for (String marker : markers) {
+            int markerIndex = message.indexOf(marker);
+            if (markerIndex >= 0) {
+                return message.substring(markerIndex + marker.length()).trim();
+            }
+        }
+        return "";
+    }
+
+    private String appendAdminNote(String base, String note) {
+        if (note == null || note.isBlank()) {
+            return base;
+        }
+        return base + " Ghi chú từ admin: " + note;
     }
 }
