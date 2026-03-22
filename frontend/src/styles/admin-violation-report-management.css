@@ -425,3 +425,64 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+html[data-theme='dark'] .admin-reports {
+  background: transparent;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-reports__header h1,
+html[data-theme='dark'] .admin-reports__warn-ban-modal h3 {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-reports__header p,
+html[data-theme='dark'] .admin-reports__empty,
+html[data-theme='dark'] .admin-reports__warn-ban-help,
+html[data-theme='dark'] .admin-reports__warn-ban-hours label,
+html[data-theme='dark'] .admin-reports__pagination-info {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .admin-reports__card,
+html[data-theme='dark'] .admin-reports__grid,
+html[data-theme='dark'] .admin-reports__warn-ban-modal,
+html[data-theme='dark'] .admin-reports__pagination {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .admin-reports__grid thead th,
+html[data-theme='dark'] .admin-reports__pagination {
+  background: var(--theme-surface-muted);
+}
+
+html[data-theme='dark'] .admin-reports__grid th,
+html[data-theme='dark'] .admin-reports__grid td,
+html[data-theme='dark'] .admin-reports__pagination {
+  border-color: var(--theme-divider);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-reports__type-tabs button,
+html[data-theme='dark'] .admin-reports__filters button,
+html[data-theme='dark'] .admin-reports__pagination-btn,
+html[data-theme='dark'] .admin-reports__warn-ban-hours input,
+html[data-theme='dark'] .admin-reports__warn-ban-actions .cancel {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-reports__type-tabs button:hover:not(.active),
+html[data-theme='dark'] .admin-reports__filters button:hover:not(.active),
+html[data-theme='dark'] .admin-reports__pagination-btn:hover:not(:disabled),
+html[data-theme='dark'] .admin-reports__warn-ban-actions .cancel:hover {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-input-border-hover);
+}
+
+html[data-theme='dark'] .admin-reports__warn-ban-mode label {
+  color: var(--theme-text-primary);
+}

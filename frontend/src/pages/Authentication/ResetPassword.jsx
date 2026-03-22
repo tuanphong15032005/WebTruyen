@@ -179,21 +179,7 @@ const ResetPassword = () => {
           </form>
           
           <div className="form-links">
-            <button 
-              type="button" 
-              className="forgot-link" 
-              onClick={() => navigate('/login')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#d63384',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                padding: 0,
-                fontFamily: 'inherit'
-              }}
-            >
+            <button type="button" className="text-button-link" onClick={() => navigate('/login')}>
               Quay lại đăng nhập
             </button>
           </div>

@@ -8,6 +8,8 @@ const Button = ({
   onClick,
   children,
   className = '',
+  style,
+  ...restProps
 }) => {
   const isDisabled = disabled || loading;
   return (
@@ -16,6 +18,8 @@ const Button = ({
       className={`btn btn-${variant} ${className}`.trim()}
       onClick={onClick}
       disabled={isDisabled}
+      style={style}
+      {...restProps}
     >
       {loading ? 'Đang xử lý...' : children}
     </button>

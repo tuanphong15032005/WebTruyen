@@ -1,13 +1,13 @@
 import React from 'react';
 
-const ConfirmDialog = ({ 
-  isOpen, 
-  title, 
-  message, 
-  onConfirm, 
-  onCancel, 
-  confirmText = "Xóa", 
-  cancelText = "Hủy" 
+const ConfirmDialog = ({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = 'Xoa',
+  cancelText = 'Huy',
 }) => {
   if (!isOpen) return null;
 
@@ -16,49 +16,46 @@ const ConfirmDialog = ({
       <style>{`
         .confirm-dialog-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
+          background: var(--theme-overlay);
         }
 
         .confirm-dialog {
-          background: white;
-          border-radius: 8px;
+          width: min(400px, 90%);
           padding: 24px;
-          max-width: 400px;
-          width: 90%;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          border: 1px solid var(--theme-border);
+          border-radius: 12px;
+          background: var(--theme-modal-bg);
+          box-shadow: var(--shadow-lg);
         }
 
         .confirm-dialog-header h3 {
-          margin: 0 0 16px 0;
+          margin: 0 0 16px;
+          color: var(--theme-text-primary);
           font-size: 18px;
           font-weight: 600;
-          color: #333;
         }
 
         .confirm-dialog-body p {
-          margin: 0 0 24px 0;
+          margin: 0 0 24px;
+          color: var(--theme-text-secondary);
           font-size: 14px;
-          color: #666;
           line-height: 1.5;
         }
 
         .confirm-dialog-footer {
           display: flex;
-          gap: 12px;
           justify-content: flex-end;
+          gap: 12px;
         }
 
         .confirm-btn {
           padding: 8px 16px;
-          border: none;
+          border: 1px solid transparent;
           border-radius: 6px;
           font-size: 14px;
           font-weight: 500;
@@ -67,24 +64,26 @@ const ConfirmDialog = ({
         }
 
         .confirm-btn.cancel {
-          background-color: #f5f5f5;
-          color: #666;
+          border-color: var(--theme-border);
+          background: var(--theme-surface-active);
+          color: var(--theme-text-primary);
         }
 
         .confirm-btn.cancel:hover {
-          background-color: #e8e8e8;
+          border-color: var(--theme-border-strong);
+          background: var(--theme-surface-hover);
         }
 
         .confirm-btn.danger {
-          background-color: #dc3545;
-          color: white;
+          background: var(--theme-danger);
+          color: #fff;
         }
 
         .confirm-btn.danger:hover {
-          background-color: #c82333;
+          background: var(--theme-danger-hover);
         }
       `}</style>
-      
+
       <div className="confirm-dialog-overlay">
         <div className="confirm-dialog">
           <div className="confirm-dialog-header">
@@ -94,16 +93,10 @@ const ConfirmDialog = ({
             <p>{message}</p>
           </div>
           <div className="confirm-dialog-footer">
-            <button 
-              className="confirm-btn cancel"
-              onClick={onCancel}
-            >
+            <button className="confirm-btn cancel" onClick={onCancel}>
               {cancelText}
             </button>
-            <button 
-              className="confirm-btn danger"
-              onClick={onConfirm}
-            >
+            <button className="confirm-btn danger" onClick={onConfirm}>
               {confirmText}
             </button>
           </div>

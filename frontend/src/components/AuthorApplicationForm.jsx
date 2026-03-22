@@ -393,9 +393,11 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                     max-width: 600px;
                     margin: 0 auto;
                     padding: 2rem;
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    border: 1px solid var(--theme-border);
+                    border-radius: 12px;
+                    background: var(--theme-surface-raised);
+                    box-shadow: var(--shadow-sm);
+                    color: var(--theme-text-primary);
                 }
 
                 .form-header {
@@ -404,91 +406,83 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 }
 
                 .form-header h2 {
-                    color: #333;
+                    color: var(--theme-text-primary);
                     margin-bottom: 0.5rem;
                 }
 
                 .form-header p {
-                    color: #666;
+                    color: var(--theme-text-secondary);
                     margin: 0;
                 }
 
-                .status-message {
-                    padding: 1.5rem;
-                    border-radius: 8px;
-                    margin-bottom: 1.5rem;
+                .status-message,
+                .message {
+                    padding: 1.25rem;
+                    margin-bottom: 1rem;
+                    border: 1px solid transparent;
+                    border-radius: 10px;
                     text-align: center;
                 }
 
-                .status-message.success {
-                    background-color: #d4edda;
-                    color: #155724;
-                    border: 1px solid #c3e6cb;
+                .status-message.success,
+                .message.success {
+                    background: var(--theme-success-soft);
+                    color: var(--theme-success-text);
+                    border-color: var(--theme-success-border);
                 }
 
                 .status-message.warning {
-                    background-color: #fff3cd;
-                    color: #856404;
-                    border: 1px solid #ffeaa7;
+                    background: var(--theme-warning-soft);
+                    color: var(--theme-warning-text);
+                    border-color: var(--theme-warning-border);
                 }
 
                 .status-message.pending {
-                    background-color: #d1ecf1;
-                    color: #0c5460;
-                    border: 1px solid #bee5eb;
+                    background: var(--theme-info-soft);
+                    color: var(--theme-info-text);
+                    border-color: var(--theme-info-border);
                 }
 
-                .status-message.rejected {
-                    background-color: #f8d7da;
-                    color: #721c24;
-                    border: 1px solid #f5c6cb;
+                .status-message.rejected,
+                .message.error {
+                    background: var(--theme-danger-soft);
+                    color: var(--theme-danger-text);
+                    border-color: var(--theme-danger-border);
                 }
 
                 .rejection-reason {
-                    background-color: rgba(0, 0, 0, 0.1);
                     padding: 1rem;
-                    border-radius: 4px;
                     margin: 1rem 0;
+                    border-radius: 8px;
                     text-align: left;
+                    background: color-mix(in srgb, var(--theme-surface-inverse) 8%, transparent);
+                }
+
+                .retry-btn,
+                .submit-btn {
+                    border: 1px solid transparent;
+                    border-radius: 8px;
+                    background: var(--gradient-brand);
+                    color: #fff;
+                    cursor: pointer;
+                    transition: filter 0.2s ease, transform 0.2s ease;
                 }
 
                 .retry-btn {
-                    background-color: #007bff;
-                    color: white;
-                    border: none;
-                    padding: 0.5rem 1rem;
-                    border-radius: 4px;
-                    cursor: pointer;
                     margin-top: 1rem;
+                    padding: 0.5rem 1rem;
                 }
 
-                .retry-btn:hover {
-                    background-color: #0056b3;
+                .retry-btn:hover,
+                .submit-btn:hover:not(:disabled) {
+                    filter: brightness(1.05);
+                    transform: translateY(-1px);
                 }
 
                 .loading-status {
-                    text-align: center;
                     padding: 2rem;
-                    color: #666;
-                }
-
-                .message {
-                    padding: 1rem;
-                    border-radius: 4px;
-                    margin-bottom: 1rem;
+                    color: var(--theme-text-secondary);
                     text-align: center;
-                }
-
-                .message.success {
-                    background-color: #d4edda;
-                    color: #155724;
-                    border: 1px solid #c3e6cb;
-                }
-
-                .message.error {
-                    background-color: #f8d7da;
-                    color: #721c24;
-                    border: 1px solid #f5c6cb;
                 }
 
                 .application-form {
@@ -503,51 +497,58 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 }
 
                 .form-group label {
-                    margin-bottom: 0.5rem;
-                    font-weight: 600;
-                    color: #333;
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 0.5rem;
+                    color: var(--theme-text-primary);
+                    font-weight: 600;
                 }
 
                 .char-count {
+                    color: var(--theme-text-muted);
                     font-size: 0.875rem;
-                    color: #666;
                     font-weight: 400;
                 }
 
                 .char-count.warning {
-                    color: #ff9800;
+                    color: var(--theme-warning-text);
                 }
 
                 .char-count.danger {
-                    color: #dc3545;
+                    color: var(--theme-danger-text);
                 }
 
                 .form-group input,
                 .form-group textarea {
                     padding: 0.75rem;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
+                    border: 1px solid var(--theme-input-border);
+                    border-radius: 8px;
+                    background: var(--theme-input-bg);
+                    color: var(--theme-text-primary);
                     font-size: 1rem;
-                    transition: border-color 0.3s;
+                    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                }
+
+                .form-group input::placeholder,
+                .form-group textarea::placeholder {
+                    color: var(--theme-input-placeholder);
                 }
 
                 .form-group input:focus,
                 .form-group textarea:focus {
                     outline: none;
-                    border-color: #007bff;
-                    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+                    border-color: var(--theme-input-border-focus);
+                    box-shadow: 0 0 0 4px var(--theme-focus-ring);
                 }
 
                 .form-group input.error,
                 .form-group textarea.error {
-                    border-color: #dc3545;
+                    border-color: var(--theme-danger);
                 }
 
                 .form-group input.success {
-                    border-color: #28a745;
+                    border-color: var(--theme-success);
                 }
 
                 .input-with-indicator {
@@ -569,15 +570,15 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 }
 
                 .checking-indicator {
-                    color: #6c757d;
+                    color: var(--theme-text-muted);
                 }
 
                 .valid-indicator {
-                    color: #28a745;
+                    color: var(--theme-success);
                 }
 
                 .error-message {
-                    color: #dc3545;
+                    color: var(--theme-danger-text);
                     font-size: 0.875rem;
                     margin-top: 0.25rem;
                 }
@@ -589,22 +590,13 @@ const AuthorApplicationForm = ({ onApplicationSuccess }) => {
                 }
 
                 .submit-btn {
-                    background-color: #007bff;
-                    color: white;
-                    border: none;
                     padding: 0.75rem 2rem;
-                    border-radius: 4px;
                     font-size: 1rem;
-                    cursor: pointer;
-                    transition: background-color 0.3s;
-                }
-
-                .submit-btn:hover:not(:disabled) {
-                    background-color: #0056b3;
                 }
 
                 .submit-btn:disabled {
-                    background-color: #6c757d;
+                    background: var(--theme-surface-active);
+                    color: var(--theme-text-soft);
                     cursor: not-allowed;
                 }
             `}</style>

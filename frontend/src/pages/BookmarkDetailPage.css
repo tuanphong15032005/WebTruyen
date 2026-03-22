@@ -1,19 +1,19 @@
 .bookmark-detail-page {
   min-height: 100vh;
-  background-color: #f5f6fa;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 0;
+  background: var(--theme-page-bg);
+  color: var(--theme-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Header Styles */
 .bookmark-detail-page .page-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 12px 32px;
-  margin-top: -60px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  margin-top: -60px;
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--theme-border);
+  background: var(--theme-surface-raised);
 }
 
 .header-left {
@@ -23,67 +23,68 @@
 }
 
 .back-button {
-  background: none;
-  border: none;
   padding: 8px;
+  border: 1px solid transparent;
   border-radius: 8px;
+  background: none;
+  color: var(--theme-text-secondary);
   cursor: pointer;
-  color: #666;
   transition: all 0.2s ease;
 }
 
 .back-button:hover {
-  background-color: #f0f0f0;
-  color: #222;
+  background: var(--theme-surface-hover);
+  color: var(--theme-text-primary);
 }
 
 .header-left h1 {
+  margin: 0;
+  color: var(--theme-text-primary);
   font-size: 24px;
   font-weight: 700;
-  color: #222;
-  margin: 0;
 }
 
 .header-left p {
-  font-size: 14px;
-  color: #666;
   margin: 0;
+  color: var(--theme-text-secondary);
+  font-size: 14px;
 }
 
 .clear-all-button {
-  background: none;
-  border: 1px solid #ccc;
-  color: #666;
   padding: 8px 16px;
-  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  background: var(--theme-surface-base);
+  color: var(--theme-text-secondary);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .clear-all-button:hover {
-  background-color: #f8f9fa;
-  border-color: #999;
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-border-strong);
+  color: var(--theme-text-primary);
 }
 
-/* Bookmark List */
 .bookmark-list {
-  padding: 24px 32px;
   max-width: 800px;
   margin: 0 auto;
+  padding: 24px 32px;
 }
 
 .bookmark-card {
-  background-color: #ffffff;
-  border-radius: 10px;
-  padding: 20px;
-  border: 1px solid #eee;
   margin-bottom: 16px;
+  padding: 20px;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-surface-raised);
   transition: all 0.2s ease;
 }
 
 .bookmark-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--theme-border-strong);
 }
 
 .bookmark-header {
@@ -91,30 +92,39 @@
 }
 
 .chapter-title {
+  margin: 0 0 8px;
+  color: var(--theme-text-primary);
   font-size: 18px;
   font-weight: 600;
-  color: #222;
-  margin: 0 0 8px 0;
 }
 
 .bookmark-meta {
   display: flex;
   align-items: center;
   gap: 6px;
+  color: var(--theme-text-muted);
   font-size: 14px;
-  color: #666;
 }
 
 .bookmark-content {
   margin-bottom: 16px;
+  color: var(--theme-text-secondary);
+}
+
+.bookmark-content p,
+.bookmark-content span,
+.bookmark-content strong,
+.bookmark-content em,
+.bookmark-content li {
+  color: inherit;
 }
 
 .segment-preview {
+  margin: 0;
+  color: var(--theme-text-secondary);
   font-size: 15px;
-  color: #555;
   line-height: 1.5;
   font-style: italic;
-  margin: 0;
 }
 
 .bookmark-actions {
@@ -123,62 +133,64 @@
 }
 
 .continue-button {
-  background-color: #ff8c00;
-  color: white;
-  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 10px 16px;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--gradient-brand);
+  color: #fff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .continue-button:hover {
-  background-color: #e67e00;
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .delete-button {
-  background: transparent;
-  border: 1px solid #ccc;
-  color: #666;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--theme-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .delete-button:hover {
-  background-color: #f8f9fa;
-  border-color: #999;
-  color: #333;
+  background: var(--theme-danger-soft);
+  border-color: var(--theme-danger-border);
+  color: var(--theme-danger-text);
 }
 
-/* Empty State */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 64px 32px;
+  color: var(--theme-text-secondary);
   text-align: center;
-  color: #666;
 }
 
 .empty-state svg {
   margin-bottom: 16px;
-  color: #ccc;
+  color: var(--theme-text-soft);
 }
 
 .empty-state h3 {
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
+  color: var(--theme-text-primary);
   font-size: 20px;
   font-weight: 600;
 }
@@ -188,34 +200,32 @@
   font-size: 16px;
 }
 
-/* Loading State */
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 64px;
-  color: #666;
+  color: var(--theme-text-secondary);
   font-size: 16px;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
-  .page-header {
+  .bookmark-detail-page .page-header {
     padding: 16px;
   }
-  
+
   .bookmark-list {
     padding: 16px;
   }
-  
+
   .bookmark-card {
     padding: 16px;
   }
-  
+
   .bookmark-actions {
     flex-direction: column;
   }
-  
+
   .continue-button,
   .delete-button {
     width: 100%;

@@ -4,11 +4,11 @@
  */
 
 .dashboard-my-stories {
-  background: #ffffff;
+  background: var(--theme-surface-raised);
   border-radius: 14px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--theme-border);
 }
 
 .dashboard-panel-header {
@@ -17,20 +17,20 @@
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--theme-divider);
 }
 
 .panel-header h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--theme-text-primary);
   margin: 0;
 }
 
 .view-all-btn {
   background: none;
-  border: 1px solid #d1d5db;
-  color: #6b7280;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-secondary);
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -39,9 +39,9 @@
 }
 
 .view-all-btn:hover {
-  background-color: #f9fafb;
-  border-color: #9ca3af;
-  color: #4b5563;
+  background-color: var(--theme-surface-hover);
+  border-color: var(--theme-border-strong);
+  color: var(--theme-text-primary);
 }
 
 .stories-list {
@@ -60,7 +60,7 @@
 }
 
 .story-item:hover {
-  background-color: #f8fafc;
+  background-color: var(--theme-surface-hover);
 }
 
 .story-cover {
@@ -72,7 +72,7 @@
   height: 120px;
   border-radius: 8px;
   object-fit: cover;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-xs);
 }
 
 .story-info {
@@ -85,7 +85,7 @@
 .dashboard-story-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--theme-text-primary);
   margin: 0;
   line-height: 1.4;
 }
@@ -106,33 +106,33 @@
 }
 
 .status-draft {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--theme-warning-soft-strong);
+  color: var(--theme-warning-text);
 }
 
 .status-published {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--theme-success-soft-strong);
+  color: var(--theme-success-text);
 }
 
 .status-completed {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: var(--theme-accent-soft);
+  color: var(--theme-accent-text);
 }
 
 .status-paused {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--theme-surface-subtle);
+  color: var(--theme-text-secondary);
 }
 
 .chapter-count {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--theme-text-secondary);
 }
 
 .story-updated {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-muted);
 }
 
 .story-actions {
@@ -154,30 +154,29 @@
 }
 
 .edit-btn {
-  background-color: #3b82f6;
-  color: #ffffff;
+  background-color: var(--theme-accent);
+  color: var(--theme-text-inverse);
 }
 
 .edit-btn:hover {
-  background-color: #2563eb;
+  background-color: var(--theme-accent-hover);
   transform: translateY(-1px);
 }
 
 .add-chapter-btn {
-  background-color: #10b981;
-  color: #ffffff;
+  background-color: var(--theme-success);
+  color: var(--theme-text-inverse);
 }
 
 .add-chapter-btn:hover {
-  background-color: #059669;
+  background-color: var(--theme-success-hover);
   transform: translateY(-1px);
 }
 
-/* Empty state */
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--theme-text-secondary);
 }
 
 .empty-icon {
@@ -192,8 +191,8 @@
 }
 
 .create-first-story-btn {
-  background-color: #5C67F2;
-  color: #ffffff;
+  background: var(--gradient-brand);
+  color: var(--theme-text-inverse);
   border: none;
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
@@ -204,27 +203,26 @@
 }
 
 .create-first-story-btn:hover {
-  background-color: #4c56e2;
+  background-color: var(--theme-accent-hover);
   transform: translateY(-1px);
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .dashboard-my-stories {
     padding: 1rem;
   }
-  
+
   .story-item {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-  
+
   .story-actions {
     flex-direction: row;
     justify-content: center;
   }
-  
+
   .story-cover img {
     width: 60px;
     height: 90px;

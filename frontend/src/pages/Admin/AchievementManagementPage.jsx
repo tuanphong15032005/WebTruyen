@@ -296,7 +296,7 @@ const AchievementManagementPage = () => {
 
   if (loading) {
     return (
-      <div className="w-full overflow-x-hidden">
+      <div className="admin-achievements-page w-full overflow-x-hidden">
         <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-full">
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -307,7 +307,7 @@ const AchievementManagementPage = () => {
   }
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <div className="admin-achievements-page w-full overflow-x-hidden">
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-full">
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">

@@ -150,3 +150,209 @@
     overflow-x: hidden;
   }
 }
+
+html[data-theme='dark'] .admin-dashboard {
+  background: var(--theme-page-bg);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-dashboard__sidebar {
+  background: #243447;
+  border-right: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-dashboard__logo {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='dark'] .admin-dashboard__logo-icon {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='dark'] .admin-dashboard__logo-text {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-dashboard__nav-item {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .admin-dashboard__nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-dashboard__nav-item.active {
+  background: var(--theme-accent);
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .admin-dashboard__main {
+  background: var(--theme-page-bg);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-daily-page,
+html[data-theme='dark'] .admin-achievements-page,
+html[data-theme='dark'] .admin-tags-page {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-daily-page .bg-white,
+html[data-theme='dark'] .admin-achievements-page .bg-white,
+html[data-theme='dark'] .admin-tags-page .bg-white {
+  background: var(--theme-surface-base) !important;
+  border-color: var(--theme-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .bg-gray-50,
+html[data-theme='dark'] .admin-achievements-page .bg-gray-50,
+html[data-theme='dark'] .admin-tags-page .bg-gray-50 {
+  background: var(--theme-surface-muted) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .bg-gray-100,
+html[data-theme='dark'] .admin-achievements-page .bg-gray-100,
+html[data-theme='dark'] .admin-tags-page .bg-gray-100 {
+  background: var(--theme-surface-subtle) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .bg-gray-200,
+html[data-theme='dark'] .admin-achievements-page .bg-gray-200,
+html[data-theme='dark'] .admin-tags-page .bg-gray-200 {
+  background: var(--theme-border-subtle) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .text-gray-900,
+html[data-theme='dark'] .admin-daily-page .text-gray-800,
+html[data-theme='dark'] .admin-achievements-page .text-gray-900,
+html[data-theme='dark'] .admin-achievements-page .text-gray-800,
+html[data-theme='dark'] .admin-tags-page .text-gray-900,
+html[data-theme='dark'] .admin-tags-page .text-gray-800 {
+  color: var(--theme-text-primary) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .text-gray-700,
+html[data-theme='dark'] .admin-daily-page .text-gray-600,
+html[data-theme='dark'] .admin-achievements-page .text-gray-700,
+html[data-theme='dark'] .admin-achievements-page .text-gray-600,
+html[data-theme='dark'] .admin-tags-page .text-gray-700,
+html[data-theme='dark'] .admin-tags-page .text-gray-600 {
+  color: var(--theme-text-secondary) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .text-gray-500,
+html[data-theme='dark'] .admin-daily-page .text-gray-400,
+html[data-theme='dark'] .admin-daily-page .text-gray-300,
+html[data-theme='dark'] .admin-achievements-page .text-gray-500,
+html[data-theme='dark'] .admin-achievements-page .text-gray-400,
+html[data-theme='dark'] .admin-achievements-page .text-gray-300,
+html[data-theme='dark'] .admin-tags-page .text-gray-500,
+html[data-theme='dark'] .admin-tags-page .text-gray-400,
+html[data-theme='dark'] .admin-tags-page .text-gray-300 {
+  color: var(--theme-text-muted) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .border,
+html[data-theme='dark'] .admin-daily-page .border-b,
+html[data-theme='dark'] .admin-daily-page .border-t,
+html[data-theme='dark'] .admin-daily-page .border-l,
+html[data-theme='dark'] .admin-daily-page .border-r,
+html[data-theme='dark'] .admin-achievements-page .border,
+html[data-theme='dark'] .admin-achievements-page .border-b,
+html[data-theme='dark'] .admin-achievements-page .border-t,
+html[data-theme='dark'] .admin-achievements-page .border-l,
+html[data-theme='dark'] .admin-achievements-page .border-r,
+html[data-theme='dark'] .admin-tags-page .border,
+html[data-theme='dark'] .admin-tags-page .border-b,
+html[data-theme='dark'] .admin-tags-page .border-t,
+html[data-theme='dark'] .admin-tags-page .border-l,
+html[data-theme='dark'] .admin-tags-page .border-r,
+html[data-theme='dark'] .admin-daily-page .border-gray-100,
+html[data-theme='dark'] .admin-daily-page .border-gray-200,
+html[data-theme='dark'] .admin-daily-page .border-gray-300,
+html[data-theme='dark'] .admin-achievements-page .border-gray-100,
+html[data-theme='dark'] .admin-achievements-page .border-gray-200,
+html[data-theme='dark'] .admin-achievements-page .border-gray-300,
+html[data-theme='dark'] .admin-tags-page .border-gray-100,
+html[data-theme='dark'] .admin-tags-page .border-gray-200,
+html[data-theme='dark'] .admin-tags-page .border-gray-300 {
+  border-color: var(--theme-border) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] .admin-daily-page select,
+html[data-theme='dark'] .admin-daily-page textarea,
+html[data-theme='dark'] .admin-achievements-page input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] .admin-achievements-page select,
+html[data-theme='dark'] .admin-achievements-page textarea,
+html[data-theme='dark'] .admin-tags-page input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] .admin-tags-page select,
+html[data-theme='dark'] .admin-tags-page textarea {
+  background: var(--theme-input-bg) !important;
+  border-color: var(--theme-input-border) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .admin-daily-page input:not([type='checkbox']):not([type='radio']):focus,
+html[data-theme='dark'] .admin-daily-page select:focus,
+html[data-theme='dark'] .admin-daily-page textarea:focus,
+html[data-theme='dark'] .admin-achievements-page input:not([type='checkbox']):not([type='radio']):focus,
+html[data-theme='dark'] .admin-achievements-page select:focus,
+html[data-theme='dark'] .admin-achievements-page textarea:focus,
+html[data-theme='dark'] .admin-tags-page input:not([type='checkbox']):not([type='radio']):focus,
+html[data-theme='dark'] .admin-tags-page select:focus,
+html[data-theme='dark'] .admin-tags-page textarea:focus {
+  border-color: var(--theme-input-border-hover) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html[data-theme='dark'] .admin-daily-page input::placeholder,
+html[data-theme='dark'] .admin-daily-page textarea::placeholder,
+html[data-theme='dark'] .admin-achievements-page input::placeholder,
+html[data-theme='dark'] .admin-achievements-page textarea::placeholder,
+html[data-theme='dark'] .admin-tags-page input::placeholder,
+html[data-theme='dark'] .admin-tags-page textarea::placeholder {
+  color: var(--theme-input-placeholder) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page table,
+html[data-theme='dark'] .admin-achievements-page table,
+html[data-theme='dark'] .admin-tags-page table {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-daily-page thead,
+html[data-theme='dark'] .admin-achievements-page thead,
+html[data-theme='dark'] .admin-tags-page thead {
+  background: var(--theme-surface-muted) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page tbody,
+html[data-theme='dark'] .admin-achievements-page tbody,
+html[data-theme='dark'] .admin-tags-page tbody {
+  background: transparent !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .divide-y > :not([hidden]) ~ :not([hidden]),
+html[data-theme='dark'] .admin-achievements-page .divide-y > :not([hidden]) ~ :not([hidden]),
+html[data-theme='dark'] .admin-tags-page .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--theme-divider) !important;
+}
+
+html[data-theme='dark'] .admin-daily-page .hover\:bg-gray-50:hover,
+html[data-theme='dark'] .admin-daily-page .hover\:bg-gray-100:hover,
+html[data-theme='dark'] .admin-achievements-page .hover\:bg-gray-50:hover,
+html[data-theme='dark'] .admin-achievements-page .hover\:bg-gray-100:hover,
+html[data-theme='dark'] .admin-achievements-page .hover\:bg-blue-50:hover,
+html[data-theme='dark'] .admin-achievements-page .hover\:bg-red-50:hover,
+html[data-theme='dark'] .admin-tags-page .hover\:bg-gray-50:hover,
+html[data-theme='dark'] .admin-tags-page .hover\:bg-gray-100:hover,
+html[data-theme='dark'] .admin-tags-page .hover\:bg-blue-50:hover,
+html[data-theme='dark'] .admin-tags-page .hover\:bg-red-50:hover {
+  background: var(--theme-surface-hover) !important;
+}

@@ -235,8 +235,8 @@ function Register() {
                                         transform: 'translateY(-50%)',
                                         width: '16px',
                                         height: '16px',
-                                        border: '2px solid #ccc',
-                                        borderTop: '2px solid #d63384',
+                                        border: '2px solid var(--theme-input-border)',
+                                        borderTop: '2px solid var(--theme-accent)',
                                         borderRadius: '50%',
                                         animation: 'spin 1s linear infinite'
                                     }}></div>
@@ -247,7 +247,7 @@ function Register() {
                                         right: '10px',
                                         top: '50%',
                                         transform: 'translateY(-50%)',
-                                        color: '#28a745',
+                                        color: 'var(--theme-success)',
                                         fontSize: '18px',
                                         fontWeight: 'bold'
                                     }}>✓</div>
@@ -258,7 +258,7 @@ function Register() {
                                         right: '10px',
                                         top: '50%',
                                         transform: 'translateY(-50%)',
-                                        color: '#dc3545',
+                                        color: 'var(--theme-danger)',
                                         fontSize: '18px',
                                         fontWeight: 'bold'
                                     }}>✗</div>

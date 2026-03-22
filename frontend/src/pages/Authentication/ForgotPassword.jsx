@@ -91,7 +91,7 @@ function ForgotPassword() {
                         </div>
                     )}
 
-                    <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px' }}>
+                    <p className="form-description">
                         Nhập email của bạn và chúng tôi sẽ gửi link khôi phục mật khẩu
                     </p>
 

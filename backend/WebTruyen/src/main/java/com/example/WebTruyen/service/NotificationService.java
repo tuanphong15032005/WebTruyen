@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -157,7 +158,7 @@ public class NotificationService {
         NotificationEntity notification = NotificationEntity.builder()
                 .user(user)
                 .kind(kind)
-                .message(message)
+                .message(normalizeNotificationText(message))
                 .refType(type)
                 .refId(referenceId)
                 .storyId(storyId)
@@ -184,7 +185,7 @@ public class NotificationService {
                 entity.getId(),
                 entity.getKind().name(),
                 generateTitle(entity.getKind(), entity.getRefType()),
-                entity.getMessage(),
+                normalizeNotificationText(entity.getMessage()),
                 isRead,
                 entity.getCreatedAt(),
                 entity.getRefId(),
@@ -195,17 +196,74 @@ public class NotificationService {
 
     private String generateTitle(NotificationKind kind, String refType) {
         return switch (kind) {
-            case new_chapter -> "Chuong moi";
-            case topup -> "Nap tien";
-            case report -> "Bao cao";
-            case system -> "Thanh tuu";
-            case comment -> "Binh luan moi";
+            case new_chapter -> "Chương mới";
+            case topup -> "Nạp tiền";
+            case report -> "Báo cáo";
+            case system -> "Thành tựu";
+            case comment -> "Bình luận mới";
             case transaction -> LEGACY_SETTLEMENT_REF_TYPE.equalsIgnoreCase(refType == null ? "" : refType)
-                    ? "Doanh thu chuong"
-                    : "Giao dich";
-            case story_moderation -> "Kiem duyet truyen";
-            case new_story -> "Truyen moi";
-            case chapter_schedule -> "Lich phat hanh chuong";
+                    ? "Doanh thu chương"
+                    : "Giao dịch";
+            case story_moderation -> "Kiểm duyệt truyện";
+            case new_story -> "Truyện mới";
+            case chapter_schedule -> "Lịch phát hành chương";
         };
+    }
+
+    private String normalizeNotificationText(String value) {
+        if (value == null || value.isBlank()) {
+            return value;
+        }
+
+        String normalized = repairMojibake(value);
+
+        return normalized
+                .replace("Thong bao", "Thông báo")
+                .replace("Tac gia", "Tác giả")
+                .replace("Truyen", "Truyện")
+                .replace("truyen", "truyện")
+                .replace("Chuong", "Chương")
+                .replace("chuong", "chương")
+                .replace("Lich", "Lịch")
+                .replace("lich", "lịch")
+                .replace("Cap nhat", "Cập nhật")
+                .replace("cua truyen", "của truyện")
+                .replace("cua ban", "của bạn")
+                .replace("da co chuong moi", "đã có chương mới")
+                .replace("da duoc duyet", "đã được duyệt")
+                .replace("da bi tu choi", "đã bị từ chối")
+                .replace("da bi huy", "đã bị hủy")
+                .replace("da duoc cap nhat thanh", "đã được cập nhật thành")
+                .replace("du kien phat hanh vao luc", "dự kiến phát hành vào lúc")
+                .replace("Ghi chu tu admin", "Ghi chú từ admin")
+                .replace("vua co truyen moi", "vừa có truyện mới")
+                .replace("Ban da mua chuong", "Bạn đã mua chương")
+                .replace("voi gia", "với giá")
+                .replace("Nap tien", "Nạp tiền")
+                .replace("Giao dich", "Giao dịch")
+                .replace("Thanh tuu", "Thành tựu")
+                .replace("Bao cao", "Báo cáo")
+                .replace("Binh luan", "Bình luận");
+    }
+
+    private String repairMojibake(String value) {
+        if (!looksLikeMojibake(value)) {
+            return value;
+        }
+
+        try {
+            return new String(value.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            return value;
+        }
+    }
+
+    private boolean looksLikeMojibake(String value) {
+        return value.contains("Ã")
+                || value.contains("Ä")
+                || value.contains("Â")
+                || value.contains("â")
+                || value.contains("áº")
+                || value.contains("á»");
     }
 }

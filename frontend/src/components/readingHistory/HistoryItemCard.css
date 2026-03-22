@@ -1,21 +1,22 @@
 .history-item-card {
-  background: white;
-  border-radius: 12px;
-  padding: 14px;
-  border: 1px solid #f1f5f9;
   margin-bottom: 12px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  padding: 14px;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-surface-raised);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .history-item-card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border-color: #e2e8f0;
+  box-shadow: var(--shadow-sm);
+  border-color: var(--theme-border-strong);
+  background: var(--theme-surface-base);
 }
 
 .card-layout {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
 }
 
@@ -28,18 +29,18 @@
   height: 70px;
   border-radius: 6px;
   object-fit: cover;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .cover-placeholder {
-  width: 52px;
-  height: 70px;
-  border-radius: 6px;
-  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  width: 52px;
+  height: 70px;
+  border-radius: 6px;
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text-soft);
 }
 
 .cover-placeholder svg {
@@ -53,12 +54,12 @@
 }
 
 .story-info .story-title {
+  margin: 0 0 8px;
+  overflow: hidden;
+  color: var(--theme-text-primary);
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
-  margin: 0 0 8px 0;
   line-height: 1.4;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -70,22 +71,22 @@
 }
 
 .chapter-progress {
-  font-size: 12px;
-  color: #6b7280;
   margin: 0;
+  color: var(--theme-text-secondary);
+  font-size: 12px;
 }
 
 .mini-progress-bar {
-  height: 4px;
-  background: #e5e7eb;
-  border-radius: 2px;
-  overflow: hidden;
   width: 120px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--theme-surface-active);
 }
 
 .mini-progress-bar .progress-fill {
   height: 100%;
-  background: #f97316;
+  background: var(--theme-accent);
   transition: width 0.3s ease;
 }
 
@@ -98,9 +99,9 @@
 }
 
 .time-label {
-  font-size: 12px;
-  color: #6b7280;
   margin: 0;
+  color: var(--theme-text-muted);
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -111,40 +112,42 @@
 
 .action-btn {
   padding: 6px 12px;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .continue-btn {
-  background: #f97316;
-  color: white;
+  background: var(--gradient-brand);
+  color: #fff;
 }
 
 .continue-btn:hover {
-  background: #ea580c;
+  filter: brightness(1.05);
 }
 
 .reread-btn {
-  background: #f3f4f6;
-  color: #374151;
+  border-color: var(--theme-border);
+  background: var(--theme-surface-active);
+  color: var(--theme-text-primary);
 }
 
 .reread-btn:hover {
-  background: #e5e7eb;
+  border-color: var(--theme-border-strong);
+  background: var(--theme-surface-hover);
 }
 
 .delete-btn {
-  background: none;
-  color: #6b7280;
-  padding: 6px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 6px 8px;
+  background: none;
+  color: var(--theme-text-muted);
 }
 
 .delete-btn svg {
@@ -153,8 +156,8 @@
 }
 
 .delete-btn:hover {
-  color: #dc2626;
-  background: #fef2f2;
+  background: var(--theme-danger-soft);
+  color: var(--theme-danger-text);
 }
 
 @media (max-width: 640px) {
@@ -162,24 +165,24 @@
     flex-wrap: wrap;
     gap: 12px;
   }
-  
+
   .cover-section {
     order: 1;
   }
-  
+
   .story-info {
     order: 2;
     flex-basis: calc(100% - 68px);
   }
-  
+
   .time-actions {
     order: 3;
     flex-basis: 100%;
     flex-direction: row;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
   }
-  
+
   .mini-progress-bar {
     width: 100%;
   }

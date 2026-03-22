@@ -267,6 +267,7 @@ function MainLayoutWrapper() {
           <Route path='achievement-management' element={<AchievementManagementPage />} />
           <Route path='applications' element={<ApplicationManagementPage />} />
           <Route path='tags' element={<TagManagementPage />} />
+          <Route path='terms' element={<AdminTermsPage />} />
 
         </Route>
         <Route
@@ -287,11 +288,7 @@ function MainLayoutWrapper() {
         />
         <Route
           path='admin/terms'
-          element={
-            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
-              <AdminTermsPage />
-            </RoleProtectedRoute>
-          }
+          element={<Navigate to='/admin/dashboard/terms' replace />}
         />
       </Routes>
     </MainLayout>

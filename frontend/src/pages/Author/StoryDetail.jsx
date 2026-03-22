@@ -70,7 +70,11 @@ const formatDateTime = (value) => {
   return date.toLocaleString('vi-VN');
 };
 
-const formatRemainingTime = (availableAt, fallbackHours, nowMs = Date.now()) => {
+const formatRemainingTime = (
+  availableAt,
+  fallbackHours,
+  nowMs = Date.now(),
+) => {
   if (availableAt) {
     const targetMs = new Date(availableAt).getTime();
     if (Number.isFinite(targetMs)) {
@@ -94,7 +98,10 @@ const formatRemainingTime = (availableAt, fallbackHours, nowMs = Date.now()) => 
   return `${hours} giờ`;
 };
 
-const formatScheduledPublishCountdown = (scheduledPublishAt, nowMs = Date.now()) => {
+const formatScheduledPublishCountdown = (
+  scheduledPublishAt,
+  nowMs = Date.now(),
+) => {
   if (!scheduledPublishAt) return '';
 
   const targetMs = new Date(scheduledPublishAt).getTime();
@@ -1193,8 +1200,9 @@ const StoryDetail = () => {
                             const showChapterCooldown =
                               approvalStatusKey === 'rejected' &&
                               Boolean(chapterCooldownText);
-                            const showChapterNoteButton =
-                              Boolean(chapterModerationNote);
+                            const showChapterNoteButton = Boolean(
+                              chapterModerationNote,
+                            );
 
                             return (
                               <div
@@ -1330,10 +1338,7 @@ const StoryDetail = () => {
         </div>
       )}
       {noteDialog.open && (
-        <div
-          className='story-detail__note-backdrop'
-          onClick={closeNoteDialog}
-        >
+        <div className='story-detail__note-backdrop' onClick={closeNoteDialog}>
           <div
             className='story-detail__note-dialog'
             onClick={(event) => event.stopPropagation()}

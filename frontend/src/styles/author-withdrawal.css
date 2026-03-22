@@ -365,3 +365,66 @@
   }
 }
 
+html[data-theme='dark'] .author-withdrawal {
+  background: transparent;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .author-withdrawal__header h1,
+html[data-theme='dark'] .author-withdrawal__field label span,
+html[data-theme='dark'] .author-withdrawal__summary-row,
+html[data-theme='dark'] .author-withdrawal__terms-box h3,
+html[data-theme='dark'] .author-withdrawal__terms-check,
+html[data-theme='dark'] .author-withdrawal__history-head h2,
+html[data-theme='dark'] .author-withdrawal__history-table th,
+html[data-theme='dark'] .author-withdrawal__history-table td {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .author-withdrawal__header p,
+html[data-theme='dark'] .author-withdrawal__field label small,
+html[data-theme='dark'] .author-withdrawal__history-head p,
+html[data-theme='dark'] .author-withdrawal__history-empty {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .author-withdrawal__card,
+html[data-theme='dark'] .author-withdrawal__history-empty,
+html[data-theme='dark'] .author-withdrawal__terms-box {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .author-withdrawal__input-wrapper,
+html[data-theme='dark'] .author-withdrawal__textarea,
+html[data-theme='dark'] .author-withdrawal__summary {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+}
+
+html[data-theme='dark'] .author-withdrawal__input-wrapper input,
+html[data-theme='dark'] .author-withdrawal__input-wrapper select,
+html[data-theme='dark'] .author-withdrawal__textarea {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .author-withdrawal__input-wrapper input::placeholder,
+html[data-theme='dark'] .author-withdrawal__textarea::placeholder {
+  color: var(--theme-input-placeholder);
+}
+
+html[data-theme='dark'] .author-withdrawal__input-wrapper select option {
+  background: var(--theme-surface-base);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .author-withdrawal__history-table th,
+html[data-theme='dark'] .author-withdrawal__history-table td {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .author-withdrawal__history-table thead th {
+  background: var(--theme-surface-muted);
+}
+

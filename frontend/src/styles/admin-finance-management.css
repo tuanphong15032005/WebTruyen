@@ -245,3 +245,56 @@
   color: #fff;
 }
 
+html[data-theme='dark'] .admin-finance {
+  background: transparent;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-finance__header h1,
+html[data-theme='dark'] .admin-finance__card h2,
+html[data-theme='dark'] .admin-finance th,
+html[data-theme='dark'] .admin-finance td,
+html[data-theme='dark'] .admin-finance__modal h3 {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-finance__header p,
+html[data-theme='dark'] .admin-finance__controls label,
+html[data-theme='dark'] .admin-finance__bank small,
+html[data-theme='dark'] .admin-finance__empty,
+html[data-theme='dark'] .admin-finance__modal p {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .admin-finance__card,
+html[data-theme='dark'] .admin-finance__modal {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .admin-finance thead th {
+  background: var(--theme-surface-muted);
+}
+
+html[data-theme='dark'] .admin-finance th,
+html[data-theme='dark'] .admin-finance td {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .admin-finance__controls select,
+html[data-theme='dark'] .admin-finance__controls button,
+html[data-theme='dark'] .admin-finance__modal textarea,
+html[data-theme='dark'] .admin-finance__modal-actions .cancel {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-finance__controls select:focus,
+html[data-theme='dark'] .admin-finance__modal textarea:focus {
+  outline: none;
+  border-color: var(--theme-input-border-hover);
+  box-shadow: none;
+}
+

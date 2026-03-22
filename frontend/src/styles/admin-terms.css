@@ -345,13 +345,13 @@
 }
 
 /* Rich Text Editor Styles */
-.rich-text-editor {
+.admin-terms-page .rich-text-editor {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   overflow: hidden;
 }
 
-.editor-toolbar {
+.admin-terms-page .editor-toolbar {
   display: flex;
   gap: 4px;
   padding: 8px;
@@ -359,7 +359,7 @@
   border-bottom: 2px solid #d1d5db;
 }
 
-.toolbar-btn {
+.admin-terms-page .toolbar-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -374,7 +374,7 @@
 }
 
 /* Style for Lucide icons */
-.toolbar-btn svg {
+.admin-terms-page .toolbar-btn svg {
   width: 16px !important;
   height: 16px !important;
   fill: #1f2937 !important;
@@ -382,22 +382,22 @@
   stroke-width: 2 !important;
 }
 
-.toolbar-btn:hover svg {
+.admin-terms-page .toolbar-btn:hover svg {
   fill: #1f2937 !important;
   stroke: #1f2937 !important;
 }
 
-.toolbar-btn:hover {
+.admin-terms-page .toolbar-btn:hover {
   background-color: #e5e7eb;
   color: #1f2937;
 }
 
-.toolbar-btn:active {
+.admin-terms-page .toolbar-btn:active {
   background-color: #d1d5db;
   color: #1f2937;
 }
 
-.editor-content {
+.admin-terms-page .editor-content {
   min-height: 200px;
   padding: 12px;
   font-size: 14px;
@@ -406,29 +406,100 @@
 }
 
 /* Keep placeholder text gray */
-.editor-content:empty:before {
+.admin-terms-page .editor-content:empty:before {
   content: attr(placeholder);
   color: #9ca3af !important;
 }
 
-.editor-content h1 {
+.admin-terms-page .editor-content h1 {
   font-size: 24px;
   font-weight: 700;
   margin: 16px 0;
 }
 
-.editor-content h2 {
+.admin-terms-page .editor-content h2 {
   font-size: 20px;
   font-weight: 600;
   margin: 14px 0;
 }
 
-.editor-content ul,
-.editor-content ol {
+.admin-terms-page .editor-content ul,
+.admin-terms-page .editor-content ol {
   margin: 12px 0;
   padding-left: 24px;
 }
 
-.editor-content li {
+.admin-terms-page .editor-content li {
   margin: 4px 0;
+}
+
+html[data-theme='dark'] .admin-terms-page {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-terms-page .page-header {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .admin-terms-page .page-header h1,
+html[data-theme='dark'] .admin-terms-page .term-title,
+html[data-theme='dark'] .admin-terms-page .modal-header h2,
+html[data-theme='dark'] .admin-terms-page .confirm-box h3,
+html[data-theme='dark'] .admin-terms-page .editor-content {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-terms-page .term-date,
+html[data-theme='dark'] .admin-terms-page .loading-state,
+html[data-theme='dark'] .admin-terms-page .empty-state,
+html[data-theme='dark'] .admin-terms-page .form-group label,
+html[data-theme='dark'] .admin-terms-page .form-hint,
+html[data-theme='dark'] .admin-terms-page .close-btn {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .admin-terms-page .terms-table-container,
+html[data-theme='dark'] .admin-terms-page .confirm-box,
+html[data-theme='dark'] .admin-terms-page .modal-content,
+html[data-theme='dark'] .admin-terms-page .rich-text-editor {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .admin-terms-page .terms-table th,
+html[data-theme='dark'] .admin-terms-page .editor-toolbar {
+  background: var(--theme-surface-muted);
+}
+
+html[data-theme='dark'] .admin-terms-page .terms-table th,
+html[data-theme='dark'] .admin-terms-page .terms-table td,
+html[data-theme='dark'] .admin-terms-page .modal-header,
+html[data-theme='dark'] .admin-terms-page .form-actions,
+html[data-theme='dark'] .admin-terms-page .editor-toolbar,
+html[data-theme='dark'] .admin-terms-page .rich-text-editor {
+  border-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .admin-terms-page .terms-table th,
+html[data-theme='dark'] .admin-terms-page .terms-table td {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-terms-page .terms-table tr:hover {
+  background: var(--theme-surface-hover);
+}
+
+html[data-theme='dark'] .admin-terms-page .form-group input,
+html[data-theme='dark'] .admin-terms-page .btn-secondary,
+html[data-theme='dark'] .admin-terms-page .confirm-actions .btn-cancel,
+html[data-theme='dark'] .admin-terms-page .toolbar-btn {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-terms-page .form-group input:focus {
+  border-color: var(--theme-input-border-hover);
+  box-shadow: none;
 }

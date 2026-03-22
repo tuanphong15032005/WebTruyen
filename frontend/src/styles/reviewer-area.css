@@ -325,3 +325,65 @@
     color: #dc2626;
   }
 }
+
+html[data-theme='dark'] .reviewer-area {
+  background: transparent;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .reviewer-title h1 {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .reviewer-subtitle,
+html[data-theme='dark'] .no-content-message p,
+html[data-theme='dark'] .stat-label {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .reviewer-instructions {
+  background: var(--theme-info-soft);
+  border-color: var(--theme-info-border);
+}
+
+html[data-theme='dark'] .reviewer-instructions p,
+html[data-theme='dark'] .reviewer-instructions ol {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .stat-card,
+html[data-theme='dark'] .content-moderation-section,
+html[data-theme='dark'] .violation-reports-section {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .stat-number,
+html[data-theme='dark'] .tab-button.active {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .tab-button {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .tab-button:hover {
+  color: var(--theme-accent);
+  background: var(--theme-accent-soft);
+}
+
+html[data-theme='dark'] .reviewer-tabs {
+  border-bottom-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .tab-button.active {
+  border-bottom-color: var(--theme-accent);
+  background: var(--theme-accent-soft);
+  color: var(--theme-accent-text);
+}
+
+html[data-theme='dark'] .no-content-message {
+  background: var(--theme-surface-muted);
+  border-color: var(--theme-border);
+}

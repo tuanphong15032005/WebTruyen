@@ -3,31 +3,31 @@
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 32px 20px;
   margin-top: 20px;
+  padding: 32px 20px;
 }
 
 .showing-text {
-  font-size: 14px;
-  color: #6b7280;
   margin: 0;
+  color: var(--theme-text-secondary);
+  font-size: 14px;
 }
 
 .load-more-btn {
-  background: none;
-  color: #f97316;
-  border: 1px solid #f97316;
   padding: 12px 24px;
+  border: 1px solid var(--theme-accent);
   border-radius: 8px;
+  background: transparent;
+  color: var(--theme-accent-text);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: #f97316;
-  color: white;
+  background: var(--theme-accent);
+  color: #fff;
 }
 
 .load-more-btn:disabled {

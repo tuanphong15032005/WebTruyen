@@ -89,7 +89,7 @@ function VerifyCode() {
             <div className="right-column">
                 <div className="form-container">
                     <h2 className="form-title">❖ Xác thực Email ❖</h2>
-                    <p style={{textAlign: 'center', color: '#666', marginBottom: '20px'}}>
+                    <p className="form-description" style={{ marginBottom: '20px' }}>
                         Nhập mã OTP đã được gửi đến email của bạn
                     </p>
                     

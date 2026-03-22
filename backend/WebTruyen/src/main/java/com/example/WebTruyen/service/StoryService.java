@@ -1557,7 +1557,7 @@ public class StoryService {
         Long authorId = story.getAuthor().getId();
         String authorName = resolveAuthorName(story);
         String storyTitle = story.getTitle() == null || story.getTitle().isBlank()
-                ? "truyen khong ten"
+                ? "truyện không tên"
                 : story.getTitle();
 
         for (FollowUserEntity follow : followUserRepository.findByTargetUser_Id(authorId)) {
@@ -1566,7 +1566,7 @@ public class StoryService {
             }
 
             String message = String.format(
-                    "Tac gia \"%s\" vua co truyen moi: \"%s\".",
+                    "Tác giả \"%s\" vừa có truyện mới: \"%s\".",
                     authorName,
                     storyTitle
             );
@@ -1574,7 +1574,7 @@ public class StoryService {
             notificationService.createNotification(
                     follow.getUser().getId(),
                     "new_story",
-                    "Truyen moi",
+                    "Truyện mới",
                     message,
                     story.getId(),
                     story.getId(),
@@ -1589,22 +1589,22 @@ public class StoryService {
         }
 
         String storyTitle = story.getTitle() == null || story.getTitle().isBlank()
-                ? "truyen khong ten"
+                ? "truyện không tên"
                 : story.getTitle();
         String moderationNote = note == null ? null : note.trim();
 
         String message = approved
-                ? String.format("Truyen \"%s\" cua ban da duoc duyet.", storyTitle)
+                ? String.format("Truyện \"%s\" của bạn đã được duyệt.", storyTitle)
                 : String.format(
-                        "Truyen \"%s\" cua ban da bi tu choi.%s",
+                        "Truyện \"%s\" của bạn đã bị từ chối.%s",
                         storyTitle,
-                        moderationNote == null || moderationNote.isBlank() ? "" : " Ghi chu tu admin: " + moderationNote
+                        moderationNote == null || moderationNote.isBlank() ? "" : " Ghi chú từ admin: " + moderationNote
                 );
 
         notificationService.createNotification(
                 story.getAuthor().getId(),
                 "story_moderation",
-                approved ? "Truyen da duyet" : "Truyen bi tu choi",
+                approved ? "Truyện đã duyệt" : "Truyện bị từ chối",
                 message,
                 story.getId(),
                 story.getId(),
@@ -1623,30 +1623,30 @@ public class StoryService {
         }
 
         String storyTitle = story.getTitle() == null || story.getTitle().isBlank()
-                ? "truyen khong ten"
+                ? "truyện không tên"
                 : story.getTitle();
         String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank()
-                ? "chuong khong ten"
+                ? "chương không tên"
                 : chapter.getTitle();
         String moderationNote = note == null ? null : note.trim();
 
         String message = approved
                 ? String.format(
-                        "Chuong \"%s\" cua truyen \"%s\" cua ban da duoc duyet.",
+                        "Chương \"%s\" của truyện \"%s\" của bạn đã được duyệt.",
                         chapterTitle,
                         storyTitle
                 )
                 : String.format(
-                        "Chuong \"%s\" cua truyen \"%s\" cua ban da bi tu choi.%s",
+                        "Chương \"%s\" của truyện \"%s\" của bạn đã bị từ chối.%s",
                         chapterTitle,
                         storyTitle,
-                        moderationNote == null || moderationNote.isBlank() ? "" : " Ghi chu tu admin: " + moderationNote
+                        moderationNote == null || moderationNote.isBlank() ? "" : " Ghi chú từ admin: " + moderationNote
                 );
 
         notificationService.createNotification(
                 story.getAuthor().getId(),
                 "story_moderation",
-                approved ? "Chuong da duyet" : "Chuong bi tu choi",
+                approved ? "Chương đã duyệt" : "Chương bị từ chối",
                 message,
                 chapter.getId(),
                 story.getId(),

@@ -241,7 +241,10 @@ const AuthorDashboard = () => {
         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
           <Button
             onClick={() => setShowApplicationForm(false)}
-            style={{ backgroundColor: '#6c757d' }}
+            style={{
+              backgroundColor: 'var(--theme-text-muted)',
+              color: 'var(--theme-text-inverse)',
+            }}
           >
             Quay lại
           </Button>

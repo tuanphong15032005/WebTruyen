@@ -1,5 +1,136 @@
 import React from 'react';
-import { X, User, Calendar, BookOpen } from 'lucide-react';
+import { X, User, Calendar } from 'lucide-react';
+
+const styles = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--theme-overlay)',
+  },
+  panel: {
+    width: '90%',
+    maxWidth: '600px',
+    maxHeight: '80vh',
+    overflow: 'hidden',
+    border: '1px solid var(--theme-border)',
+    borderRadius: '16px',
+    background: 'var(--theme-modal-bg)',
+    boxShadow: 'var(--shadow-lg)',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '24px',
+    borderBottom: '1px solid var(--theme-divider)',
+  },
+  title: {
+    margin: 0,
+    color: 'var(--theme-text-primary)',
+    fontSize: '24px',
+    fontWeight: '700',
+  },
+  closeButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '8px',
+    border: '1px solid transparent',
+    borderRadius: '8px',
+    background: 'none',
+    color: 'var(--theme-text-secondary)',
+    cursor: 'pointer',
+  },
+  content: {
+    maxHeight: '60vh',
+    overflowY: 'auto',
+    padding: '16px',
+  },
+  centeredState: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '200px',
+    color: 'var(--theme-text-secondary)',
+  },
+  emptyState: {
+    padding: '40px',
+    color: 'var(--theme-text-secondary)',
+    textAlign: 'center',
+  },
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  item: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    padding: '16px',
+    border: '1px solid var(--theme-border)',
+    borderRadius: '12px',
+    background: 'var(--theme-surface-base)',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
+  avatar: {
+    width: '48px',
+    height: '48px',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderRadius: '50%',
+    background: 'var(--theme-accent)',
+    color: '#fff',
+    fontSize: '18px',
+    fontWeight: '700',
+  },
+  info: {
+    flex: 1,
+  },
+  identityRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '4px',
+  },
+  identityText: {
+    color: 'var(--theme-text-primary)',
+    fontSize: '16px',
+    fontWeight: '600',
+  },
+  badge: {
+    padding: '2px 8px',
+    border: '1px solid var(--theme-info-border)',
+    borderRadius: '999px',
+    background: 'var(--theme-info-soft)',
+    color: 'var(--theme-info-text)',
+    fontSize: '12px',
+    fontWeight: '500',
+  },
+  secondaryRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    color: 'var(--theme-text-secondary)',
+    fontSize: '14px',
+  },
+  followDate: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    marginTop: '4px',
+    color: 'var(--theme-text-muted)',
+    fontSize: '12px',
+  },
+};
 
 export default function FollowersModal({ isOpen, onClose, followers, loading }) {
   const followerItems = Array.isArray(followers) ? followers : [];
@@ -7,129 +138,55 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '80vh',
-        overflow: 'hidden',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '24px',
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{
-            margin: 0,
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: '#333'
-          }}>
-            Danh sách người theo dõi ({followerItems.length})
-          </h2>
+    <div style={styles.overlay}>
+      <div style={styles.panel}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Danh sách người theo dõi ({followerItems.length})</h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+            style={styles.closeButton}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--theme-surface-hover)';
+              e.currentTarget.style.color = 'var(--theme-text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.color = 'var(--theme-text-secondary)';
             }}
           >
-            <X size={24} color="#666" />
+            <X size={24} />
           </button>
         </div>
 
-        {/* Content */}
-        <div style={{
-          padding: '16px',
-          maxHeight: '60vh',
-          overflowY: 'auto'
-        }}>
+        <div style={styles.content}>
           {loading ? (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '200px',
-              color: '#666'
-            }}>
-              Đang tải...
-            </div>
+            <div style={styles.centeredState}>Đang tải...</div>
           ) : followerItems.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '40px',
-              color: '#666'
-            }}>
+            <div style={styles.emptyState}>
               <User size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
               <p>Chưa có người theo dõi nào</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={styles.list}>
               {followerItems.map((follower) => (
                 <div
                   key={follower.userId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    padding: '16px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '12px',
-                    border: '1px solid #e9ecef',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer'
-                  }}
+                  style={styles.item}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#e9ecef';
+                    e.currentTarget.style.background = 'var(--theme-surface-hover)';
+                    e.currentTarget.style.borderColor = 'var(--theme-border-strong)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                    e.currentTarget.style.background = 'var(--theme-surface-base)';
+                    e.currentTarget.style.borderColor = 'var(--theme-border)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                   onClick={() => {
-                    // Navigate to user profile
                     window.location.href = `/portfolio/${follower.userId}`;
                   }}
                 >
-                  {/* Avatar */}
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#17a2b8',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '18px',
-                    flexShrink: 0
-                  }}>
+                  <div style={styles.avatar}>
                     {follower.avatarUrl ? (
                       <img
                         src={follower.avatarUrl}
@@ -141,59 +198,21 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
                     )}
                   </div>
 
-                  {/* Info */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '4px'
-                    }}>
-                      <span style={{
-                        fontWeight: '600',
-                        fontSize: '16px',
-                        color: '#333'
-                      }}>
-                        {follower.displayName || follower.username}
-                      </span>
-                      {follower.isAuthor && (
-                        <span style={{
-                          backgroundColor: '#17a2b8',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          Tác giả
-                        </span>
-                      )}
+                  <div style={styles.info}>
+                    <div style={styles.identityRow}>
+                      <span style={styles.identityText}>{follower.displayName || follower.username}</span>
+                      {follower.isAuthor && <span style={styles.badge}>Tác giả</span>}
                     </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '16px',
-                      fontSize: '14px',
-                      color: '#666'
-                    }}>
+
+                    <div style={styles.secondaryRow}>
                       <span>@{follower.username}</span>
-                      {follower.authorPenName && (
-                        <span style={{ fontStyle: 'italic' }}>
-                          "{follower.authorPenName}"
-                        </span>
-                      )}
+                      {follower.authorPenName && <span style={{ fontStyle: 'italic' }}>"{follower.authorPenName}"</span>}
                     </div>
+
                     {follower.followDate && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '12px',
-                        color: '#999',
-                        marginTop: '4px'
-                      }}>
+                      <div style={styles.followDate}>
                         <Calendar size={12} />
-                        Theo dõi từ {follower.followDate}
+                        <span>Theo dõi từ {follower.followDate}</span>
                       </div>
                     )}
                   </div>

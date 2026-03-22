@@ -62,7 +62,7 @@ public class ChapterServiceImpl implements ChapterService {
     private static final Duration APPROVAL_RESUBMIT_COOLDOWN = Duration.ofHours(24);
     private static final Duration SCHEDULE_MIN_LEAD_TIME = Duration.ofHours(1);
     private static final DateTimeFormatter SCHEDULE_NOTIFICATION_FORMAT =
-            DateTimeFormatter.ofPattern("HH:mm 'ngay' dd/MM/yyyy");
+            DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy");
 
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
@@ -293,8 +293,8 @@ public class ChapterServiceImpl implements ChapterService {
             return;
         }
 
-        String storyTitle = story.getTitle() == null || story.getTitle().isBlank() ? "truyen khong ten" : story.getTitle();
-        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank() ? "chuong khong ten" : chapter.getTitle();
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank() ? "truyện không tên" : story.getTitle();
+        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank() ? "chương không tên" : chapter.getTitle();
 
         for (FollowStoryEntity follow : followers) {
             if (follow.getUser() == null || follow.getUser().getId() == null) {
@@ -303,14 +303,14 @@ public class ChapterServiceImpl implements ChapterService {
 
             String message = scheduledPublishAt == null
                     ? String.format(
-                            "Lich phat hanh chuong \"%s\" cua truyen \"%s\" da bi huy.",
+                            "Lịch phát hành chương \"%s\" của truyện \"%s\" đã bị hủy.",
                             chapterTitle,
                             storyTitle
                     )
                     : String.format(
                             updated
-                                    ? "Lich phat hanh chuong \"%s\" cua truyen \"%s\" da duoc cap nhat thanh %s."
-                                    : "Chuong \"%s\" cua truyen \"%s\" du kien phat hanh vao luc %s.",
+                                    ? "Lịch phát hành chương \"%s\" của truyện \"%s\" đã được cập nhật thành %s."
+                                    : "Chương \"%s\" của truyện \"%s\" dự kiến phát hành vào lúc %s.",
                             chapterTitle,
                             storyTitle,
                             formatScheduledPublishAt(scheduledPublishAt)
@@ -319,7 +319,7 @@ public class ChapterServiceImpl implements ChapterService {
             notificationService.createNotification(
                     follow.getUser().getId(),
                     "chapter_schedule",
-                    updated ? "Cap nhat lich chuong" : "Lich phat hanh chuong",
+                    updated ? "Cập nhật lịch chương" : "Lịch phát hành chương",
                     message,
                     chapter.getId(),
                     story.getId(),
@@ -343,8 +343,8 @@ public class ChapterServiceImpl implements ChapterService {
             return;
         }
 
-        String storyTitle = story.getTitle() == null || story.getTitle().isBlank() ? "truyen khong ten" : story.getTitle();
-        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank() ? "chuong khong ten" : chapter.getTitle();
+        String storyTitle = story.getTitle() == null || story.getTitle().isBlank() ? "truyện không tên" : story.getTitle();
+        String chapterTitle = chapter.getTitle() == null || chapter.getTitle().isBlank() ? "chương không tên" : chapter.getTitle();
 
         for (FollowStoryEntity follow : followers) {
             if (follow.getUser() == null || follow.getUser().getId() == null) {
@@ -354,8 +354,8 @@ public class ChapterServiceImpl implements ChapterService {
             notificationService.createNotification(
                     follow.getUser().getId(),
                     "new_chapter",
-                    "Chuong moi",
-                    String.format("Truyen \"%s\" da co chuong moi: \"%s\"", storyTitle, chapterTitle),
+                    "Chương mới",
+                    String.format("Truyện \"%s\" đã có chương mới: \"%s\"", storyTitle, chapterTitle),
                     chapter.getId(),
                     story.getId(),
                     chapter.getId()
@@ -993,12 +993,12 @@ public class ChapterServiceImpl implements ChapterService {
             List<FollowStoryEntity> followers = followStoryRepository.findByStory_IdAndNotifyNewChapterTrue(story.getId());
 
             for (FollowStoryEntity follow : followers) {
-                String message = String.format("Truyen \"%s\" da co chuong moi: \"%s\"",
+                String message = String.format("Truyện \"%s\" đã có chương mới: \"%s\"",
                         story.getTitle(), chapter.getTitle());
                 notificationService.createNotification(
                         follow.getUser().getId(),
                         "new_chapter",
-                        "Chuong moi",
+                        "Chương mới",
                         message,
                         chapter.getId(),
                         story.getId(),

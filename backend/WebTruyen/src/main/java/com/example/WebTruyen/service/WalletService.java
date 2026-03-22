@@ -329,9 +329,9 @@ public class WalletService {
         notificationService.createNotification(
                 userId,
                 "transaction",
-                "Mua chuong thanh cong",
-                "Ban da mua chuong \"" + chapter.getTitle() + "\" cua truyen \"" + story.getTitle()
-                        + "\" voi gia " + actualChapterPrice + " coin.",
+                "Mua chương thành công",
+                "Bạn đã mua chương \"" + chapter.getTitle() + "\" của truyện \"" + story.getTitle()
+                        + "\" với giá " + actualChapterPrice + " coin.",
                 savedUnlock.getId(),
                 story.getId(),
                 chapter.getId()

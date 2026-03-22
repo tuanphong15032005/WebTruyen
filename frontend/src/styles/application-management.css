@@ -764,3 +764,95 @@
   align-items: center;
   gap: 8px;
 }
+
+html[data-theme='dark'] .application-management {
+  background: transparent;
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .application-management__header,
+html[data-theme='dark'] .application-management__controls,
+html[data-theme='dark'] .application-management__table,
+html[data-theme='dark'] .loading-container,
+html[data-theme='dark'] .stat-card,
+html[data-theme='dark'] .application-form-section,
+html[data-theme='dark'] .user-info-section,
+html[data-theme='dark'] .modal-content {
+  background: var(--theme-surface-base);
+  border-color: var(--theme-border);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .application-management__header h1,
+html[data-theme='dark'] .stat-number,
+html[data-theme='dark'] .application-management__table th,
+html[data-theme='dark'] .application-management__table td,
+html[data-theme='dark'] .user-info strong,
+html[data-theme='dark'] .application-form-section h3,
+html[data-theme='dark'] .user-info-section h3 {
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .stat-label,
+html[data-theme='dark'] .filter-label,
+html[data-theme='dark'] .search-icon,
+html[data-theme='dark'] .empty-state,
+html[data-theme='dark'] .loading-container,
+html[data-theme='dark'] .application-type,
+html[data-theme='dark'] .modal-content label,
+html[data-theme='dark'] .form-text,
+html[data-theme='dark'] .modal-content p {
+  color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .tab,
+html[data-theme='dark'] .status-filter-btn,
+html[data-theme='dark'] .search-input,
+html[data-theme='dark'] .filter-select,
+html[data-theme='dark'] .modal-content input,
+html[data-theme='dark'] .modal-content select,
+html[data-theme='dark'] .modal-content textarea {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .tab:hover,
+html[data-theme='dark'] .status-filter-btn:hover:not(.active),
+html[data-theme='dark'] .refresh-btn:hover:not(:disabled),
+html[data-theme='dark'] .close-alert:hover,
+html[data-theme='dark'] .application-management__table tr:hover {
+  background: var(--theme-surface-hover);
+}
+
+html[data-theme='dark'] .search-input:focus,
+html[data-theme='dark'] .filter-select:focus,
+html[data-theme='dark'] .modal-content input:focus,
+html[data-theme='dark'] .modal-content select:focus,
+html[data-theme='dark'] .modal-content textarea:focus {
+  outline: none;
+  border-color: var(--theme-input-border-hover);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .search-input::placeholder {
+  color: var(--theme-input-placeholder);
+}
+
+html[data-theme='dark'] .application-management__table th,
+html[data-theme='dark'] .application-management__table td,
+html[data-theme='dark'] .application-management__table tr,
+html[data-theme='dark'] .application-form-section,
+html[data-theme='dark'] .user-info-section,
+html[data-theme='dark'] .modal-header,
+html[data-theme='dark'] .form-actions {
+  border-color: var(--theme-divider);
+}
+
+html[data-theme='dark'] .application-management__table th {
+  background: var(--theme-surface-muted);
+}
+
+html[data-theme='dark'] .application-type {
+  background: var(--theme-surface-subtle);
+}
