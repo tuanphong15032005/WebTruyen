@@ -29,6 +29,7 @@ import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
 import com.example.WebTruyen.dto.response.LibraryAlbumOptionResponse;
 import com.example.WebTruyen.dto.response.LibraryStoryResponse;
+import com.example.WebTruyen.dto.response.StoryRatingBreakdownItemResponse;
 import com.example.WebTruyen.dto.response.StoryResponse;
 import com.example.WebTruyen.dto.response.StoryLibraryDialogResponse;
 import com.example.WebTruyen.dto.response.StoryResumePointResponse;
@@ -67,6 +68,7 @@ import com.example.WebTruyen.repository.LibraryEntryRepository;
 import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.ReadingHistoryRepository;
 import com.example.WebTruyen.repository.StoryRepository;
+import com.example.WebTruyen.repository.StoryReviewRepository;
 import com.example.WebTruyen.repository.StoryTagRepository;
 import com.example.WebTruyen.repository.TagRepository;
 import com.example.WebTruyen.repository.UserRepository;
@@ -99,6 +101,7 @@ public class StoryService {
     private final LibraryAlbumRepository libraryAlbumRepository;
     private final LibraryAlbumItemRepository libraryAlbumItemRepository;
     private final ReadingHistoryRepository readingHistoryRepository;
+    private final StoryReviewRepository storyReviewRepository;
 
     @Transactional
     public StoryResponse createStory(UserEntity currentUser, CreateStoryRequest req, MultipartFile cover) {
@@ -203,6 +206,7 @@ public class StoryService {
                 weeklyRank,
                 ratingAvg,
                 story.getRatingCount(),
+                resolveRatingBreakdown(story.getId()),
                 resolveSimilarStories(story),
                 resolveSameAuthorStories(story)
         );
@@ -924,6 +928,28 @@ public class StoryService {
         }
         return BigDecimal.valueOf(ratingSum)
                 .divide(BigDecimal.valueOf(ratingCount), 2, RoundingMode.HALF_UP);
+    }
+
+    private List<StoryRatingBreakdownItemResponse> resolveRatingBreakdown(Long storyId) {
+        Map<Integer, Long> countByRating = new HashMap<>();
+        for (Object[] row : storyReviewRepository.countByStoryIdGroupByRating(storyId)) {
+            if (row == null || row.length < 2 || row[0] == null) {
+                continue;
+            }
+
+            int rating = ((Number) row[0]).intValue();
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            countByRating.put(rating, Math.max(0L, count));
+        }
+
+        List<StoryRatingBreakdownItemResponse> items = new ArrayList<>();
+        for (int rating = 5; rating >= 1; rating--) {
+            items.add(new StoryRatingBreakdownItemResponse(
+                    rating,
+                    countByRating.getOrDefault(rating, 0L)
+            ));
+        }
+        return items;
     }
 
     // Muc dich: Quy doi StoryEntity sang item sidebar gon nhe cho FE. Hieuson + 10h30

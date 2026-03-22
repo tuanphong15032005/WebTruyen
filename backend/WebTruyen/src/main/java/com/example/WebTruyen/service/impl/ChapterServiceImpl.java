@@ -862,11 +862,11 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         DraftEntity draft = draftRepository.findById(chapterId)
-                .orElseGet(() -> DraftEntity.builder().chapter(chapter).build());
+                .orElseGet(() -> DraftEntity.builder().chapterId(chapterId).build());
+        draft.setChapter(chapter);
         draft.setContent(normalized);
         draft.setCreatedAt(LocalDateTime.now());
         DraftEntity saved = draftRepository.save(draft);
-        chapter.setDraft(saved);
 
         Map<String, Object> result = new HashMap<>();
         result.put("hasDraft", true);

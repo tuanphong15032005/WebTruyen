@@ -13,6 +13,7 @@ public record StorySidebarResponse(
         Integer weeklyRank,
         BigDecimal ratingAvg,
         Integer ratingCount,
+        List<StoryRatingBreakdownItemResponse> ratingBreakdown,
         List<StorySidebarItemResponse> similarStories,
         List<StorySidebarItemResponse> sameAuthorStories
 ) {

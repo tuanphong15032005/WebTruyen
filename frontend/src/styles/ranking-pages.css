@@ -278,10 +278,23 @@
   background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%);
 }
 
-.recent-stories-grid {
+.home-story-grid.recent-stories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 22px;
+}
+
+.home-story-card--recent .home-story-card__content {
+  min-height: 168px;
+}
+
+.home-story-card--recent .home-story-card__stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: auto;
+}
+
+.home-story-card--recent .home-story-card__footer {
+  margin-top: 0;
 }
 
 .recent-story-card {
@@ -659,9 +672,13 @@
     font-size: 0.95rem;
   }
 
-  .recent-stories-grid {
+  .home-story-grid.recent-stories-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 16px;
+  }
+
+  .home-story-card--recent .home-story-card__content {
+    min-height: 154px;
   }
 
   .recent-story-card__body {

@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock } from 'lucide-react';
+import { Bookmark, Clock, Eye, Star } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import storyService from '../../services/storyService';
 import '../../styles/ranking-pages.css';
 import '../../styles/home-dashboard.css';
 
-const formatNumber = (n) => Number(n ?? 0).toLocaleString('vi-VN');
+const formatNumber = (value) => Number(value ?? 0).toLocaleString('vi-VN');
+
 const formatDate = (value) => {
-  if (!value) return '—';
-  const d = new Date(value);
-  return d.toLocaleDateString('vi-VN', {
+  if (!value) return '-';
+  const date = new Date(value);
+  return date.toLocaleDateString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -19,10 +20,41 @@ const formatDate = (value) => {
   });
 };
 
+const htmlToText = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/<img[^>]*>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const getSummary = (story, max = 90) => {
+  const raw = htmlToText(story?.summaryHtml || story?.summary || '');
+  if (!raw) return 'Truyện hiện chưa có tóm tắt.';
+  if (!Number.isFinite(max) || max <= 0) return raw;
+  return raw.length > max ? `${raw.slice(0, max).trim()}...` : raw;
+};
+
+const getStoryCategory = (story) => {
+  const tags = Array.isArray(story?.tags) ? story.tags : [];
+  return tags[0] || null;
+};
+
+const formatRating = (value) => {
+  const numericValue = Number(value || 0);
+  if (!Number.isFinite(numericValue)) return '0.0';
+  return numericValue.toFixed(1);
+};
+
 const getStoryStatusInfo = (story) => {
-  const s = String(story?.completionStatus || '').toLowerCase();
-  if (s === 'completed') return { label: 'Đã hoàn thành', className: 'completed' };
-  if (s === 'cancelled') return { label: 'Tạm ngưng', className: 'cancelled' };
+  const status = String(story?.completionStatus || '').toLowerCase();
+  if (status === 'completed') {
+    return { label: 'Đã hoàn thành', className: 'completed' };
+  }
+  if (status === 'cancelled') {
+    return { label: 'Tạm ngưng', className: 'cancelled' };
+  }
   return { label: 'Đang tiến hành', className: 'ongoing' };
 };
 
@@ -35,6 +67,7 @@ function RecentlyUpdatedStoriesPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+
     storyService
       .getPublicStories({
         page: 0,
@@ -42,29 +75,39 @@ function RecentlyUpdatedStoriesPage() {
         sort: 'lastUpdatedAt,desc',
       })
       .then((data) => {
-        if (!cancelled) {
-          const arr = Array.isArray(data) ? data : [];
-          arr.sort((a, b) => {
-            const ta = new Date(a?.lastUpdatedAt || a?.createdAt || 0).getTime();
-            const tb = new Date(b?.lastUpdatedAt || b?.createdAt || 0).getTime();
-            return tb - ta;
-          });
-          setStories(arr);
-        }
+        if (cancelled) return;
+        const items = Array.isArray(data) ? data : [];
+        items.sort((left, right) => {
+          const leftTime = new Date(
+            left?.lastUpdatedAt || left?.createdAt || 0,
+          ).getTime();
+          const rightTime = new Date(
+            right?.lastUpdatedAt || right?.createdAt || 0,
+          ).getTime();
+          return rightTime - leftTime;
+        });
+        setStories(items);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Không tải được danh sách truyện');
+        if (!cancelled) {
+          setError(err?.message || 'Không tải được danh sách truyện');
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
     return (
-      <div className="ranking-page ranking-page--recent">
-        <div className="ranking-page__loading">
+      <div className='ranking-page ranking-page--recent'>
+        <div className='ranking-page__loading'>
           <LoadingSpinner />
         </div>
       </div>
@@ -73,67 +116,116 @@ function RecentlyUpdatedStoriesPage() {
 
   if (error) {
     return (
-      <div className="ranking-page ranking-page--recent">
-        <div className="ranking-page__error">{error}</div>
+      <div className='ranking-page ranking-page--recent'>
+        <div className='ranking-page__error'>{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="ranking-page ranking-page--recent home-dashboard">
-      <header className="ranking-page__hero">
-        <h1 className="ranking-page__title">
-          <Clock className="ranking-page__title-icon" size={28} />
+    <div className='ranking-page ranking-page--recent home-dashboard'>
+      <header className='ranking-page__hero'>
+        <h1 className='ranking-page__title'>
+          <Clock className='ranking-page__title-icon' size={28} />
           Truyện cập nhật gần đây
         </h1>
-        <p className="ranking-page__subtitle">
-          Tất cả truyện được sắp xếp theo thời gian cập nhật mới nhất. Bấm vào thẻ truyện để xem chi tiết.
+        <p className='ranking-page__subtitle'>
+          Tất cả truyện được sắp xếp theo thời gian cập nhật mới nhất. Bấm vào
+          thẻ truyện để xem chi tiết.
         </p>
       </header>
 
-      <section className="ranking-page__content">
+      <section className='ranking-page__content'>
         {stories.length === 0 ? (
-          <p className="ranking-page__empty">Chưa có truyện nào.</p>
+          <p className='ranking-page__empty'>Chưa có truyện nào.</p>
         ) : (
           <>
-            <p className="ranking-page__section-label">Danh sách theo ngày cập nhật</p>
-            <div className="recent-stories-grid">
-            {stories.map((story) => {
-              const statusInfo = getStoryStatusInfo(story);
-              return (
-                <Link
-                  key={story.id}
-                  to={`/stories/${story.id}/metadata`}
-                  className="recent-story-card"
-                >
-                  <div className="recent-story-card__cover-wrap">
-                    {story.coverUrl ? (
-                      <img
-                        src={story.coverUrl}
-                        alt=""
-                        className="recent-story-card__cover"
-                      />
-                    ) : (
-                      <div className="recent-story-card__cover-placeholder">
-                        <BookOpen size={32} />
+            <p className='ranking-page__section-label'>
+              Danh sách theo ngày cập nhật
+            </p>
+            <div className='home-story-grid recent-stories-grid'>
+              {stories.map((story) => {
+                const statusInfo = getStoryStatusInfo(story);
+                const categoryTag = getStoryCategory(story);
+                const authorName =
+                  story.authorPenName || story.authorName || 'Ẩn danh';
+                const updatedAt = story.lastUpdatedAt || story.createdAt;
+
+                return (
+                  <article
+                    key={story.id}
+                    className='home-story-card home-story-card--recent'
+                  >
+                    <Link
+                      to={`/stories/${story.id}/metadata`}
+                      className='home-story-card__link'
+                    >
+                      <div className='home-story-card__cover'>
+                        {story.coverUrl ? (
+                          <img src={story.coverUrl} alt={story.title || ''} />
+                        ) : (
+                          <div className='home-story-card__cover-empty'>
+                            No cover
+                          </div>
+                        )}
+                        <div className='home-story-card__overlay'>
+                          <p className='home-story-card__chapter'>
+                            Cập nhật gần đây
+                          </p>
+                          <p className='home-story-card__volume'>
+                            {formatDate(updatedAt)}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    <span className={`recent-story-card__status recent-story-card__status--${statusInfo.className}`}>
-                      {statusInfo.label}
-                    </span>
-                  </div>
-                  <div className="recent-story-card__body">
-                    <h3 className="recent-story-card__title">{story.title || 'Không có tên'}</h3>
-                    <p className="recent-story-card__meta">
-                      {story.authorPenName || 'Ẩn danh'} · Cập nhật {formatDate(story.lastUpdatedAt || story.createdAt)}
-                    </p>
-                    <p className="recent-story-card__stats">
-                      {formatNumber(story.readerCount)} lượt xem · {formatNumber(story.savedCount)} theo dõi
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
+
+                      <div className='home-story-card__content'>
+                        <h3 className='home-story-card__title'>
+                          {story.title || 'Không có tên'}
+                        </h3>
+
+                        <div className='home-story-card__meta'>
+                          <span className='home-story-card__author'>
+                            {authorName}
+                          </span>
+                          {categoryTag && (
+                            <span className='home-story-card__category'>
+                              {categoryTag.name}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className='home-story-card__summary'>
+                          {getSummary(story, 90)}
+                        </p>
+
+                        <div className='home-story-card__stats'>
+                          <span className='home-story-card__stat home-story-card__stat--rating'>
+                            <Star size={14} fill='currentColor' />
+                            {formatRating(story.ratingAvg)}
+                          </span>
+                          <span className='home-story-card__stat'>
+                            <Eye size={14} />
+                            {formatNumber(story.readerCount || 0)}
+                          </span>
+                          <span className='home-story-card__stat'>
+                            <Bookmark size={14} />
+                            {formatNumber(story.savedCount || 0)}
+                          </span>
+                        </div>
+
+                        <div className='home-story-card__footer'>
+                          <span
+                            className={`home-story-card__status ${statusInfo.className}`}
+                          >
+                            <span className='home-story-card__status-dot' />
+                            {statusInfo.label}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
           </>
         )}

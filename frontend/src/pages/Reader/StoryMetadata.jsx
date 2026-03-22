@@ -19,6 +19,7 @@ const KIND_LABELS = {
 };
 
 const STAR_VALUES = [1, 2, 3, 4, 5];
+const RATING_DISTRIBUTION_VALUES = [...STAR_VALUES].reverse();
 const COMMENTS_PAGE_SIZE = 8;
 const REVIEW_PREVIEW_LENGTH = 150;
 
@@ -92,6 +93,13 @@ const formatRatingValue = (value) => {
   const raw = Number(value);
   if (!Number.isFinite(raw) || raw <= 0) return null;
   return raw.toFixed(2).replace('.', ',');
+};
+
+const formatPercentValue = (value) => {
+  const raw = Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) return '0%';
+  const digits = raw >= 10 ? 0 : 1;
+  return `${raw.toFixed(digits).replace('.', ',').replace(',0', '')}%`;
 };
 
 const getRankMedal = (rank) => {
@@ -532,6 +540,42 @@ const StoryMetadata = () => {
     const ratingAvgText = formatRatingValue(sidebar?.ratingAvg);
     return ratingAvgText ? `${ratingAvgText} / 5` : 'Chưa có đánh giá';
   }, [sidebar]);
+
+  const sidebarRatingBreakdown = useMemo(() => {
+    const totalVotes = Math.max(0, Number(sidebar?.ratingCount || 0));
+    const rawItems = Array.isArray(sidebar?.ratingBreakdown)
+      ? sidebar.ratingBreakdown
+      : [];
+
+    const countByRating = new Map();
+    rawItems.forEach((item) => {
+      const rating = Number(item?.rating);
+      if (!Number.isFinite(rating)) return;
+      countByRating.set(rating, Math.max(0, Number(item?.count || 0)));
+    });
+
+    const items = RATING_DISTRIBUTION_VALUES.map((rating) => ({
+      rating,
+      count: countByRating.get(rating) || 0,
+    }));
+    const maxVotes = items.reduce(
+      (currentMax, item) => Math.max(currentMax, item.count),
+      0,
+    );
+
+    return {
+      totalVotes,
+      maxVotes,
+      items: items.map((item) => ({
+        ...item,
+        barPercent: maxVotes > 0 ? (item.count / maxVotes) * 100 : 0,
+        sharePercent: totalVotes > 0 ? (item.count / totalVotes) * 100 : 0,
+      })),
+    };
+  }, [sidebar]);
+
+  const hasSidebarRatingBreakdown =
+    sidebarRatingBreakdown.totalVotes > 0 && sidebarRatingBreakdown.maxVotes > 0;
 
   const followerText = useMemo(
     () => formatNumber(Number(sidebar?.followerCount || 0)),
@@ -2079,10 +2123,62 @@ const StoryMetadata = () => {
                   </div>
                   <div className='story-metadata__sidebar-info-row'>
                     <span>Đánh giá</span>
-                    <strong>{sidebarRatingText}</strong>
+                    <div
+                      className={`story-metadata__rating-summary ${hasSidebarRatingBreakdown ? 'is-interactive' : ''}`.trim()}
+                      tabIndex={hasSidebarRatingBreakdown ? 0 : undefined}
+                    >
+                      <strong className='story-metadata__rating-summary-value'>
+                        {sidebarRatingText}
+                      </strong>
+                      <RatingStars
+                        rating={sidebar?.ratingAvg || 0}
+                        className='story-metadata__rating-summary-stars'
+                      />
+                      {hasSidebarRatingBreakdown && (
+                        <div
+                          className='story-metadata__rating-tooltip'
+                          role='tooltip'
+                        >
+                          <div className='story-metadata__rating-tooltip-head'>
+                            <div className='story-metadata__rating-tooltip-score'>
+                              <strong>{sidebarRatingText}</strong>
+                              <span>
+                                {formatNumber(sidebarRatingBreakdown.totalVotes)} lượt
+                                đánh giá
+                              </span>
+                            </div>
+                          </div>
+                          <div className='story-metadata__rating-tooltip-list'>
+                            {sidebarRatingBreakdown.items.map((item) => (
+                              <div
+                                key={`rating-breakdown-${item.rating}`}
+                                className='story-metadata__rating-tooltip-row'
+                              >
+                                <span className='story-metadata__rating-tooltip-label'>
+                                  {item.rating}★
+                                </span>
+                                <div className='story-metadata__rating-tooltip-bar'>
+                                  <span
+                                    style={{
+                                      width:
+                                        item.count > 0
+                                          ? `max(${item.barPercent}%, 0.35rem)`
+                                          : '0%',
+                                    }}
+                                  />
+                                </div>
+                                <span className='story-metadata__rating-tooltip-meta'>
+                                  {formatNumber(item.count)} ·{' '}
+                                  {formatPercentValue(item.sharePercent)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <RatingStars rating={sidebar?.ratingAvg || 0} />
               </>
             )}
           </section>
