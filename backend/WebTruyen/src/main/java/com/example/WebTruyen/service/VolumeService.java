@@ -10,6 +10,7 @@ import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
 import com.example.WebTruyen.entity.model.Content.StoryEntity;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;
 import com.example.WebTruyen.entity.enums.StoryStatus;
+import com.example.WebTruyen.repository.ChapterUnlockRepository;
 import com.example.WebTruyen.repository.ModerationActionRepository;
 import com.example.WebTruyen.repository.VolumeRepository;
 import com.example.WebTruyen.repository.StoryRepository;
@@ -23,7 +24,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Service xử lý business liên quan Volume (tạo, list).
@@ -36,6 +39,7 @@ public class VolumeService {
     private final StoryRepository storyRepository;
     private final VolumeRepository volumeRepository;
     private final ChapterRepository chapterRepository;
+    private final ChapterUnlockRepository chapterUnlockRepository;
     private final ModerationActionRepository moderationActionRepository;
     private final StorageService storageService;
 
@@ -182,12 +186,16 @@ public class VolumeService {
 
     // Lấy danh sách volume/chapter public cho độc giả (chỉ published story + published chapter).
     @Transactional(readOnly = true)
-    public List<VolumeSummaryResponse> listPublishedVolumesWithPublishedChapters(Long storyId) {
+    public List<VolumeSummaryResponse> listPublishedVolumesWithPublishedChapters(Long storyId, Long currentUserId) {
         StoryEntity story = storyRepository.findById(Math.toIntExact(storyId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
         if (story.getStatus() != StoryStatus.published) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story is not public");
         }
+
+        Long authorId = story.getAuthor() != null ? story.getAuthor().getId() : null;
+        boolean isStoryAuthor = currentUserId != null && currentUserId.equals(authorId);
+        Set<Long> unlockedChapterIds = resolveUnlockedChapterIds(storyId, currentUserId, isStoryAuthor);
 
         List<VolumeEntity> volumes = volumeRepository.findByStory_IdOrderBySequenceIndexAsc(storyId);
         List<VolumeSummaryResponse> result = new java.util.ArrayList<>();
@@ -200,6 +208,10 @@ public class VolumeService {
                             c.getTitle(),
                             c.getSequenceIndex(),
                             c.getLastUpdateAt(),
+                            c.isFree(),
+                            c.getPriceCoin(),
+                            c.isFree() || isStoryAuthor || unlockedChapterIds.contains(c.getId()),
+                            unlockedChapterIds.contains(c.getId()),
                             c.getStatus().name(),
                             c.getApprovalStatus() != null ? c.getApprovalStatus().name() : null,
                             null,
@@ -242,12 +254,26 @@ public class VolumeService {
                 chapter.getTitle(),
                 chapter.getSequenceIndex(),
                 chapter.getLastUpdateAt(),
+                chapter.isFree(),
+                chapter.getPriceCoin(),
+                true,
+                false,
                 chapter.getStatus() != null ? chapter.getStatus().name() : null,
                 effectiveApprovalStatus != null ? effectiveApprovalStatus.name() : null,
                 moderationNote,
                 resubmitAvailableAt,
                 resubmitHoursRemaining,
                 chapter.getScheduledPublishAt()
+        );
+    }
+
+    private Set<Long> resolveUnlockedChapterIds(Long storyId, Long currentUserId, boolean isStoryAuthor) {
+        if (storyId == null || currentUserId == null || isStoryAuthor) {
+            return Set.of();
+        }
+
+        return new HashSet<>(
+                chapterUnlockRepository.findUnlockedChapterIdsByUserIdAndStoryId(currentUserId, storyId)
         );
     }
 

@@ -8,9 +8,12 @@ import com.example.WebTruyen.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -54,6 +57,9 @@ public class NotificationController {
             @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime seenAt,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         Pageable pageable = PageRequest.of(page, size);
@@ -63,12 +69,12 @@ public class NotificationController {
         if (category != null && !category.isEmpty()) {
             try {
                 NotificationCategory notificationCategory = NotificationCategory.valueOf(category.toUpperCase());
-                response = notificationService.getNotificationsByCategory(userId, notificationCategory, pageable);
+                response = notificationService.getNotificationsByCategory(userId, notificationCategory, pageable, seenAt);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid category: " + category);
             }
         } else {
-            response = notificationService.getAllNotifications(userId, pageable);
+            response = notificationService.getAllNotifications(userId, pageable, seenAt);
         }
 
         return ResponseEntity.ok(response);
@@ -76,10 +82,13 @@ public class NotificationController {
 
     @GetMapping("/unread-count")
     public ResponseEntity<UnreadNotificationCountDto> getUnreadCount(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime seenAt,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         Long userId = userPrincipal.getUser().getId();
-        UnreadNotificationCountDto response = notificationService.getUnreadCount(userId);
+        UnreadNotificationCountDto response = notificationService.getUnreadCount(userId, seenAt);
         return ResponseEntity.ok(response);
     }
 }

@@ -1,8 +1,14 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, BookOpen, MessageCircle, Trophy, Coins, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bell, BookOpen, Coins, MessageCircle, Trophy, X } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
+import {
+  NOTIFICATIONS_SEEN_UPDATED_EVENT,
+  getNotificationSeenAt,
+  getNotificationSeenStorageKey,
+  isNotificationRead,
+} from '../utils/notificationUtils';
 
 function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -10,26 +16,84 @@ function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
   const user = getStoredUser();
+  const userId = user?.id ?? user?.userId ?? null;
 
-  // Fetch function outside effect to prevent closure issues
-  const fetchUnreadCountAPI = async (userId) => {
+  const fetchUnreadCountAPI = async (targetUserId) => {
+    const requestedSeenAt = getNotificationSeenAt(targetUserId);
+
     try {
-      const count = await notificationService.getUnreadCount(userId);
+      const count = await notificationService.getUnreadCount(targetUserId);
+      if (requestedSeenAt !== getNotificationSeenAt(targetUserId)) {
+        return;
+      }
+
       setUnreadCount(count.totalCount || 0);
     } catch (error) {
+      if (requestedSeenAt !== getNotificationSeenAt(targetUserId)) {
+        return;
+      }
+
       console.error('Failed to fetch unread count:', error);
       setUnreadCount(0);
     }
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return undefined;
 
-    fetchUnreadCountAPI(user.id);
-    const interval = setInterval(() => fetchUnreadCountAPI(user.id), 30000);
+    fetchUnreadCountAPI(userId);
+    const interval = setInterval(() => fetchUnreadCountAPI(userId), 30000);
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return undefined;
+
+    const handleSeenUpdated = (event) => {
+      if (event.detail?.userId !== userId) {
+        return;
+      }
+
+      const seenAt = event.detail?.seenAt;
+      fetchUnreadCountAPI(userId);
+      if (!seenAt) {
+        return;
+      }
+
+      setRecentNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => ({
+          ...notification,
+          isRead: isNotificationRead(notification, seenAt),
+        })),
+      );
+    };
+
+    const storageKey = getNotificationSeenStorageKey(userId);
+    const handleStorage = (event) => {
+      if (event.key && event.key !== storageKey) {
+        return;
+      }
+
+      const seenAt = getNotificationSeenAt(userId);
+      fetchUnreadCountAPI(userId);
+      setRecentNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => ({
+          ...notification,
+          isRead: isNotificationRead(notification, seenAt),
+        })),
+      );
+    };
+
+    window.addEventListener(NOTIFICATIONS_SEEN_UPDATED_EVENT, handleSeenUpdated);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_SEEN_UPDATED_EVENT, handleSeenUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [userId]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -42,13 +106,15 @@ function NotificationBell() {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+
+    return undefined;
   }, [isOpen]);
 
   const handleToggleDropdown = async () => {
     if (!isOpen) {
       setLoading(true);
       try {
-        const notifications = await notificationService.getNotifications(null, 0, 5);
+        const notifications = await notificationService.getNotifications(null, 0, 5, userId);
         setRecentNotifications(notifications.notifications || []);
       } catch (error) {
         console.error('Failed to fetch recent notifications:', error);
@@ -57,7 +123,40 @@ function NotificationBell() {
         setLoading(false);
       }
     }
+
     setIsOpen(!isOpen);
+  };
+
+  const handleNotificationClick = (notification) => {
+    const seenAt = notificationService.markSeenThrough(userId, notification.createdAt);
+
+    if (seenAt) {
+      setRecentNotifications((currentNotifications) =>
+        currentNotifications.map((currentNotification) => ({
+          ...currentNotification,
+          isRead: isNotificationRead(currentNotification, seenAt),
+        })),
+      );
+    }
+
+    setIsOpen(false);
+    navigate(notificationService.resolveTarget(notification));
+  };
+
+  const handleViewAllClick = () => {
+    const seenAt = notificationService.markVisibleAsSeen(userId, recentNotifications);
+
+    if (seenAt) {
+      setRecentNotifications((currentNotifications) =>
+        currentNotifications.map((notification) => ({
+          ...notification,
+          isRead: true,
+        })),
+      );
+      setUnreadCount(0);
+    }
+
+    setIsOpen(false);
   };
 
   const getNotificationIcon = (type) => {
@@ -82,24 +181,24 @@ function NotificationBell() {
 
   const formatTimeAgo = (createdAt) => {
     if (!createdAt) return '';
-    
+
     const now = new Date();
     const created = new Date(createdAt);
     const diffInMinutes = Math.floor((now - created) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Vừa xong';
     if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours} giờ trước`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays} ngày trước`;
-    
+
     return created.toLocaleDateString('vi-VN');
   };
 
-  if (!user) return null;
+  if (!userId) return null;
 
   return (
     <div className="notification-bell" ref={dropdownRef}>
@@ -143,9 +242,11 @@ function NotificationBell() {
             ) : (
               <div className="notification-bell__list">
                 {recentNotifications.map((notification) => (
-                  <div
+                  <button
                     key={notification.id}
+                    type="button"
                     className={`notification-bell__item ${notification.isRead ? 'read' : 'unread'}`}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="notification-bell__item-icon">
                       {getNotificationIcon(notification.type)}
@@ -158,7 +259,7 @@ function NotificationBell() {
                         {formatTimeAgo(notification.createdAt)}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -168,7 +269,7 @@ function NotificationBell() {
             <Link
               to="/notifications"
               className="notification-bell__view-all"
-              onClick={() => setIsOpen(false)}
+              onClick={handleViewAllClick}
             >
               Xem tất cả thông báo
             </Link>

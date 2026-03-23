@@ -1,35 +1,49 @@
 import api from './api';
+import {
+  getNotificationSeenAt,
+  markNotificationListAsSeen,
+  markNotificationsSeenThrough,
+  resolveNotificationTarget,
+} from '../utils/notificationUtils';
+
+const appendSeenAtParam = (params, userId) => {
+  const seenAt = getNotificationSeenAt(userId);
+  if (seenAt) {
+    params.append('seenAt', seenAt);
+  }
+};
 
 export const notificationService = {
   // Get notifications with optional category filter
-  getNotifications: async (category = null, page = 0, size = 20) => {
+  getNotifications: async (category = null, page = 0, size = 20, userId = null) => {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
     if (page !== null && page !== undefined) params.append('page', page.toString());
     if (size !== null && size !== undefined) params.append('size', size.toString());
+    appendSeenAtParam(params, userId);
 
-    const response = await api.get(`/notifications?${params.toString()}`);
+    const queryString = params.toString();
+    const response = await api.get(queryString ? `/notifications?${queryString}` : '/notifications');
     return response;
   },
 
   // Get unread notification count
-  getUnreadCount: async () => {
-    const response = await api.get('/notifications/unread-count');
+  getUnreadCount: async (userId = null) => {
+    const params = new URLSearchParams();
+    appendSeenAtParam(params, userId);
+
+    const queryString = params.toString();
+    const response = await api.get(
+      queryString ? `/notifications/unread-count?${queryString}` : '/notifications/unread-count',
+    );
     return response;
   },
 
-  // Mark notification as read
-  markAsRead: async (notificationId) => {
-    const response = await api.put(`/notifications/${notificationId}/read`);
-    return response;
-  },
+  markSeenThrough: (userId, createdAt) => markNotificationsSeenThrough(userId, createdAt),
 
-  // Mark all notifications as read (optional category filter)
-  markAllAsRead: async (category = null) => {
-    const params = category ? `?category=${category}` : '';
-    const response = await api.put(`/notifications/read-all${params}`);
-    return response;
-  },
+  markVisibleAsSeen: (userId, notifications = []) => markNotificationListAsSeen(userId, notifications),
+
+  resolveTarget: (notification) => resolveNotificationTarget(notification),
 
   // Get transaction history for transaction tab
   getTransactionHistory: async (page = 0, size = 20) => {

@@ -181,7 +181,7 @@ function MainLayoutWrapper() {
         <Route
           path='/reader/refund-request'
           element={
-            <RoleProtectedRoute allowedRoles={['READER']}>
+            <RoleProtectedRoute allowedRoles={['READER', 'AUTHOR']}>
               <RefundRequestPage />
             </RoleProtectedRoute>
           }

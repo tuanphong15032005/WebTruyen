@@ -1,9 +1,13 @@
 import React from 'react';
 import { BookOpen, Clock, Coins, MessageCircle, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { notificationService } from '../services/notificationService';
+import { getStoredUser } from '../utils/helpers';
 
 const NotificationItem = ({ notification }) => {
   const navigate = useNavigate();
+  const user = getStoredUser();
+  const userId = user?.id ?? user?.userId ?? null;
 
   const normalizedType = notification.type?.toLowerCase();
 
@@ -67,34 +71,14 @@ const NotificationItem = ({ notification }) => {
   };
 
   const handleClick = () => {
-    if (normalizedType === 'comment') {
-      if (notification.chapterId && notification.storyId) {
-        navigate(`/stories/${notification.storyId}/chapters/${notification.chapterId}#comments`);
-        return;
-      }
-      if (notification.storyId) {
-        navigate(`/stories/${notification.storyId}/metadata#comments`);
-        return;
-      }
-    }
+    notificationService.markSeenThrough(userId, notification.createdAt);
+    navigate(notificationService.resolveTarget(notification));
+  };
 
-    if (normalizedType === 'story_moderation' && notification.storyId) {
-      navigate(`/author/stories/${notification.storyId}`);
-      return;
-    }
-
-    if (normalizedType === 'new_chapter' && notification.storyId && notification.chapterId) {
-      navigate(`/stories/${notification.storyId}/chapters/${notification.chapterId}`);
-      return;
-    }
-
-    if (normalizedType === 'new_story' && notification.storyId) {
-      navigate(`/stories/${notification.storyId}/metadata`);
-      return;
-    }
-
-    if (normalizedType === 'chapter_schedule' && notification.storyId) {
-      navigate(`/stories/${notification.storyId}/metadata`);
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
     }
   };
 
@@ -104,6 +88,9 @@ const NotificationItem = ({ notification }) => {
     <div
       className={`notification-item notification-item--${tone} ${notification.isRead ? 'read' : 'unread'}`}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
     >
       <div className={`notification-item__icon notification-item__icon--${tone}`}>
         {getNotificationIcon()}

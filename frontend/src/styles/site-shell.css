@@ -112,14 +112,25 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  width: 100%;
   padding: 16px 20px;
+  background: transparent;
+  border: none;
   border-bottom: 1px solid var(--theme-divider);
-  transition: background-color 0.2s ease;
+  color: inherit;
   cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background-color 0.2s ease;
 }
 
 .notification-bell__item:hover {
   background: var(--theme-surface-hover);
+}
+
+.notification-bell__item:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: -2px;
 }
 
 .notification-bell__item.unread {

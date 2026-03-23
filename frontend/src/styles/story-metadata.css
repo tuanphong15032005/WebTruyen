@@ -1148,6 +1148,7 @@
 .story-metadata__chapter-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
   border-top: 1px dashed #dbe8d8;
   padding: 10px 0;
@@ -1167,6 +1168,60 @@
 
 .story-metadata__chapter-row:hover {
   background: #f4f8ff;
+}
+
+.story-metadata__chapter-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.story-metadata__chapter-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 96px;
+  flex-shrink: 0;
+}
+
+.story-metadata__chapter-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  border: 1px solid #e7c24b;
+  background: linear-gradient(180deg, #fff9d9 0%, #ffe79a 100%);
+  color: #8b5a00;
+  font-family: var(--story-metadata-font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(216, 165, 26, 0.14);
+}
+
+.story-metadata__chapter-price-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ffd957 0%, #f2b705 100%);
+  color: #7a4b00;
+  border: 1px solid rgba(183, 130, 0, 0.42);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 250, 217, 0.9),
+    0 3px 8px rgba(179, 126, 9, 0.18);
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.story-metadata__chapter-price-value {
+  white-space: nowrap;
 }
 
 .story-metadata__chapter-date {
@@ -1932,8 +1987,17 @@
   }
 
   .story-metadata__chapter-row {
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .story-metadata__chapter-meta {
+    width: auto;
+    justify-content: flex-end;
+    margin-left: auto;
+    align-self: flex-start;
+    min-width: 0;
   }
 
   .story-metadata__volume-cover,
@@ -2052,6 +2116,21 @@ html[data-theme='dark'] .story-metadata__empty-review {
 
 html[data-theme='dark'] .story-metadata__empty-review a {
   color: var(--theme-accent);
+}
+
+html[data-theme='dark'] .story-metadata__chapter-price {
+  background: linear-gradient(180deg, #4a3906 0%, #6d5208 100%);
+  border-color: #b88a1b;
+  color: #ffe8a6;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 166, 0.16),
+    0 6px 14px rgba(0, 0, 0, 0.24);
+}
+
+html[data-theme='dark'] .story-metadata__chapter-price-icon {
+  background: linear-gradient(180deg, #ffd54f 0%, #d89b00 100%);
+  color: #603b00;
+  border-color: rgba(255, 214, 79, 0.55);
 }
 
 html[data-theme='dark'] .story-metadata__tag,

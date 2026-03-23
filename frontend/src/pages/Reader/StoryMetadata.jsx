@@ -52,6 +52,19 @@ const logFlowError = (error) => {
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
+const shouldShowChapterPrice = (chapter) => {
+  const isFree = Boolean(chapter?.free ?? chapter?.isFree);
+  const isUnlocked = Boolean(chapter?.unlocked ?? chapter?.isUnlocked);
+  const hasPurchasedFlag =
+    chapter?.purchased !== undefined && chapter?.purchased !== null;
+  const isPurchased = hasPurchasedFlag
+    ? Boolean(chapter?.purchased)
+    : Boolean(chapter?.unlocked ?? chapter?.isUnlocked);
+  const priceCoin = Number(chapter?.priceCoin || 0);
+
+  return !isFree && !isUnlocked && !isPurchased && priceCoin > 0;
+};
+
 const formatDateTime = (value) => {
   if (!value) return 'Chưa cập nhật';
   return new Date(value).toLocaleString('vi-VN');
@@ -1941,18 +1954,32 @@ const StoryMetadata = () => {
                           className='story-metadata__chapter-row'
                           to={`/stories/${storyId}/chapters/${chapter.id || chapter.chapterId}`}
                         >
-                          <span>
+                          <span className='story-metadata__chapter-title'>
                             {chapter.sequenceIndex
                               ? `Chương ${chapter.sequenceIndex}: `
                               : ''}
                             {chapter.title}
                           </span>
-                          <span className='story-metadata__chapter-date'>
-                            {chapter.lastUpdateAt
-                              ? new Date(
-                                  chapter.lastUpdateAt,
-                                ).toLocaleDateString('vi-VN')
+                          <span className='story-metadata__chapter-meta'>
+                            {shouldShowChapterPrice(chapter) && (
+                              <span className='story-metadata__chapter-price'>
+                                <span
+                                  className='story-metadata__chapter-price-icon'
+                                  aria-hidden='true'
+                                >
+                                  $
+                                </span>
+                                <span className='story-metadata__chapter-price-value'>
+                                  {formatNumber(chapter.priceCoin)} coin
+                                </span>
+                              </span>
+                            )}
+                            {/*
+                                <span className='story-metadata__chapter-price-value'>
+                                  {formatNumber(chapter.priceCoin)} coin
+                                </span>
                               : 'Chưa cập nhật'}
+                            */}
                           </span>
                         </Link>
                       ))}

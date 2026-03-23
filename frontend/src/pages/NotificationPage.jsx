@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BookOpen, Coins, MessageCircle, RefreshCw, Trophy } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
+import { getNotificationSeenAt } from '../utils/notificationUtils';
 import NotificationItem from '../components/NotificationItem';
 import '../styles/notification-page.css';
 
@@ -15,6 +16,7 @@ const NotificationPage = () => {
   const [error, setError] = useState(null);
 
   const user = getStoredUser();
+  const userId = user?.id ?? user?.userId ?? null;
   const pageSize = 20;
   const debounceTimeoutRef = useRef(null);
 
@@ -27,23 +29,55 @@ const NotificationPage = () => {
   ];
 
   useEffect(() => {
-    if (!user) return;
-    fetchUnreadCountAPI();
-    fetchNotificationsAPI(currentPage, activeTab);
-  }, [user?.id, currentPage, activeTab]);
+    if (!userId) return;
+    fetchUnreadCountAPI(userId);
+    fetchNotificationsAPI(currentPage, activeTab, userId);
+  }, [userId, currentPage, activeTab]);
 
-  const fetchNotificationsAPI = async (page, tab) => {
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const fetchNotificationsAPI = async (page, tab, targetUserId = userId) => {
     setLoading(true);
     setError(null);
 
     try {
       const category = tab === 'all' ? null : tab.toUpperCase();
-      const response = await notificationService.getNotifications(category, page, pageSize);
+      const response = await notificationService.getNotifications(
+        category,
+        page,
+        pageSize,
+        targetUserId,
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      setNotifications(response.notifications || []);
+      const nextNotifications = response.notifications || [];
+      const shouldAutoMarkVisible =
+        tab === 'all' && page === 0 && nextNotifications.length > 0;
+
+      if (shouldAutoMarkVisible) {
+        notificationService.markVisibleAsSeen(targetUserId, nextNotifications);
+      }
+
+      setNotifications(
+        shouldAutoMarkVisible
+          ? nextNotifications.map((notification) => ({
+              ...notification,
+              isRead: true,
+            }))
+          : nextNotifications,
+      );
       setTotalPages(response.totalPages || 0);
+
+      if (shouldAutoMarkVisible) {
+        setUnreadCount(0);
+      }
     } catch (fetchError) {
       setError('Không thể tải thông báo. Vui lòng thử lại.');
       console.error('Failed to fetch notifications:', fetchError);
@@ -54,11 +88,21 @@ const NotificationPage = () => {
     }
   };
 
-  const fetchUnreadCountAPI = async () => {
+  const fetchUnreadCountAPI = async (targetUserId = userId) => {
+    const requestedSeenAt = getNotificationSeenAt(targetUserId);
+
     try {
-      const count = await notificationService.getUnreadCount();
+      const count = await notificationService.getUnreadCount(targetUserId);
+      if (requestedSeenAt !== getNotificationSeenAt(targetUserId)) {
+        return;
+      }
+
       setUnreadCount(count.totalCount || 0);
     } catch (fetchError) {
+      if (requestedSeenAt !== getNotificationSeenAt(targetUserId)) {
+        return;
+      }
+
       console.error('Failed to fetch unread count:', fetchError);
       setUnreadCount(0);
     }
@@ -138,7 +182,7 @@ const NotificationPage = () => {
           ) : error ? (
             <div className="notification-page__error">
               <p>{error}</p>
-              <button onClick={() => fetchNotificationsAPI(currentPage, activeTab)}>
+              <button onClick={() => fetchNotificationsAPI(currentPage, activeTab, userId)}>
                 Thử lại
               </button>
             </div>

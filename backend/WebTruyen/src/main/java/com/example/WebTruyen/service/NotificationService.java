@@ -14,7 +14,6 @@ import com.example.WebTruyen.repository.NotificationRepository;
 import com.example.WebTruyen.repository.StoryRepository;
 import com.example.WebTruyen.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,15 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private static final long CACHE_DURATION_MINUTES = 5;
     private static final String LEGACY_SETTLEMENT_REF_TYPE = "chapter_settlement";
     private static final DateTimeFormatter SCHEDULE_NOTIFICATION_FORMAT =
             DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy");
@@ -41,10 +37,12 @@ public class NotificationService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
 
-    // Simple cache for unread counts (userId -> (count, timestamp))
-    private final Map<Long, Pair<Long, LocalDateTime>> unreadCountCache = new ConcurrentHashMap<>();
-
-    public NotificationListResponseDto getNotificationsByCategory(Long userId, NotificationCategory category, Pageable pageable) {
+    public NotificationListResponseDto getNotificationsByCategory(
+            Long userId,
+            NotificationCategory category,
+            Pageable pageable,
+            LocalDateTime seenAt
+    ) {
         Page<NotificationEntity> notificationPage = switch (category) {
             case STORY -> notificationRepository.findByUserIdAndKindInOrderByCreatedAtDescSimple(
                     userId,
@@ -77,7 +75,7 @@ public class NotificationService {
         };
 
         List<NotificationResponseDto> notifications = notificationPage.getContent().stream()
-                .map(entity -> mapToResponseDto(entity, true))
+                .map(entity -> mapToResponseDto(entity, isRead(entity, seenAt)))
                 .collect(Collectors.toList());
 
         return new NotificationListResponseDto(
@@ -90,11 +88,11 @@ public class NotificationService {
         );
     }
 
-    public NotificationListResponseDto getAllNotifications(Long userId, Pageable pageable) {
+    public NotificationListResponseDto getAllNotifications(Long userId, Pageable pageable, LocalDateTime seenAt) {
         Page<NotificationEntity> notificationPage = notificationRepository.findByUserIdOrderByCreatedAtDescSimple(userId, pageable);
 
         List<NotificationResponseDto> notifications = notificationPage.getContent().stream()
-                .map(entity -> mapToResponseDto(entity, true))
+                .map(entity -> mapToResponseDto(entity, isRead(entity, seenAt)))
                 .collect(Collectors.toList());
 
         return new NotificationListResponseDto(
@@ -107,16 +105,8 @@ public class NotificationService {
         );
     }
 
-    public UnreadNotificationCountDto getUnreadCount(Long userId) {
-        Pair<Long, LocalDateTime> cached = unreadCountCache.get(userId);
-        LocalDateTime now = LocalDateTime.now();
-
-        if (cached != null && cached.getRight().plusMinutes(CACHE_DURATION_MINUTES).isAfter(now)) {
-            long count = cached.getLeft();
-            return new UnreadNotificationCountDto(count, count, 0, 0, 0);
-        }
-
-        List<Object[]> results = notificationRepository.countNotificationsByKindAndRefTypeForUser(userId);
+    public UnreadNotificationCountDto getUnreadCount(Long userId, LocalDateTime seenAt) {
+        List<Object[]> results = notificationRepository.countNotificationsByKindAndRefTypeForUser(userId, seenAt);
 
         long storyCount = 0;
         long interactionCount = 0;
@@ -145,8 +135,6 @@ public class NotificationService {
         }
 
         long totalCount = storyCount + interactionCount + achievementCount + transactionCount;
-        unreadCountCache.put(userId, Pair.of(totalCount, now));
-
         return new UnreadNotificationCountDto(totalCount, storyCount, interactionCount, achievementCount, transactionCount);
     }
 
@@ -174,7 +162,6 @@ public class NotificationService {
                 .build();
 
         notificationRepository.save(notification);
-        unreadCountCache.remove(userId);
     }
 
     @Transactional
@@ -183,9 +170,11 @@ public class NotificationService {
             return;
         }
 
-        List<Long> affectedUserIds = notificationRepository.findDistinctUserIdsByKindAndChapterId(kind, chapterId);
         notificationRepository.deleteByKindAndChapterId(kind, chapterId);
-        affectedUserIds.forEach(unreadCountCache::remove);
+    }
+
+    private boolean isRead(NotificationEntity entity, LocalDateTime seenAt) {
+        return seenAt != null && !entity.getCreatedAt().isAfter(seenAt);
     }
 
     private NotificationResponseDto mapToResponseDto(NotificationEntity entity, boolean isRead) {

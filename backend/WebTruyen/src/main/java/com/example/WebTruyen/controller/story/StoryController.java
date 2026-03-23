@@ -294,8 +294,12 @@ public class StoryController {
     }
 
     @GetMapping("/public/stories/{storyId}/volumes")
-    public java.util.List<VolumeSummaryResponse> getPublicVolumes(@PathVariable Long storyId) {
-        return volumeService.listPublishedVolumesWithPublishedChapters(storyId);
+    public java.util.List<VolumeSummaryResponse> getPublicVolumes(
+            @PathVariable Long storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Long currentUserId = userPrincipal != null ? userPrincipal.getUser().getId() : null;
+        return volumeService.listPublishedVolumesWithPublishedChapters(storyId, currentUserId);
     }
 
     @GetMapping("/public/stories/{storyId}/reviews")

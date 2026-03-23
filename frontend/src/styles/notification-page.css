@@ -201,6 +201,11 @@
   background: var(--theme-surface-hover);
 }
 
+.notification-item:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: -2px;
+}
+
 .notification-item.unread {
   background: var(--theme-warning-soft);
   border-left: 4px solid var(--theme-warning);

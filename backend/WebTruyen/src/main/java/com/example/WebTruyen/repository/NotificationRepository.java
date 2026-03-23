@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -68,9 +69,13 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
             SELECT n.kind, LOWER(COALESCE(n.refType, '')), COUNT(n)
             FROM NotificationEntity n
             WHERE n.user.id = :userId
+              AND (:seenAt IS NULL OR n.createdAt > :seenAt)
             GROUP BY n.kind, LOWER(COALESCE(n.refType, ''))
             """)
-    List<Object[]> countNotificationsByKindAndRefTypeForUser(@Param("userId") Long userId);
+    List<Object[]> countNotificationsByKindAndRefTypeForUser(
+            @Param("userId") Long userId,
+            @Param("seenAt") LocalDateTime seenAt
+    );
 
     @Query("""
             SELECT DISTINCT n.user.id

@@ -20,6 +20,17 @@ public interface ChapterUnlockRepository extends JpaRepository<ChapterUnlockEnti
     
     @Query("SELECT cu.chapter FROM ChapterUnlockEntity cu WHERE cu.user.id = :userId")
     List<ChapterEntity> findUnlockedChaptersByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            select cu.chapter.id
+            from ChapterUnlockEntity cu
+            where cu.user.id = :userId
+              and cu.chapter.volume.story.id = :storyId
+            """)
+    List<Long> findUnlockedChapterIdsByUserIdAndStoryId(
+            @Param("userId") Long userId,
+            @Param("storyId") Long storyId
+    );
     
     boolean existsByUserIdAndChapterId(Long userId, Long chapterId);
     

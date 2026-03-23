@@ -103,6 +103,14 @@ const AppSidebar = ({ isOpen, onClose, overlayMode = false }) => {
         onClick: () => navigate('/donation-history'),
       },
       {
+        key: 'refund-request',
+        label: 'YÃªu cáº§u hoÃ n tiá»n',
+        icon: Wallet,
+        visible: hasAnyRole(['READER', 'AUTHOR'], user),
+        active: location.pathname === '/reader/refund-request',
+        onClick: () => navigate('/reader/refund-request'),
+      },
+      {
         key: 'author-area',
         label: 'Khu vực tác giả',
         icon: Edit3,
@@ -187,6 +195,13 @@ const AppSidebar = ({ isOpen, onClose, overlayMode = false }) => {
     }, 420);
   };
 
+  const resolveMenuLabel = (item) => {
+    if (item?.key === 'refund-request') {
+      return 'Y\u00eau c\u1ea7u ho\u00e0n ti\u1ec1n';
+    }
+    return item?.label;
+  };
+
   if (!user) {
     return null;
   }
@@ -255,7 +270,7 @@ const AppSidebar = ({ isOpen, onClose, overlayMode = false }) => {
                         onClick={() => handleMenuItemClick(item.onClick)}
                       >
                         <Icon className="app-sidebar__item-icon" />
-                        <span>{item.label}</span>
+                        <span>{resolveMenuLabel(item)}</span>
                       </button>
                     </li>
                   );
