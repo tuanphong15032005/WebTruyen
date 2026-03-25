@@ -224,10 +224,8 @@ export default function UserProfile({ userData }) {
       .map((userRole) => userRole?.roleCode || '')
       .filter(Boolean);
 
-    if (roleCodes.includes('ADMIN')) {
+    if (roleCodes.includes('MOD')) {
       return 'Quản trị viên';
-    } else if (roleCodes.includes('MOD')) {
-      return 'Biên tập viên';
     } else if (roleCodes.includes('AUTHOR')) {
       return 'Tác giả';
     } else if (roleCodes.includes('REVIEWER')) {
@@ -250,9 +248,9 @@ export default function UserProfile({ userData }) {
     // Debug: Log roles to console
     console.log('🔍 User roles:', userRoles);
     console.log('🔍 Role codes:', roleCodes);
-    console.log('🔍 Has reviewer role:', roleCodes.includes('ADMIN') || roleCodes.includes('MOD') || roleCodes.includes('REVIEWER'));
+    console.log('🔍 Has reviewer role:', roleCodes.includes('MOD') || roleCodes.includes('REVIEWER'));
     
-    return roleCodes.includes('ADMIN') || roleCodes.includes('MOD') || roleCodes.includes('REVIEWER');
+    return roleCodes.includes('MOD') || roleCodes.includes('REVIEWER');
   };
 
   const handleUpdateQuote = async () => {
@@ -646,7 +644,7 @@ export default function UserProfile({ userData }) {
                 Tin nhắn
               </button>
             </li>
-            {hasAnyRole(['ADMIN', 'MOD'], getStoredUser()) && (
+            {hasAnyRole(['MOD'], getStoredUser()) && (
               <li>
                 <button className={`sidebar-menu-item ${location.pathname === '/admin/dashboard' ? 'active' : ''}`} onClick={() => navigate('/admin/dashboard')}>
                   <AdminIcon className="icon" />
