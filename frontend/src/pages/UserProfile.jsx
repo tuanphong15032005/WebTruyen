@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { dailyCheckIn, getUserProfileById, getUserProfileByUsername, uploadAvatar, uploadCover } from '../api/userApi';
 import { hasAnyRole, getStoredUser } from '../utils/helpers';
-import './UserProfile.css';
+import '../styles/UserProfile.css';
 
 export default function UserProfile({ userData }) {
   const navigate = useNavigate();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './HistoryItemCard.css';
+import '../../styles/HistoryItemCard.css';
 
 const HistoryItemCard = ({ history, onContinueReading, onReread }) => {
   const navigate = useNavigate();

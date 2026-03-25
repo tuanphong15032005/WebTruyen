@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatRelativeTime } from '../../services/dashboardService';
-import './LatestComments.css';
+import '../../styles/LatestComments.css';
 
 /**
  * LatestComments component

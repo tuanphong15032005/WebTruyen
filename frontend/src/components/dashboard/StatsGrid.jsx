@@ -2,7 +2,7 @@ import React from 'react';
 import { BookOpen, Library, MessageSquare } from 'lucide-react';
 import StatCard from './StatCard';
 import { formatCurrency, formatNumber } from '../../services/dashboardService';
-import './StatsGrid.css';
+import '../../styles/StatsGrid.css';
 
 /**
  * StatsGrid component

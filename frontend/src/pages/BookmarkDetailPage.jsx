@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, BookOpen, Clock } from 'lucide-react';
 import { getBookmarkStoryDetails, deleteBookmark } from '../services/BookmarkService';
-import './BookmarkDetailPage.css';
+import '../styles/BookmarkDetailPage.css';
 
 const BookmarkDetailPage = () => {
   const { storyId } = useParams();

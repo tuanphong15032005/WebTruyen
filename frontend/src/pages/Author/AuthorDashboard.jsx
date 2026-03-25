@@ -9,7 +9,7 @@ import Button from '../../components/Button';
 import AuthorApplicationForm from '../../components/AuthorApplicationForm';
 import { Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
-import './AuthorDashboard.css';
+import '../../styles/AuthorDashboardPage.css';
 
 /**
  * AuthorDashboard component

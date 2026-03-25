@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './TopBar.css';
+import '../../styles/TopBar.css';
 
 /**
  * TopBar component

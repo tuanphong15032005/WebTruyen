@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookMarked } from 'lucide-react';
 import { getBookmarkStories } from '../services/BookmarkService';
-import './BookmarkStoriesPage.css';
+import '../styles/BookmarkStoriesPage.css';
 
 const BookmarkStoriesPage = () => {
   const [stories, setStories] = useState([]);

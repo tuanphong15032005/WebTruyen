@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './MostRecentStoryCard.css';
+import '../../styles/MostRecentStoryCard.css';
 
 const MostRecentStoryCard = ({ story, onContinueReading }) => {
   const navigate = useNavigate();

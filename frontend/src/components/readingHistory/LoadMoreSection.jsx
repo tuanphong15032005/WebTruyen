@@ -1,5 +1,5 @@
 import React from 'react';
-import './LoadMoreSection.css';
+import '../../styles/LoadMoreSection.css';
 
 const LoadMoreSection = ({ onLoadMore, loading, currentCount, totalCount }) => {
   return (

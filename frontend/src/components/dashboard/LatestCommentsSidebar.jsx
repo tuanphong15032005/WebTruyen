@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatRelativeTime } from '../../services/dashboardService';
-import './LatestCommentsSidebar.css';
+import '../../styles/LatestCommentsSidebar.css';
 
 /**
  * LatestCommentsSidebar component

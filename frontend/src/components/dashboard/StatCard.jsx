@@ -1,5 +1,5 @@
 import React from 'react';
-import './StatCard.css';
+import '../../styles/StatCard.css';
 
 /**
  * StatCard component

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './HistoryToolbar.css';
+import '../../styles/HistoryToolbar.css';
 
 const HistoryToolbar = ({ 
   searchTerm, 

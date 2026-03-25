@@ -6,7 +6,7 @@ import HistoryToolbar from '../components/readingHistory/HistoryToolbar';
 import HistoryItemCard from '../components/readingHistory/HistoryItemCard';
 import LoadMoreSection from '../components/readingHistory/LoadMoreSection';
 import ConfirmDialog from '../components/ConfirmDialog';
-import './ReadingHistoryPage.css';
+import '../styles/ReadingHistoryPage.css';
 
 const ReadingHistoryPage = () => {
   const navigate = useNavigate();
