@@ -254,6 +254,36 @@ export default function UserProfile({ userData }) {
   };
 
   const handleUpdateQuote = async () => {
+    // Validation cho bio rỗng
+    if (!favoriteQuote.trim()) {
+      setBioMessage('Tiểu sử không được để trống!');
+      setTimeout(() => setBioMessage(''), 3000);
+      return;
+    }
+
+    // Validation và giới hạn số từ trong bio (max 200 từ)
+    const wordCount = favoriteQuote.trim().split(/\s+/).length;
+    if (wordCount > 200) {
+      setBioMessage(`Tiểu sử không được vượt quá 200 từ (hiện tại: ${wordCount} từ)!`);
+      setTimeout(() => setBioMessage(''), 3000);
+      return;
+    }
+
+    // Validation cho độ dài bio (max 1000 ký tự)
+    if (favoriteQuote.length > 1000) {
+      setBioMessage('Tiểu sử không được vượt quá 1000 ký tự!');
+      setTimeout(() => setBioMessage(''), 3000);
+      return;
+    }
+
+    // Sanitize HTML tags để tránh XSS
+    const sanitizedBio = favoriteQuote.replace(/<[^>]*>/g, '');
+    if (sanitizedBio.length !== favoriteQuote.length) {
+      setBioMessage('Tiểu sử không được chứa HTML tags!');
+      setTimeout(() => setBioMessage(''), 3000);
+      return;
+    }
+
     try {
       const userId = profileData?.id || 1;
       const response = await fetch(
@@ -261,14 +291,16 @@ export default function UserProfile({ userData }) {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bio: favoriteQuote }),
+          body: JSON.stringify({ bio: sanitizedBio.trim() }),
         },
       );
       if (response.ok) {
+        setFavoriteQuote(sanitizedBio.trim());
         setBioMessage('Trích dẫn đã được cập nhật!');
         setTimeout(() => setBioMessage(''), 3000);
       } else {
-        setBioMessage('Cập nhật thất bại, vui lòng thử lại!');
+        const errorData = await response.json().catch(() => ({}));
+        setBioMessage(errorData.message || 'Cập nhật thất bại, vui lòng thử lại!');
         setTimeout(() => setBioMessage(''), 3000);
       }
     } catch (error) {
@@ -279,30 +311,51 @@ export default function UserProfile({ userData }) {
   };
 
   const handleChangeName = async () => {
-    if (tempName.trim()) {
-      try {
-        const userId = profileData?.id || 1;
-        const response = await fetch(
-          `http://localhost:8081/api/users/profile/${userId}`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ displayName: tempName }),
-          },
-        );
-        if (response.ok) {
-          setDisplayName(tempName);
-          setNameMessage('Tên hiển thị đã được thay đổi!');
-          setTimeout(() => setNameMessage(''), 3000);
-        } else {
-          setNameMessage('Cập nhật thất bại, vui lòng thử lại!');
-          setTimeout(() => setNameMessage(''), 3000);
-        }
-      } catch (error) {
-        console.error('Error updating displayName:', error);
-        setNameMessage('Có lỗi xảy ra, vui lòng thử lại!');
+    // Validation cho tên hiển thị rỗng
+    if (!tempName.trim()) {
+      setNameMessage('Tên hiển thị không được để trống!');
+      setTimeout(() => setNameMessage(''), 3000);
+      return;
+    }
+
+    // Validation cho độ dài tên hiển thị (max 8 ký tự)
+    if (tempName.length > 8) {
+      setNameMessage('Tên hiển thị không được vượt quá 8 ký tự!');
+      setTimeout(() => setNameMessage(''), 3000);
+      return;
+    }
+
+    // Validation và sanitize ký tự đặc biệt
+    const hasInvalidChars = /[<>"'&@#$%^*()+={}[\]|\\:;,\.?\/]/.test(tempName);
+    if (hasInvalidChars) {
+      setNameMessage('Tên hiển thị không được chứa ký tự đặc biệt! Chỉ chấp nhận chữ, số và khoảng trắng.');
+      setTimeout(() => setNameMessage(''), 3000);
+      return;
+    }
+
+    try {
+      const userId = profileData?.id || 1;
+      const response = await fetch(
+        `http://localhost:8081/api/users/profile/${userId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ displayName: tempName.trim() }),
+        },
+      );
+      if (response.ok) {
+        setDisplayName(tempName.trim());
+        setNameMessage('Tên hiển thị đã được thay đổi!');
+        setTimeout(() => setNameMessage(''), 3000);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setNameMessage(errorData.message || 'Cập nhật thất bại, vui lòng thử lại!');
         setTimeout(() => setNameMessage(''), 3000);
       }
+    } catch (error) {
+      console.error('Error updating displayName:', error);
+      setNameMessage('Có lỗi xảy ra, vui lòng thử lại!');
+      setTimeout(() => setNameMessage(''), 3000);
     }
   };
 
@@ -815,16 +868,28 @@ export default function UserProfile({ userData }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Tên hiển thị</label>
+                <label className="form-label">
+                  Tên hiển thị
+                  <span className="text-gray-500 text-sm ml-2">
+                    {tempName.length}/8 ký tự
+                  </span>
+                </label>
                 <div className="input-with-button">
                   <input
                     type="text"
                     value={tempName}
                     onChange={(e) => setTempName(e.target.value)}
                     placeholder="Nhập tên hiển thị mới..."
-                    className="form-input"
+                    className={`form-input ${
+                      tempName.length > 8 ? 'border-red-500' : ''
+                    }`}
+                    maxLength={9}
                   />
-                  <button onClick={handleChangeName} className="btn-primary">
+                  <button 
+                    onClick={handleChangeName} 
+                    className="btn-primary"
+                    disabled={!tempName.trim() || tempName.length > 8}
+                  >
                     Lưu thông tin
                   </button>
                 </div>
@@ -836,16 +901,41 @@ export default function UserProfile({ userData }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Tiểu sử</label>
+                <label className="form-label">
+                  Tiểu sử
+                  <span className="text-gray-500 text-sm ml-2">
+                    {favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length}/200 từ | {favoriteQuote.length}/1000 ký tự
+                  </span>
+                </label>
                 <textarea
                   value={favoriteQuote}
                   onChange={(e) => setFavoriteQuote(e.target.value)}
                   placeholder="Nhập trích dẫn yêu thích của bạn..."
-                  className="form-textarea"
+                  className={`form-textarea ${
+                    favoriteQuote.length > 1000 || favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length > 200 
+                      ? 'border-red-500' 
+                      : ''
+                  }`}
+                  rows={4}
                 />
-                <button onClick={handleUpdateQuote} className="btn-primary">
-                  Cập nhật
-                </button>
+                <div className="flex justify-between items-center mt-2">
+                  <button 
+                    onClick={handleUpdateQuote} 
+                    className="btn-primary"
+                    disabled={
+                      !favoriteQuote.trim() || 
+                      favoriteQuote.length > 1000 || 
+                      favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length > 200
+                    }
+                  >
+                    Cập nhật
+                  </button>
+                  {favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length > 180 && (
+                    <span className="text-orange-500 text-sm">
+                      ⚠️ Sắp đạt giới hạn từ (180/200)
+                    </span>
+                  )}
+                </div>
                 {bioMessage && (
                   <div className={`message ${bioMessage.includes('thành công') ? 'success' : 'error'}`}>
                     {bioMessage}
