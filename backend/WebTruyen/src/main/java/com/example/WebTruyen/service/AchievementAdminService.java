@@ -171,6 +171,14 @@ public class AchievementAdminService {
         AchievementTierEntity existing = achievementTierRepository.findById(tierId)
                 .orElseThrow(() -> new RuntimeException("Tier not found with id: " + tierId));
 
+        // Check if any user has reached this tier's requirement
+        Integer achievementId = existing.getAchievement().getId();
+        Integer requirement = existing.getRequirement();
+        long usersReachedThisTier = userAchievementProgressRepository.countUsersReachedTierRequirement(achievementId, requirement);
+        if (usersReachedThisTier > 0) {
+            throw new RuntimeException("Không thể sửa Tier khi có " + usersReachedThisTier + " người dùng đã đạt đến mức yêu cầu của tier này. Vui lòng vô hiệu hóa (inactive) thay vì sửa.");
+        }
+
         // Check tier level uniqueness if changed
         if (updateDto.getTierLevel() != null && !updateDto.getTierLevel().equals(existing.getTierLevel())) {
             if (achievementTierRepository.existsByAchievementIdAndTierLevel(
@@ -213,6 +221,14 @@ public class AchievementAdminService {
         // Check if any user has claimed this tier
         if (userAchievementClaimRepository.existsByTierId(tierId)) {
             throw new RuntimeException("Không thể xóa Tier đã được người dùng nhận. Vui lòng vô hiệu hóa (inactive) thay vì xóa.");
+        }
+        
+        // Check if any user has reached this tier's requirement
+        Integer achievementId = tier.getAchievement().getId();
+        Integer requirement = tier.getRequirement();
+        long usersReachedThisTier = userAchievementProgressRepository.countUsersReachedTierRequirement(achievementId, requirement);
+        if (usersReachedThisTier > 0) {
+            throw new RuntimeException("Không thể xóa Tier khi có " + usersReachedThisTier + " người dùng đã đạt đến mức yêu cầu của tier này. Vui lòng vô hiệu hóa (inactive) thay vì xóa.");
         }
         
         // Safe to delete for now
@@ -292,5 +308,35 @@ public class AchievementAdminService {
             totalAchievements, activeAchievements, inactiveAchievements);
         
         return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTierRestrictions(Integer tierId) {
+        Map<String, Object> restrictions = new HashMap<>();
+        
+        AchievementTierEntity tier = achievementTierRepository.findById(tierId)
+                .orElseThrow(() -> new RuntimeException("Tier not found with id: " + tierId));
+        
+        Integer achievementId = tier.getAchievement().getId();
+        Integer requirement = tier.getRequirement();
+        
+        // Check if any user has claimed this tier
+        boolean hasClaims = userAchievementClaimRepository.existsByTierId(tierId);
+        restrictions.put("hasClaims", hasClaims);
+        
+        // Check if any user has reached this tier's requirement
+        long usersReachedThisTier = userAchievementProgressRepository.countUsersReachedTierRequirement(achievementId, requirement);
+        restrictions.put("usersReachedThisTier", usersReachedThisTier);
+        
+        // Determine if tier can be edited/deleted
+        boolean canEdit = !hasClaims && usersReachedThisTier == 0;
+        boolean canDelete = !hasClaims && usersReachedThisTier == 0;
+        
+        restrictions.put("canEdit", canEdit);
+        restrictions.put("canDelete", canDelete);
+        restrictions.put("reason", !canEdit ? 
+            (hasClaims ? "Đã có người dùng nhận tier này" : "Có " + usersReachedThisTier + " người dùng đã đạt đến mức yêu cầu của tier này") : null);
+        
+        return restrictions;
     }
 }

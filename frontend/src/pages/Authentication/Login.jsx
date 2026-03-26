@@ -42,8 +42,8 @@ function Login() {
         if (!data.password) {
             newErrors.password = 'Vui lòng nhập mật khẩu';
             isValid = false;
-        } else if (data.password.length < 6) {
-            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+        } else if (data.password.length < 8) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
             isValid = false;
         }
 

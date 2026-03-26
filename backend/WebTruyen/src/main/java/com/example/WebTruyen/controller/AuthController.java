@@ -43,10 +43,6 @@ public class AuthController {
         try {
             UserEntity user = authService.authenticate(request.getUsername(), request.getPassword());
 
-            if (!user.isVerified()) {
-                return ResponseEntity.badRequest().body("Please verify your email before logging in.");
-            }
-
             String token = tokenProvider.generateToken(user.getId(), user.getUsername());
 
             LoginResponse response = new LoginResponse(
