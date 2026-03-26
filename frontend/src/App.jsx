@@ -43,7 +43,6 @@ import CreateStory from './pages/Author/CreateStory';
 import StoryDetail from './pages/Author/StoryDetail';
 import StoryMetadata from './pages/Reader/StoryMetadata';
 import StoryReviews from './pages/Reader/StoryReviews';
-import RefundRequestPage from './pages/Reader/RefundRequestPage';
 import ChapterPage from './pages/ChapterPage';
 import ReportChapterPage from './pages/report/ReportChapterPage';
 import ReportStoryPage from './pages/report/ReportStoryPage';
@@ -127,7 +126,12 @@ function StoryReportRoute() {
     return <Navigate to='/' replace />;
   }
 
-  return <Navigate to={`/report-story?storyId=${encodeURIComponent(storyId)}`} replace />;
+  return (
+    <Navigate
+      to={`/report-story?storyId=${encodeURIComponent(storyId)}`}
+      replace
+    />
+  );
 }
 
 function MainLayoutWrapper() {
@@ -174,18 +178,14 @@ function MainLayoutWrapper() {
         <Route path='/notifications' element={<NotificationPage />} />
         <Route path='/user/:username' element={<UserProfile />} />
         <Route path='/portfolio/:userId' element={<UserPortfolioPage />} />
-        <Route path='/portfolio/username/:username' element={<UserPortfolioPage />} />
+        <Route
+          path='/portfolio/username/:username'
+          element={<UserPortfolioPage />}
+        />
         <Route path='/daily-tasks' element={<DailyTasksPage />} />
         <Route path='/achievements' element={<AchievementsPage />} />
         <Route path='/donate/:userId' element={<DonatePage />} />
-        <Route
-          path='/reader/refund-request'
-          element={
-            <RoleProtectedRoute allowedRoles={['READER', 'AUTHOR']}>
-              <RefundRequestPage />
-            </RoleProtectedRoute>
-          }
-        />
+
         <Route path='/authordashboard' element={<AuthorDashboard />} />
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
@@ -264,11 +264,13 @@ function MainLayoutWrapper() {
           <Route path='achievements' element={<AchievementManagementPage />} />
           <Route path='finance' element={<FinanceManagementPage />} />
           <Route path='daily-missions' element={<DailyMissionManagement />} />
-          <Route path='achievement-management' element={<AchievementManagementPage />} />
+          <Route
+            path='achievement-management'
+            element={<AchievementManagementPage />}
+          />
           <Route path='applications' element={<ApplicationManagementPage />} />
           <Route path='tags' element={<TagManagementPage />} />
           <Route path='terms' element={<AdminTermsPage />} />
-
         </Route>
         <Route
           path='/admin/content-moderation'
@@ -302,15 +304,24 @@ function App() {
     <ToastProvider>
       <Routes>
         {/* Documentation Routes */}
-        <Route path="/policy" element={<DocsLayout />}>
-          <Route index element={<DynamicPage code="terms" />} />
-          <Route path="terms-of-service" element={<DynamicPage code="terms" />} />
-          <Route path="privacy-policy" element={<DynamicPage code="privacy" />} />
-          <Route path="upload-rule" element={<DynamicPage code="author-rules" />} />
+        <Route path='/policy' element={<DocsLayout />}>
+          <Route index element={<DynamicPage code='terms' />} />
+          <Route
+            path='terms-of-service'
+            element={<DynamicPage code='terms' />}
+          />
+          <Route
+            path='privacy-policy'
+            element={<DynamicPage code='privacy' />}
+          />
+          <Route
+            path='upload-rule'
+            element={<DynamicPage code='author-rules' />}
+          />
         </Route>
 
         {/* Main Routes with Layout */}
-        <Route path="/*" element={<MainLayoutWrapper />} />
+        <Route path='/*' element={<MainLayoutWrapper />} />
       </Routes>
       <ToastContainer />
     </ToastProvider>
