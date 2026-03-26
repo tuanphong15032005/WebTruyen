@@ -114,7 +114,7 @@ function DocsToc() {
             onClick={() => scrollToSection(section.id)}
             className={`block w-full text-left px-2 py-1.5 text-xs rounded-md transition-all duration-200 ${
               activeSection === section.id
-                ? 'bg-[var(--theme-accent-soft)] text-[var(--theme-accent-text)] font-medium border-l-2 border-[var(--theme-accent)]'
+                ? 'bg-gray-100 text-[var(--theme-accent-text)] font-medium border-l-2 border-[var(--theme-accent)]'
                 : 'text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-primary)]'
             }`}
           >

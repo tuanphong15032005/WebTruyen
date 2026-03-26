@@ -30,7 +30,7 @@ function DocsLayout() {
           <div className="app-shell__push-target">
             <div className="flex flex-1 pt-16">
               {/* Sidebar - 240px width, sticky */}
-              <aside className="w-60 fixed left-0 top-16 h-[calc(100vh-4rem-300px)] overflow-y-auto border-r border-[var(--theme-border)] bg-[var(--theme-surface-raised)] z-10">
+              <aside className="w-60 fixed left-0 top-16 h-[calc(100vh-4rem-210px)] overflow-y-auto border-r border-[var(--theme-border)] bg-[var(--theme-page-bg)] z-10">
                 <DocsSidebar />
               </aside>
 
@@ -42,7 +42,7 @@ function DocsLayout() {
               </main>
 
               {/* Table of Contents - 260px width, sticky */}
-              <aside className="w-64 fixed right-0 top-16 h-[calc(100vh-4rem-100px)] overflow-y-auto border-l border-[var(--theme-border)] bg-[var(--theme-surface-raised)] z-10">
+              <aside className="w-64 fixed right-0 top-16 h-[calc(100vh-4rem-210px)] overflow-y-auto border-l border-[var(--theme-border)] bg-[var(--theme-page-bg)] z-10">
                 <DocsToc />
               </aside>
             </div>

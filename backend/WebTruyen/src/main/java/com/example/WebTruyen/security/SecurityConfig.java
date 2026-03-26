@@ -66,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/notifications/**").permitAll()
 
                         .requestMatchers("/api/author-application/check-pen-name").permitAll()
+                        
+                        // Author search and discovery endpoints - public access
+                        .requestMatchers("/api/authors/**").permitAll()
 
                         .requestMatchers("/api/reports").authenticated()
 

@@ -9,6 +9,7 @@ import AuthorStories from './AuthorStories';
 import FollowersModal from '../../components/FollowersModal';
 import { getFollowersList, toggleFollow, getFollowStatus } from '../../api/userApi';
 import { Share, Lock } from 'lucide-react';
+import { getStoredUser } from '../../utils/helpers';
 
 const UserPortfolioPage = () => {
     const { userId, username } = useParams();
@@ -27,7 +28,6 @@ const UserPortfolioPage = () => {
     useEffect(() => {
         const fetchPortfolioData = async () => {
             try {
-                console.log('🔍 Fetching portfolio for:', { userId, username }); // Debug log
                 setLoading(true);
                 
                 let response;
@@ -39,13 +39,8 @@ const UserPortfolioPage = () => {
                     throw new Error('No userId or username provided');
                 }
                 
-                console.log('📡 Full API Response:', response); // Debug log
-                console.log('📡 Response type:', typeof response); // Debug log
-                console.log('📡 Response keys:', Object.keys(response || {})); // Debug log
-                
                 // Fix: Use response directly instead of response.data
                 const portfolioData = response.data || response;
-                console.log('📊 Portfolio data:', portfolioData); // Debug log
                 setPortfolioData(portfolioData);
                 
                 // Set initial followers count
@@ -67,20 +62,16 @@ const UserPortfolioPage = () => {
                 }
 
                 // Check follow status if not viewing own portfolio
-                const currentUserId = localStorage.getItem('userId');
-                if (currentUserId && currentUserId !== userId.toString()) {
+                const user = getStoredUser();
+                if (user && user.userId && user.userId !== userId.toString()) {
                     try {
-                        const followStatus = await getFollowStatus(userId, parseInt(currentUserId));
+                        const followStatus = await getFollowStatus(userId, parseInt(user.userId));
                         setIsFollowing(followStatus.isFollowing);
                     } catch (error) {
                         console.error('Error checking follow status:', error);
                     }
                 }
             } catch (err) {
-                console.error('❌ Portfolio fetch error:', err); // Debug log
-                console.error('❌ Error response:', err.response); // Debug backend error
-                console.error('❌ Error status:', err.response?.status); // Debug status code
-                console.error('❌ Error data:', err.response?.data); // Debug error data
                 setError(err.response?.data?.message || 'Không thể tải dữ liệu trang cá nhân');
             } finally {
                 setLoading(false);
@@ -96,7 +87,6 @@ const UserPortfolioPage = () => {
     useEffect(() => {
         const handleFollowStatusChanged = (event) => {
             const { authorId, isFollowing, followersCount } = event.detail;
-            console.log('📊 UserPortfolioPage received follow event:', event.detail);
             
             // Update followers count if this is the same author
             if (authorId === userId) {
@@ -121,13 +111,34 @@ const UserPortfolioPage = () => {
     }, [portfolioData]);
 
     const handleDonateClick = () => {
+        // Check if user is authenticated
+        const user = getStoredUser();
+        if (!user || !user.userId) {
+            // Redirect to login page
+            navigate('/login');
+            return;
+        }
+        
+        // Check if viewing own portfolio
+        if (user.userId === userId.toString()) {
+            return; // Can't donate to yourself
+        }
+        
         const targetUserId = portfolioData?.userId || userId;
         navigate(`/donate/${targetUserId}`);
     };
 
     const handleToggleFollow = async () => {
-        const currentUserId = localStorage.getItem('userId');
-        if (!currentUserId || currentUserId === userId.toString()) {
+        // Check if user is authenticated
+        const user = getStoredUser();
+        if (!user || !user.userId) {
+            // Redirect to login page
+            navigate('/login');
+            return;
+        }
+        
+        const currentUserId = user.userId;
+        if (currentUserId === userId.toString()) {
             return; // Can't follow yourself
         }
 
@@ -177,7 +188,16 @@ const UserPortfolioPage = () => {
     };
 
     // Check if current user is viewing their own portfolio
-    const isOwnPortfolio = portfolioData && userId && localStorage.getItem('userId') === userId.toString();
+    const user = getStoredUser();
+    
+    // Convert all to numbers for comparison - add null checks
+    const userIdNum = parseInt(userId);
+    const userUserIdNum = user ? parseInt(user.userId) : null;
+    const portfolioUserIdNum = portfolioData ? parseInt(portfolioData?.userId) : null;
+    
+    const isOwnPortfolio1 = portfolioData && userId && userUserIdNum !== null && userUserIdNum === userIdNum;
+    const isOwnPortfolio2 = portfolioData && user && userUserIdNum !== null && portfolioUserIdNum !== null && userUserIdNum === portfolioUserIdNum;
+    const isOwnPortfolio = isOwnPortfolio1 || isOwnPortfolio2;
     
     // Check if portfolio is private and viewer is not owner
     const getPrivacyState = () => {
@@ -332,11 +352,6 @@ const UserPortfolioPage = () => {
     // Calculate stats from existing data - using DB data like UserPortfolioStats
     const totalStories = portfolioData?.storiesCount || 0;
     const totalFollowers = currentFollowersCount;
-
-    // Debug: Check portfolioData before passing to components
-    console.log('🔍 PortfolioData before render:', portfolioData);
-    console.log('🔍 PortfolioData type:', typeof portfolioData);
-    console.log('🔍 PortfolioData keys:', portfolioData ? Object.keys(portfolioData) : 'null/undefined');
 
     // If portfolio is private and viewer is not owner, show privacy message
     if (isPrivateAndNotOwner) {
