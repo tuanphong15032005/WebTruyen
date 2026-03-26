@@ -18,6 +18,10 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
   // Check if this is the current user's own profile
   const currentUserId = getCurrentUserId();
   const isOwnProfile = author.authorId === currentUserId;
+  
+  // Check if user is authenticated
+  const user = getStoredUser();
+  const isAuthenticated = user && user.userId;
 
   // Check follow status when component mounts or author changes
   useEffect(() => {
@@ -76,6 +80,14 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
     e.stopPropagation();
     
     if (isLoading) return;
+    
+    // Check if user is authenticated
+    const user = getStoredUser();
+    if (!user || !user.userId) {
+      // Redirect to login page
+      navigate('/login');
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -208,9 +220,11 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
             className={`flex-1 font-bold py-3 px-6 rounded-xl transition-colors duration-200 ${
               isOwnProfile
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : isFollowing
-                  ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  : 'bg-orange-500 hover:bg-orange-600 text-white'
+                : !isAuthenticated
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                  : isFollowing
+                    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                    : 'bg-orange-500 hover:bg-orange-600 text-white'
             } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isLoading ? (
@@ -222,6 +236,8 @@ const AuthorCard = ({ author, onFollowChange = () => {} }) => {
                 {isFollowing ? 'Đang bỏ theo dõi...' : 'Đang theo dõi...'}
               </span>
             ) : (
+              isOwnProfile ? 'Hồ sơ của bạn' : 
+              !isAuthenticated ? 'Đăng nhập để theo dõi' :
               isFollowing ? 'Đang theo dõi' : 'Theo dõi'
             )}
           </button>

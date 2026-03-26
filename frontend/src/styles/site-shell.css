@@ -1096,7 +1096,7 @@
   top: var(--site-header-height);
   left: 0;
   width: var(--app-sidebar-width);
-  height: calc(100vh - var(--site-header-height));
+  height: calc(100vh - var(--site-header-height) - 120px); /* Leave space for footer */
   z-index: 996;
   pointer-events: none;
 }

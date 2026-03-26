@@ -269,9 +269,10 @@ export default function UserProfile({ userData }) {
       return;
     }
 
-    // Validation cho độ dài bio (max 1000 ký tự)
-    if (favoriteQuote.length > 1000) {
-      setBioMessage('Tiểu sử không được vượt quá 1000 ký tự!');
+    // Validation cho độ dài bio (max 1000 ký tự, không tính dấu cách)
+    const charCountWithoutSpaces = favoriteQuote.replace(/\s/g, '').length;
+    if (charCountWithoutSpaces > 1000) {
+      setBioMessage('Tiểu sử không được vượt quá 1000 ký tự (không tính dấu cách)!');
       setTimeout(() => setBioMessage(''), 3000);
       return;
     }
@@ -904,7 +905,7 @@ export default function UserProfile({ userData }) {
                 <label className="form-label">
                   Tiểu sử
                   <span className="text-gray-500 text-sm ml-2">
-                    {favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length}/200 từ | {favoriteQuote.length}/1000 ký tự
+                    {favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length}/200 từ | {favoriteQuote.replace(/\s/g, '').length}/1000 ký tự
                   </span>
                 </label>
                 <textarea
@@ -912,7 +913,7 @@ export default function UserProfile({ userData }) {
                   onChange={(e) => setFavoriteQuote(e.target.value)}
                   placeholder="Nhập trích dẫn yêu thích của bạn..."
                   className={`form-textarea ${
-                    favoriteQuote.length > 1000 || favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length > 200 
+                    favoriteQuote.replace(/\s/g, '').length > 1000 || favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length > 200 
                       ? 'border-red-500' 
                       : ''
                   }`}
@@ -924,7 +925,7 @@ export default function UserProfile({ userData }) {
                     className="btn-primary"
                     disabled={
                       !favoriteQuote.trim() || 
-                      favoriteQuote.length > 1000 || 
+                      favoriteQuote.replace(/\s/g, '').length > 1000 || 
                       favoriteQuote.trim().split(/\s+/).filter(word => word.length > 0).length > 200
                     }
                   >

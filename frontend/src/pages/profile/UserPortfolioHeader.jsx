@@ -1,7 +1,11 @@
 import React from 'react';
 import { Share, Heart, DollarSign } from 'lucide-react';
+import { getStoredUser } from '../../utils/helpers';
 
 const UserPortfolioHeader = ({ data, onShare, onFollow, onDonate, isFollowing, followLoading, isOwnPortfolio }) => {
+    // Check if user is authenticated
+    const user = getStoredUser();
+    const isAuthenticated = user && user.userId;
     return (
         <section className="relative w-full">
             <div className="h-64 w-full rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 relative overflow-hidden shadow-sm">
@@ -34,30 +38,42 @@ const UserPortfolioHeader = ({ data, onShare, onFollow, onDonate, isFollowing, f
                     </div>
                 </div>
                 <div className="flex gap-3 pb-2">
-                    {/* Follow Button - Show for all users except own portfolio */}
-                    {!isOwnPortfolio && (
-                        <button 
-                            onClick={onFollow}
-                            disabled={followLoading}
-                            className={`px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all ${
-                                isFollowing 
-                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
-                                    : 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-500/20'
-                            } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            <Heart size={18} fill={isFollowing ? 'currentColor' : 'none'} />
-                            {followLoading ? 'Đang xử lý...' : (isFollowing ? 'Đang theo dõi' : 'Theo dõi')}
-                        </button>
-                    )}
+                    {/* Follow Button - Always show, but disabled when viewing own portfolio */}
+                    <button 
+                        onClick={onFollow}
+                        disabled={followLoading || isOwnPortfolio}
+                        className={`px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all ${
+                            isOwnPortfolio
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : !isAuthenticated
+                                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                                    : isFollowing 
+                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                                        : 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-500/20'
+                        } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <Heart size={18} fill={isFollowing ? 'currentColor' : 'none'} />
+                        {followLoading ? 'Đang xử lý...' : 
+                         isOwnPortfolio ? 'Hồ sơ của bạn' :
+                         !isAuthenticated ? 'Đăng nhập để theo dõi' :
+                         isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
+                    </button>
                     
-                    {/* Donate Button - Show only for authors */}
-                    {data?.author && !isOwnPortfolio && (
+                    {/* Donate Button - Show for authors, but disabled when viewing own portfolio */}
+                    {data?.author && (
                         <button 
                             onClick={onDonate}
-                            className="px-4 py-2.5 bg-green-500 text-white rounded-full shadow-lg shadow-green-500/20 hover:bg-green-600 flex items-center gap-2 transition-all"
+                            disabled={isOwnPortfolio}
+                            className={`px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all ${
+                                isOwnPortfolio
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    : !isAuthenticated
+                                        ? 'bg-green-500 hover:bg-green-600 text-white'
+                                        : 'bg-green-500 text-white rounded-full shadow-lg shadow-green-500/20 hover:bg-green-600'
+                            }`}
                         >
                             <DollarSign size={18} />
-                            Ủng hộ
+                            {isOwnPortfolio ? 'Hồ sơ của bạn' : !isAuthenticated ? 'Đăng nhập để ủng hộ' : 'Ủng hộ'}
                         </button>
                     )}
                     

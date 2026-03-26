@@ -1,24 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import libraryAlbumService from '../../services/libraryAlbumService';
+import { getStoredUser } from '../../utils/helpers';
 import '../../styles/library-stories.css';
 
 const UserPortfolioAlbums = ({ userId }) => {
     const [albums, setAlbums] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    
+    // Memoize user checks to prevent infinite re-renders
+    const currentUser = useMemo(() => getStoredUser(), []);
+    const isOwnAlbums = useMemo(() => currentUser && currentUser.userId === userId.toString(), [currentUser, userId]);
 
     useEffect(() => {
         const fetchUserAlbums = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await libraryAlbumService.getUserAlbums(userId);
+                
+                let response = null;
+                
+                // Always try to fetch albums - the API might support public access
+                try {
+                    response = await libraryAlbumService.getUserAlbums(userId);
+                } catch (err) {
+                    console.log('Album fetch failed:', err.message);
+                    
+                    // If 403/404/500, try to determine if it's because:
+                    // 1. Albums are private and user is not owner
+                    // 2. User is not logged in
+                    // 3. Albums don't exist
+                    
+                    if (err.response?.status === 403) {
+                        if (!currentUser) {
+                            console.log('Albums require authentication - not logged in');
+                        } else if (!isOwnAlbums) {
+                            console.log('Albums are private - viewing someone else\'s profile');
+                        } else {
+                            // This shouldn't happen for own albums
+                            throw err;
+                        }
+                    } else if (err.response?.status === 404) {
+                        console.log('No albums found for this user');
+                    } else if (err.response?.status === 500) {
+                        console.log('Server error - albums endpoint might not support public access');
+                    } else {
+                        // For other errors, re-throw
+                        throw err;
+                    }
+                    
+                    response = [];
+                }
+                
                 setAlbums(response || []);
             } catch (err) {
-                console.error('Error fetching user albums:', err);
-                setError('Không thể tải danh sách album');
+                console.error('Unexpected error fetching user albums:', err);
+                // Only show error for unexpected errors, not for permission/access issues
+                if (err.response?.status === 403 || err.response?.status === 404 || err.response?.status === 500) {
+                    setError(null);
+                } else {
+                    setError('Không thể tải danh sách album');
+                }
                 setAlbums([]);
             } finally {
                 setLoading(false);
@@ -28,7 +72,7 @@ const UserPortfolioAlbums = ({ userId }) => {
         if (userId) {
             fetchUserAlbums();
         }
-    }, [userId]);
+    }, [userId]); // Remove isOwnAlbums and currentUser from dependencies
 
     const formatNumber = (num) => {
         if (!num) return '0';
@@ -38,7 +82,9 @@ const UserPortfolioAlbums = ({ userId }) => {
     if (loading) {
         return (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-xl font-extrabold text-gray-900 mb-6">Bộ sưu tập của tôi</h3>
+                <h3 className="text-xl font-extrabold text-gray-900 mb-6">
+                    {isOwnAlbums ? 'Bộ sưu tập của tôi' : 'Bộ sưu tập'}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {Array.from({ length: 6 }, (_, i) => (
                         <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
@@ -64,7 +110,9 @@ const UserPortfolioAlbums = ({ userId }) => {
     if (error) {
         return (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-xl font-extrabold text-gray-900 mb-6">Bộ sưu tập của tôi</h3>
+                <h3 className="text-xl font-extrabold text-gray-900 mb-6">
+                    {isOwnAlbums ? 'Bộ sưu tập của tôi' : 'Bộ sưu tập'}
+                </h3>
                 <div className="text-center py-8">
                     <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Đã xảy ra lỗi</h3>
@@ -77,11 +125,27 @@ const UserPortfolioAlbums = ({ userId }) => {
     if (albums.length === 0) {
         return (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-xl font-extrabold text-gray-900 mb-6">Bộ sưu tập của tôi</h3>
+                <h3 className="text-xl font-extrabold text-gray-900 mb-6">
+                    {isOwnAlbums ? 'Bộ sưu tập của tôi' : 'Bộ sưu tập'}
+                </h3>
                 <div className="text-center py-8">
                     <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Chưa có bộ sưu tập nào</h3>
-                    <p className="text-gray-500">Bắt đầu tạo bộ sưu tập đầu tiên của bạn</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        {isOwnAlbums 
+                            ? 'Chưa có bộ sưu tập nào' 
+                            : currentUser 
+                                ? 'Bộ sưu tập riêng tư'
+                                : 'Yêu cầu đăng nhập'
+                        }
+                    </h3>
+                    <p className="text-gray-500">
+                        {isOwnAlbums 
+                            ? 'Bắt đầu tạo bộ sưu tập đầu tiên của bạn' 
+                            : currentUser 
+                                ? 'Người dùng này đã đặt bộ sưu tập ở chế độ riêng tư'
+                                : 'Đăng nhập để xem bộ sưu tập của người dùng này'
+                        }
+                    </p>
                 </div>
             </div>
         );
@@ -92,7 +156,9 @@ const UserPortfolioAlbums = ({ userId }) => {
             {/* Published Albums Section */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-extrabold text-gray-900">Bộ sưu tập của tôi</h3>
+                    <h3 className="text-xl font-extrabold text-gray-900">
+                        {isOwnAlbums ? 'Bộ sưu tập của tôi' : 'Bộ sưu tập'}
+                    </h3>
                     <Link to="/library?tab=album" className="text-blue-500 font-bold text-sm flex items-center gap-1 hover:underline">
                         Xem tất cả <span>→</span>
                     </Link>
