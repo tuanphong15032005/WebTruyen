@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import TopBar from '../../components/dashboard/TopBar';
-import StatsGrid from '../../components/dashboard/StatsGrid';
 import MyStories from '../../components/dashboard/MyStories';
 import LatestCommentsSidebar from '../../components/dashboard/LatestCommentsSidebar';
 import { fetchDashboardData } from '../../services/dashboardService';
 import Button from '../../components/Button';
 import AuthorApplicationForm from '../../components/AuthorApplicationForm';
-import { Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Clock, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import '../../styles/AuthorDashboardPage.css';
 
@@ -17,7 +15,6 @@ import '../../styles/AuthorDashboardPage.css';
  * Displays statistics, stories, and comments for logged-in authors
  */
 const AuthorDashboard = () => {
-  const navigate = useNavigate();
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
@@ -26,10 +23,7 @@ const AuthorDashboard = () => {
   const [canApply, setCanApply] = useState(false);
   const [daysUntilEligible, setDaysUntilEligible] = useState(0);
 
-  const [reviewerApplicationStatus, setReviewerApplicationStatus] = useState(null);
-
   const [dashboardData, setDashboardData] = useState(null);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [error, setError] = useState(null);
 
 
@@ -52,9 +46,6 @@ const AuthorDashboard = () => {
           });
         }
         
-        // Reviewer application data
-        setReviewerApplicationStatus(response.reviewerApplication);
-        
       } catch (error) {
         console.error('Error checking user role:', error);
         setUserRole('reader'); // Default to reader if error
@@ -73,7 +64,6 @@ const AuthorDashboard = () => {
   }, [userRole]);
 
   const loadDashboardData = async () => {
-    setDashboardLoading(true);
     setError(null);
     
     try {
@@ -82,8 +72,6 @@ const AuthorDashboard = () => {
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError('Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.');
-    } finally {
-      setDashboardLoading(false);
     }
   };
 
@@ -271,16 +259,6 @@ const AuthorDashboard = () => {
                   Thử lại
                 </button>
               </div>
-            )}
-            
-            {dashboardLoading ? (
-              <div className="stats-grid loading">
-                <div className="loading-skeleton"></div>
-                <div className="loading-skeleton"></div>
-                <div className="loading-skeleton"></div>
-              </div>
-            ) : (
-              <StatsGrid summary={dashboardData?.summary} />
             )}
             
             <div className='dashboard-main-layout'>

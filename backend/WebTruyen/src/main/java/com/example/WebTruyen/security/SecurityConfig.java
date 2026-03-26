@@ -49,21 +49,17 @@ public class SecurityConfig {
                         .requestMatchers("/", "/api/auth/**").permitAll()
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/api/users/profile/**").permitAll()
-                        //e thảo cho thêm của portfolio
+                        // ?
                         .requestMatchers("/api/users/*/portfolio").permitAll()
                         .requestMatchers("/api/users/*/follow").permitAll()
                         .requestMatchers("/api/users/*/follow-status").permitAll()
                         .requestMatchers("/api/users/*/stories").permitAll()
                         .requestMatchers("/error").permitAll()
-                        //tạo permit cho api - nhớ xóa khi deploy
+                      
                         .requestMatchers("/api/stories/**").permitAll()
                         .requestMatchers("/api/chapters/**").permitAll()
-                        .requestMatchers("/api/daily-tasks/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/uploads/image").permitAll()
-                        .requestMatchers("/api/tags").permitAll()
-                        .requestMatchers("/api/v1/tags").permitAll()
-                        .requestMatchers("/api/notifications/**").permitAll()
+                        .requestMatchers("/api/authors/**").permitAll()
 
                         .requestMatchers("/api/author-application/check-pen-name").permitAll()
                         
@@ -72,12 +68,11 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/reports").authenticated()
 
-                        // Achievement endpoints - allow for testing
-                        .requestMatchers("/api/tiered-achievements/**").permitAll()
+
 
                         // Tác giả quản lý bình luận (trả lời, ẩn, xóa) — yêu cầu đăng nhập
                         .requestMatchers("/api/author/**").authenticated()
-                        //
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "ledger_entries",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uq_ledger_ref_reason", columnNames = {"ref_type","ref_id","reason"}),
+                @UniqueConstraint(name = "uq_ledger_user_ref_reason_coin", columnNames = {"user_id","ref_type","ref_id","reason","coin"}),
                 @UniqueConstraint(name = "uq_ledger_idempotency", columnNames = {"idempotency_key"})
         },
         indexes = {
