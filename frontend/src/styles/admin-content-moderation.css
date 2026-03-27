@@ -231,7 +231,8 @@
 }
 
 .admin-moderation__col--type {
-  width: 88px;
+  width: 120px;
+  min-width: 120px;
 }
 
 .admin-moderation__col--author {

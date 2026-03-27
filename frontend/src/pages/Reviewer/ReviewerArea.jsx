@@ -32,7 +32,7 @@ function ReviewerArea() {
 
   // Content moderation states
   const [activeContentType, setActiveContentType] = useState('all');
-  const [activeStatus, setActiveStatus] = useState('pending');
+  const [activeStatus, setActiveStatus] = useState('all');
   const [demoItem, setDemoItem] = useState(null);
   const [demoContent, setDemoContent] = useState(null);
   const [demoLoading, setDemoLoading] = useState(false);
@@ -282,15 +282,6 @@ function ReviewerArea() {
           </p>
         </div>
         
-        <div className="reviewer-stats">
-          <div className="stat-card pending">
-            <Clock className="stat-icon" />
-            <div className="stat-info">
-              <span className="stat-number">{pendingCount}</span>
-              <span className="stat-label">Nội dung chờ duyệt</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {error && <div className="reviewer-error">{error}</div>}
@@ -307,49 +298,40 @@ function ReviewerArea() {
           <>
         <div className="admin-moderation__card admin-moderation__controls-card">
           <div className="admin-moderation__toolbar">
-            <div className="admin-moderation__stats">
-              <span className="admin-moderation__badge">
-                Chờ duyệt: {pendingCount}
-              </span>
-              <span className="admin-moderation__badge admin-moderation__badge--approved">
-                Đã duyệt: {moderationItems.filter((item) => displayStatus(item) === 'approved').length}
-              </span>
-              <span className="admin-moderation__badge admin-moderation__badge--rejected">
-                Từ chối: {moderationItems.filter((item) => displayStatus(item) === 'rejected').length}
-              </span>
-            </div>
+                                  </div>
+
+          <div className="admin-moderation__filters">
+            <span className="admin-moderation__filter-label">Loại:</span>
             <button
               type="button"
-              className="admin-moderation__refresh"
-              onClick={loadModerationContent}
-              disabled={loading}
+              className={activeContentType === 'all' ? 'active' : ''}
+              onClick={() => setActiveContentType('all')}
             >
-              Tải lại
+              Tất cả
+            </button>
+            <button
+              type="button"
+              className={activeContentType === 'story' ? 'active' : ''}
+              onClick={() => setActiveContentType('story')}
+            >
+              Truyện
+            </button>
+            <button
+              type="button"
+              className={activeContentType === 'chapter' ? 'active' : ''}
+              onClick={() => setActiveContentType('chapter')}
+            >
+              Chương
             </button>
           </div>
 
-          <div className="admin-moderation__filters">
-            <label className="admin-moderation__filter-label">
-              Loại:
-              <select
-                className="admin-moderation__select"
-                value={activeContentType}
-                onChange={(e) => setActiveContentType(e.target.value)}
-              >
-                <option value="all">Tất cả</option>
-                <option value="story">Truyện</option>
-                <option value="chapter">Chương</option>
-              </select>
-            </label>
-          </div>
-
           <div className="admin-moderation__tabs">
-            <button
+                        <button
               type="button"
               className={activeStatus === 'pending' ? 'active' : ''}
               onClick={() => setActiveStatus('pending')}
             >
-              Chờ duyệt
+              Chờ duyệt ({pendingCount})
             </button>
             <button
               type="button"
@@ -388,7 +370,7 @@ function ReviewerArea() {
                       Đang tải hàng chờ kiểm duyệt...
                     </td>
                   </tr>
-                ) : moderationItems.filter((item) => displayStatus(item) === activeStatus && (activeContentType === 'all' || item.contentType === activeContentType)).length === 0 ? (
+                ) : moderationItems.filter((item) => (activeStatus === 'all' || displayStatus(item) === activeStatus) && (activeContentType === 'all' || item.contentType === activeContentType)).length === 0 ? (
                   <tr>
                     <td colSpan={6} className="admin-moderation__empty">
                       Không có bản ghi ở trạng thái này
@@ -396,7 +378,7 @@ function ReviewerArea() {
                   </tr>
                 ) : (
                   moderationItems
-                    .filter((item) => displayStatus(item) === activeStatus && (activeContentType === 'all' || item.contentType === activeContentType))
+                    .filter((item) => (activeStatus === 'all' || displayStatus(item) === activeStatus) && (activeContentType === 'all' || item.contentType === activeContentType))
                     .map((item) => {
                       const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
                       const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');

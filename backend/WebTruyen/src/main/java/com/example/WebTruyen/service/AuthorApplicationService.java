@@ -259,12 +259,12 @@ public class AuthorApplicationService {
             }
         }
         
-        // Sort by submitted date descending
+        // Sort by submitted date ascending (FIFO - first in, first out)
         applications.sort((a, b) -> {
             String dateA = (String) a.get("submittedAt");
             String dateB = (String) b.get("submittedAt");
             if (dateA != null && dateB != null) {
-                return dateB.compareTo(dateA);
+                return dateA.compareTo(dateB);
             }
             return 0;
         });
