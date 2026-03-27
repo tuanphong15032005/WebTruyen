@@ -28,7 +28,11 @@ public class TagService {
     private final StoryTagRepository storyTagRepository;
 
     private String generateSlug(String name) {
-        return name.toLowerCase()
+        // Chuyển tiếng Việt có dấu về không dấu
+        String normalized = java.text.Normalizer.normalize(name.toLowerCase(), java.text.Normalizer.Form.NFD)
+                .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        
+        return normalized
                 .replaceAll("[^a-z0-9\\s]", "")
                 .replaceAll("\\s+", "-")
                 .replaceAll("-+", "-")

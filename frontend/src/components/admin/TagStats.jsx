@@ -19,8 +19,13 @@ const TagStats = ({ stats }) => {
       <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-600 mb-1">Tags Trending</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.trending}</p>
+            <p className="text-sm text-gray-600 mb-1">Tag Trending</p>
+            <p className="text-lg font-bold text-gray-900">
+              {stats.topTrendingTag ? 
+                `${stats.topTrendingTag.name} (${stats.topTrendingTag.usageCount})` : 
+                'Chưa có'
+              }
+            </p>
           </div>
           <div className="p-3 bg-green-100 rounded-xl">
             <TrendingUp className="text-green-600" size={24} />

@@ -41,7 +41,6 @@ const TagTable = ({ tags, loading, onEdit, onDelete }) => {
           <tr className="border-b border-gray-200">
             <th className="text-left py-3 px-4 font-semibold text-gray-900">ID</th>
             <th className="text-left py-3 px-4 font-semibold text-gray-900">Tên Tag</th>
-            <th className="text-left py-3 px-4 font-semibold text-gray-900">Slug</th>
             <th className="text-left py-3 px-4 font-semibold text-gray-900">Số lần dùng</th>
             <th className="text-left py-3 px-4 font-semibold text-gray-900">Thao tác</th>
           </tr>
@@ -58,7 +57,6 @@ const TagTable = ({ tags, loading, onEdit, onDelete }) => {
                   </span>
                 </div>
               </td>
-              <td className="py-3 px-4 text-sm text-gray-600 font-mono">{tag.slug}</td>
               <td className="py-3 px-4">
                 <span className="inline-flex items-center px-2 py-1 text-sm font-medium bg-gray-100 text-gray-800 rounded">
                   {tag.usageCount}

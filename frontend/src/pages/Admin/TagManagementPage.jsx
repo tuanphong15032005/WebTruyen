@@ -13,7 +13,7 @@ const TagManagementPage = () => {
   const [tags, setTags] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
-    trending: 0,
+    topTrendingTag: null,
     unused: 0
   });
   const [loading, setLoading] = useState(true);
@@ -72,7 +72,7 @@ const TagManagementPage = () => {
       
       setStats({
         total: pagination.totalElements,
-        trending: trending.length || 0,
+        topTrendingTag: trending.length > 0 ? trending[0] : null,
         unused: unused.length || 0
       });
     } catch (error) {

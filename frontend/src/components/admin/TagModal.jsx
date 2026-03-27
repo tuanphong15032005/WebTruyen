@@ -20,8 +20,13 @@ const TagModal = ({ tag, error, onClose, onSubmit }) => {
   }, [tag]);
 
   const generateSlug = (name) => {
-    return name
+    // Chuyển tiếng Việt có dấu về không dấu
+    const normalized = name
       .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    
+    return normalized
       .replace(/[^a-z0-9\s]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
