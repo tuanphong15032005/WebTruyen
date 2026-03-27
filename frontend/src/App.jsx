@@ -212,9 +212,9 @@ function MainLayoutWrapper() {
         <Route path='/donate/:userId' element={<DonatePage />} />
 
         <Route path='/authordashboard' element={
-          <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+          <AuthProtectedRoute>
             <AuthorDashboard />
-          </RoleProtectedRoute>
+          </AuthProtectedRoute>
         } />
         <Route path='/author/my-stories' element={
           <RoleProtectedRoute allowedRoles={['AUTHOR']}>

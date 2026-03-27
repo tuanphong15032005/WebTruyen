@@ -9,7 +9,7 @@ function ApplicationManagementPage() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('PENDING');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
   const [rejectionModal, setRejectionModal] = useState({
@@ -81,7 +81,18 @@ function ApplicationManagementPage() {
         );
       }
       
-      setApplications(data || []);
+      
+      // Sorting logic
+      let sortedData = Array.isArray(data) ? [...data] : [];
+      if (statusFilter === 'PENDING') {
+        // FIFO: Oldest first (Sắp xếp theo FIFO cho chờ duyệt)
+        sortedData.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+      } else {
+        // Newest first for APPROVED and REJECTED (Sắp xếp mới nhất lên đầu cho đã duyệt và từ chối)
+        sortedData.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      }
+      
+      setApplications(sortedData);
       
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách đơn');
@@ -291,12 +302,6 @@ function ApplicationManagementPage() {
         </div>
         <div className="status-filters">
           <button
-            className={`status-filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('all')}
-          >
-            Tất cả
-          </button>
-          <button
             className={`status-filter-btn ${statusFilter === 'PENDING' ? 'active' : ''}`}
             onClick={() => setStatusFilter('PENDING')}
           >
@@ -315,9 +320,6 @@ function ApplicationManagementPage() {
             Từ chối
           </button>
         </div>
-        <button className="refresh-btn" onClick={loadApplications} disabled={loading}>
-          Tải lại
-        </button>
       </div>
 
       {error && (

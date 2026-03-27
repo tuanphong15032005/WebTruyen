@@ -118,15 +118,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/stories/manage/**").hasAnyRole("AUTHOR", "MOD")
                         .requestMatchers("/api/chapters/manage/**").hasAnyRole("AUTHOR", "MOD")
                         
-                        // Author application - Author and Moderator
-                        .requestMatchers("/api/author-application/**").hasAnyRole("AUTHOR", "MOD")
+                        // Author application - Authenticated users (so readers can apply)
+                        .requestMatchers("/api/author-application/**").authenticated()
                         
                         // Author analytics and performance
                         .requestMatchers("/api/author/analytics/**").hasAnyRole("AUTHOR", "MOD")
                         .requestMatchers("/api/performance/**").hasAnyRole("AUTHOR", "MOD")
                         
-                        // Reviewer application
-                        .requestMatchers("/api/reviewer/**").hasAnyRole("AUTHOR", "MOD")
+                        // Reviewer application - Authenticated users (so readers can apply)
+                        .requestMatchers("/api/reviewer/**").authenticated()
 
                         // === ADMIN ENDPOINTS (Moderator only) ===
                         // Admin dashboard and management
