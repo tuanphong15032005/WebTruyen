@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/admin/achievements")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
+@PreAuthorize("hasRole('MOD')")
 public class AchievementAdminController {
 
     private final AchievementAdminService achievementAdminService;

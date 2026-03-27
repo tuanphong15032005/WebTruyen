@@ -383,6 +383,86 @@ html[data-theme='dark'] .tab-button.active {
   color: var(--theme-accent-text);
 }
 
+/* Reviewer-specific filter buttons */
+.admin-moderation__filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-moderation__filters button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-moderation__filters button:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.admin-moderation__filters button.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+/* Status tabs styling */
+.admin-moderation__tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-moderation__tabs button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-moderation__tabs button:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.admin-moderation__tabs button.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+html[data-theme='dark'] .admin-moderation__filters button {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-moderation__filters button:hover:not(.active) {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-input-border-hover);
+}
+
+html[data-theme='dark'] .admin-moderation__tabs button {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-text-primary);
+}
+
+html[data-theme='dark'] .admin-moderation__tabs button:hover:not(.active) {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-input-border-hover);
+}
+
 html[data-theme='dark'] .no-content-message {
   background: var(--theme-surface-muted);
   border-color: var(--theme-border);

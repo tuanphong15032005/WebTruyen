@@ -1448,7 +1448,24 @@ public class StoryService {
                     if (left == null && right == null) return 0;
                     if (left == null) return 1;
                     if (right == null) return -1;
-                    return right.compareTo(left);
+                    // For approved/rejected items: newest first (descending)
+                    // For pending items: oldest first (ascending)
+                    boolean aIsProcessed = a.moderationProcessedAt() != null;
+                    boolean bIsProcessed = b.moderationProcessedAt() != null;
+                    
+                    if (aIsProcessed && bIsProcessed) {
+                        // Both processed - newest first
+                        return right.compareTo(left);
+                    } else if (!aIsProcessed && !bIsProcessed) {
+                        // Both pending - oldest first  
+                        return left.compareTo(right);
+                    } else if (aIsProcessed) {
+                        // Processed items come after pending
+                        return -1;
+                    } else {
+                        // Pending items come before processed
+                        return 1;
+                    }
                 })
                 .toList();
     }

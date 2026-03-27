@@ -358,6 +358,10 @@ const AchievementManagementPage = () => {
     return matchesSearch && matchesActiveFilter;
   });
 
+  // Calculate counts for active and inactive achievements
+  const activeCount = achievements.filter(achievement => achievement.isActive).length;
+  const inactiveCount = achievements.filter(achievement => !achievement.isActive).length;
+
   if (loading) {
     return (
       <div className="admin-achievements-page w-full overflow-x-hidden">
@@ -420,7 +424,7 @@ const AchievementManagementPage = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Hoạt động
+                Hoạt động ({activeCount})
               </button>
               <button
                 onClick={() => setActiveFilter(activeFilter === 'inactive' ? null : 'inactive')}
@@ -430,7 +434,7 @@ const AchievementManagementPage = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Không hoạt động
+                Không hoạt động ({inactiveCount})
               </button>
             </div>
           </div>

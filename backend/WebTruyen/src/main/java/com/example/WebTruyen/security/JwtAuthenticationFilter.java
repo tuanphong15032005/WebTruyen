@@ -39,13 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = tokenProvider.getUserIdFromToken(jwt);
                 String username = tokenProvider.getUsernameFromToken(jwt);
 
-                UserEntity user = userRepository.findById(userId).orElse(null);
+                UserEntity user = userRepository.findByIdWithRoles(userId).orElse(null);
                 
                 if (user != null) {
                     UserPrincipal userPrincipal = new UserPrincipal(user);
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userPrincipal, null, new ArrayList<>());
+                            userPrincipal, null, userPrincipal.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);

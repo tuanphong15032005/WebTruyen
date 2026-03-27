@@ -623,28 +623,6 @@ export default function UserProfile({ userData }) {
                 Hồ sơ
               </button>
             </li>
-            {hasAnyRole(['READER', 'AUTHOR'], getStoredUser()) && (
-              <li>
-                <button
-                  className={`sidebar-menu-item ${location.pathname === '/reader/refund-request' ? 'active' : ''}`}
-                  onClick={() => navigate('/reader/refund-request')}
-                >
-                  <Wallet className="icon" />
-                  {readerRefundLabel}
-                </button>
-              </li>
-            )}
-            {false && hasAnyRole(['READER', 'AUTHOR'], getStoredUser()) && (
-              <li>
-                <button
-                  className={`sidebar-menu-item ${location.pathname === '/reader/refund-request' ? 'active' : ''}`}
-                  onClick={() => navigate('/reader/refund-request')}
-                >
-                  <Wallet className="icon" />
-                  YÃªu cáº§u hoÃ n tiá»n
-                </button>
-              </li>
-            )}
             <li>
               <button className={`sidebar-menu-item ${location.pathname === '/daily-tasks' ? 'active' : ''}`} onClick={() => navigate('/daily-tasks')}>
                 <CheckSquare className="icon" />

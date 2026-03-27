@@ -102,15 +102,7 @@ const AppSidebar = ({ isOpen, onClose, overlayMode = false }) => {
         active: location.pathname === '/donation-history',
         onClick: () => navigate('/donation-history'),
       },
-      {
-        key: 'refund-request',
-        label: 'YÃªu cáº§u hoÃ n tiá»n',
-        icon: Wallet,
-        visible: hasAnyRole(['READER', 'AUTHOR'], user),
-        active: location.pathname === '/reader/refund-request',
-        onClick: () => navigate('/reader/refund-request'),
-      },
-      {
+            {
         key: 'author-area',
         label: 'Khu vực tác giả',
         icon: Edit3,
@@ -122,7 +114,7 @@ const AppSidebar = ({ isOpen, onClose, overlayMode = false }) => {
         key: 'withdrawal-request',
         label: 'Yêu cầu rút tiền',
         icon: Wallet,
-        visible: hasAnyRole(['AUTHOR'], user),
+        visible: true,
         active: location.pathname === '/author/withdrawal-request',
         onClick: () => navigate('/author/withdrawal-request'),
       },
@@ -196,9 +188,6 @@ const AppSidebar = ({ isOpen, onClose, overlayMode = false }) => {
   };
 
   const resolveMenuLabel = (item) => {
-    if (item?.key === 'refund-request') {
-      return 'Y\u00eau c\u1ea7u ho\u00e0n ti\u1ec1n';
-    }
     return item?.label;
   };
 

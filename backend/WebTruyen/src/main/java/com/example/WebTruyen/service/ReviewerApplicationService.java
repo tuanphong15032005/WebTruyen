@@ -139,7 +139,7 @@ public class ReviewerApplicationService {
                     String dateA = (String) a.get("submittedAt");
                     String dateB = (String) b.get("submittedAt");
                     if (dateA != null && dateB != null) {
-                        return dateB.compareTo(dateA); // Sort descending (newest first)
+                        return dateA.compareTo(dateB); // Sort ascending (FIFO - first in, first out)
                     }
                     return 0;
                 })
@@ -161,7 +161,7 @@ public class ReviewerApplicationService {
                     String dateA = (String) a.get("submittedAt");
                     String dateB = (String) b.get("submittedAt");
                     if (dateA != null && dateB != null) {
-                        return dateB.compareTo(dateA); // Sort descending (newest first)
+                        return dateA.compareTo(dateB); // Sort ascending (FIFO - first in, first out)
                     }
                     return 0;
                 })
