@@ -126,6 +126,25 @@ const getChapterFilterRange = (target) => {
   };
 };
 
+const hasActiveSearchCriteria = ({
+  q,
+  author,
+  completionStatus,
+  kind,
+  tagIds,
+  excludeTagIds,
+  chapterCount,
+}) =>
+  Boolean(
+    String(q || '').trim() ||
+      String(author || '').trim() ||
+      (completionStatus && completionStatus !== 'all') ||
+      (kind && kind !== 'all') ||
+      (Array.isArray(tagIds) && tagIds.length > 0) ||
+      (Array.isArray(excludeTagIds) && excludeTagIds.length > 0) ||
+      normalizeChapterTarget(chapterCount) > 0,
+  );
+
 const getSortValue = (story, sortBy) => {
   if (sortBy === 'title') {
     return String(story?.title || '').trim();
@@ -453,6 +472,37 @@ function SearchPage() {
 
   useEffect(() => {
     const fetchStories = async () => {
+      const q = (searchParams.get('q') || '').trim();
+      const author = (searchParams.get('author') || '').trim();
+      const completionStatus = (
+        searchParams.get('completionStatus') || 'all'
+      ).trim();
+      const kind = (searchParams.get('kind') || 'all').trim();
+      const tagIds = parseTagIdsCsv(searchParams.get('tagIds') || '');
+      const excludeTagIds = parseTagIdsCsv(
+        searchParams.get('excludeTagIds') || '',
+      );
+      const chapterCount = normalizeChapterTarget(
+        searchParams.get('chapterCount') || 0,
+      );
+
+      if (
+        !hasActiveSearchCriteria({
+          q,
+          author,
+          completionStatus,
+          kind,
+          tagIds,
+          excludeTagIds,
+          chapterCount,
+        })
+      ) {
+        setStories([]);
+        setChapterMetaByStoryId({});
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const params = {
@@ -460,16 +510,6 @@ function SearchPage() {
           size: SEARCH_SIZE,
           sort: 'lastUpdatedAt,desc',
         };
-        const q = (searchParams.get('q') || '').trim();
-        const author = (searchParams.get('author') || '').trim();
-        const completionStatus = (
-          searchParams.get('completionStatus') || 'all'
-        ).trim();
-        const kind = (searchParams.get('kind') || 'all').trim();
-        const tagIds = parseTagIdsCsv(searchParams.get('tagIds') || '');
-        const excludeTagIds = parseTagIdsCsv(
-          searchParams.get('excludeTagIds') || '',
-        );
 
         if (q) params.q = q;
         if (author) params.author = author;
@@ -542,6 +582,19 @@ function SearchPage() {
   const appliedChapterRange = useMemo(
     () => getChapterFilterRange(appliedChapterTarget),
     [appliedChapterTarget],
+  );
+  const hasAppliedSearchCriteria = useMemo(
+    () =>
+      hasActiveSearchCriteria({
+        q: searchParams.get('q') || '',
+        author: searchParams.get('author') || '',
+        completionStatus: searchParams.get('completionStatus') || 'all',
+        kind: searchParams.get('kind') || 'all',
+        tagIds: parseTagIdsCsv(searchParams.get('tagIds') || ''),
+        excludeTagIds: parseTagIdsCsv(searchParams.get('excludeTagIds') || ''),
+        chapterCount: searchParams.get('chapterCount') || 0,
+      }),
+    [searchParams],
   );
 
   const chapterSliderMax = useMemo(() => {
@@ -912,7 +965,13 @@ function SearchPage() {
           )}
         </div>
 
-        {!loading && sortedStories.length === 0 && (
+        {!loading && !hasAppliedSearchCriteria && (
+          <div className='search-page__empty'>
+            Nhap tu khoa hoac chon bo loc phu hop truoc khi tim kiem.
+          </div>
+        )}
+
+        {!loading && hasAppliedSearchCriteria && sortedStories.length === 0 && (
           <div className='search-page__empty'>
             Không có truyện nào thỏa mãn bộ lọc hiện tại.
           </div>
