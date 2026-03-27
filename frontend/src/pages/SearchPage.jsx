@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowDown,
@@ -43,7 +49,11 @@ const SORT_OPTIONS = [
   { value: 'views', label: 'Lượt xem', defaultDirection: 'desc' },
   { value: 'saved', label: 'Lượt lưu', defaultDirection: 'desc' },
   { value: 'rating', label: 'Rating', defaultDirection: 'desc' },
-  { value: 'publishTime', label: 'Thời gian đăng tải', defaultDirection: 'desc' },
+  {
+    value: 'publishTime',
+    label: 'Thời gian đăng tải',
+    defaultDirection: 'desc',
+  },
   { value: 'title', label: 'A-Z', defaultDirection: 'asc' },
 ];
 
@@ -137,12 +147,12 @@ const hasActiveSearchCriteria = ({
 }) =>
   Boolean(
     String(q || '').trim() ||
-      String(author || '').trim() ||
-      (completionStatus && completionStatus !== 'all') ||
-      (kind && kind !== 'all') ||
-      (Array.isArray(tagIds) && tagIds.length > 0) ||
-      (Array.isArray(excludeTagIds) && excludeTagIds.length > 0) ||
-      normalizeChapterTarget(chapterCount) > 0,
+    String(author || '').trim() ||
+    (completionStatus && completionStatus !== 'all') ||
+    (kind && kind !== 'all') ||
+    (Array.isArray(tagIds) && tagIds.length > 0) ||
+    (Array.isArray(excludeTagIds) && excludeTagIds.length > 0) ||
+    normalizeChapterTarget(chapterCount) > 0,
   );
 
 const getSortValue = (story, sortBy) => {
@@ -170,9 +180,7 @@ const normalizeSearchText = (value) =>
     .trim();
 
 const getSearchTokens = (value) =>
-  normalizeSearchText(value)
-    .split(' ')
-    .filter(Boolean);
+  normalizeSearchText(value).split(' ').filter(Boolean);
 
 const getSearchRelevance = (story, query) => {
   const normalizedQuery = normalizeSearchText(query);
@@ -185,7 +193,10 @@ const getSearchRelevance = (story, query) => {
   if (normalizedTitle === normalizedQuery) return 0;
   if (normalizedTitle.startsWith(`${normalizedQuery} `)) return 1;
   if (normalizedTitle.includes(normalizedQuery)) return 2;
-  if (tokens.length > 0 && tokens.every((token) => normalizedTitle.includes(token))) {
+  if (
+    tokens.length > 0 &&
+    tokens.every((token) => normalizedTitle.includes(token))
+  ) {
     return 3;
   }
   return 4;
@@ -195,7 +206,8 @@ const getStoryTitleSortMeta = (story) => {
   const rawTitle = String(story?.title || '').trim();
   const startsWithSpecial =
     rawTitle.length > 0 && !/^[\p{L}\p{N}]/u.test(rawTitle);
-  const normalizedTitle = rawTitle.replace(/^[^\p{L}\p{N}]+/u, '').trim() || rawTitle;
+  const normalizedTitle =
+    rawTitle.replace(/^[^\p{L}\p{N}]+/u, '').trim() || rawTitle;
 
   return {
     rawTitle,
@@ -226,16 +238,20 @@ const compareStoryTitles = (left, right, sortDirection = 'asc') => {
     return directionFactor * normalizedCompare;
   }
 
-  return directionFactor * leftMeta.rawTitle.localeCompare(rightMeta.rawTitle, 'vi', {
-    sensitivity: 'base',
-    numeric: true,
-  });
+  return (
+    directionFactor *
+    leftMeta.rawTitle.localeCompare(rightMeta.rawTitle, 'vi', {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  );
 };
 
 const sortStories = (list, sortBy, sortDirection, query) => {
   const safeList = Array.isArray(list) ? [...list] : [];
   const directionFactor = sortDirection === 'asc' ? 1 : -1;
-  const useRelevantSort = sortBy === 'auto' && String(query || '').trim().length > 0;
+  const useRelevantSort =
+    sortBy === 'auto' && String(query || '').trim().length > 0;
 
   safeList.sort((left, right) => {
     if (useRelevantSort) {
@@ -382,7 +398,9 @@ function SearchPage() {
   const [statusInput, setStatusInput] = useState('all');
   const [kindInput, setKindInput] = useState('all');
   const [sortByInput, setSortByInput] = useState(DEFAULT_SORT_BY);
-  const [chapterTargetInput, setChapterTargetInput] = useState(DEFAULT_CHAPTER_TARGET);
+  const [chapterTargetInput, setChapterTargetInput] = useState(
+    DEFAULT_CHAPTER_TARGET,
+  );
   const [sortDirectionInput, setSortDirectionInput] = useState(
     DEFAULT_SORT_DIRECTION,
   );
@@ -397,7 +415,9 @@ function SearchPage() {
   const scrollResultsToTop = useCallback((behavior = 'smooth') => {
     if (typeof window === 'undefined') return;
     const anchorTop =
-      (resultsAnchorRef.current?.getBoundingClientRect().top || 0) + window.scrollY - 14;
+      (resultsAnchorRef.current?.getBoundingClientRect().top || 0) +
+      window.scrollY -
+      14;
     window.scrollTo({ top: Math.max(0, anchorTop), behavior });
   }, []);
 
@@ -424,7 +444,9 @@ function SearchPage() {
       if (width <= 1024) return 4;
       return Math.max(
         1,
-        Math.floor((width + SEARCH_GRID_GAP) / (SEARCH_CARD_MIN_WIDTH + SEARCH_GRID_GAP)),
+        Math.floor(
+          (width + SEARCH_GRID_GAP) / (SEARCH_CARD_MIN_WIDTH + SEARCH_GRID_GAP),
+        ),
       );
     };
 
@@ -449,7 +471,9 @@ function SearchPage() {
     const author = searchParams.get('author') || '';
     const completionStatus = searchParams.get('completionStatus') || 'all';
     const kind = searchParams.get('kind') || 'all';
-    const chapterTarget = normalizeChapterTarget(searchParams.get('chapterCount') || 0);
+    const chapterTarget = normalizeChapterTarget(
+      searchParams.get('chapterCount') || 0,
+    );
     const rawTagIds = parseTagIdsCsv(searchParams.get('tagIds') || '');
     const rawExcludedTagIds = parseTagIdsCsv(
       searchParams.get('excludeTagIds') || '',
@@ -563,7 +587,9 @@ function SearchPage() {
   );
 
   const activeSortOption = useMemo(
-    () => SORT_OPTIONS.find((item) => item.value === sortByInput) || SORT_OPTIONS[0],
+    () =>
+      SORT_OPTIONS.find((item) => item.value === sortByInput) ||
+      SORT_OPTIONS[0],
     [sortByInput],
   );
 
@@ -632,8 +658,13 @@ function SearchPage() {
   const filteredStories = useMemo(() => {
     if (!appliedChapterRange.isActive) return stories;
     return stories.filter((story) => {
-      const chapterCount = Number(chapterMetaByStoryId[story?.id]?.chapterCount || 0);
-      return chapterCount >= appliedChapterRange.min && chapterCount <= appliedChapterRange.max;
+      const chapterCount = Number(
+        chapterMetaByStoryId[story?.id]?.chapterCount || 0,
+      );
+      return (
+        chapterCount >= appliedChapterRange.min &&
+        chapterCount <= appliedChapterRange.max
+      );
     });
   }, [appliedChapterRange, chapterMetaByStoryId, stories]);
 
@@ -854,7 +885,10 @@ function SearchPage() {
                             : 'Chưa chọn tag này'
                       }
                     >
-                      <span className='search-page__tag-indicator' aria-hidden='true'>
+                      <span
+                        className='search-page__tag-indicator'
+                        aria-hidden='true'
+                      >
                         {isIncluded ? (
                           <Check size={14} />
                         ) : isExcluded ? (
@@ -870,7 +904,9 @@ function SearchPage() {
               <div className='search-page__chapter-filter'>
                 <div className='search-page__chapter-filter-head'>
                   <div>
-                    <p className='search-page__chapter-filter-label'>{SEARCH_CHAPTER_LABEL}</p>
+                    <p className='search-page__chapter-filter-label'>
+                      {SEARCH_CHAPTER_LABEL}
+                    </p>
                     <p className='search-page__chapter-filter-hint'>
                       {chapterTargetInput > 0
                         ? `${formatNumber(inputChapterRange.min)} - ${formatNumber(inputChapterRange.max)} chương`
@@ -921,7 +957,10 @@ function SearchPage() {
                   />
                 </div>
 
-                <div className='search-page__chapter-slider-scale' aria-hidden='true'>
+                <div
+                  className='search-page__chapter-slider-scale'
+                  aria-hidden='true'
+                >
                   <span>0</span>
                   <span>{formatNumber(chapterSliderMax)}</span>
                 </div>
@@ -938,7 +977,9 @@ function SearchPage() {
           </p>
           {!loading && sortedStories.length > 0 && (
             <div className='search-page__result-sort'>
-              <span>{SORT_LABELS[activeSortOption.value] || activeSortOption.label}</span>
+              <span>
+                {SORT_LABELS[activeSortOption.value] || activeSortOption.label}
+              </span>
               <button
                 type='button'
                 className={`search-page__sort-direction ${!sortUsesDirection ? 'is-hidden' : ''}`.trim()}
@@ -967,7 +1008,7 @@ function SearchPage() {
 
         {!loading && !hasAppliedSearchCriteria && (
           <div className='search-page__empty'>
-            Nhap tu khoa hoac chon bo loc phu hop truoc khi tim kiem.
+            Bắt đầu nhập từ khóa để tìm kiếm ...
           </div>
         )}
 
@@ -981,81 +1022,83 @@ function SearchPage() {
           <div className='search-page__results-shell'>
             <div className='home-story-grid search-page__results-grid'>
               {currentPageStories.map((story) => {
-              const meta = chapterMetaByStoryId[story.id] || {};
-              const categoryTag = getStoryCategory(story);
-              const statusInfo = getStoryStatusInfo(story);
-              const authorName =
-                story.authorPenName || story.authorName || 'Chưa có bút danh';
-              return (
-                <article key={story.id} className='home-story-card'>
-                  <Link
-                    to={`/stories/${story.id}/metadata`}
-                    className='home-story-card__link'
-                  >
-                    <div className='home-story-card__cover'>
-                      {story.coverUrl ? (
-                        <img src={story.coverUrl} alt={story.title} />
-                      ) : (
-                        <div className='home-story-card__cover-empty'>No cover</div>
-                      )}
-                      <div className='home-story-card__overlay'>
-                        <p className='home-story-card__chapter'>
-                          {meta.latestChapterLabel || 'Chưa có chương'}
-                        </p>
-                        <p className='home-story-card__volume'>
-                          {meta.latestVolumeLabel || 'Chưa có tập'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className='home-story-card__content'>
-                      <h3 className='home-story-card__title'>{story.title}</h3>
-
-                      <div className='home-story-card__meta'>
-                        <span className='home-story-card__author'>{authorName}</span>
-                        {categoryTag && (
-                          <span className='home-story-card__category'>
-                            {categoryTag.name}
-                          </span>
+                const meta = chapterMetaByStoryId[story.id] || {};
+                const categoryTag = getStoryCategory(story);
+                const statusInfo = getStoryStatusInfo(story);
+                const authorName =
+                  story.authorPenName || story.authorName || 'Chưa có bút danh';
+                return (
+                  <article key={story.id} className='home-story-card'>
+                    <Link
+                      to={`/stories/${story.id}/metadata`}
+                      className='home-story-card__link'
+                    >
+                      <div className='home-story-card__cover'>
+                        {story.coverUrl ? (
+                          <img src={story.coverUrl} alt={story.title} />
+                        ) : (
+                          <div className='home-story-card__cover-empty'>
+                            No cover
+                          </div>
                         )}
+                        <div className='home-story-card__overlay'>
+                          <p className='home-story-card__chapter'>
+                            {meta.latestChapterLabel || 'Chưa có chương'}
+                          </p>
+                          <p className='home-story-card__volume'>
+                            {meta.latestVolumeLabel || 'Chưa có tập'}
+                          </p>
+                        </div>
                       </div>
 
-                      <p className='home-story-card__summary'>
-                        {getSummary(story, 90)}
-                      </p>
+                      <div className='home-story-card__content'>
+                        <h3 className='home-story-card__title'>
+                          {story.title}
+                        </h3>
 
-                      <div className='home-story-card__stats'>
-                        <span className='home-story-card__stat home-story-card__stat--rating'>
-                          <Star size={14} fill='currentColor' />
-                          {formatRating(story.ratingAvg)}
-                        </span>
-                        <span className='home-story-card__stat'>
-                          <Eye size={14} />
-                          {formatNumber(story.readerCount || 0)}
-                        </span>
-                        <span className='home-story-card__stat'>
-                          <Bookmark size={14} />
-                          {formatNumber(story.savedCount || 0)}
-                        </span>
-                        <span className='home-story-card__stat'>
-                          <BookOpen size={14} />
-                          {formatNumber(meta.chapterCount || 0)}
-                        </span>
-                      </div>
+                        <div className='home-story-card__meta'>
+                          <span className='home-story-card__author'>
+                            {authorName}
+                          </span>
+                          {categoryTag && (
+                            <span className='home-story-card__category'>
+                              {categoryTag.name}
+                            </span>
+                          )}
+                        </div>
 
-                      <div className='home-story-card__footer'>
-                        <span
-                          className={`home-story-card__status ${statusInfo.className}`}
-                        >
-                          <span className='home-story-card__status-dot' />
-                          {statusInfo.label}
-                        </span>
+                        <div className='home-story-card__stats'>
+                          <span className='home-story-card__stat home-story-card__stat--rating'>
+                            <Star size={14} fill='currentColor' />
+                            {formatRating(story.ratingAvg)}
+                          </span>
+                          <span className='home-story-card__stat'>
+                            <Eye size={14} />
+                            {formatNumber(story.readerCount || 0)}
+                          </span>
+                          <span className='home-story-card__stat'>
+                            <Bookmark size={14} />
+                            {formatNumber(story.savedCount || 0)}
+                          </span>
+                          <span className='home-story-card__stat'>
+                            <BookOpen size={14} />
+                            {formatNumber(meta.chapterCount || 0)}
+                          </span>
+                        </div>
+
+                        <div className='home-story-card__footer'>
+                          <span
+                            className={`home-story-card__status ${statusInfo.className}`}
+                          >
+                            <span className='home-story-card__status-dot' />
+                            {statusInfo.label}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                </article>
-              );
-            })}
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
             {totalPages > 1 && (
               <div className='search-page__pagination'>
@@ -1100,4 +1143,3 @@ function SearchPage() {
 }
 
 export default SearchPage;
-

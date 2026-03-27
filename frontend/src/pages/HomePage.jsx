@@ -538,6 +538,10 @@ function HomePage() {
         const publicStories = Array.isArray(response) ? response : [];
         const eligibleStories = filterStoriesWithChapters(publicStories);
         setAllPublicStories(eligibleStories);
+        const { viewRankingList, savedRankingList } =
+          buildDeferredSections(eligibleStories);
+        setViewRankingStories(viewRankingList);
+        setSavedRankingStories(savedRankingList);
         const sortedByUpdated = [...eligibleStories].sort(
           (a, b) =>
             toEpoch(b?.lastUpdatedAt || b?.createdAt) -
@@ -838,10 +842,6 @@ function HomePage() {
                   )}
                 </div>
 
-                <p className='home-story-card__summary'>
-                  {getSummary(story, 90)}
-                </p>
-
                 <div className='home-story-card__stats'>
                   <span className='home-story-card__stat home-story-card__stat--rating'>
                     <Star size={14} fill='currentColor' />
@@ -888,7 +888,6 @@ function HomePage() {
           <div className='home-story-card__body home-story-card__body--skeleton'>
             <SkeletonBlock className='home-story-card__line home-story-card__line--title' />
             <SkeletonBlock className='home-story-card__line home-story-card__line--meta' />
-            <SkeletonBlock className='home-story-card__line home-story-card__line--meta short' />
             <div className='home-story-card__stats home-story-card__stats--skeleton'>
               {Array.from({ length: 4 }, (_, statIndex) => (
                 <SkeletonBlock
@@ -1412,7 +1411,27 @@ function HomePage() {
                       </h2>
                     </div>
                     <ol className='home-ranking__list'>
-                      {renderRankingSkeletonItems(HOME_SKELETON_RANK_COUNT)}
+                      {viewRankingStories.length === 0 ? (
+                        <p className='home-ranking__empty'>
+                          Chưa có dữ liệu lượt xem.
+                        </p>
+                      ) : (
+                        viewRankingStories.map((story, idx) => (
+                          <li key={story.id}>
+                            <span className='home-ranking__index'>
+                              {String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <div className='home-ranking__story'>
+                              <Link to={`/stories/${story.id}/metadata`}>
+                                {story.title}
+                              </Link>
+                              <small>
+                                {formatNumber(story.readerCount || 0)} lượt xem
+                              </small>
+                            </div>
+                          </li>
+                        ))
+                      )}
                     </ol>
                   </section>
 
@@ -1427,7 +1446,27 @@ function HomePage() {
                       </h2>
                     </div>
                     <ol className='home-ranking__list'>
-                      {renderRankingSkeletonItems(HOME_SKELETON_RANK_COUNT)}
+                      {savedRankingStories.length === 0 ? (
+                        <p className='home-ranking__empty'>
+                          Chưa có dữ liệu lượt lưu.
+                        </p>
+                      ) : (
+                        savedRankingStories.map((story, idx) => (
+                          <li key={story.id}>
+                            <span className='home-ranking__index'>
+                              {String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <div className='home-ranking__story'>
+                              <Link to={`/stories/${story.id}/metadata`}>
+                                {story.title}
+                              </Link>
+                              <small>
+                                {formatNumber(story.savedCount || 0)} lượt lưu
+                              </small>
+                            </div>
+                          </li>
+                        ))
+                      )}
                     </ol>
                   </section>
 

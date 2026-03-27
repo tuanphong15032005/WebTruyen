@@ -14,7 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  Heart,
   Home,
   Lock,
   Send,
@@ -1012,7 +1011,6 @@ const ChapterPage = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [selectedSegmentId, setSelectedSegmentId] = useState(null);
-  const [liked, setLiked] = useState(false);
 
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
@@ -1772,7 +1770,13 @@ const ChapterPage = () => {
               })}
             </section>
 
-            <div className='chapter-navigation'>
+            <div
+              className='chapter-navigation'
+              style={{
+                '--chapter-nav-surface': settings.bgColor,
+                '--chapter-nav-text': settings.textColor,
+              }}
+            >
               <button
                 className='nav-btn'
                 onClick={() =>
@@ -1783,7 +1787,7 @@ const ChapterPage = () => {
                 <ChevronLeft size={18} />
                 Chương trước
               </button>
-              <button
+              <button 
                 className='nav-btn'
                 onClick={() => nextChapterId && gotoChapter(nextChapterId)}
                 disabled={!nextChapterId}
@@ -1795,13 +1799,6 @@ const ChapterPage = () => {
 
             <div className='interaction-bar'>
               <button
-                className={`interaction-btn ${liked ? 'liked' : ''}`}
-                onClick={() => setLiked((prev) => !prev)}
-              >
-                <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
-                {liked ? 'Đã thích' : 'Thả tim'}
-              </button>
-              <button 
                 className='interaction-btn'
                 onClick={() => {
                   if (storyId && chapterIdParam) {
