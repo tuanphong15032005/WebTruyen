@@ -43,10 +43,6 @@ public class AuthController {
         try {
             UserEntity user = authService.authenticate(request.getUsername(), request.getPassword());
 
-            if (!user.isVerified()) {
-                return ResponseEntity.badRequest().body("Please verify your email before logging in.");
-            }
-
             String token = tokenProvider.generateToken(user.getId(), user.getUsername());
 
             LoginResponse response = new LoginResponse(
@@ -81,7 +77,8 @@ public class AuthController {
                 request.getUsername(),
                 request.getEmail(),
                 request.getPassword(),
-                request.getDisplayName()
+                request.getDisplayName(),
+                false
             );
 
             // Initialize achievement progress for new user
@@ -94,7 +91,10 @@ public class AuthController {
 
             authService.sendOtp(request.getEmail());
 
-            return ResponseEntity.ok("Registration successful! Please check your email for OTP verification.");
+            return ResponseEntity.ok(Map.of(
+                "message", "Registration successful! Please check your email for OTP verification.",
+                "username", newUser.getUsername()
+            ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

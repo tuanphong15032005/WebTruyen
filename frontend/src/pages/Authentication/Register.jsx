@@ -87,6 +87,9 @@ function Register() {
         if (!formData.username.trim()) {
             newErrors.username = 'Vui lòng nhập tên đăng nhập';
             isValid = false;
+        } else if (formData.username.includes('@')) {
+            newErrors.username = 'Tên đăng nhập không được chứa ký tự @. Vui lòng chỉ nhập tên đăng nhập (ví dụ: user123)';
+            isValid = false;
         } else if (formData.username.length < 3) {
             newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự';
             isValid = false;
@@ -111,8 +114,8 @@ function Register() {
         if (!formData.password) {
             newErrors.password = 'Vui lòng nhập mật khẩu';
             isValid = false;
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+        } else if (formData.password.length < 8) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
             isValid = false;
         }
 
@@ -171,15 +174,16 @@ function Register() {
                 body: JSON.stringify(payload),
             });
 
-            const text = await response.text();
+            const data = await response.json();
 
             if (response.ok) {
-                setMessage('Đăng ký thành công! Đang chuyển hướng...');
+                const finalUsername = data.username || formData.username;
+                setMessage(`Đăng ký thành công! Tên đăng nhập của bạn: ${finalUsername}. Đang chuyển hướng...`);
                 setTimeout(() => {
-                    navigate('/verify', { state: { email: formData.email } });
-                }, 1000);
+                    navigate('/verify', { state: { email: formData.email, username: finalUsername } });
+                }, 2000);
             } else {
-                setMessage(text || 'Đăng ký thất bại. Vui lòng thử lại.');
+                setMessage(data.message || data || 'Đăng ký thất bại. Vui lòng thử lại.');
             }
         } catch (error) {
             console.error('Register error:', error);

@@ -463,14 +463,18 @@ public class WalletService {
 
             BigDecimal feeValue = rule.getFeeValue();
             switch (rule.getFeeType()) {
-                case PERCENT -> {
+                case PERCENT:
                     BigDecimal amount = BigDecimal.valueOf(amountB);
                     feeCoinB = amount.multiply(feeValue)
                             .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP)
                             .longValue();
-                }
-                case FIXED -> feeCoinB = feeValue.longValue();
-                default -> feeCoinB = 0L;
+                    break;
+                case FIXED:
+                    feeCoinB = feeValue.longValue();
+                    break;
+                default:
+                    feeCoinB = 0L;
+                    break;
             }
         } else {
             // Fallback: phí 5%
@@ -806,33 +810,45 @@ public class WalletService {
         if (entry == null || entry.getReason() == null || entry.getDelta() == null) {
             return false;
         }
-        return switch (entry.getReason()) {
-            case TOPUP -> entry.getDelta() > 0;
-            case SPEND_CHAPTER, DONATE -> entry.getDelta() < 0;
-            default -> false;
-        };
+        switch (entry.getReason()) {
+            case TOPUP:
+                return entry.getDelta() > 0;
+            case SPEND_CHAPTER:
+            case DONATE:
+                return entry.getDelta() < 0;
+            default:
+                return false;
+        }
     }
 
     private String resolveTransactionTypeLabel(LedgerEntryEntity entry) {
         if (entry == null || entry.getReason() == null) {
             return "Thanh toán khác";
         }
-        return switch (entry.getReason()) {
-            case TOPUP -> "Nạp Coin";
-            case SPEND_CHAPTER -> "Mua chương";
-            case DONATE -> "Donate";
-            default -> "Thanh toán khác";
-        };
+        switch (entry.getReason()) {
+            case TOPUP:
+                return "Nạp Coin";
+            case SPEND_CHAPTER:
+                return "Mua chương";
+            case DONATE:
+                return "Donate";
+            default:
+                return "Thanh toán khác";
+        }
     }
 
     private String resolveTransactionDescription(LedgerEntryEntity entry) {
         String refType = entry.getRefType() == null ? "" : entry.getRefType();
-        return switch (entry.getReason()) {
-            case TOPUP -> "Nạp kim cương vào ví";
-            case SPEND_CHAPTER -> "Thanh toán mở khóa chương truyện";
-            case DONATE -> "Ủng hộ tác giả";
-            default -> "Giao dịch " + refType;
-        };
+        switch (entry.getReason()) {
+            case TOPUP:
+                return "Nạp kim cương vào ví";
+            case SPEND_CHAPTER:
+                return "Thanh toán mở khóa chương truyện";
+            case DONATE:
+                return "Ủng hộ tác giả";
+            default:
+                return "Giao dịch " + refType;
+        }
     }
 
     // MinhHQ – ngày 16/03/2026
@@ -1128,25 +1144,55 @@ public class WalletService {
         walletRepository.save(wallet);
 
         // 4. Ghi ledger entry (lịch sử giao dịch) với refType phù hợp
-        String refType = switch (reason) {
-            case TOPUP -> "TOPUP";
-            case DONATE -> "DONATION";
-            case WITHDRAW -> "WITHDRAW";
-            case SPEND_CHAPTER -> "CHAPTER";
-            case ADJUST -> "ADJUST";
-            case REVIEW_REWARD -> "REVIEW_REWARD";
-            default -> "OTHER";
-        };
+        String refType;
+        switch (reason) {
+            case TOPUP:
+                refType = "TOPUP";
+                break;
+            case DONATE:
+                refType = "DONATION";
+                break;
+            case WITHDRAW:
+                refType = "WITHDRAW";
+                break;
+            case SPEND_CHAPTER:
+                refType = "CHAPTER";
+                break;
+            case ADJUST:
+                refType = "ADJUST";
+                break;
+            case REVIEW_REWARD:
+                refType = "REVIEW_REWARD";
+                break;
+            default:
+                refType = "OTHER";
+                break;
+        }
 
-        String description = switch (reason) {
-            case TOPUP -> "Nạp tiền";
-            case DONATE -> "Nhận donation";
-            case WITHDRAW -> "Rút tiền";
-            case SPEND_CHAPTER -> "Mua chương";
-            case ADJUST -> "ADJUST";
-            case REVIEW_REWARD -> "Thưởng review";
-            default -> "Giao dịch khác";
-        };
+        String description;
+        switch (reason) {
+            case TOPUP:
+                description = "Nạp tiền";
+                break;
+            case DONATE:
+                description = "Nhận donation";
+                break;
+            case WITHDRAW:
+                description = "Rút tiền";
+                break;
+            case SPEND_CHAPTER:
+                description = "Mua chương";
+                break;
+            case ADJUST:
+                description = "ADJUST";
+                break;
+            case REVIEW_REWARD:
+                description = "Thưởng review";
+                break;
+            default:
+                description = "Giao dịch khác";
+                break;
+        }
         
         createLedgerEntry(user.getId(), CoinType.B, amount, reason, 
             refType, description, idempotencyKey);

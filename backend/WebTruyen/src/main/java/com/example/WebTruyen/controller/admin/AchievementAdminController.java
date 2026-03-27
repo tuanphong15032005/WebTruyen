@@ -9,9 +9,11 @@ import com.example.WebTruyen.entity.model.Gamification.AchievementTierEntity;
 import com.example.WebTruyen.service.AchievementAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 import java.util.Arrays;
@@ -86,16 +88,26 @@ public class AchievementAdminController {
     public ResponseEntity<AchievementTierEntity> updateTier(
             @PathVariable Integer tierId,
             @Valid @RequestBody AchievementTierUpdateRequest updateDto) {
-        log.info("Admin updating tier with id: {}", tierId);
-        AchievementTierEntity updated = achievementAdminService.updateTier(tierId, updateDto);
-        return ResponseEntity.ok(updated);
+        try {
+            log.info("Admin updating tier with id: {}", tierId);
+            AchievementTierEntity updated = achievementAdminService.updateTier(tierId, updateDto);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            log.error("Error updating tier {}: {}", tierId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @DeleteMapping("/tiers/{tierId}")
     public ResponseEntity<Void> deleteTier(@PathVariable Integer tierId) {
-        log.info("Admin deleting tier with id: {}", tierId);
-        achievementAdminService.deleteTier(tierId);
-        return ResponseEntity.noContent().build();
+        try {
+            log.info("Admin deleting tier with id: {}", tierId);
+            achievementAdminService.deleteTier(tierId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            log.error("Error deleting tier {}: {}", tierId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     // Batch operations
@@ -114,5 +126,21 @@ public class AchievementAdminController {
         log.info("Admin requesting achievement statistics");
         var stats = achievementAdminService.getAchievementStats();
         return ResponseEntity.ok(stats);
+    }
+
+    // Check achievement edit/delete restrictions
+    @GetMapping("/{achievementId}/restrictions")
+    public ResponseEntity<?> getAchievementRestrictions(@PathVariable Integer achievementId) {
+        log.info("Admin requesting restrictions for achievement: {}", achievementId);
+        var restrictions = achievementAdminService.getAchievementRestrictions(achievementId);
+        return ResponseEntity.ok(restrictions);
+    }
+
+    // Check tier edit/delete restrictions
+    @GetMapping("/tiers/{tierId}/restrictions")
+    public ResponseEntity<?> getTierRestrictions(@PathVariable Integer tierId) {
+        log.info("Admin requesting restrictions for tier: {}", tierId);
+        var restrictions = achievementAdminService.getTierRestrictions(tierId);
+        return ResponseEntity.ok(restrictions);
     }
 }

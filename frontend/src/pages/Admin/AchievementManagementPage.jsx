@@ -14,7 +14,8 @@ import {
   Settings,
   Save,
   X,
-  Search
+  Search,
+  Lock
 } from 'lucide-react';
 
 const AchievementManagementPage = () => {
@@ -30,6 +31,9 @@ const AchievementManagementPage = () => {
   const [editingTier, setEditingTier] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState(null); // 'active', 'inactive', or null
+  const [tierRestrictions, setTierRestrictions] = useState({});
+  const [achievementRestrictions, setAchievementRestrictions] = useState({});
+  const [loadingRestrictions, setLoadingRestrictions] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     title: '',
@@ -74,6 +78,21 @@ const AchievementManagementPage = () => {
       setAchievements(Array.isArray(achievementsData) ? achievementsData : []);
       setStats(statsData);
       
+      // Fetch restrictions for all achievements
+      const restrictionsPromises = achievementsData.map(async (achievement) => {
+        try {
+          const restriction = await adminAchievementApi.getAchievementRestrictions(achievement.id);
+          return { [achievement.id]: restriction };
+        } catch (error) {
+          console.error(`Error fetching restrictions for achievement ${achievement.id}:`, error);
+          return { [achievement.id]: { canEdit: true, canDelete: true } };
+        }
+      });
+      
+      const restrictionsResults = await Promise.all(restrictionsPromises);
+      const newAchievementRestrictions = restrictionsResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      setAchievementRestrictions(newAchievementRestrictions);
+      
       // Update selectedAchievement with fresh data if it exists
       if (selectedAchievement) {
         const updatedAchievement = achievementsData.find(a => a.id === selectedAchievement.id);
@@ -99,12 +118,31 @@ const AchievementManagementPage = () => {
 
   const fetchTiersForAchievement = async (achievementId) => {
     try {
+      setLoadingRestrictions(true);
       const tiersData = await adminAchievementApi.getTiersByAchievement(achievementId);
       setTiers(Array.isArray(tiersData) ? tiersData : []);
+      
+      // Fetch restrictions for each tier
+      const restrictionsPromises = tiersData.map(async (tier) => {
+        try {
+          const restriction = await adminAchievementApi.getTierRestrictions(tier.id);
+          return { [tier.id]: restriction };
+        } catch (error) {
+          console.error(`Error fetching restrictions for tier ${tier.id}:`, error);
+          return { [tier.id]: { canEdit: true, canDelete: true } };
+        }
+      });
+      
+      const restrictionsResults = await Promise.all(restrictionsPromises);
+      const newRestrictions = restrictionsResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      setTierRestrictions(newRestrictions);
     } catch (error) {
       console.error('Error fetching tiers:', error);
       notify('Lỗi tải tiers', 'error');
       setTiers([]);
+      setTierRestrictions({});
+    } finally {
+      setLoadingRestrictions(false);
     }
   };
 
@@ -113,6 +151,7 @@ const AchievementManagementPage = () => {
     if (selectedAchievement && selectedAchievement.id === achievement.id) {
       setSelectedAchievement(null);
       setTiers([]);
+      setTierRestrictions({});
       return;
     }
     
@@ -161,6 +200,13 @@ const AchievementManagementPage = () => {
   };
 
   const handleDeleteAchievement = async (id) => {
+    // Check if achievement can be deleted
+    const restrictions = achievementRestrictions[id];
+    if (restrictions && !restrictions.canDelete) {
+      notify(restrictions.reason || 'Không thể xóa thành tựu này', 'error');
+      return;
+    }
+    
     setConfirmModal({
       isOpen: true,
       title: 'Xác nhận xóa',
@@ -204,11 +250,20 @@ const AchievementManagementPage = () => {
       await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error updating tier:', error);
-      notify(error.response?.data?.message || 'Lỗi cập nhật tier', 'error');
+      // Hiển thị thông báo lỗi cụ thể từ backend
+      const errorMessage = error.response?.data?.message || error.message || 'Lỗi cập nhật tier';
+      notify(errorMessage, 'error');
     }
   };
 
   const handleDeleteTier = async (tierId) => {
+    // Check if tier can be deleted
+    const restrictions = tierRestrictions[tierId];
+    if (restrictions && !restrictions.canDelete) {
+      notify(restrictions.reason || 'Không thể xóa tier này', 'error');
+      return;
+    }
+    
     setConfirmModal({
       isOpen: true,
       title: 'Xác nhận xóa',
@@ -225,7 +280,9 @@ const AchievementManagementPage = () => {
       await fetchTiersForAchievement(selectedAchievement.id); // Refresh tiers
     } catch (error) {
       console.error('Error deleting tier:', error);
-      notify('Lỗi xóa tier', 'error');
+      // Hiển thị thông báo lỗi cụ thể từ backend
+      const errorMessage = error.response?.data?.message || error.message || 'Lỗi xóa tier';
+      notify(errorMessage, 'error');
     }
     setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, type: '' });
   };
@@ -265,6 +322,13 @@ const AchievementManagementPage = () => {
   };
 
   const openEditTier = (tier) => {
+    // Check if tier can be edited
+    const restrictions = tierRestrictions[tier.id];
+    if (restrictions && !restrictions.canEdit) {
+      notify(restrictions.reason || 'Không thể sửa tier này', 'error');
+      return;
+    }
+    
     setEditingTier(tier);
     setTierForm({
       tierLevel: tier.tierLevel,
@@ -328,38 +392,7 @@ const AchievementManagementPage = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Tổng thành tựu</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.totalAchievements}</p>
-              </div>
-              <Trophy className="text-blue-600 sm:w-6 sm:h-6" size={20} />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Đang hoạt động</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.activeAchievements}</p>
-              </div>
-              <Target className="text-green-600 sm:w-6 sm:h-6" size={20} />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Không hoạt động</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-600">{stats.inactiveAchievements || 0}</p>
-              </div>
-              <BarChart3 className="text-gray-600 sm:w-6 sm:h-6" size={20} />
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Achievements List */}
@@ -437,10 +470,19 @@ const AchievementManagementPage = () => {
                       </button>
                       <button
                         onClick={() => handleDeleteAchievement(achievement.id)}
-                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded"
-                        title="Xóa"
+                        className={`p-1.5 sm:p-2 rounded transition-colors flex items-center gap-1 ${
+                          achievementRestrictions[achievement.id]?.canDelete
+                            ? 'text-red-600 hover:bg-red-50'
+                            : 'text-gray-400 cursor-not-allowed'
+                        }`}
+                        title={achievementRestrictions[achievement.id]?.canDelete ? 'Xóa' : achievementRestrictions[achievement.id]?.reason || 'Không thể xóa'}
+                        disabled={!achievementRestrictions[achievement.id]?.canDelete}
                       >
-                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                        {achievementRestrictions[achievement.id]?.canDelete ? (
+                          <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                        ) : (
+                          <Lock size={14} className="sm:w-4 sm:h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -475,8 +517,15 @@ const AchievementManagementPage = () => {
           </div>
           {selectedAchievement ? (
             <div className="divide-y max-h-96 overflow-y-auto">
-              {tiers && tiers.length > 0 ? (
-                tiers.map((tier) => (
+              {/* Information banner */}
+              <div className="p-3 bg-blue-50 border-b">
+                <p className="text-sm text-blue-800">
+                  <strong>Lưu ý:</strong> Tier sẽ bị vô hiệu hóa sửa/xóa khi có người dùng đã đạt đến mức yêu cầu của tier đó hoặc đã nhận thưởng. Các tier cao hơn vẫn có thể sửa/xóa bình thường.
+                </p>
+              </div>
+              <div className="divide-y">
+                {tiers && tiers.length > 0 ? (
+                  tiers.map((tier) => (
                   <div key={tier.id} className="p-3 sm:p-4">
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
@@ -495,23 +544,64 @@ const AchievementManagementPage = () => {
                         <div className="flex items-center gap-2 sm:gap-4 mt-2 text-sm text-gray-500 flex-wrap">
                           <span>Yêu cầu: {tier.requirement}</span>
                           <span>Thưởng: {tier.rewardCoin} coin {tier.rewardCoinType}</span>
+                          {tierRestrictions[tier.id]?.usersReachedThisTier > 0 && (
+                            <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                              {tierRestrictions[tier.id].usersReachedThisTier} người dùng đã đạt
+                            </span>
+                          )}
+                          {tierRestrictions[tier.id]?.hasClaims && (
+                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                              Đã có người nhận
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => openEditTier(tier)}
-                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded"
-                          title="Sửa"
-                        >
-                          <Edit size={14} className="sm:w-4 sm:h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTier(tier.id)}
-                          className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded"
-                          title="Xóa"
-                        >
-                          <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                        </button>
+                        {loadingRestrictions ? (
+                          <>
+                            <div className="p-1.5 sm:p-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            </div>
+                            <div className="p-1.5 sm:p-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => openEditTier(tier)}
+                              className={`p-1.5 sm:p-2 rounded transition-colors flex items-center gap-1 ${
+                                tierRestrictions[tier.id]?.canEdit
+                                  ? 'text-blue-600 hover:bg-blue-50'
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
+                              title={tierRestrictions[tier.id]?.canEdit ? 'Sửa' : tierRestrictions[tier.id]?.reason || 'Không thể sửa'}
+                              disabled={!tierRestrictions[tier.id]?.canEdit}
+                            >
+                              {tierRestrictions[tier.id]?.canEdit ? (
+                                <Edit size={14} className="sm:w-4 sm:h-4" />
+                              ) : (
+                                <Lock size={14} className="sm:w-4 sm:h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTier(tier.id)}
+                              className={`p-1.5 sm:p-2 rounded transition-colors flex items-center gap-1 ${
+                                tierRestrictions[tier.id]?.canDelete
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
+                              title={tierRestrictions[tier.id]?.canDelete ? 'Xóa' : tierRestrictions[tier.id]?.reason || 'Không thể xóa'}
+                              disabled={!tierRestrictions[tier.id]?.canDelete}
+                            >
+                              {tierRestrictions[tier.id]?.canDelete ? (
+                                <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                              ) : (
+                                <Lock size={14} className="sm:w-4 sm:h-4" />
+                              )}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -522,6 +612,7 @@ const AchievementManagementPage = () => {
                   <p>Chưa có tier nào cho thành tựu này</p>
                 </div>
               )}
+              </div>
             </div>
           ) : (
             <div className="p-6 sm:p-8 text-center text-gray-500">
@@ -546,9 +637,15 @@ const AchievementManagementPage = () => {
                   type="text"
                   value={achievementForm.code}
                   onChange={(e) => setAchievementForm({...achievementForm, code: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    editingAchievement ? 'bg-gray-100 border-gray-300' : 'border-gray-300'
+                  }`}
                   placeholder="VD: READ_CHAPTERS"
+                  disabled={editingAchievement}
                 />
+                {editingAchievement && (
+                  <p className="text-xs text-gray-500 mt-1">Code không thể thay đổi khi chỉnh sửa</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
@@ -575,13 +672,19 @@ const AchievementManagementPage = () => {
                 <select
                   value={achievementForm.category}
                   onChange={(e) => setAchievementForm({...achievementForm, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    editingAchievement ? 'bg-gray-100 border-gray-300' : 'border-gray-300'
+                  }`}
+                  disabled={editingAchievement}
                 >
                   <option value="READING">Đọc truyện</option>
                   <option value="COMMENTING">Bình luận</option>
                   <option value="WRITING">Viết truyện</option>
                   <option value="SOCIAL">Xã hội</option>
                 </select>
+                {editingAchievement && (
+                  <p className="text-xs text-gray-500 mt-1">Category không thể thay đổi khi chỉnh sửa</p>
+                )}
               </div>
               <div className="flex items-center">
                 <input
