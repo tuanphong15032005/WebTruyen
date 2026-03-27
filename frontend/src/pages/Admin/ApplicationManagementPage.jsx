@@ -71,11 +71,19 @@ function ApplicationManagementPage() {
 
   const handleViewApplication = async (application) => {
     try {
+      const resolvedApplicationId =
+        activeTab === 'author'
+          ? (application?.userId ?? application?.id)
+          : (application?.id ?? application?.userId);
+
       // Set initial data immediately
-      setSelectedApplication(application);
+      setSelectedApplication({
+        ...application,
+        id: application?.id ?? resolvedApplicationId
+      });
       
       // Get user details
-      const userDetailsData = await applicationAdminApi.getUserDetails(application.id, activeTab);
+      const userDetailsData = await applicationAdminApi.getUserDetails(resolvedApplicationId, activeTab);
       setUserDetails(userDetailsData);
       
       // Try to get original data as well
@@ -581,7 +589,13 @@ function ApplicationManagementPage() {
                     <h3>Link xem portfolio user</h3>
                     <div className="profile-link">
                       <a 
-                        href={`/portfolio/username/${userDetails?.username}`}
+                        href={
+                          (userDetails?.userId ?? userDetails?.id)
+                            ? `/portfolio/${userDetails.userId ?? userDetails.id}`
+                            : userDetails?.username
+                              ? `/portfolio/username/${encodeURIComponent(userDetails.username)}`
+                              : '#'
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="profile-link-button"
