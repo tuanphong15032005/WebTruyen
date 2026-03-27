@@ -287,6 +287,8 @@ public class WalletService {
                 .chapter(chapter)
                 .paidCoin(deductFromA > 0 ? CoinType.A : CoinType.B)
                 .coinCost(actualChapterPrice)
+                .spentCoinA(deductFromA)
+                .spentCoinB(deductFromB)
                 .holdUntil(holdUntil)
                 .settledAt(null)
                 .createdAt(now)
@@ -306,12 +308,12 @@ public class WalletService {
         
         // Create ledger entries for the transaction
         if (deductFromA > 0) {
-            createLedgerEntry(userId, CoinType.A, -deductFromA, LedgerReason.SPEND_CHAPTER, 
-                "CHAPTER", "Mua chương " + chapter.getTitle());
+            createLedgerEntry(userId, CoinType.A, -deductFromA, LedgerReason.SPEND_CHAPTER,
+                "CHAPTER", savedUnlock.getId(), "Mua chương " + chapter.getTitle());
         }
         if (deductFromB > 0) {
-            createLedgerEntry(userId, CoinType.B, -deductFromB, LedgerReason.SPEND_CHAPTER, 
-                "CHAPTER", "Mua chương " + chapter.getTitle());
+            createLedgerEntry(userId, CoinType.B, -deductFromB, LedgerReason.SPEND_CHAPTER,
+                "CHAPTER", savedUnlock.getId(), "Mua chương " + chapter.getTitle());
         }
         
         // Return response
@@ -1056,7 +1058,17 @@ public class WalletService {
     }
 
     private void createLedgerEntry(Long userId, CoinType coinType, Long delta,
+                                  LedgerReason reason, String refType, Long refId, String description) {
+        createLedgerEntry(userId, coinType, delta, reason, refType, refId, description, null);
+    }
+
+    private void createLedgerEntry(Long userId, CoinType coinType, Long delta,
                                   LedgerReason reason, String refType, String description, String idempotencyKey) {
+        createLedgerEntry(userId, coinType, delta, reason, refType, null, description, idempotencyKey);
+    }
+
+    private void createLedgerEntry(Long userId, CoinType coinType, Long delta,
+                                  LedgerReason reason, String refType, Long refId, String description, String idempotencyKey) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
@@ -1065,9 +1077,7 @@ public class WalletService {
             String.format("%s%d_%c_%d", refType.substring(0, Math.min(5, refType.length())),
                           userId, coinType.name().charAt(0), System.currentTimeMillis() % 1000000);
         
-        // Create ledger entry for all transaction types
-        // Use timestamp as refId since transactions don't have a specific reference ID
-        Long refId = System.currentTimeMillis();
+        Long finalRefId = refId != null ? refId : System.currentTimeMillis();
         
         LedgerEntryEntity entry = LedgerEntryEntity.builder()
                 .user(user)
@@ -1075,7 +1085,7 @@ public class WalletService {
                 .delta(delta)
                 .reason(reason)
                 .refType(refType)
-                .refId(refId)
+                .refId(finalRefId)
                 .idempotencyKey(finalIdempotencyKey)
                 .createdAt(LocalDateTime.now())
                 .build();

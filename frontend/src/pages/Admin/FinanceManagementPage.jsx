@@ -41,16 +41,17 @@ function FinanceManagementPage() {
   }, [requestTypeFilter, statusFilter]);
 
   const pendingRequests = useMemo(
-    () => requests.filter((item) => item.status === 'REQUESTED' || item.status === 'APPROVED'),
+    () =>
+      requests.filter(
+        (item) => item.status === 'REQUESTED' || item.status === 'APPROVED',
+      ),
     [requests],
   );
 
   const processedRequests = useMemo(
     () =>
       requests.filter(
-        (item) =>
-          item.status !== 'REQUESTED' &&
-          item.status !== 'APPROVED',
+        (item) => item.status !== 'REQUESTED' && item.status !== 'APPROVED',
       ),
     [requests],
   );
@@ -119,13 +120,18 @@ function FinanceManagementPage() {
 
   const submitActionModal = async () => {
     if (!actionModal.request || !actionModal.action) return;
-    await runAction(actionModal.request, actionModal.action, actionModal.note.trim());
+    await runAction(
+      actionModal.request,
+      actionModal.action,
+      actionModal.note.trim(),
+    );
     closeActionModal();
   };
 
   const renderActions = (request) => {
     const canApprove = request.status === 'REQUESTED';
-    const canReject = request.status === 'REQUESTED' || request.status === 'APPROVED';
+    const canReject =
+      request.status === 'REQUESTED' || request.status === 'APPROVED';
     const canComplete = request.status === 'APPROVED';
 
     return (
@@ -194,9 +200,15 @@ function FinanceManagementPage() {
           </div>
         </td>
         <td>{request.requestReason || '—'}</td>
-        <td>{request.requestedAt ? new Date(request.requestedAt).toLocaleString('vi-VN') : '—'}</td>
         <td>
-          <span className={`admin-finance__status ${statusClassName(request.status)}`}>
+          {request.requestedAt
+            ? new Date(request.requestedAt).toLocaleString('vi-VN')
+            : '—'}
+        </td>
+        <td>
+          <span
+            className={`admin-finance__status ${statusClassName(request.status)}`}
+          >
             {statusLabel(request.status, request.requestType)}
           </span>
         </td>
@@ -210,26 +222,19 @@ function FinanceManagementPage() {
       <header className='admin-finance__header'>
         <h1>Quản lý chi trả và hoàn tiền</h1>
         <p>
-          Xử lý tập trung yêu cầu rút tiền của tác giả và yêu cầu hoàn tiền của người đọc.
-          Admin có thể duyệt, từ chối hoặc đánh dấu hoàn tất sau khi chuyển khoản thủ công.
+          Xử lý tập trung yêu cầu rút tiền của tác giả và yêu cầu hoàn tiền của
+          người đọc. Admin có thể duyệt, từ chối hoặc đánh dấu hoàn tất sau khi
+          chuyển khoản thủ công.
         </p>
       </header>
 
       <div className='admin-finance__controls'>
         <label>
-          Loại yêu cầu
-          <select
-            value={requestTypeFilter}
-            onChange={(e) => setRequestTypeFilter(e.target.value)}
-          >
-            <option value='ALL'>Tất cả</option>
-            <option value='WITHDRAW'>Rút tiền tác giả</option>
-            <option value='REFUND'>Hoàn tiền reader</option>
-          </select>
-        </label>
-        <label>
           Trạng thái
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value='ALL'>Tất cả</option>
             <option value='REQUESTED'>Chờ duyệt</option>
             <option value='APPROVED'>Đã duyệt</option>
@@ -263,7 +268,9 @@ function FinanceManagementPage() {
                 <th>Thao tác</th>
               </tr>
             </thead>
-            <tbody>{renderRows(pendingRequests, 'Không có yêu cầu đang xử lý')}</tbody>
+            <tbody>
+              {renderRows(pendingRequests, 'Không có yêu cầu đang xử lý')}
+            </tbody>
           </table>
         </div>
       </div>
@@ -286,21 +293,28 @@ function FinanceManagementPage() {
                 <th>Thao tác</th>
               </tr>
             </thead>
-            <tbody>{renderRows(processedRequests, 'Chưa có lịch sử xử lý')}</tbody>
+            <tbody>
+              {renderRows(processedRequests, 'Chưa có lịch sử xử lý')}
+            </tbody>
           </table>
         </div>
       </div>
 
       {actionModal.open && (
-        <div className='admin-finance__modal-backdrop' onClick={closeActionModal}>
+        <div
+          className='admin-finance__modal-backdrop'
+          onClick={closeActionModal}
+        >
           <div
             className='admin-finance__modal'
             onClick={(event) => event.stopPropagation()}
           >
             <h3>Ghi chú xử lý (tùy chọn)</h3>
             <p>
-              {actionModal.action === 'approve' && 'Nhập ghi chú cho thao tác chấp nhận.'}
-              {actionModal.action === 'reject' && 'Nhập lý do từ chối để lưu vết xử lý.'}
+              {actionModal.action === 'approve' &&
+                'Nhập ghi chú cho thao tác chấp nhận.'}
+              {actionModal.action === 'reject' &&
+                'Nhập lý do từ chối để lưu vết xử lý.'}
               {actionModal.action === 'complete' &&
                 'Nhập ghi chú xác nhận đã thanh toán/hoàn tiền thủ công.'}
             </p>
@@ -308,15 +322,26 @@ function FinanceManagementPage() {
               rows={4}
               value={actionModal.note}
               onChange={(event) =>
-                setActionModal((prev) => ({ ...prev, note: event.target.value }))
+                setActionModal((prev) => ({
+                  ...prev,
+                  note: event.target.value,
+                }))
               }
               placeholder='Nhập ghi chú...'
             />
             <div className='admin-finance__modal-actions'>
-              <button type='button' className='cancel' onClick={closeActionModal}>
+              <button
+                type='button'
+                className='cancel'
+                onClick={closeActionModal}
+              >
                 Hủy
               </button>
-              <button type='button' className='confirm' onClick={submitActionModal}>
+              <button
+                type='button'
+                className='confirm'
+                onClick={submitActionModal}
+              >
                 Xác nhận
               </button>
             </div>
@@ -328,4 +353,3 @@ function FinanceManagementPage() {
 }
 
 export default FinanceManagementPage;
-
