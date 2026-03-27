@@ -1,14 +1,10 @@
 import React from 'react';
+import { extractPolicyOrder } from '../../utils/policyPages';
 
 function DocsToc() {
   const [activeSection, setActiveSection] = React.useState('');
   const [storageKey, setStorageKey] = React.useState(Date.now());
   const [isScrolling, setIsScrolling] = React.useState(false);
-
-  const extractNumber = (title) => {
-    const match = title.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 0;
-  };
 
   const pageBlocks = React.useMemo(() => {
     try {
@@ -44,9 +40,9 @@ function DocsToc() {
         title: block.title,
         level: 2,
         index,
-        number: extractNumber(block.title),
+        order: extractPolicyOrder(block),
       }))
-      .sort((a, b) => a.number - b.number);
+      .sort((a, b) => a.order - b.order);
   }, [pageBlocks]);
 
   React.useEffect(() => {
