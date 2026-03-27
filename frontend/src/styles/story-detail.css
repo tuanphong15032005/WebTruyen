@@ -1098,6 +1098,18 @@ html.story-detail-scroll-enabled::-webkit-scrollbar-track {
   font-size: 1rem;
 }
 
+.story-detail__note-status {
+  margin: 0 0 10px;
+  color: #b42318;
+  font-weight: 700;
+}
+
+.story-detail__note-cooldown {
+  margin: 12px 0 0;
+  color: #b45309;
+  font-weight: 700;
+}
+
 .story-detail__volumes-list {
   display: grid;
   gap: 1rem;
@@ -1384,6 +1396,14 @@ html[data-theme='dark'] .story-detail__chip--category {
 html[data-theme='dark'] .story-detail__summary-box {
   border-color: var(--theme-border);
   color: var(--theme-text-secondary);
+}
+
+html[data-theme='dark'] .story-detail__note-status {
+  color: #fda29b;
+}
+
+html[data-theme='dark'] .story-detail__note-cooldown {
+  color: #f7b955;
 }
 
 html[data-theme='dark'] .story-detail__summary-box::-webkit-scrollbar-thumb {
