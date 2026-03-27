@@ -41,6 +41,11 @@ const CHAPTER_APPROVAL_LABELS = {
   approved: 'duyệt thành công, giờ có thể đăng công khai',
   rejected: 'Bị từ chối duyệt',
 };
+const STORY_APPROVAL_LABELS = {
+  pending: 'Đang chờ duyệt',
+  approved: 'Đã được duyệt, giờ có thể đăng công khai',
+  rejected: 'Bị từ chối duyệt',
+};
 
 const VOLUMES_PAGE_SIZE = 3;
 
@@ -132,6 +137,7 @@ const StoryDetail = () => {
   const [uploadingVolumeCoverId, setUploadingVolumeCoverId] = useState(null);
   const [submittingApprovalChapterId, setSubmittingApprovalChapterId] =
     useState(null);
+  const [submittingStoryApproval, setSubmittingStoryApproval] = useState(false);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'volumes' ? 'volumes' : 'info',
   );
@@ -147,6 +153,8 @@ const StoryDetail = () => {
     open: false,
     title: '',
     note: '',
+    status: '',
+    cooldownText: '',
   });
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
 
@@ -242,6 +250,51 @@ const StoryDetail = () => {
     const key = (story?.status || '').toLowerCase();
     return STORY_STATUS_LABELS[key] || 'Nháp';
   }, [story]);
+
+  const storyStatusKey = useMemo(
+    () => String(story?.status || '').toLowerCase(),
+    [story],
+  );
+
+  const storyApprovalStatusKey = useMemo(
+    () => String(story?.approvalStatus || '').toLowerCase(),
+    [story],
+  );
+
+  const hasStoryApprovalStatusValue = useMemo(
+    () =>
+      story?.approvalStatus != null && String(story.approvalStatus).trim() !== '',
+    [story],
+  );
+
+  const storyModerationNote = useMemo(
+    () => String(story?.moderationNote || '').trim(),
+    [story],
+  );
+
+  const storyCooldownText = useMemo(
+    () =>
+      formatRemainingTime(
+        story?.resubmitAvailableAt,
+        story?.resubmitHoursRemaining,
+        countdownNow,
+      ),
+    [countdownNow, story],
+  );
+
+  const showStoryApprovalStatus = useMemo(
+    () =>
+      Boolean(STORY_APPROVAL_LABELS[storyApprovalStatusKey]) &&
+      !(
+        storyApprovalStatusKey === 'approved' && storyStatusKey === 'published'
+      ),
+    [storyApprovalStatusKey, storyStatusKey],
+  );
+
+  const showStoryNoteButton =
+    storyApprovalStatusKey === 'rejected' || Boolean(storyModerationNote);
+  const showStorySubmitButton =
+    storyStatusKey === 'draft' && !hasStoryApprovalStatusValue;
 
   const kindLabel = useMemo(() => {
     const key = (story?.kind || '').toLowerCase();
@@ -398,6 +451,39 @@ const StoryDetail = () => {
     }
   };
 
+  const handleSubmitStoryApproval = async () => {
+    try {
+      setSubmittingStoryApproval(true);
+      const response = await storyService.submitStoryApproval(storyId);
+      const nextApprovalStatus = String(
+        response?.approvalStatus || 'pending',
+      ).toLowerCase();
+
+      setStory((prev) =>
+        prev
+          ? {
+              ...prev,
+              approvalStatus: nextApprovalStatus,
+              moderationNote: '',
+              resubmitAvailableAt: null,
+              resubmitHoursRemaining: null,
+            }
+          : prev,
+      );
+
+      notify('truyện của bạn đã được gửi đi duyệt', 'success');
+    } catch (error) {
+      console.error('submitStoryApproval error', error);
+      const message =
+        typeof error?.message === 'string' && error.message.trim()
+          ? error.message.trim()
+          : 'gửi duyệt truyện thất bại';
+      notify(message, 'error');
+    } finally {
+      setSubmittingStoryApproval(false);
+    }
+  };
+
   const handleViewMetadata = () => {
     const isPublished =
       String(story?.status || '').toLowerCase() === 'published';
@@ -408,16 +494,28 @@ const StoryDetail = () => {
     navigate(`/stories/${storyId}/metadata`);
   };
 
-  const openNoteDialog = (title, note) => {
+  const openNoteDialog = (
+    title,
+    note,
+    { status = '', cooldownText = '' } = {},
+  ) => {
     setNoteDialog({
       open: true,
       title,
       note: String(note || '').trim(),
+      status: String(status || '').trim(),
+      cooldownText: String(cooldownText || '').trim(),
     });
   };
 
   const closeNoteDialog = () => {
-    setNoteDialog({ open: false, title: '', note: '' });
+    setNoteDialog({
+      open: false,
+      title: '',
+      note: '',
+      status: '',
+      cooldownText: '',
+    });
   };
 
   const updateTabIndicator = useCallback(() => {
@@ -744,6 +842,46 @@ const StoryDetail = () => {
                   <div className='story-detail__summary-header-info'>
                     <span className='story-detail__label'>Nội dung</span>
                   </div>
+                  <div className='story-detail__summary-approval'>
+                    {showStoryNoteButton && (
+                      <button
+                        type='button'
+                        className='story-detail__note-button'
+                        onClick={() =>
+                          openNoteDialog(
+                            storyApprovalStatusKey === 'rejected'
+                              ? 'Phản hồi duyệt truyện'
+                              : 'Chú thích từ quản trị viên',
+                            storyModerationNote,
+                            {
+                              status: storyApprovalStatusKey,
+                              cooldownText: storyCooldownText,
+                            },
+                          )
+                        }
+                      >
+                        Xem note
+                      </button>
+                    )}
+                    {showStoryApprovalStatus && (
+                      <span
+                        className={`story-detail__approval-badge story-detail__approval-badge--${storyApprovalStatusKey}`}
+                      >
+                        <span className='story-detail__approval-dot' />
+                        {STORY_APPROVAL_LABELS[storyApprovalStatusKey]}
+                      </span>
+                    )}
+                    {showStorySubmitButton && (
+                      <button
+                        type='button'
+                        className='story-detail__chapter-submit story-detail__story-submit-inline'
+                        onClick={handleSubmitStoryApproval}
+                        disabled={submittingStoryApproval}
+                      >
+                        {submittingStoryApproval ? 'Đang gửi...' : 'Gửi duyệt'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className='story-detail__summary-box'>
@@ -967,9 +1105,6 @@ const StoryDetail = () => {
                                     countdownNow,
                                   )
                                 : '';
-                            const showChapterCooldown =
-                              approvalStatusKey === 'rejected' &&
-                              Boolean(chapterCooldownText);
                             const showChapterNoteButton = Boolean(
                               chapterModerationNote,
                             );
@@ -991,8 +1126,7 @@ const StoryDetail = () => {
                                     {CHAPTER_STATUS_LABELS[chapterStatusKey] ||
                                       'Nháp'}
                                   </div>
-                                  {(showChapterNoteButton ||
-                                    showChapterCooldown) && (
+                                  {showChapterNoteButton && (
                                     <div className='story-detail__chapter-moderation'>
                                       {showChapterNoteButton && (
                                         <button
@@ -1004,16 +1138,15 @@ const StoryDetail = () => {
                                                 ? `Chú thích chương ${chapter.sequenceIndex}`
                                                 : 'Chú thích từ quản trị viên',
                                               chapterModerationNote,
+                                              {
+                                                status: approvalStatusKey,
+                                                cooldownText: chapterCooldownText,
+                                              },
                                             )
                                           }
                                         >
-                                          Chú thích
+                                          Xem note
                                         </button>
-                                      )}
-                                      {showChapterCooldown && (
-                                        <div className='story-detail__cooldown story-detail__cooldown--chapter'>
-                                          Còn lại: {chapterCooldownText}
-                                        </div>
                                       )}
                                     </div>
                                   )}
@@ -1125,7 +1258,17 @@ const StoryDetail = () => {
               </button>
             </div>
             <div className='story-detail__note-content'>
+              {noteDialog.status === 'rejected' && (
+                <p className='story-detail__note-status'>
+                  Truyện bị từ chối duyệt.
+                </p>
+              )}
               <p>{noteDialog.note || 'Quản trị viên chưa để lại chú thích.'}</p>
+              {noteDialog.status === 'rejected' && noteDialog.cooldownText && (
+                <p className='story-detail__note-cooldown'>
+                  Còn lại: {noteDialog.cooldownText} để gửi duyệt lại.
+                </p>
+              )}
             </div>
           </div>
         </div>

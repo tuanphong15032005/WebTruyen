@@ -1,5 +1,6 @@
 package com.example.WebTruyen.dto.response;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record AuthorStoryDetailResponse(
@@ -11,6 +12,10 @@ public record AuthorStoryDetailResponse(
         TagDto category,
         List<TagDto> tags,
         String status,
+        String approvalStatus,
+        String moderationNote,
+        LocalDateTime resubmitAvailableAt,
+        Long resubmitHoursRemaining,
         String completionStatus,
         Long wordCount
 ) {}

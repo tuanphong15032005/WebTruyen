@@ -850,6 +850,20 @@ public class StoryService {
                 .orElse(null);
 
         long wordCount = countStoryWords(story.getId(), publishedOnly);
+        ModerationActionEntity latestAction = resolveLatestModerationAction(
+                ModerationActionEntity.ModerationTargetKind.story,
+                story.getId()
+        );
+        StoryApprovalStatus rawApprovalStatus = story.getApprovalStatus();
+        StoryApprovalStatus effectiveApprovalStatus = resolveEffectiveApprovalStatus(
+                rawApprovalStatus,
+                story.getApprovalUpdatedAt()
+        );
+        String moderationNote = resolveRejectedModerationNote(rawApprovalStatus, latestAction);
+        LocalDateTime resubmitAvailableAt = computeResubmitAvailableAt(story.getApprovalUpdatedAt());
+        Long resubmitHoursRemaining = rawApprovalStatus == StoryApprovalStatus.rejected
+                ? computeResubmitHoursRemaining(story.getApprovalUpdatedAt())
+                : null;
 
         return new AuthorStoryDetailResponse(
                 story.getId(),
@@ -860,6 +874,10 @@ public class StoryService {
                 category,
                 tags,
                 story.getStatus() != null ? story.getStatus().name() : null,
+                effectiveApprovalStatus != null ? effectiveApprovalStatus.name() : null,
+                moderationNote,
+                resubmitAvailableAt,
+                resubmitHoursRemaining,
                 story.getCompletionStatus() != null ? story.getCompletionStatus().name() : null,
                 wordCount
         );

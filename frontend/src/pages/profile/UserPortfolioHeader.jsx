@@ -1,10 +1,9 @@
 import React from 'react';
-import { Share, Heart, DollarSign } from 'lucide-react';
+import { Heart, DollarSign } from 'lucide-react';
 import { getStoredUser } from '../../utils/helpers';
 
 const UserPortfolioHeader = ({
   data,
-  onShare,
   onFollow,
   onDonate,
   isFollowing,
@@ -132,15 +131,6 @@ const UserPortfolioHeader = ({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={onShare}
-            aria-label="Chia sẻ hồ sơ"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-all hover:bg-blue-600"
-            style={{ boxShadow: '0 10px 28px rgba(59, 130, 246, 0.28)' }}
-          >
-            <Share size={24} color="#ffffff" strokeWidth={2.35} />
-          </button>
         </div>
       </div>
     </section>

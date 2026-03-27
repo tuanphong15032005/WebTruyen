@@ -9,6 +9,8 @@ const FILTERS = [
   { value: 'all', label: 'Tất cả' },
   { value: 'ongoing', label: 'Đang tiến hành' },
   { value: 'completed', label: 'Hoàn thành' },
+  { value: 'draft', label: 'Nháp' },
+  { value: 'published', label: 'Công khai' },
 ];
 
 const COMPLETION_LABELS = {
@@ -59,6 +61,9 @@ const matchesFilter = (story, filter) => {
   const status = String(story?.status || '').toLowerCase();
   if (status === 'archived') return false;
   if (filter === 'all') return true;
+  if (filter === 'draft' || filter === 'published') {
+    return status === filter;
+  }
   const completion = String(story?.completionStatus || '').toLowerCase();
   return completion === filter;
 };

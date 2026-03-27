@@ -106,6 +106,7 @@ function LibraryAlbumDetail({ isPublic = false }) {
   const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY);
   const [sortDirection, setSortDirection] = useState(DEFAULT_SORT_DIRECTION);
   const [currentPage, setCurrentPage] = useState(1);
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,6 +195,36 @@ function LibraryAlbumDetail({ isPublic = false }) {
     setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
   };
 
+  const handleVisibilityToggle = async () => {
+    if (!album?.id || updatingVisibility || isPublic) return;
+
+    const nextVisibility = album.visibility === 'public' ? 'private' : 'public';
+    try {
+      setUpdatingVisibility(true);
+      const response = await libraryAlbumService.updateAlbumVisibility(album.id, {
+        visibility: nextVisibility,
+      });
+      setAlbum((prev) => ({
+        ...(prev || {}),
+        ...(response || {}),
+      }));
+      notify(
+        nextVisibility === 'public'
+          ? 'Đã chuyển bộ sưu tập sang công khai'
+          : 'Đã chuyển bộ sưu tập sang riêng tư',
+        'success',
+      );
+    } catch (error) {
+      console.error('updateAlbumVisibility error', error);
+      notify(
+        error?.message || 'Không thể cập nhật chế độ hiển thị bộ sưu tập',
+        'error',
+      );
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
+
   const renderAlbumStorySkeletonGrid = (count = MIN_STORY_GRID_ITEMS) => (
     <div className='library-cover-grid' aria-hidden='true'>
       {Array.from({ length: count }, (_, index) => (
@@ -228,23 +259,58 @@ function LibraryAlbumDetail({ isPublic = false }) {
                 <ArrowLeft size={28} />
               </button>
 
-              {loading && !album ? (
-                <SkeletonBlock className='library-album-page__badge-skeleton' />
-              ) : (
-                album?.visibility && (
-                  <span
-                    className={`library-album-page__badge ${
-                      album.visibility === 'public'
-                        ? 'library-album-page__badge--public'
-                        : 'library-album-page__badge--private'
-                    }`}
-                  >
-                    {album.visibility === 'public'
-                      ? 'Bộ sưu tập công khai'
-                      : 'Bộ sưu tập riêng tư'}
-                  </span>
-                )
-              )}
+              <div className='library-album-page__hero-status'>
+                {loading && !album ? (
+                  <SkeletonBlock className='library-album-page__badge-skeleton' />
+                ) : (
+                  album?.visibility && (
+                    <>
+                      <span
+                        className={`library-album-page__badge ${
+                          album.visibility === 'public'
+                            ? 'library-album-page__badge--public'
+                            : 'library-album-page__badge--private'
+                        }`}
+                      >
+                        {album.visibility === 'public'
+                          ? 'Bộ sưu tập công khai'
+                          : 'Bộ sưu tập riêng tư'}
+                      </span>
+                      {!isPublic && (
+                        <div className='library-album-page__visibility'>
+                          <span className='library-album-page__visibility-label'>
+                            Chế độ hiển thị
+                          </span>
+                          <div className='library-album-page__visibility-control'>
+                            <button
+                              type='button'
+                              role='switch'
+                              aria-checked={album.visibility === 'public'}
+                              aria-label='Bật tắt chế độ công khai của bộ sưu tập'
+                              className={`library-album-page__visibility-switch ${
+                                album.visibility === 'public'
+                                  ? 'is-public'
+                                  : 'is-private'
+                              }`}
+                              onClick={handleVisibilityToggle}
+                              disabled={updatingVisibility}
+                            >
+                              <span className='library-album-page__visibility-thumb' />
+                            </button>
+                            <span className='library-album-page__visibility-text'>
+                              {updatingVisibility
+                                ? 'Đang cập nhật...'
+                                : album.visibility === 'public'
+                                  ? 'Công khai'
+                                  : 'Riêng tư'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                )}
+              </div>
             </div>
 
             {loading && !album ? (
