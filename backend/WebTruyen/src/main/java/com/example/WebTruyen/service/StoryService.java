@@ -1461,28 +1461,23 @@ public class StoryService {
                 )
                 .flatMap(stream -> stream)
                 .sorted((a, b) -> {
-                    LocalDateTime left = a.moderationProcessedAt() != null ? a.moderationProcessedAt() : a.submissionDate();
-                    LocalDateTime right = b.moderationProcessedAt() != null ? b.moderationProcessedAt() : b.submissionDate();
-                    if (left == null && right == null) return 0;
-                    if (left == null) return 1;
-                    if (right == null) return -1;
-                    // For approved/rejected items: newest first (descending)
-                    // For pending items: oldest first (ascending)
-                    boolean aIsProcessed = a.moderationProcessedAt() != null;
-                    boolean bIsProcessed = b.moderationProcessedAt() != null;
+                    boolean aIsPending = "pending".equalsIgnoreCase(a.approvalStatus());
+                    boolean bIsPending = "pending".equalsIgnoreCase(b.approvalStatus());
                     
-                    if (aIsProcessed && bIsProcessed) {
-                        // Both processed - newest first
-                        return right.compareTo(left);
-                    } else if (!aIsProcessed && !bIsProcessed) {
-                        // Both pending - oldest first  
+                    if (aIsPending && !bIsPending) {
+                        return -1; // Pending items come first
+                    } else if (!aIsPending && bIsPending) {
+                        return 1; // Processed items come after
+                    } else if (aIsPending && bIsPending) {
+                        // Both pending: FIFO (oldest first) based on submissionDate
+                        LocalDateTime left = a.submissionDate() != null ? a.submissionDate() : LocalDateTime.MIN;
+                        LocalDateTime right = b.submissionDate() != null ? b.submissionDate() : LocalDateTime.MIN;
                         return left.compareTo(right);
-                    } else if (aIsProcessed) {
-                        // Processed items come after pending
-                        return -1;
                     } else {
-                        // Pending items come before processed
-                        return 1;
+                        // Both processed: LIFO (newest first) based on processedAt or submissionDate
+                        LocalDateTime left = a.moderationProcessedAt() != null ? a.moderationProcessedAt() : (a.submissionDate() != null ? a.submissionDate() : LocalDateTime.MIN);
+                        LocalDateTime right = b.moderationProcessedAt() != null ? b.moderationProcessedAt() : (b.submissionDate() != null ? b.submissionDate() : LocalDateTime.MIN);
+                        return right.compareTo(left);
                     }
                 })
                 .toList();

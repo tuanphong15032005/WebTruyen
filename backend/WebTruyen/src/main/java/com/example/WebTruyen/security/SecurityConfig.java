@@ -49,36 +49,36 @@ public class SecurityConfig {
                         // Home page - Public access for all users
                         .requestMatchers("/", "/api/stories", "/api/stories/**").permitAll()
                         .requestMatchers("/api/public/stories/**").permitAll()
-                        
+
                         // Advanced Search - Public access for all users
                         .requestMatchers("/api/search", "/api/search/**").permitAll()
                         .requestMatchers("/api/authors/search").permitAll()
                         .requestMatchers("/api/authors/suggestions").permitAll()
                         .requestMatchers("/api/authors").permitAll()
-                        
+
                         // Ranking Hub and Story Ranking - Public access for all users
                         .requestMatchers("/api/ranking/**").permitAll()
                         .requestMatchers("/api/public/ranking/**").permitAll()
-                        
+
                         // Authentication endpoints - Public access
                         .requestMatchers("/api/auth/**").permitAll()
-                        
+
                         // Public user portfolio and discovery - Public access
                         .requestMatchers("/api/users/*/portfolio").permitAll()
                         .requestMatchers("/api/users/*/follow").permitAll()
                         .requestMatchers("/api/users/*/follow-status").permitAll()
                         .requestMatchers("/api/users/*/stories").permitAll()
                         .requestMatchers("/api/users/*/followers").permitAll()
-                        
+
                         // Public content endpoints
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/chapters/**").permitAll()
                         .requestMatchers("/api/comments/**").permitAll()
                         .requestMatchers("/api/tags", "/api/v1/tags").permitAll()
-                        
+
                         // Author application pen name check - Public access
                         .requestMatchers("/api/author-application/check-pen-name").permitAll()
-                        
+
                         // Test and error endpoints - Public access
                         .requestMatchers("/api/test/public").permitAll()
                         .requestMatchers("/error").permitAll()
@@ -90,83 +90,87 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/reading-history/**").authenticated()
                         .requestMatchers("/api/users/notifications/**").authenticated()
                         .requestMatchers("/api/users/settings/**").authenticated()
-                        
+
                         // Wallet and transaction functionality - Authenticated users
                         .requestMatchers("/api/wallet/**").authenticated()
                         .requestMatchers("/api/transactions/**").authenticated()
                         .requestMatchers("/api/donations/**").authenticated()
                         .requestMatchers("/api/payments/**").authenticated()
-                        
+
                         // Withdrawal requests - Authenticated users (all roles can request)
                         .requestMatchers("/api/withdrawals/**").authenticated()
-                        
+
                         // Reports - Authenticated users
                         .requestMatchers("/api/reports").authenticated()
-                        
+
                         // Daily tasks and achievements - Authenticated users
                         .requestMatchers("/api/daily-tasks/**").authenticated()
                         .requestMatchers("/api/achievements/**").authenticated()
                         .requestMatchers("/api/tiered-achievements/**").authenticated()
-                        
+
                         // Library functionality - Authenticated users
                         .requestMatchers("/api/library/**").authenticated()
                         .requestMatchers("/api/bookmarks/**").authenticated()
 
                         // === AUTHOR ENDPOINTS (Author, Moderator) ===
                         // Author dashboard and story management
-                        .requestMatchers("/api/author/**").hasAnyRole("AUTHOR", "MOD")
-                        .requestMatchers("/api/stories/manage/**").hasAnyRole("AUTHOR", "MOD")
-                        .requestMatchers("/api/chapters/manage/**").hasAnyRole("AUTHOR", "MOD")
-                        
+                        .requestMatchers("/api/author/**").hasAnyRole("AUTHOR", "MOD", "REVIEWER")
+                        .requestMatchers("/api/stories/manage/**").hasAnyRole("AUTHOR", "MOD", "REVIEWER")
+                        .requestMatchers("/api/chapters/manage/**").hasAnyRole("AUTHOR", "MOD", "REVIEWER")
+
                         // Author application - Authenticated users (so readers can apply)
                         .requestMatchers("/api/author-application/**").authenticated()
-                        
+
                         // Author analytics and performance
-                        .requestMatchers("/api/author/analytics/**").hasAnyRole("AUTHOR", "MOD")
-                        .requestMatchers("/api/performance/**").hasAnyRole("AUTHOR", "MOD")
-                        
-                        // Reviewer application - Authenticated users (so readers can apply)
-                        .requestMatchers("/api/reviewer/**").authenticated()
+                        .requestMatchers("/api/author/analytics/**").hasAnyRole("AUTHOR", "MOD", "REVIEWER")
+                        .requestMatchers("/api/performance/**").hasAnyRole("AUTHOR", "MOD", "REVIEWER")
+
+                        // Reviewer functionality
+                        .requestMatchers("/api/reviewer/apply/**").authenticated()
+                        .requestMatchers("/api/reviewer/manage/**").hasAnyRole("REVIEWER", "MOD")
+                        .requestMatchers("/api/reviewer/**").hasAnyRole("REVIEWER", "MOD")
 
                         // === ADMIN ENDPOINTS (Moderator only) ===
-                        // Admin dashboard and management
-                        .requestMatchers("/api/admin/**").hasRole("MOD")
-                        
+                        // Admin dashboard and management (Fallback for other admin routes moved to bottom)
+
                         // Finance management
                         .requestMatchers("/api/finance/**").hasRole("MOD")
                         .requestMatchers("/api/admin/finance/**").hasRole("MOD")
-                        
+
                         // User management
                         .requestMatchers("/api/users/manage/**").hasRole("MOD")
                         .requestMatchers("/api/users/admin/**").hasRole("MOD")
-                        
+
                         // Content moderation
-                        .requestMatchers("/api/moderation/**").hasRole("MOD")
-                        .requestMatchers("/api/admin/moderation/**").hasRole("MOD")
-                        
+                        .requestMatchers("/api/moderation/**").hasAnyRole("MOD", "REVIEWER")
+                        .requestMatchers("/api/admin/moderation/**").hasAnyRole("MOD", "REVIEWER")
+
                         // System configuration and monitoring
                         .requestMatchers("/api/system/**").hasRole("MOD")
                         .requestMatchers("/api/monitoring/**").hasRole("MOD")
-                        
+
                         // Admin terms management
                         .requestMatchers("/api/admin/terms/**").hasRole("MOD")
-                        
+
                         // Admin achievements management
                         .requestMatchers("/api/admin/achievements/**").hasRole("MOD")
                         .requestMatchers("/api/admin/achievements/system/**").hasRole("MOD")
-                        
+
                         // Admin daily missions management
                         .requestMatchers("/api/admin/daily-missions/**").hasRole("MOD")
-                        
+
                         // Admin author applications management
-                        .requestMatchers("/api/admin/author-applications/**").hasRole("MOD")
-                        
+                        .requestMatchers("/api/admin/author-applications/**").hasAnyRole("MOD", "REVIEWER")
+                        .requestMatchers("/api/admin/reviewer-applications/**").hasAnyRole("MOD", "REVIEWER")
+
                         // Upload management
                         .requestMatchers("/api/uploads/**").hasRole("MOD")
 
+                        // General Admin Fallback (Must be at the end of Admin section)
+                        .requestMatchers("/api/admin/**").hasRole("MOD")
+
                         // === FALLBACK ===
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
