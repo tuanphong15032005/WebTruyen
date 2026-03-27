@@ -20,4 +20,6 @@ public interface UserAchievementClaimRepository extends JpaRepository<UserAchiev
     boolean existsByUserIdAndTierId(Long userId, Integer tierId);
     
     boolean existsByTierId(Integer tierId);
+    
+    boolean existsByTierIdIn(List<Integer> tierIds);
 }

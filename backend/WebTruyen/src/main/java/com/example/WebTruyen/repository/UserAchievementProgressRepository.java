@@ -21,4 +21,7 @@ public interface UserAchievementProgressRepository extends JpaRepository<UserAch
     
     @Query("SELECT COUNT(DISTINCT uap.user.id) FROM UserAchievementProgressEntity uap")
     long countDistinctUserId();
+    
+    @Query("SELECT COUNT(uap) FROM UserAchievementProgressEntity uap WHERE uap.achievement.id = :achievementId AND uap.progress >= :requirement")
+    long countUsersReachedTierRequirement(@Param("achievementId") Integer achievementId, @Param("requirement") Integer requirement);
 }

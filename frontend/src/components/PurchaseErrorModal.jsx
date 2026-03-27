@@ -33,12 +33,12 @@ const PurchaseErrorModal = ({
       <div className="error-modal">
         <h2>
           {isInsufficientBalance
-            ? 'Xin l\u1ed7i b\u1ea1n kh\u00f4ng \u0111\u1ee7 t\u00e0i ch\u00ednh'
-            : 'Kh\u00f4ng th\u1ec3 mua ch\u01b0\u01a1ng'}
+            ? 'Xin lỗi bạn không đủ tài chính'
+            : 'Không thể mua chương'}
         </h2>
 
         <div className="chapter-price">
-          <div className="price-label">Gi\u00e1 ch\u01b0\u01a1ng</div>
+          <div className="price-label">Giá chương</div>
           <div className="price-value">{safeChapterPrice} Coin</div>
         </div>
 
@@ -47,11 +47,11 @@ const PurchaseErrorModal = ({
         <div className="modal-actions">
           {isInsufficientBalance && (
             <button className="top-up-btn" onClick={handleTopUp}>
-              N\u1ea1p th\u00eam
+              Nạp thêm
             </button>
           )}
           <button className="close-btn" onClick={onClose}>
-            \u0110\u00f3ng
+            Đóng
           </button>
         </div>
       </div>

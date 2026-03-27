@@ -109,10 +109,7 @@ public class AuthService {
         return user;
     }
 
-    public UserEntity registerUser(String username, String email, String password, String displayName) {
-        return registerUser(username, email, password, displayName, false);
-    }
-
+    
     public UserEntity registerUser(String username, String email, String password, String displayName, Boolean upgradeToAuthor) {
         if (email == null || email.trim().isEmpty()) {
             throw new RuntimeException("Email is required");

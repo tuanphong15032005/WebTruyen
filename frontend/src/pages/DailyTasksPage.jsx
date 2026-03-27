@@ -176,7 +176,7 @@ function DailyTasksPage() {
               <Trophy size={20} />
             </div>
             <div className="stat-info">
-              <span className="stat-value">{tasksData.completedTasks}/{tasksData.totalTasks}</span>
+              <span className="stat-value" style={{ color: "green" , marginLeft: "36px"}}>{tasksData.completedTasks}/{tasksData.totalTasks}</span>
               <span className="stat-label">Đã hoàn thành</span>
             </div>
           </div>
@@ -186,7 +186,7 @@ function DailyTasksPage() {
               <Coins size={20} />
             </div>
             <div className="stat-info">
-              <span className="stat-value">{tasksData.totalAvailableCoins}</span>
+              <span className="stat-value" style={{ color: "green" , marginLeft: "46px"}}>{tasksData.totalAvailableCoins}</span>
               <span className="stat-label">Coin có thể nhận</span>
             </div>
           </div>
