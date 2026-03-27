@@ -75,6 +75,9 @@ function UserRoleManagement() {
   };
 
   const handleRoleToggle = (roleCode) => {
+    // Không thể gỡ bỏ role READER
+    if (roleCode === 'READER') return;
+
     setSelectedRoles((prev) => 
       prev.includes(roleCode)
         ? prev.filter((r) => r !== roleCode)
@@ -225,12 +228,13 @@ function UserRoleManagement() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px', color: 'var(--theme-text-primary, #111827)' }}>
               {AVAILABLE_ROLES.map((role) => (
-                <label key={role.code} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <label key={role.code} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: role.code === 'READER' ? 'not-allowed' : 'pointer', opacity: role.code === 'READER' ? 0.7 : 1 }}>
                   <input
                     type="checkbox"
-                    checked={selectedRoles.includes(role.code)}
+                    checked={selectedRoles.includes(role.code) || role.code === 'READER'}
                     onChange={() => handleRoleToggle(role.code)}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    disabled={role.code === 'READER'}
+                    style={{ width: '16px', height: '16px', cursor: role.code === 'READER' ? 'not-allowed' : 'pointer' }}
                   />
                   <span style={{ fontSize: '15px' }}>{role.code} <span style={{ color: 'var(--theme-text-secondary, #6b7280)', fontSize: '13px' }}>({role.label})</span></span>
                 </label>

@@ -61,6 +61,9 @@ public class AdminUserService {
                 .map(String::toUpperCase)
                 .collect(Collectors.toSet());
 
+        // Luôn luôn đảm bảo user có ít nhất role Độc giả (READER)
+        targetRoleCodes.add("READER");
+
         // Xóa những role không còn nằm trong mục tiêu
         for (UserRoleEntity ur : currentRoles) {
             String code = ur.getRole().getCode().toUpperCase();

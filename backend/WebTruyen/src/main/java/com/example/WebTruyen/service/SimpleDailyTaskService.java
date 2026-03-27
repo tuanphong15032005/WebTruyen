@@ -69,52 +69,7 @@ public class SimpleDailyTaskService {
         }
     }
 
-    /**
-     * Auto-complete login mission for users who are online across midnight
-     * This should be called when checking tasks for users who were recently active
-     */
-    private void autoCompleteLoginMissionForActiveUser(Long userId, LocalDate today) {
-        autoCompleteLoginMissionForActiveUser(userId, today, false);
-    }
-    
-    private void autoCompleteLoginMissionForActiveUser(Long userId, LocalDate today, boolean fromUpdateProgress) {
-        try {
-            // Prevent recursive calls
-            if (fromUpdateProgress) {
-                return;
-            }
-            // Check if user was active yesterday (has any progress records)
-            LocalDate yesterday = today.minusDays(1);
-            List<UserDailyStatusEntity> yesterdayProgress = userDailyStatusRepository.findByUserIdAndDate(userId, yesterday);
-            
-            // Get user info to check last activity
-            UserEntity user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-            
-            // Check if user was active in the last 24 hours (either yesterday progress OR recent user activity)
-            boolean wasRecentlyActive = !yesterdayProgress.isEmpty() || 
-                    (user.getUpdatedAt() != null && user.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(24)));
-            
-            if (wasRecentlyActive) {
-                // Check if user already has login mission progress for today
-                List<UserDailyStatusEntity> todayProgress = userDailyStatusRepository.findByUserIdAndDate(userId, today);
-                boolean hasLoginMissionToday = todayProgress.stream()
-                    .anyMatch(status -> {
-                        DailyMissionEntity mission = dailyMissionRepository.findById(status.getId().getDailyMissionId()).orElse(null);
-                        return mission != null && "DAILY_LOGIN".equals(mission.getMissionCode());
-                    });
-                
-                if (!hasLoginMissionToday) {
-                    // User was recently active and doesn't have login mission today, auto-complete it
-                    log.info("Auto-completing login mission for active user {} on {} (last activity: {})", 
-                            userId, today, user.getUpdatedAt());
-                    updateTaskProgressWithoutAutoComplete(userId, "DAILY_LOGIN", null);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Error auto-completing login mission for user {}: {}", userId, e.getMessage());
-        }
-    }
+
 
     /**
      * Get daily tasks summary for user (using orchestrator for optimization)
@@ -124,67 +79,9 @@ public class SimpleDailyTaskService {
         return dailyTaskOrchestrator.getDailyTasksSummary(userId);
     }
 
-    /**
-     * Force update task completion for existing tasks (for fixing parsing issues)
-     */
-    @Transactional
-    public Map<String, Object> forceUpdateTaskCompletion(Long userId, String missionCode) {
-        log.info("Force updating task completion - userId: {}, missionCode: {}", userId, missionCode);
-        
-        LocalDate today = LocalDate.now();
-        
-        // Find the mission
-        DailyMissionEntity mission = dailyMissionRepository.findByDateAndMissionCode(today, missionCode)
-                .orElseThrow(() -> new RuntimeException("Daily mission not found: " + missionCode + " for date: " + today));
-        
-        // Find user status
-        List<UserDailyStatusEntity> existingStatuses = userDailyStatusRepository.findByUserIdAndDate(userId, today);
-        Optional<UserDailyStatusEntity> existingStatus = existingStatuses.stream()
-                .filter(status -> status.getDailyMission().getId().equals(mission.getId()))
-                .findFirst();
-        
-        if (!existingStatus.isPresent()) {
-            throw new RuntimeException("User task status not found for mission: " + missionCode);
-        }
-        
-        UserDailyStatusEntity userStatus = existingStatus.get();
-        log.info("Found existing user status - current progress: {}", userStatus.getProgress());
-        
-        // Re-parse progress with fixed method
-        Map<String, Object> progressMap = parseProgress(userStatus.getProgress());
-        log.info("Re-parsed progress: {}", progressMap);
-        
-        // Re-check completion
-        boolean wasCompleted = isTaskCompleted(userStatus, mission);
-        log.info("Completion check result: {} - target: {}, completed: {}", mission.getMissionCode(), mission.getTarget(), wasCompleted);
-        
-        if (wasCompleted && userStatus.getCompletedAt() == null) {
-            // Force set completion time
-            userStatus.setCompletedAt(LocalDateTime.now());
-            userDailyStatusRepository.save(userStatus);
-            log.info("Forced completion time set: {}", userStatus.getCompletedAt());
-        }
-        
-        return buildTaskResponse(mission, userStatus);
-    }
 
-    /**
-     * Update user's last activity time and auto-complete login mission if needed
-     */
-    private void updateUserLastActivity(Long userId) {
-        try {
-            UserEntity user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-            log.debug("Updated last activity for user {}", userId);
-            
-            // Auto-complete login mission for active users
-            autoCompleteLoginMissionForActiveUser(userId, LocalDate.now());
-        } catch (Exception e) {
-            log.warn("Failed to update last activity for user {}: {}", userId, e.getMessage());
-        }
-    }
+
+
     
     private void updateUserLastActivityWithoutAutoComplete(Long userId) {
         try {
