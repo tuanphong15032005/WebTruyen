@@ -52,13 +52,13 @@ function ReviewerArea() {
     checkAccess();
     
     // Set up auto-refresh every 30 seconds to check for new role
-    const interval = setInterval(() => {
+    const roleCheckInterval = setInterval(() => {
       if (!hasAccess) {
         checkAccess();
       }
     }, 30000);
     
-    return () => clearInterval(interval);
+    return () => clearInterval(roleCheckInterval);
   }, [hasAccess]);
 
   const checkAccess = async () => {
@@ -125,6 +125,7 @@ function ReviewerArea() {
         await storyService.rejectModerationChapter(item.contentId, note);
       }
 
+      // Immediately refresh data after action
       await loadModerationContent();
       closeDemoModal();
       closeNoteModal();
@@ -298,7 +299,7 @@ function ReviewerArea() {
           <>
         <div className="admin-moderation__card admin-moderation__controls-card">
           <div className="admin-moderation__toolbar">
-                                  </div>
+          </div>
 
           <div className="admin-moderation__filters">
             <span className="admin-moderation__filter-label">Loại:</span>
