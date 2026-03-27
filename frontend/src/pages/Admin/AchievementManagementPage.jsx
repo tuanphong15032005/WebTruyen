@@ -438,7 +438,7 @@ const AchievementManagementPage = () => {
               </button>
             </div>
           </div>
-          <div className="divide-y max-h-96 overflow-y-auto">
+          <div className="divide-y max-h-[calc(100vh-260px)] overflow-y-auto">
             {filteredAchievements && filteredAchievements.length > 0 ? (
               filteredAchievements.map((achievement) => (
                 <div key={achievement.id} className="p-3 sm:p-4">
@@ -520,7 +520,7 @@ const AchievementManagementPage = () => {
             </div>
           </div>
           {selectedAchievement ? (
-            <div className="divide-y max-h-96 overflow-y-auto">
+            <div className="divide-y max-h-[calc(100vh-260px)] overflow-y-auto">
               {/* Information banner */}
               <div className="p-3 bg-blue-50 border-b">
                 <p className="text-sm text-blue-800">
