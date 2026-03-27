@@ -415,6 +415,24 @@ public class WalletService {
         createDonationLedgerEntry(toUserId, CoinType.B, coinBAmount, 
             "DONATION", savedDonation.getId(), donateInDescription);
 
+        // Create notification for author about received donation
+        String notificationTitle = "Được ủng hộ";
+        String notificationMessage = String.format("Bạn vừa nhận được %d 💎 từ %s", 
+            coinBAmount, fromUser.getUsername());
+        if (message != null && !message.trim().isEmpty()) {
+            notificationMessage += ": \"" + message + "\"";
+        }
+        
+        notificationService.createNotification(
+            toUserId,
+            "transaction",
+            notificationTitle,
+            notificationMessage,
+            savedDonation.getId(),
+            null, // storyId
+            null  // chapterId
+        );
+
         // Return response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
