@@ -319,9 +319,9 @@ export default function UserProfile({ userData }) {
       return;
     }
 
-    // Validation cho độ dài tên hiển thị (max 8 ký tự)
-    if (tempName.length > 8) {
-      setNameMessage('Tên hiển thị không được vượt quá 8 ký tự!');
+    // Validation cho độ dài tên hiển thị (max 30 ký tự)
+    if (tempName.length > 30) {
+      setNameMessage('Tên hiển thị không được vượt quá 30 ký tự!');
       setTimeout(() => setNameMessage(''), 3000);
       return;
     }
@@ -872,7 +872,7 @@ export default function UserProfile({ userData }) {
                 <label className="form-label">
                   Tên hiển thị
                   <span className="text-gray-500 text-sm ml-2">
-                    {tempName.length}/8 ký tự
+                    {tempName.length}/30 ký tự
                   </span>
                 </label>
                 <div className="input-with-button">
@@ -882,14 +882,14 @@ export default function UserProfile({ userData }) {
                     onChange={(e) => setTempName(e.target.value)}
                     placeholder="Nhập tên hiển thị mới..."
                     className={`form-input ${
-                      tempName.length > 8 ? 'border-red-500' : ''
+                      tempName.length > 30 ? 'border-red-500' : ''
                     }`}
-                    maxLength={9}
+                    maxLength={31}
                   />
                   <button 
                     onClick={handleChangeName} 
                     className="btn-primary"
-                    disabled={!tempName.trim() || tempName.length > 8}
+                    disabled={!tempName.trim() || tempName.length > 30}
                   >
                     Lưu thông tin
                   </button>
