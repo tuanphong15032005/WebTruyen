@@ -69,7 +69,7 @@ const UserPortfolioHeader = ({
         )}
       </div>
 
-      <div className="relative z-10 -mt-16 flex flex-col gap-5 px-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative z-10 -mt-16 flex flex-col gap-5 px-5 sm:px-8 xl:flex-row xl:items-end xl:justify-between">
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
           <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-white shadow-xl sm:h-32 sm:w-32">
             <img
@@ -100,7 +100,7 @@ const UserPortfolioHeader = ({
           </div>
         </div>
 
-        <div className="flex w-full flex-wrap items-center justify-start gap-3 pb-1 lg:w-auto lg:justify-end">
+        <div className="flex w-full items-center justify-end gap-3 pb-1 max-sm:flex-wrap md:flex-nowrap xl:w-auto xl:shrink-0">
           {!isOwnPortfolio && (
             <button
               type="button"
@@ -139,7 +139,7 @@ const UserPortfolioHeader = ({
             className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-all hover:bg-blue-600"
             style={{ boxShadow: '0 10px 28px rgba(59, 130, 246, 0.28)' }}
           >
-            <Share size={20} />
+            <Share size={24} color="#ffffff" strokeWidth={2.35} />
           </button>
         </div>
       </div>

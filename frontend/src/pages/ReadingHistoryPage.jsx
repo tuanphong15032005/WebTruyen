@@ -6,10 +6,13 @@ import HistoryToolbar from '../components/readingHistory/HistoryToolbar';
 import HistoryItemCard from '../components/readingHistory/HistoryItemCard';
 import LoadMoreSection from '../components/readingHistory/LoadMoreSection';
 import ConfirmDialog from '../components/ConfirmDialog';
+import useNotify from '../hooks/useNotify';
+import { navigateToStoryTarget } from '../utils/storyAccess';
 import '../styles/ReadingHistoryPage.css';
 
 const ReadingHistoryPage = () => {
   const navigate = useNavigate();
+  const { notify } = useNotify();
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,16 +52,44 @@ const ReadingHistoryPage = () => {
       const response = await readingHistoryService.continueReading(storyId);
       if (response.chapterId) {
         // Sử dụng format đúng route: /stories/{storyId}/chapters/{chapterId}?segmentId=...
-        const segmentParam = response.segmentId ? `?segmentId=${response.segmentId}` : '';
-        navigate(`/stories/${storyId}/chapters/${response.chapterId}${segmentParam}`);
+        const segmentParam = response.segmentId
+          ? `?segmentId=${response.segmentId}`
+          : '';
+        await navigateToStoryTarget({
+          navigate,
+          notify,
+          storyId,
+          chapterId: response.chapterId,
+          search: segmentParam,
+          fallbackPath: '/reading-history',
+        });
       } else {
-        navigate(`/stories/${storyId}/metadata`);
+        await navigateToStoryTarget({
+          navigate,
+          notify,
+          storyId,
+          fallbackPath: '/reading-history',
+        });
       }
     } catch (error) {
       console.error('Error continuing reading:', error);
       // Fallback to story metadata page
-      navigate(`/stories/${storyId}/metadata`);
+      await navigateToStoryTarget({
+        navigate,
+        notify,
+        storyId,
+        fallbackPath: '/reading-history',
+      });
     }
+  };
+
+  const handleOpenStoryDetails = async (storyId) => {
+    await navigateToStoryTarget({
+      navigate,
+      notify,
+      storyId,
+      fallbackPath: '/reading-history',
+    });
   };
 
   const handleClearAllHistory = async () => {
@@ -127,6 +158,7 @@ const ReadingHistoryPage = () => {
           <MostRecentStoryCard 
             story={historyData.mostRecent}
             onContinueReading={() => handleContinueReading(historyData.mostRecent.storyId)}
+            onOpenDetails={() => handleOpenStoryDetails(historyData.mostRecent.storyId)}
           />
         )}
 
@@ -148,7 +180,7 @@ const ReadingHistoryPage = () => {
                 key={`${history.storyId}-${index}`}
                 history={history}
                 onContinueReading={() => handleContinueReading(history.storyId)}
-                onReread={() => navigate(`/stories/${history.storyId}/metadata`)}
+                onReread={() => handleOpenStoryDetails(history.storyId)}
               />
             ))
           ) : (

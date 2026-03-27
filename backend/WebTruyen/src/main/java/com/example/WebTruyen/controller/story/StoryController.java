@@ -22,6 +22,7 @@ import com.example.WebTruyen.dto.response.StorySidebarResponse;
 import com.example.WebTruyen.dto.response.VolumeSummaryResponse;
 import com.example.WebTruyen.dto.response.AuthorChapterOptionResponse;
 import com.example.WebTruyen.dto.response.AuthorCommentResponse;
+import com.example.WebTruyen.dto.response.AuthorStoryDetailResponse;
 import com.example.WebTruyen.dto.response.AuthorStoryOptionResponse;
 import com.example.WebTruyen.entity.enums.StoryApprovalStatus;
 import com.example.WebTruyen.entity.model.CoreIdentity.UserEntity;
@@ -106,8 +107,21 @@ public class StoryController {
 
     // Lấy thông tin chi tiết truyện theo id
     @GetMapping("/stories/{storyId}")
-    public StoryResponse getStory(@PathVariable Integer storyId) {
-        return storyService.getStoryById(storyId);
+    public StoryResponse getStory(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        return storyService.getStoryById(storyId, currentUser);
+    }
+
+    @GetMapping("/stories/{storyId}/author-detail")
+    public AuthorStoryDetailResponse getAuthorStoryDetail(
+            @PathVariable Integer storyId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = userPrincipal != null ? userPrincipal.getUser() : null;
+        return storyService.getAuthorStoryDetail(storyId, currentUser);
     }
 
     @GetMapping("/public/stories/{storyId}")

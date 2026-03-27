@@ -85,6 +85,15 @@ function RoleProtectedRoute({ allowedRoles, children }) {
   return children;
 }
 
+function AuthenticatedRoute({ children }) {
+  const user = getStoredUser();
+  if (!user?.token) {
+    return <Navigate to='/login' replace />;
+  }
+
+  return children;
+}
+
 function RouteScrollManager() {
   const location = useLocation();
 
@@ -189,7 +198,14 @@ function MainLayoutWrapper() {
         <Route path='/authordashboard' element={<AuthorDashboard />} />
         <Route path='/author/my-stories' element={<ManageStories />} />
         <Route path='/manage-stories' element={<ManageStories />} />
-        <Route path='/library' element={<LibraryStories />} />
+        <Route
+          path='/library'
+          element={
+            <AuthenticatedRoute>
+              <LibraryStories />
+            </AuthenticatedRoute>
+          }
+        />
 
         <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
         <Route
@@ -202,7 +218,11 @@ function MainLayoutWrapper() {
 
         <Route
           path='/library/albums/:albumId'
-          element={<LibraryAlbumDetail />}
+          element={
+            <AuthenticatedRoute>
+              <LibraryAlbumDetail />
+            </AuthenticatedRoute>
+          }
         />
         <Route
           path='/library/albums/public/:albumId'

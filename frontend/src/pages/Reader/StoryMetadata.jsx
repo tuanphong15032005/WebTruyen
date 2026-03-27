@@ -6,6 +6,7 @@ import SkeletonBlock from '../../components/SkeletonBlock';
 import StoryLibraryModal from '../../components/StoryLibraryModal';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
+import { navigateToStoryTarget } from '../../utils/storyAccess';
 import '../../styles/story-metadata.css';
 
 const COMPLETION_LABELS = {
@@ -299,11 +300,20 @@ const StoryMetadata = () => {
       logFlowError(error);
       console.error('getStory metadata error', error);
       setStory(null);
+      const redirected = await navigateToStoryTarget({
+        navigate,
+        notify: null,
+        storyId,
+        fallbackPath: '/',
+        replace: true,
+      });
+      if (!redirected) {
       notify('Truyện chưa công khai hoặc không tồn tại', 'error');
+      }
     } finally {
       setLoadingStory(false);
     }
-  }, [notify, storyId]);
+  }, [navigate, notify, storyId]);
 
   const fetchVolumes = useCallback(async () => {
     try {
@@ -438,21 +448,7 @@ const StoryMetadata = () => {
 
   useEffect(() => {
     fetchStory();
-    fetchVolumes();
-    fetchLatestReview();
-    fetchSidebar();
-    fetchNotifyStatus();
-    fetchLibraryStatus();
-    fetchResumePoint();
-  }, [
-    fetchResumePoint,
-    fetchSidebar,
-    fetchLibraryStatus,
-    fetchNotifyStatus,
-    fetchLatestReview,
-    fetchStory,
-    fetchVolumes,
-  ]);
+  }, [fetchStory]);
 
   const fetchCommentsPage = useCallback(
     async (pageIndex, append) => {
@@ -505,8 +501,31 @@ const StoryMetadata = () => {
   );
 
   useEffect(() => {
+    if (!story?.id) {
+      return;
+    }
+    fetchVolumes();
+    fetchLatestReview();
+    fetchSidebar();
+    fetchNotifyStatus();
+    fetchLibraryStatus();
+    fetchResumePoint();
+  }, [
+    fetchResumePoint,
+    fetchSidebar,
+    fetchLibraryStatus,
+    fetchNotifyStatus,
+    fetchLatestReview,
+    fetchVolumes,
+    story?.id,
+  ]);
+
+  useEffect(() => {
+    if (!story?.id) {
+      return;
+    }
     fetchCommentsPage(0, false);
-  }, [fetchCommentsPage]);
+  }, [fetchCommentsPage, story?.id]);
 
   const categoryTag = useMemo(() => {
     const tags = Array.isArray(story?.tags) ? story.tags : [];

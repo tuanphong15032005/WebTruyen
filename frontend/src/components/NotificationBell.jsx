@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, BookOpen, Coins, MessageCircle, Trophy, X } from 'lucide-react';
+import useNotify from '../hooks/useNotify';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
 import {
@@ -9,6 +10,7 @@ import {
   getNotificationSeenStorageKey,
   isNotificationRead,
 } from '../utils/notificationUtils';
+import { navigateToStoryTarget } from '../utils/storyAccess';
 
 function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -17,6 +19,7 @@ function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { notify } = useNotify();
   const user = getStoredUser();
   const userId = user?.id ?? user?.userId ?? null;
 
@@ -127,7 +130,7 @@ function NotificationBell() {
     setIsOpen(!isOpen);
   };
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = async (notification) => {
     const seenAt = notificationService.markSeenThrough(userId, notification.createdAt);
 
     if (seenAt) {
@@ -140,6 +143,36 @@ function NotificationBell() {
     }
 
     setIsOpen(false);
+    const normalizedType = String(notification?.type || '').toLowerCase();
+    const storyId = notification?.storyId;
+    const chapterId = notification?.chapterId;
+
+    if (normalizedType === 'comment' && storyId) {
+      await navigateToStoryTarget({
+        navigate,
+        notify,
+        storyId,
+        chapterId,
+        hash: chapterId ? '' : 'comments',
+        fallbackPath: '/notifications',
+      });
+      return;
+    }
+
+    if (
+      ['new_chapter', 'new_story', 'chapter_schedule'].includes(normalizedType) &&
+      storyId
+    ) {
+      await navigateToStoryTarget({
+        navigate,
+        notify,
+        storyId,
+        chapterId: normalizedType === 'new_chapter' ? chapterId : null,
+        fallbackPath: '/notifications',
+      });
+      return;
+    }
+
     navigate(notificationService.resolveTarget(notification));
   };
 

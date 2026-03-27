@@ -10,6 +10,7 @@ import {
 import SkeletonBlock from '../components/SkeletonBlock';
 import libraryAlbumService from '../services/libraryAlbumService';
 import useNotify from '../hooks/useNotify';
+import { resolveImmediateStoryTarget } from '../utils/storyAccess';
 import '../styles/library-stories.css';
 import '../styles/library-album-detail.css';
 
@@ -175,6 +176,13 @@ function LibraryAlbumDetail({ isPublic = false }) {
       }),
     [paginatedStories.length],
   );
+
+  const handleUnavailableStoryClick = (story) => {
+    if (resolveImmediateStoryTarget({ story })) {
+      return;
+    }
+    notify('Truyện này hiện không còn công khai.', 'info');
+  };
 
   const handleSortByChange = (event) => {
     const nextSortBy = event.target.value;
@@ -366,12 +374,15 @@ function LibraryAlbumDetail({ isPublic = false }) {
                       const authorName =
                         story.authorPenName || story.authorName || 'Chưa có bút danh';
 
+                      const storyTarget = resolveImmediateStoryTarget({ story });
+
                       return (
                         <article key={story.id} className='library-cover-card'>
-                          <Link
-                            to={`/stories/${story.id}/metadata`}
-                            className='library-cover-card__link'
-                          >
+                          {storyTarget ? (
+                            <Link
+                              to={storyTarget}
+                              className='library-cover-card__link'
+                            >
                             <div className='library-cover-card__media'>
                               {story.coverUrl ? (
                                 <img
@@ -389,7 +400,39 @@ function LibraryAlbumDetail({ isPublic = false }) {
                                 <p>{authorName}</p>
                               </div>
                             </div>
-                          </Link>
+                            </Link>
+                          ) : (
+                            <button
+                              type='button'
+                              className='library-cover-card__link'
+                              onClick={() => handleUnavailableStoryClick(story)}
+                              style={{
+                                width: '100%',
+                                padding: 0,
+                                border: 'none',
+                                background: 'transparent',
+                                textAlign: 'inherit',
+                              }}
+                            >
+                              <div className='library-cover-card__media'>
+                                {story.coverUrl ? (
+                                  <img
+                                    src={story.coverUrl}
+                                    alt={story.title}
+                                    loading='lazy'
+                                    decoding='async'
+                                  />
+                                ) : (
+                                  <div className='library-cover-card__placeholder'>No cover</div>
+                                )}
+
+                                <div className='library-cover-card__overlay'>
+                                  <h3>{story.title}</h3>
+                                  <p>{authorName}</p>
+                                </div>
+                              </div>
+                            </button>
+                          )}
                         </article>
                       );
                     })}
