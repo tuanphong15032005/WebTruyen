@@ -190,7 +190,7 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
                     {follower.avatarUrl ? (
                       <img
                         src={follower.avatarUrl}
-                        alt="avatar"
+                        alt="Ảnh đại diện"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
@@ -200,13 +200,17 @@ export default function FollowersModal({ isOpen, onClose, followers, loading }) 
 
                   <div style={styles.info}>
                     <div style={styles.identityRow}>
-                      <span style={styles.identityText}>{follower.displayName || follower.username}</span>
+                      <span style={styles.identityText}>
+                        {follower.displayName || follower.username}
+                      </span>
                       {follower.isAuthor && <span style={styles.badge}>Tác giả</span>}
                     </div>
 
                     <div style={styles.secondaryRow}>
                       <span>@{follower.username}</span>
-                      {follower.authorPenName && <span style={{ fontStyle: 'italic' }}>"{follower.authorPenName}"</span>}
+                      {follower.authorPenName && (
+                        <span style={{ fontStyle: 'italic' }}>"{follower.authorPenName}"</span>
+                      )}
                     </div>
 
                     {follower.followDate && (

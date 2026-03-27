@@ -9,7 +9,7 @@ function ApplicationManagementPage() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('PENDING');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
   const [rejectionModal, setRejectionModal] = useState({
@@ -26,9 +26,14 @@ function ApplicationManagementPage() {
     onConfirm: null,
     application: null
   });
+  const [pendingCounts, setPendingCounts] = useState({
+    author: 0,
+    reviewer: 0
+  });
 
   useEffect(() => {
     loadApplications();
+    loadPendingCounts();
   }, [activeTab, statusFilter, searchQuery]);
 
   useEffect(() => {
@@ -36,6 +41,22 @@ function ApplicationManagementPage() {
       // Application selected - debugging removed
     }
   }, [selectedApplication]);
+
+  const loadPendingCounts = async () => {
+    try {
+      const [authorPending, reviewerPending] = await Promise.all([
+        applicationAdminApi.getAuthorApplications('PENDING'),
+        applicationAdminApi.getReviewerApplications('PENDING')
+      ]);
+      
+      setPendingCounts({
+        author: Array.isArray(authorPending) ? authorPending.length : 0,
+        reviewer: Array.isArray(reviewerPending) ? reviewerPending.length : 0
+      });
+    } catch (err) {
+      console.error('Error loading pending counts:', err);
+    }
+  };
 
   const loadApplications = async () => {
     setLoading(true);
@@ -60,7 +81,18 @@ function ApplicationManagementPage() {
         );
       }
       
-      setApplications(data || []);
+      
+      // Sorting logic
+      let sortedData = Array.isArray(data) ? [...data] : [];
+      if (statusFilter === 'PENDING') {
+        // FIFO: Oldest first (Sắp xếp theo FIFO cho chờ duyệt)
+        sortedData.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+      } else {
+        // Newest first for APPROVED and REJECTED (Sắp xếp mới nhất lên đầu cho đã duyệt và từ chối)
+        sortedData.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      }
+      
+      setApplications(sortedData);
       
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách đơn');
@@ -149,6 +181,7 @@ function ApplicationManagementPage() {
       }
       
       await loadApplications();
+      await loadPendingCounts();
       closeDetailModal();
       setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null, application: null });
     } catch (err) {
@@ -184,6 +217,7 @@ function ApplicationManagementPage() {
       }
       
       await loadApplications();
+      await loadPendingCounts();
       setRejectionModal({ open: false, application: null, reason: '' });
       closeDetailModal();
     } catch (err) {
@@ -240,14 +274,14 @@ function ApplicationManagementPage() {
             onClick={() => setActiveTab('author')}
           >
             <Edit3 size={16} />
-            Đơn tác giả
+            Đơn tác giả {pendingCounts.author > 0 && `(${pendingCounts.author})`}
           </button>
           <button
             className={`tab ${activeTab === 'reviewer' ? 'active' : ''}`}
             onClick={() => setActiveTab('reviewer')}
           >
             <Shield size={16} />
-            Đơn reviewer
+            Đơn reviewer {pendingCounts.reviewer > 0 && `(${pendingCounts.reviewer})`}
           </button>
         </div>
       </div>
@@ -268,12 +302,6 @@ function ApplicationManagementPage() {
         </div>
         <div className="status-filters">
           <button
-            className={`status-filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('all')}
-          >
-            Tất cả
-          </button>
-          <button
             className={`status-filter-btn ${statusFilter === 'PENDING' ? 'active' : ''}`}
             onClick={() => setStatusFilter('PENDING')}
           >
@@ -292,9 +320,6 @@ function ApplicationManagementPage() {
             Từ chối
           </button>
         </div>
-        <button className="refresh-btn" onClick={loadApplications} disabled={loading}>
-          Tải lại
-        </button>
       </div>
 
       {error && (

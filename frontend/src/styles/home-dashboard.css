@@ -1269,6 +1269,7 @@ html[data-theme='dark'] .home-ranking__head h2,
 html[data-theme='dark'] .home-story-card__title,
 html[data-theme='dark'] .home-ranking__story a,
 html[data-theme='dark'] .home-ranking__comment strong,
+html[data-theme='dark'] .home-ranking__comment-content,
 html[data-theme='dark'] .home-community-item__head strong,
 html[data-theme='dark'] .home-community-item__content {
   color: var(--theme-text-primary);

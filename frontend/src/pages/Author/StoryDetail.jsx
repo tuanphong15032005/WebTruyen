@@ -5,6 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
+import defaultVolumeCover from '../../assets/Default Volume.jpg';
 import Button from '../../components/Button';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import CreateVolume from './CreateVolume';
@@ -29,12 +30,6 @@ const STORY_STATUS_LABELS = {
   published: 'Công khai',
 };
 
-const STORY_APPROVAL_LABELS = {
-  pending: 'Đang chờ duyệt',
-  approved: 'duyệt thành công, giờ có thể đăng công khai',
-  rejected: 'Bị từ chối duyệt',
-};
-
 const CHAPTER_STATUS_LABELS = {
   draft: 'Nháp',
   published: 'Công khai',
@@ -50,25 +45,6 @@ const CHAPTER_APPROVAL_LABELS = {
 const VOLUMES_PAGE_SIZE = 3;
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
-
-const formatRelativeTime = (value) => {
-  if (!value) return 'Chưa cập nhật';
-  const date = new Date(value);
-  const diffMs = Date.now() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'Vừa xong';
-  if (diffMin < 60) return `${diffMin} phút`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} giờ`;
-  const diffDay = Math.floor(diffHour / 24);
-  return `${diffDay} ngày`;
-};
-
-const formatDateTime = (value) => {
-  if (!value) return 'Chưa cập nhật';
-  const date = new Date(value);
-  return date.toLocaleString('vi-VN');
-};
 
 const formatRemainingTime = (
   availableAt,
@@ -154,7 +130,6 @@ const StoryDetail = () => {
   const [editingVolumeTitle, setEditingVolumeTitle] = useState('');
   const [savingVolumeId, setSavingVolumeId] = useState(null);
   const [uploadingVolumeCoverId, setUploadingVolumeCoverId] = useState(null);
-  const [submittingApprovalStory, setSubmittingApprovalStory] = useState(false);
   const [submittingApprovalChapterId, setSubmittingApprovalChapterId] =
     useState(null);
   const [activeTab, setActiveTab] = useState(
@@ -186,10 +161,10 @@ const StoryDetail = () => {
   const fetchStory = useCallback(async () => {
     try {
       setLoadingStory(true);
-      const response = await storyService.getStory(storyId);
+      const response = await storyService.getAuthorStoryDetail(storyId);
       setStory(response || null);
     } catch (error) {
-      console.error('getStory error', error);
+      console.error('getAuthorStoryDetail error', error);
       notify('Không tải được thông tin truyện', 'error');
     } finally {
       setLoadingStory(false);
@@ -247,15 +222,16 @@ const StoryDetail = () => {
     setVolumePage(Math.floor(targetIndex / VOLUMES_PAGE_SIZE) + 1);
   }, [searchParams, volumes]);
 
-  const categoryTag = useMemo(() => {
-    const tags = Array.isArray(story?.tags) ? story.tags : [];
-    return tags[0] || null;
-  }, [story]);
-
+  const categoryTag = useMemo(() => story?.category || null, [story]);
   const extraTags = useMemo(() => {
     const tags = Array.isArray(story?.tags) ? story.tags : [];
-    return tags.slice(1);
-  }, [story]);
+    if (!categoryTag) {
+      return tags;
+    }
+
+    const categoryId = String(categoryTag?.id ?? '');
+    return tags.filter((tag) => String(tag?.id ?? '') !== categoryId);
+  }, [categoryTag, story]);
 
   const completionLabel = useMemo(() => {
     const key = (story?.completionStatus || '').toLowerCase();
@@ -272,74 +248,11 @@ const StoryDetail = () => {
     return KIND_LABELS[key] || 'Truyện sáng tác';
   }, [story]);
 
-  const isTranslated = useMemo(
-    () => String(story?.kind || '').toLowerCase() === 'translated',
-    [story],
-  );
-
-  const authorLabel = isTranslated ? 'Tác giả gốc' : 'Tác giả';
-  const authorValue = isTranslated
-    ? story?.originalAuthorName || 'Chưa rõ'
-    : story?.authorPenName || 'Chưa có bút danh';
-
-  const ratingText = useMemo(() => {
-    const count = Number(story?.ratingCount || 0);
-    if (!count) return 'Chưa có đánh giá';
-    const avg = Number(story?.ratingAvg || 0)
-      .toFixed(2)
-      .replace('.', ',');
-    return `${avg} / 5`;
-  }, [story]);
-
-  const readerText = useMemo(() => {
-    const readers = Number(story?.readerCount || 0);
-    if (!readers) return 'Chưa có người đọc';
-    return formatNumber(readers);
-  }, [story]);
-
-  const savedText = useMemo(() => {
-    const saved = Number(story?.savedCount || 0);
-    if (!saved) return 'Chưa có lượt lưu';
-    return formatNumber(saved);
-  }, [story]);
-
   const wordText = useMemo(() => {
     return formatNumber(Number(story?.wordCount || 0));
   }, [story]);
 
-  const summaryText = useMemo(
-    () => htmlToText(story?.summaryHtml || story?.summary || ''),
-    [story],
-  );
-  const storyApprovalStatusKey = String(
-    story?.approvalStatus || '',
-  ).toLowerCase();
-  const hasStoryApprovalStatusValue =
-    story?.approvalStatus != null && String(story.approvalStatus).trim() !== '';
-  const storyApprovalStatusLabel =
-    STORY_APPROVAL_LABELS[storyApprovalStatusKey] ||
-    (hasStoryApprovalStatusValue ? String(story.approvalStatus) : '');
-  const storyApprovalBadgeClass = STORY_APPROVAL_LABELS[storyApprovalStatusKey]
-    ? `story-detail__approval-badge--${storyApprovalStatusKey}`
-    : 'story-detail__approval-badge--pending';
-  const storyModerationNote = String(story?.moderationNote || '').trim();
-  const storyCooldownText = formatRemainingTime(
-    story?.resubmitAvailableAt,
-    story?.resubmitHoursRemaining,
-    countdownNow,
-  );
-  const showStoryApprovalStatus =
-    Boolean(storyApprovalStatusLabel) &&
-    !(
-      storyApprovalStatusKey === 'approved' &&
-      String(story?.status || '').toLowerCase() === 'published'
-    );
-  const canSubmitStoryApproval =
-    !hasStoryApprovalStatusValue &&
-    String(story?.status || '').toLowerCase() === 'draft';
-  const showStoryCooldown =
-    storyApprovalStatusKey === 'rejected' && Boolean(storyCooldownText);
-  const showStoryNoteButton = Boolean(storyModerationNote);
+  const summaryText = useMemo(() => htmlToText(story?.summaryHtml || ''), [story]);
 
   const toggleVolume = (volumeId) => {
     setExpandedVolumes((prev) => {
@@ -482,31 +395,6 @@ const StoryDetail = () => {
       notify(message, 'error');
     } finally {
       setSubmittingApprovalChapterId(null);
-    }
-  };
-
-  const handleSubmitStoryApproval = async () => {
-    try {
-      setSubmittingApprovalStory(true);
-      const response = await storyService.submitStoryApproval(storyId);
-      const nextApprovalStatus = String(
-        response?.approvalStatus || 'pending',
-      ).toLowerCase();
-
-      setStory((prev) =>
-        prev ? { ...prev, approvalStatus: nextApprovalStatus } : prev,
-      );
-      notify('Gửi duyệt truyện thành công', 'success');
-    } catch (error) {
-      console.error('submitStoryApproval error', error);
-      const message =
-        error?.response?.data?.message ||
-        (typeof error?.message === 'string' && error.message.trim()
-          ? error.message.trim()
-          : 'gửi duyệt truyện thất bại');
-      notify(message, 'error');
-    } finally {
-      setSubmittingApprovalStory(false);
     }
   };
 
@@ -784,34 +672,6 @@ const StoryDetail = () => {
 
                 <div className='story-detail__meta-list'>
                   <div className='story-detail__meta-item'>
-                    <span className='story-detail__meta-icon story-detail__meta-icon--author'>
-                      <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z' />
-                      </svg>
-                    </span>
-                    <span className='story-detail__meta-label'>
-                      {authorLabel}:
-                    </span>
-                    <strong>{authorValue}</strong>
-                  </div>
-                  {isTranslated && (
-                    <div className='story-detail__meta-item'>
-                      <span className='story-detail__meta-icon story-detail__meta-icon--translator'>
-                        <svg viewBox='0 0 24 24' aria-hidden='true'>
-                          <path d='M5 4h7v2H9.92a9.94 9.94 0 0 1-1.58 3c.76.9 1.67 1.69 2.66 2.3l-1 1.73a12.2 12.2 0 0 1-2.73-2.32A11.8 11.8 0 0 1 4.5 13L3 11.5A9.8 9.8 0 0 0 6.1 9 8.09 8.09 0 0 0 7.6 6H5zm10 2h2l4 14h-2l-1-3h-4l-1 3h-2zm.5 3.5-1.5 4.5h3z' />
-                        </svg>
-                      </span>
-                      <span className='story-detail__meta-label'>
-                        Người dịch:
-                      </span>
-                      <strong>
-                        {story.translatorPenName ||
-                          story.authorPenName ||
-                          'Chưa có bút danh'}
-                      </strong>
-                    </div>
-                  )}
-                  <div className='story-detail__meta-item'>
                     <span className='story-detail__meta-icon story-detail__meta-icon--kind'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 3h7v4h-7z' />
@@ -839,7 +699,7 @@ const StoryDetail = () => {
                   <div className='story-detail__tags'>
                     {extraTags.map((tag) => (
                       <span
-                        key={tag.id}
+                        key={tag.id ?? tag.slug ?? tag.name}
                         className='story-detail__tag story-detail__tag--pink'
                       >
                         {tag.name}
@@ -849,15 +709,6 @@ const StoryDetail = () => {
                 )}
 
                 <div className='story-detail__rows'>
-                  <div className='story-detail__row'>
-                    <span className='story-detail__row-icon story-detail__row-icon--views'>
-                      <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 5c5.5 0 9.8 4.6 10 6.8-.2 2.2-4.5 6.8-10 6.8S2.2 14 2 11.8C2.2 9.6 6.5 5 12 5zm0 2C8.6 7 5.7 9.5 4.4 11.8 5.7 14.1 8.6 16.6 12 16.6s6.3-2.5 7.6-4.8C18.3 9.5 15.4 7 12 7zm0 2.2a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2z' />
-                      </svg>
-                    </span>
-                    <span className='story-detail__row-label'>Lượt xem:</span>
-                    <strong>{readerText}</strong>
-                  </div>
                   <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--visibility'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
@@ -879,15 +730,6 @@ const StoryDetail = () => {
                     </strong>
                   </div>
                   <div className='story-detail__row'>
-                    <span className='story-detail__row-icon story-detail__row-icon--rating'>
-                      <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='m12 17.3-6.16 3.24 1.18-6.88L2 8.76l6.92-1L12 1.5l3.08 6.26 6.92 1-5.02 4.9 1.18 6.88z' />
-                      </svg>
-                    </span>
-                    <span className='story-detail__row-label'>Đánh giá:</span>
-                    <strong>{ratingText}</strong>
-                  </div>
-                  <div className='story-detail__row'>
                     <span className='story-detail__row-icon story-detail__row-icon--words'>
                       <svg viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M7 3h8a2 2 0 0 1 2 2v14H7a3 3 0 0 0-3 3V5a2 2 0 0 1 2-2zm10 16V5a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H7a1 1 0 0 1 1-1h9z' />
@@ -896,78 +738,12 @@ const StoryDetail = () => {
                     <span className='story-detail__row-label'>Số từ:</span>
                     <strong>{wordText}</strong>
                   </div>
-                  <div className='story-detail__row'>
-                    <span className='story-detail__row-icon story-detail__row-icon--updated'>
-                      <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M12 1.8a10.2 10.2 0 1 0 10.2 10.2A10.2 10.2 0 0 0 12 1.8zm0 2a8.2 8.2 0 1 1-8.2 8.2A8.2 8.2 0 0 1 12 3.8zm-.1 2.7a1 1 0 0 0-1 1v5.2c0 .27.11.52.3.7l3.5 3.5a1 1 0 1 0 1.4-1.4l-3.2-3.2V7.5a1 1 0 0 0-1-1z' />
-                      </svg>
-                    </span>
-                    <span className='story-detail__row-label'>Lần cuối:</span>
-                    <strong>{formatRelativeTime(story.lastUpdatedAt)}</strong>
-                  </div>
-                  <div className='story-detail__row'>
-                    <span className='story-detail__row-icon story-detail__row-icon--saved'>
-                      <svg viewBox='0 0 24 24' aria-hidden='true'>
-                        <path d='M6 3h12a2 2 0 0 1 2 2v16l-8-3.8L4 21V5a2 2 0 0 1 2-2z' />
-                      </svg>
-                    </span>
-                    <span className='story-detail__row-label'>Lượt lưu:</span>
-                    <strong>{savedText}</strong>
-                  </div>
                 </div>
 
                 <div className='story-detail__summary-header'>
                   <div className='story-detail__summary-header-info'>
                     <span className='story-detail__label'>Nội dung</span>
-                    <span className='story-detail__muted'>
-                      ( Cập nhật: {formatDateTime(story.lastUpdatedAt)} )
-                    </span>
                   </div>
-                  {(canSubmitStoryApproval || showStoryApprovalStatus) && (
-                    <div className='story-detail__summary-approval'>
-                      {showStoryNoteButton && (
-                        <button
-                          type='button'
-                          className='story-detail__note-button'
-                          onClick={() =>
-                            openNoteDialog(
-                              'Chú thích từ quản trị viên',
-                              storyModerationNote,
-                            )
-                          }
-                        >
-                          Chú thích
-                        </button>
-                      )}
-                      {showStoryCooldown && (
-                        <span className='story-detail__cooldown'>
-                          Còn lại: {storyCooldownText}
-                        </span>
-                      )}
-                      {canSubmitStoryApproval && (
-                        <button
-                          type='button'
-                          className='story-detail__chapter-submit story-detail__story-submit-inline'
-                          onClick={handleSubmitStoryApproval}
-                          disabled={submittingApprovalStory || !story}
-                        >
-                          {submittingApprovalStory
-                            ? 'Đang gửi...'
-                            : 'Gửi duyệt'}
-                        </button>
-                      )}
-                      {showStoryApprovalStatus && (
-                        <div className='story-detail__story-approval'>
-                          <span
-                            className={`story-detail__approval-badge ${storyApprovalBadgeClass}`}
-                          >
-                            <span className='story-detail__approval-dot' />
-                            {storyApprovalStatusLabel}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className='story-detail__summary-box'>
@@ -1028,6 +804,9 @@ const StoryDetail = () => {
                   const id = String(volume.id || volume.volumeId);
                   const isOpen = expandedVolumes.has(id);
                   const coverUrl = String(volume?.coverUrl || '').trim();
+                  const volumeCoverSrc = coverUrl || defaultVolumeCover;
+                  const volumeLabel =
+                    volume.title || `Tập ${volume.sequenceIndex || ''}`;
                   const chapters = Array.isArray(volume.chapters)
                     ? [...volume.chapters].sort(
                         (a, b) =>
@@ -1038,20 +817,11 @@ const StoryDetail = () => {
                     <div key={id} className='story-detail__volume'>
                       <div className='story-detail__volume-header'>
                         <div className='story-detail__volume-cover-wrap'>
-                          {coverUrl ? (
-                            <img
-                              className='story-detail__volume-cover'
-                              src={coverUrl}
-                              alt={
-                                volume.title ||
-                                `Tập ${volume.sequenceIndex || ''}`
-                              }
-                            />
-                          ) : (
-                            <div className='story-detail__volume-cover-placeholder'>
-                              No cover
-                            </div>
-                          )}
+                          <img
+                            className='story-detail__volume-cover'
+                            src={volumeCoverSrc}
+                            alt={volumeLabel}
+                          />
                         </div>
                         <div className='story-detail__volume-meta'>
                           {editingVolumeId === id ? (

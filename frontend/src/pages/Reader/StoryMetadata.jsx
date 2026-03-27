@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import defaultVolumeCover from '../../assets/Default Volume.jpg';
+import CommentThreadItem from '../../components/comments/CommentThreadItem';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import StoryLibraryModal from '../../components/StoryLibraryModal';
 import useNotify from '../../hooks/useNotify';
 import storyService from '../../services/storyService';
+import { navigateToStoryTarget } from '../../utils/storyAccess';
 import '../../styles/story-metadata.css';
 
 const COMPLETION_LABELS = {
@@ -79,6 +82,15 @@ const formatRelativeTime = (value) => {
   const diffHour = Math.floor(diffMin / 60);
   if (diffHour < 24) return `${diffHour} giờ trước`;
   return `${Math.floor(diffHour / 24)} ngày trước`;
+};
+
+const formatVolumeHeading = (volume) => {
+  const sequence = Number(volume?.sequenceIndex || 0);
+  const title = String(volume?.title || '').trim();
+  if (sequence > 0 && title) return `Tập ${sequence}: ${title}`;
+  if (sequence > 0) return `Tập ${sequence}`;
+  if (title) return title;
+  return 'Chưa có tập';
 };
 
 const htmlToText = (html) => {
@@ -288,11 +300,20 @@ const StoryMetadata = () => {
       logFlowError(error);
       console.error('getStory metadata error', error);
       setStory(null);
+      const redirected = await navigateToStoryTarget({
+        navigate,
+        notify: null,
+        storyId,
+        fallbackPath: '/',
+        replace: true,
+      });
+      if (!redirected) {
       notify('Truyện chưa công khai hoặc không tồn tại', 'error');
+      }
     } finally {
       setLoadingStory(false);
     }
-  }, [notify, storyId]);
+  }, [navigate, notify, storyId]);
 
   const fetchVolumes = useCallback(async () => {
     try {
@@ -427,21 +448,7 @@ const StoryMetadata = () => {
 
   useEffect(() => {
     fetchStory();
-    fetchVolumes();
-    fetchLatestReview();
-    fetchSidebar();
-    fetchNotifyStatus();
-    fetchLibraryStatus();
-    fetchResumePoint();
-  }, [
-    fetchResumePoint,
-    fetchSidebar,
-    fetchLibraryStatus,
-    fetchNotifyStatus,
-    fetchLatestReview,
-    fetchStory,
-    fetchVolumes,
-  ]);
+  }, [fetchStory]);
 
   const fetchCommentsPage = useCallback(
     async (pageIndex, append) => {
@@ -494,8 +501,31 @@ const StoryMetadata = () => {
   );
 
   useEffect(() => {
+    if (!story?.id) {
+      return;
+    }
+    fetchVolumes();
+    fetchLatestReview();
+    fetchSidebar();
+    fetchNotifyStatus();
+    fetchLibraryStatus();
+    fetchResumePoint();
+  }, [
+    fetchResumePoint,
+    fetchSidebar,
+    fetchLibraryStatus,
+    fetchNotifyStatus,
+    fetchLatestReview,
+    fetchVolumes,
+    story?.id,
+  ]);
+
+  useEffect(() => {
+    if (!story?.id) {
+      return;
+    }
     fetchCommentsPage(0, false);
-  }, [fetchCommentsPage]);
+  }, [fetchCommentsPage, story?.id]);
 
   const categoryTag = useMemo(() => {
     const tags = Array.isArray(story?.tags) ? story.tags : [];
@@ -1280,7 +1310,7 @@ const StoryMetadata = () => {
     );
   };
 
-  const renderCommentItem = (comment, isReply = false, rootId = null) => {
+  const legacyRenderCommentItem = (comment, isReply = false, rootId = null) => {
     const commentRootId = String(rootId || comment.id);
     const isOwner = currentUserId === Number(comment.userId);
     const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
@@ -1433,6 +1463,43 @@ const StoryMetadata = () => {
       </article>
     );
   };
+
+  const renderCommentItem = (comment, isReply = false, rootId = null) => (
+    <CommentThreadItem
+      key={comment.id}
+      comment={comment}
+      isReply={isReply}
+      rootId={rootId}
+      currentUserId={currentUserId}
+      formatTime={formatRelativeTime}
+      getInitial={getInitial}
+      onUserClick={(targetComment) =>
+        navigate(`/portfolio/${targetComment.userId}`)
+      }
+      onReply={openReplyForm}
+      onStartEdit={handleStartEdit}
+      onDelete={handleDeleteComment}
+      onReport={handleReportComment}
+      editingCommentId={editingCommentId}
+      editingContent={editingContent}
+      onEditingContentChange={setEditingContent}
+      savingComment={savingComment}
+      onSaveEdit={handleSaveEdit}
+      onCancelEdit={handleCancelEdit}
+      replyForm={renderReplyForm(comment.id)}
+      enableSpoilers
+      isSpoilerRevealed={Boolean(revealedSpoilerComments[String(comment.id)])}
+      onRevealSpoiler={(targetComment) =>
+        setRevealedSpoilerComments((prev) => ({
+          ...prev,
+          [String(targetComment.id)]: true,
+        }))
+      }
+      editingHasSpoiler={editingHasSpoiler}
+      onEditingHasSpoilerChange={setEditingHasSpoiler}
+      allowOwnerReport
+    />
+  );
 
   const renderSidebarSkeletonItems = (count = 3) =>
     Array.from({ length: count }, (_, index) => (
@@ -1903,7 +1970,9 @@ const StoryMetadata = () => {
             {volumes.map((volume) => {
               const id = String(volume.id || volume.volumeId);
               const isOpen = expandedVolumes.has(id);
+              const volumeLabel = formatVolumeHeading(volume);
               const volumeCoverUrl = String(volume?.coverUrl || '').trim();
+              const volumeCoverSrc = volumeCoverUrl || defaultVolumeCover;
               const chapters = Array.isArray(volume.chapters)
                 ? [...volume.chapters].sort(
                     (a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0),
@@ -1918,21 +1987,13 @@ const StoryMetadata = () => {
                     onClick={() => handleToggleVolume(id)}
                   >
                     <span className='story-metadata__volume-head-main'>
-                      {volumeCoverUrl ? (
-                        <img
-                          className='story-metadata__volume-cover'
-                          src={volumeCoverUrl}
-                          alt={
-                            volume.title || `Tap ${volume.sequenceIndex || ''}`
-                          }
-                        />
-                      ) : (
-                        <span className='story-metadata__volume-cover-empty'>
-                          No cover
-                        </span>
-                      )}
+                      <img
+                        className='story-metadata__volume-cover'
+                        src={volumeCoverSrc}
+                        alt={volumeLabel}
+                      />
                       <span className='story-metadata__volume-head-text'>
-                        {volume.title || `Tập ${volume.sequenceIndex || ''}`}
+                        {volumeLabel}
                         <small>
                           {volume.chapterCount ?? chapters.length} chương
                         </small>

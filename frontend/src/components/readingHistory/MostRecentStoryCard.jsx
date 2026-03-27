@@ -1,10 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import '../../styles/MostRecentStoryCard.css';
 
-const MostRecentStoryCard = ({ story, onContinueReading }) => {
-  const navigate = useNavigate();
-
+const MostRecentStoryCard = ({ story, onContinueReading, onOpenDetails }) => {
   const formatDate = (lastReadAt) => {
     if (!lastReadAt) return '';
     const date = new Date(lastReadAt);
@@ -63,7 +60,7 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
             </button>
             <button 
               className="btn-secondary details-btn"
-              onClick={() => navigate(`/stories/${story.storyId}/metadata`)}
+              onClick={onOpenDetails}
             >
               Chi tiết
             </button>

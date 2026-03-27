@@ -17,6 +17,7 @@ const storyService = {
   },
 
   getStory: (storyId) => api.get(`/stories/${storyId}`),
+  getAuthorStoryDetail: (storyId) => api.get(`/stories/${storyId}/author-detail`),
   getPublicStory: (storyId) => api.get(`/public/stories/${storyId}`),
   getStoryResumePoint: (storyId) => api.get(`/stories/${storyId}/resume-point`),
   // Mục đích: Lấy dữ liệu sidebar metadata (thông tin thêm/truyện tương tự/cùng tác giả). Hieuson + 10h30

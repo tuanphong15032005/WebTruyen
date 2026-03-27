@@ -1,11 +1,14 @@
 import React from 'react';
 import { BookOpen, Clock, Coins, MessageCircle, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import useNotify from '../hooks/useNotify';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
+import { navigateToStoryTarget } from '../utils/storyAccess';
 
 const NotificationItem = ({ notification }) => {
   const navigate = useNavigate();
+  const { notify } = useNotify();
   const user = getStoredUser();
   const userId = user?.id ?? user?.userId ?? null;
 
@@ -70,8 +73,38 @@ const NotificationItem = ({ notification }) => {
     return created.toLocaleDateString('vi-VN');
   };
 
-  const handleClick = () => {
+  const handleClick = async () => {
     notificationService.markSeenThrough(userId, notification.createdAt);
+
+    const storyId = notification?.storyId;
+    const chapterId = notification?.chapterId;
+
+    if (normalizedType === 'comment' && storyId) {
+      await navigateToStoryTarget({
+        navigate,
+        notify,
+        storyId,
+        chapterId,
+        hash: chapterId ? '' : 'comments',
+        fallbackPath: '/notifications',
+      });
+      return;
+    }
+
+    if (
+      ['new_chapter', 'new_story', 'chapter_schedule'].includes(normalizedType) &&
+      storyId
+    ) {
+      await navigateToStoryTarget({
+        navigate,
+        notify,
+        storyId,
+        chapterId: normalizedType === 'new_chapter' ? chapterId : null,
+        fallbackPath: '/notifications',
+      });
+      return;
+    }
+
     navigate(notificationService.resolveTarget(notification));
   };
 

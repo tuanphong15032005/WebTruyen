@@ -7,7 +7,7 @@ function AdminDashboard() {
       <aside className='admin-dashboard__sidebar'>
         <div className='admin-dashboard__logo'>
           <span className='admin-dashboard__logo-icon'>A</span>
-          <span className='admin-dashboard__logo-text'>Admin Panel</span>
+          <span className='admin-dashboard__logo-text'>Trang Quản Trị</span>
         </div>
         <nav className='admin-dashboard__nav'>
           <NavLink

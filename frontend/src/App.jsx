@@ -85,6 +85,15 @@ function RoleProtectedRoute({ allowedRoles, children }) {
   return children;
 }
 
+function AuthProtectedRoute({ children }) {
+  const user = getStoredUser();
+  if (!user?.token) {
+    return <Navigate to='/login' replace />;
+  }
+
+  return children;
+}
+
 function RouteScrollManager() {
   const location = useLocation();
 
@@ -174,31 +183,79 @@ function MainLayoutWrapper() {
           element={<CoinTransactionHistoryPage />}
         />
 
-        <Route path='/profile' element={<UserProfile />} />
-        <Route path='/notifications' element={<NotificationPage />} />
+        <Route path='/profile' element={
+          <AuthProtectedRoute>
+            <UserProfile />
+          </AuthProtectedRoute>
+        } />
+        <Route path='/notifications' element={
+          <AuthProtectedRoute>
+            <NotificationPage />
+          </AuthProtectedRoute>
+        } />
         <Route path='/user/:username' element={<UserProfile />} />
         <Route path='/portfolio/:userId' element={<UserPortfolioPage />} />
         <Route
           path='/portfolio/username/:username'
           element={<UserPortfolioPage />}
         />
-        <Route path='/daily-tasks' element={<DailyTasksPage />} />
-        <Route path='/achievements' element={<AchievementsPage />} />
+        <Route path='/daily-tasks' element={
+          <AuthProtectedRoute>
+            <DailyTasksPage />
+          </AuthProtectedRoute>
+        } />
+        <Route path='/achievements' element={
+          <AuthProtectedRoute>
+            <AchievementsPage />
+          </AuthProtectedRoute>
+        } />
         <Route path='/donate/:userId' element={<DonatePage />} />
 
-        <Route path='/authordashboard' element={<AuthorDashboard />} />
-        <Route path='/author/my-stories' element={<ManageStories />} />
-        <Route path='/manage-stories' element={<ManageStories />} />
-        <Route path='/library' element={<LibraryStories />} />
+        <Route path='/authordashboard' element={
+          <AuthProtectedRoute>
+            <AuthorDashboard />
+          </AuthProtectedRoute>
+        } />
+        <Route path='/author/my-stories' element={
+          <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <ManageStories />
+          </RoleProtectedRoute>
+        } />
+        <Route path='/manage-stories' element={
+          <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <ManageStories />
+          </RoleProtectedRoute>
+        } />
+        <Route path='/library' element={
+          <AuthProtectedRoute>
+            <LibraryStories />
+          </AuthProtectedRoute>
+        } />
 
-        <Route path='/bookmarks' element={<BookmarkStoriesPage />} />
+        <Route path='/bookmarks' element={
+          <AuthProtectedRoute>
+            <BookmarkStoriesPage />
+          </AuthProtectedRoute>
+        } />
         <Route
           path='/bookmarks/story/:storyId'
-          element={<BookmarkDetailPage />}
+          element={
+            <AuthProtectedRoute>
+              <BookmarkDetailPage />
+            </AuthProtectedRoute>
+          }
         />
-        <Route path='/reading-history' element={<ReadingHistoryPage />} />
+        <Route path='/reading-history' element={
+          <AuthProtectedRoute>
+            <ReadingHistoryPage />
+          </AuthProtectedRoute>
+        } />
 
-        <Route path='/reviewer-area' element={<ReviewerArea />} />
+        <Route path='/reviewer-area' element={
+          <AuthProtectedRoute>
+            <ReviewerArea />
+          </AuthProtectedRoute>
+        } />
 
         <Route
           path='/library/albums/:albumId'
@@ -209,9 +266,21 @@ function MainLayoutWrapper() {
           element={<LibraryAlbumDetail isPublic />}
         />
 
-        <Route path='/author/create-story' element={<CreateStory />} />
-        <Route path='/author/stories/:storyId/edit' element={<CreateStory />} />
-        <Route path='/author/stories/:storyId' element={<StoryDetail />} />
+        <Route path='/author/create-story' element={
+          <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <CreateStory />
+          </RoleProtectedRoute>
+        } />
+        <Route path='/author/stories/:storyId/edit' element={
+          <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <CreateStory />
+          </RoleProtectedRoute>
+        } />
+        <Route path='/author/stories/:storyId' element={
+          <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <StoryDetail />
+          </RoleProtectedRoute>
+        } />
         <Route path='/stories/:storyId/metadata' element={<StoryMetadata />} />
         <Route path='/stories/:storyId/reviews' element={<StoryReviews />} />
         <Route
@@ -224,7 +293,11 @@ function MainLayoutWrapper() {
         <Route path='/reader' element={<ChapterPage />} />
         <Route
           path='author/stories/:storyId/volumes/:volumeId/create-chapter'
-          element={<CreateChapter />}
+          element={
+            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+              <CreateChapter />
+            </RoleProtectedRoute>
+          }
         />
         <Route
           path='author/comments'
@@ -245,15 +318,15 @@ function MainLayoutWrapper() {
         <Route
           path='/author/withdrawal-request'
           element={
-            <RoleProtectedRoute allowedRoles={['AUTHOR']}>
+            <AuthProtectedRoute>
               <WithdrawalRequestPage />
-            </RoleProtectedRoute>
+            </AuthProtectedRoute>
           }
         />
         <Route
           path='/admin/dashboard'
           element={
-            <RoleProtectedRoute allowedRoles={['ADMIN', 'MOD']}>
+            <RoleProtectedRoute allowedRoles={['MOD']}>
               <AdminDashboard />
             </RoleProtectedRoute>
           }

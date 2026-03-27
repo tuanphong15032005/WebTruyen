@@ -1,4 +1,11 @@
-import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+﻿import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -8,6 +15,7 @@ import {
   Menu,
   Search,
   Star,
+  Wallet,
 } from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser } from '../utils/helpers';
@@ -28,6 +36,7 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
   //   });
 
   const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
   const searchRequestRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +54,24 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
     return getStoredUser();
   });
   //dong 1234
+  const focusSearchInput = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+  }, []);
+
+  const collapseSearch = useCallback(() => {
+    setShowSearchSuggestions(false);
+    setIsSearchOpen(false);
+  }, []);
+
+  const expandSearch = useCallback(() => {
+    setIsSearchOpen(true);
+    setShowSearchSuggestions(searchValue.trim().length >= 1);
+    focusSearchInput();
+  }, [focusSearchInput, searchValue]);
+
   useEffect(() => {
     // Hieuson - 24/2 + Dong bo lai user tren header khi localStorage thay doi.
     const syncUserFromStorage = () => {
@@ -71,18 +98,32 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
     // Hieuson - 24/2 + Tu dong dong menu user khi click ra ngoai dropdown.
     const handleOutsideClick = (event) => {
       if (!searchRef.current?.contains(event.target)) {
-        setShowSearchSuggestions(false);
-        setIsSearchOpen(false);
+        collapseSearch();
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, []);
+  }, [collapseSearch]);
+
+  useEffect(() => {
+    const handleGlobalSearchShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        expandSearch();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalSearchShortcut);
+    return () =>
+      document.removeEventListener('keydown', handleGlobalSearchShortcut);
+  }, [expandSearch]);
 
   useEffect(() => {
     if (location.pathname !== '/search') return;
     const params = new URLSearchParams(location.search || '');
-    setSearchValue(params.get('q') || '');
+    const nextQuery = params.get('q') || '';
+    setSearchValue(nextQuery);
+    setSearchTouched(nextQuery.trim().length >= 1);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -188,11 +229,11 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
     const keyword = searchValue.trim();
     if (!keyword) {
       navigate('/search');
-      setShowSearchSuggestions(false);
+      collapseSearch();
       return;
     }
     navigate(`/search?q=${encodeURIComponent(keyword)}`);
-    setShowSearchSuggestions(false);
+    collapseSearch();
   };
 
   const handleSelectSuggestion = (story) => {
@@ -204,12 +245,7 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
 
   const handleSearchIconClick = () => {
     if (!isSearchOpen) {
-      setIsSearchOpen(true);
-      setShowSearchSuggestions(false);
-      window.requestAnimationFrame(() => {
-        const inputElement = searchRef.current?.querySelector('input');
-        inputElement?.focus();
-      });
+      expandSearch();
       return;
     }
 
@@ -292,12 +328,15 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
         </div>
 
         <form
-          className={`site-search ${isSearchOpen ? 'is-open' : ''}`}
+          className={`site-search ${isSearchOpen ? 'is-open' : ''} ${
+            searchValue.trim() ? 'has-value' : ''
+          }`.trim()}
           onSubmit={handleSearchSubmit}
           role='search'
           ref={searchRef}
         >
           <input
+            ref={searchInputRef}
             value={searchValue}
             onChange={(event) => {
               const nextValue = event.target.value;
@@ -306,13 +345,30 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
               setShowSearchSuggestions(nextValue.trim().length >= 1);
             }}
             onFocus={() => {
+              setIsSearchOpen(true);
               if (searchTouched && searchValue.trim().length >= 1) {
                 setShowSearchSuggestions(true);
               }
             }}
-            placeholder='Tìm kiếm truyện, tác giả...'
-            aria-label='Tìm kiếm truyện'
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                collapseSearch();
+                searchInputRef.current?.blur();
+              }
+            }}
+            placeholder='Tìm kiếm '
+            aria-label='Tìm kiếm '
           />
+          <button
+            type='button'
+            className='site-search__shortcut'
+            onClick={expandSearch}
+            aria-label='Mo tim kiem nhanh bang Ctrl K'
+          >
+            <span className='site-search__shortcut-label'>Ctrl</span>
+            <span className='site-search__shortcut-key'>K</span>
+          </button>
           <button
             type='button'
             className='site-search__submit'

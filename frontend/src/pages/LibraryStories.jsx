@@ -14,6 +14,7 @@ import SkeletonBlock from '../components/SkeletonBlock';
 import libraryAlbumService from '../services/libraryAlbumService';
 import storyService from '../services/storyService';
 import useNotify from '../hooks/useNotify';
+import { resolveImmediateStoryTarget } from '../utils/storyAccess';
 import '../styles/library-stories.css';
 
 const STORY_ITEMS_PER_PAGE = 18;
@@ -251,6 +252,13 @@ function LibraryStories() {
     [paginatedAlbums.length],
   );
 
+  const handleUnavailableStoryClick = (story) => {
+    if (resolveImmediateStoryTarget({ story })) {
+      return;
+    }
+    notify('Truyện này hiện không còn công khai.', 'info');
+  };
+
   const handleTabChange = (nextTab) => {
     if (nextTab === activeTab) return;
 
@@ -487,12 +495,15 @@ function LibraryStories() {
                         const authorName =
                           story.authorPenName || story.authorName || 'Chưa có bút danh';
 
+                        const storyTarget = resolveImmediateStoryTarget({ story });
+
                         return (
                           <article key={story.id} className='library-cover-card'>
-                            <Link
-                              to={`/stories/${story.id}/metadata`}
-                              className='library-cover-card__link'
-                            >
+                            {storyTarget ? (
+                              <Link
+                                to={storyTarget}
+                                className='library-cover-card__link'
+                              >
                               <div className='library-cover-card__media'>
                                 {story.coverUrl ? (
                                   <img
@@ -521,7 +532,50 @@ function LibraryStories() {
                                   <p>{authorName}</p>
                                 </div>
                               </div>
-                            </Link>
+                              </Link>
+                            ) : (
+                              <button
+                                type='button'
+                                className='library-cover-card__link'
+                                onClick={() => handleUnavailableStoryClick(story)}
+                                style={{
+                                  width: '100%',
+                                  padding: 0,
+                                  border: 'none',
+                                  background: 'transparent',
+                                  textAlign: 'inherit',
+                                }}
+                              >
+                                <div className='library-cover-card__media'>
+                                  {story.coverUrl ? (
+                                    <img
+                                      src={story.coverUrl}
+                                      alt={story.title}
+                                      loading='lazy'
+                                      decoding='async'
+                                    />
+                                  ) : (
+                                    <div className='library-cover-card__placeholder'>
+                                      No cover
+                                    </div>
+                                  )}
+
+                                  {story.favorite && (
+                                    <span
+                                      className='library-cover-card__favorite'
+                                      title='Truyá»‡n yÃªu thÃ­ch'
+                                    >
+                                      <Heart size={13} fill='currentColor' />
+                                    </span>
+                                  )}
+
+                                  <div className='library-cover-card__overlay'>
+                                    <h3>{story.title}</h3>
+                                    <p>{authorName}</p>
+                                  </div>
+                                </div>
+                              </button>
+                            )}
                           </article>
                         );
                       })}

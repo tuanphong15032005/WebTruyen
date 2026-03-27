@@ -147,9 +147,21 @@ main.main-content.chapter-layout-host {
   -webkit-text-fill-color: transparent;
 }
 
-.chapter-title {
+.chapter-header-title {
   margin: 10px 0 0;
   font-size: 1.6rem;
+  color: inherit;
+}
+
+.chapter-volume {
+  margin: 14px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(62, 39, 35, 0.78);
+}
+
+.theme-dark .chapter-volume {
+  color: rgba(241, 243, 245, 0.76);
 }
 
 .chapter-content {
@@ -314,86 +326,218 @@ main.main-content.chapter-layout-host {
 .chapter-comments {
   margin-top: 42px;
   padding-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid transparent;
 }
 
-.chapter-comments--dark {
-  border-top-color: rgba(255, 255, 255, 0.2);
+.chapter-reader-container.theme-light .chapter-comments {
+  --chapter-comment-surface: rgba(255, 252, 244, 0.96);
+  --chapter-comment-surface-subtle: rgba(255, 248, 233, 0.9);
+  --chapter-comment-border: rgba(139, 111, 69, 0.18);
+  --chapter-comment-divider: rgba(139, 111, 69, 0.12);
+  --chapter-comment-title: #3d3024;
+  --chapter-comment-text: #5c4d3f;
+  --chapter-comment-muted: #897663;
+  --chapter-comment-input-bg: rgba(255, 255, 255, 0.92);
+  --chapter-comment-input-border: rgba(139, 111, 69, 0.18);
+  --chapter-comment-input-placeholder: #ad9b88;
+  --chapter-comment-chip-bg: rgba(255, 255, 255, 0.88);
+  --chapter-comment-chip-border: rgba(139, 111, 69, 0.18);
+  --chapter-comment-chip-text: #7b6755;
+  --chapter-comment-reply-bg: #fff2f8;
+  --chapter-comment-reply-border: #ef8ab4;
+  --chapter-comment-reply-text: #c64d83;
+  --chapter-comment-primary-bg: #33b37f;
+  --chapter-comment-primary-border: #2f9a72;
+  --chapter-comment-primary-text: #ffffff;
+  --chapter-comment-secondary-bg: #fffdf5;
+  --chapter-comment-secondary-border: #f2d790;
+  --chapter-comment-secondary-text: #c56c16;
+  --chapter-comment-danger-bg: #ff6b6b;
+  --chapter-comment-danger-border: #ef4444;
+  --chapter-comment-danger-text: #ffffff;
+  --chapter-comment-top-border: rgba(139, 111, 69, 0.18);
 }
 
-.chapter-comments--dark .story-metadata__comment-form,
-.chapter-comments--dark .story-metadata__comment-item,
-.chapter-comments--dark .story-metadata__reply-form {
-  background: #141417;
-  border-color: rgba(255, 255, 255, 0.2);
+.chapter-reader-container.theme-dark .chapter-comments {
+  --chapter-comment-surface: rgba(25, 35, 51, 0.96);
+  --chapter-comment-surface-subtle: rgba(18, 26, 39, 0.92);
+  --chapter-comment-border: rgba(146, 170, 214, 0.18);
+  --chapter-comment-divider: rgba(146, 170, 214, 0.14);
+  --chapter-comment-title: #f3f7ff;
+  --chapter-comment-text: #c2d0e8;
+  --chapter-comment-muted: #92a5c3;
+  --chapter-comment-input-bg: rgba(12, 18, 29, 0.92);
+  --chapter-comment-input-border: rgba(146, 170, 214, 0.2);
+  --chapter-comment-input-placeholder: #7e93b6;
+  --chapter-comment-chip-bg: rgba(16, 24, 36, 0.92);
+  --chapter-comment-chip-border: rgba(146, 170, 214, 0.18);
+  --chapter-comment-chip-text: #b7c6e0;
+  --chapter-comment-reply-bg: #fff2f8;
+  --chapter-comment-reply-border: #ef8ab4;
+  --chapter-comment-reply-text: #c64d83;
+  --chapter-comment-primary-bg: #33b37f;
+  --chapter-comment-primary-border: #2f9a72;
+  --chapter-comment-primary-text: #ffffff;
+  --chapter-comment-secondary-bg: #fffdf5;
+  --chapter-comment-secondary-border: #f2d790;
+  --chapter-comment-secondary-text: #c56c16;
+  --chapter-comment-danger-bg: #ff6b6b;
+  --chapter-comment-danger-border: #ef4444;
+  --chapter-comment-danger-text: #ffffff;
+  --chapter-comment-top-border: rgba(146, 170, 214, 0.18);
 }
 
-.chapter-comments--dark .story-metadata__comment-item .story-metadata__comment-body,
-.chapter-comments--dark .story-metadata__reply-item .story-metadata__comment-body {
-  color: #e7ecf6;
+.chapter-reader-container .chapter-comments {
+  border-top-color: var(--chapter-comment-top-border);
 }
 
-.chapter-comments--dark .story-metadata__comment-form textarea,
-.chapter-comments--dark .story-metadata__reply-form textarea,
-.chapter-comments--dark .story-metadata__edit-form textarea {
-  background: #0f1012;
-  color: #f1f3f5;
-  border-color: rgba(255, 255, 255, 0.2);
+.chapter-reader-container .chapter-comments h3,
+.chapter-reader-container .chapter-comments .story-metadata__comment-head strong,
+.chapter-reader-container .chapter-comments .story-metadata__reply-item .story-metadata__comment-head strong {
+  color: var(--chapter-comment-title);
 }
 
-.chapter-comments--dark h3,
-.chapter-comments--dark .story-metadata__comment-head strong,
-.chapter-comments--dark .story-metadata__comment-head small,
-.chapter-comments--dark .story-metadata__comment-body p,
-.chapter-comments--dark .story-metadata__reply-target,
-.chapter-comments--dark .story-metadata__comment-form-footer,
-.chapter-comments--dark .story-metadata__reply-form-footer,
-.chapter-comments--dark .story-metadata__reply-load-row,
-.chapter-comments--dark .story-metadata__inline-action,
-.chapter-comments--dark .story-metadata__reply-btn,
-.chapter-comments--dark .story-metadata__load-more-comments {
-  color: #e7ecf6;
+.chapter-reader-container .chapter-comments .story-metadata__comment-form,
+.chapter-reader-container .chapter-comments .story-metadata__comment-item,
+.chapter-reader-container .chapter-comments .story-metadata__reply-item,
+.chapter-reader-container .chapter-comments .story-metadata__reply-form,
+.chapter-reader-container .chapter-comments .story-metadata__edit-form {
+  background: var(--chapter-comment-surface);
+  border-color: var(--chapter-comment-border);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
-.chapter-comments--dark .story-metadata__reply-btn,
-.chapter-comments--dark .story-metadata__reply-load-btn,
-.chapter-comments--dark .story-metadata__load-more-comments {
-  background: #1b2334;
-  border-color: rgba(175, 197, 232, 0.5);
+.chapter-reader-container .chapter-comments .story-metadata__comment-head small,
+.chapter-reader-container .chapter-comments .story-metadata__comment-body p,
+.chapter-reader-container .chapter-comments .story-metadata__reply-item .story-metadata__comment-body p,
+.chapter-reader-container .chapter-comments .story-metadata__reply-target,
+.chapter-reader-container .chapter-comments .story-metadata__comment-form-footer,
+.chapter-reader-container .chapter-comments .story-metadata__reply-form-footer,
+.chapter-reader-container .chapter-comments .story-metadata__reply-load-row,
+.chapter-reader-container .chapter-comments .story-metadata__empty-review {
+  color: var(--chapter-comment-text);
 }
 
-.chapter-comments--dark .story-metadata__inline-action.danger {
-  color: #ff8da1;
+.chapter-reader-container .chapter-comments .story-metadata__comment-form textarea,
+.chapter-reader-container .chapter-comments .story-metadata__reply-form textarea,
+.chapter-reader-container .chapter-comments .story-metadata__edit-form textarea {
+  background: var(--chapter-comment-input-bg);
+  border-color: var(--chapter-comment-input-border);
+  color: var(--chapter-comment-title);
 }
 
-.chapter-comments--dark .story-metadata__comment-form textarea::placeholder,
-.chapter-comments--dark .story-metadata__reply-form textarea::placeholder,
-.chapter-comments--dark .story-metadata__edit-form textarea::placeholder {
-  color: #95a6c3;
+.chapter-reader-container .chapter-comments .story-metadata__comment-form textarea::placeholder,
+.chapter-reader-container .chapter-comments .story-metadata__reply-form textarea::placeholder,
+.chapter-reader-container .chapter-comments .story-metadata__edit-form textarea::placeholder {
+  color: var(--chapter-comment-input-placeholder);
 }
 
-.chapter-comments--dark .story-metadata__comment-form-footer button,
-.chapter-comments--dark .story-metadata__reply-form-footer button,
-.chapter-comments--dark .story-metadata__edit-actions button {
-  background: #2a7fe2;
-  border-color: #2a7fe2;
-  color: #fff;
+.chapter-reader-container .chapter-comments .story-metadata__comment-form textarea:focus,
+.chapter-reader-container .chapter-comments .story-metadata__reply-form textarea:focus,
+.chapter-reader-container .chapter-comments .story-metadata__edit-form textarea:focus {
+  border-color: color-mix(in srgb, var(--chapter-comment-primary-border) 58%, #ffffff 42%);
+  box-shadow: 0 0 0 4px rgba(76, 151, 242, 0.16);
 }
 
-.chapter-comments--dark .story-metadata__reply-form-footer button.ghost,
-.chapter-comments--dark .story-metadata__edit-actions button.ghost {
-  background: #18243a;
-  border-color: rgba(175, 197, 232, 0.5);
-  color: #dbe7ff;
+.chapter-reader-container .chapter-comments .story-metadata__reply-btn,
+.chapter-reader-container .chapter-comments .story-metadata__inline-action,
+.chapter-reader-container .chapter-comments .story-metadata__spoiler-toggle {
+  background: var(--chapter-comment-chip-bg);
+  border-color: var(--chapter-comment-chip-border);
+  color: var(--chapter-comment-chip-text);
 }
 
-.chapter-comments--dark .story-metadata__reply-item {
-  border-left-color: rgba(206, 222, 245, 0.3);
+.chapter-reader-container .chapter-comments .story-metadata__reply-btn:hover,
+.chapter-reader-container .chapter-comments .story-metadata__inline-action:hover {
+  border-color: color-mix(in srgb, var(--chapter-comment-chip-border) 58%, #ffffff 42%);
+  filter: brightness(1.02);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__inline-action.danger {
+  background: var(--chapter-comment-danger-bg);
+  border-color: var(--chapter-comment-danger-border);
+  color: var(--chapter-comment-danger-text);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__comment-form-footer button,
+.chapter-reader-container .chapter-comments .story-metadata__reply-form-footer button:not(.ghost),
+.chapter-reader-container .chapter-comments .story-metadata__edit-actions button:not(.ghost) {
+  background: var(--chapter-comment-primary-bg);
+  border-color: var(--chapter-comment-primary-border);
+  color: var(--chapter-comment-primary-text);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__comment-form-footer button:hover:not(:disabled),
+.chapter-reader-container .chapter-comments .story-metadata__reply-form-footer button:not(.ghost):hover:not(:disabled),
+.chapter-reader-container .chapter-comments .story-metadata__edit-actions button:not(.ghost):hover:not(:disabled) {
+  background: var(--chapter-comment-primary-bg);
+  border-color: var(--chapter-comment-primary-border);
+  color: var(--chapter-comment-primary-text);
+  filter: brightness(0.98);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reply-form-footer button.ghost,
+.chapter-reader-container .chapter-comments .story-metadata__edit-actions button.ghost {
+  background: var(--chapter-comment-secondary-bg);
+  border-color: var(--chapter-comment-secondary-border);
+  color: var(--chapter-comment-secondary-text);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reply-form-footer button.ghost:hover:not(:disabled),
+.chapter-reader-container .chapter-comments .story-metadata__edit-actions button.ghost:hover:not(:disabled) {
+  background: var(--chapter-comment-secondary-bg);
+  border-color: var(--chapter-comment-secondary-border);
+  color: var(--chapter-comment-secondary-text);
+  filter: brightness(0.99);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reply-load-btn,
+.chapter-reader-container .chapter-comments .story-metadata__load-more-comments {
+  background: var(--chapter-comment-reply-bg);
+  border-color: var(--chapter-comment-reply-border);
+  color: var(--chapter-comment-reply-text);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reply-load-btn:hover:not(:disabled),
+.chapter-reader-container .chapter-comments .story-metadata__load-more-comments:hover:not(:disabled) {
+  background: var(--chapter-comment-reply-bg);
+  border-color: var(--chapter-comment-reply-border);
+  color: var(--chapter-comment-reply-text);
+  filter: brightness(0.99);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__content-mask,
+.chapter-reader-container .chapter-comments .story-metadata__comment-body p.story-metadata__content-mask,
+.chapter-reader-container .chapter-comments .story-metadata__reply-item .story-metadata__comment-body p.story-metadata__content-mask {
+  color: var(--chapter-comment-muted);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reveal-btn {
+  background: var(--chapter-comment-surface-subtle);
+  border-color: var(--chapter-comment-chip-border);
+  color: var(--chapter-comment-chip-text);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reveal-btn:hover:not(:disabled) {
+  background: var(--chapter-comment-surface-subtle);
+  border-color: var(--chapter-comment-chip-border);
+  color: var(--chapter-comment-chip-text);
+  filter: brightness(0.99);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__comment-avatar-fallback {
+  background: var(--chapter-comment-surface-subtle);
+  border-color: var(--chapter-comment-chip-border);
+  color: var(--chapter-comment-muted);
+}
+
+.chapter-reader-container .chapter-comments .story-metadata__reply-item {
+  border-left-color: var(--chapter-comment-divider);
 }
 
 .chapter-comments__muted {
   margin-top: 8px;
-  color: #73839c;
+  color: var(--chapter-comment-muted);
 }
 
 .locked-chapter {
@@ -761,10 +905,6 @@ main.main-content.chapter-layout-host {
   color: #b6c5dd;
 }
 
-.theme-dark .chapter-title {
-  color: #eef3ff;
-}
-
 /* Fixed bookmark items with proper scoping */
 .chapter-reader-container .bookmark-item {
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -864,7 +1004,7 @@ main.main-content.chapter-layout-host {
     font-size: 2.1rem;
   }
 
-  .chapter-title {
+  .chapter-header-title {
     font-size: 1.45rem;
   }
 

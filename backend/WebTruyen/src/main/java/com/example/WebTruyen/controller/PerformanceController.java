@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/performance")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('MOD')")
 public class PerformanceController {
 
     private final DailyTaskMetrics metrics;

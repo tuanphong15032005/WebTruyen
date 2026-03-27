@@ -27,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.WebTruyen.dto.request.UpdateStoryLibraryRequest;
 import com.example.WebTruyen.dto.request.CreateStoryRequest;
 import com.example.WebTruyen.dto.response.AdminPendingContentResponse;
+import com.example.WebTruyen.dto.response.AuthorStoryDetailResponse;
 import com.example.WebTruyen.dto.response.LibraryAlbumOptionResponse;
 import com.example.WebTruyen.dto.response.LibraryStoryResponse;
 import com.example.WebTruyen.dto.response.StoryRatingBreakdownItemResponse;
@@ -146,8 +147,9 @@ public class StoryService {
     }
 
     @Transactional
-    public StoryResponse getStoryById(Integer storyId) {
+    public StoryResponse getStoryById(Integer storyId, UserEntity currentUser) {
         StoryEntity story = requireStoryById(storyId.longValue());
+        requireStoryReadAccess(currentUser, story);
 
         List<TagDto> tagDtos = story.getStoryTags().stream()
                 .map(StoryTagEntity::getTag)
@@ -156,6 +158,13 @@ public class StoryService {
                 .toList();
 
         return toResponse(story, tagDtos, false);
+    }
+
+    @Transactional
+    public AuthorStoryDetailResponse getAuthorStoryDetail(Integer storyId, UserEntity currentUser) {
+        StoryEntity story = requireStoryById(storyId.longValue());
+        requireStoryReadAccess(currentUser, story);
+        return toAuthorStoryDetailResponse(story, false);
     }
 
     @Transactional
@@ -772,6 +781,10 @@ public class StoryService {
     private StoryResponse toResponse(StoryEntity story, List<TagDto> tags, boolean publishedOnly) {
         long readerCount = story.getViewCount();
         long savedCount = storyRepository.countLibraryEntriesByStoryId(story.getId());
+        long chapterCount = chapterRepository.countByVolume_Story_IdAndStatus(
+                story.getId(),
+                ChapterStatus.published
+        );
         long wordCount = countStoryWords(story.getId(), publishedOnly);
         LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
         BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
@@ -818,6 +831,7 @@ public class StoryService {
                 ratingAvg,
                 readerCount,
                 savedCount,
+                chapterCount,
                 wordCount,
                 lastUpdatedAt,
                 tags,
@@ -827,6 +841,28 @@ public class StoryService {
 
     StoryResponse toStoryResponse(StoryEntity story, boolean publishedOnly) {
         return toResponse(story, buildTagDtos(story), publishedOnly);
+    }
+
+    private AuthorStoryDetailResponse toAuthorStoryDetailResponse(StoryEntity story, boolean publishedOnly) {
+        List<TagDto> tags = buildTagDtos(story);
+        TagDto category = tags.stream()
+                .findFirst()
+                .orElse(null);
+
+        long wordCount = countStoryWords(story.getId(), publishedOnly);
+
+        return new AuthorStoryDetailResponse(
+                story.getId(),
+                story.getTitle(),
+                story.getSummary(),
+                story.getCoverUrl(),
+                story.getKind() != null ? story.getKind().name() : null,
+                category,
+                tags,
+                story.getStatus() != null ? story.getStatus().name() : null,
+                story.getCompletionStatus() != null ? story.getCompletionStatus().name() : null,
+                wordCount
+        );
     }
 
     private List<TagDto> buildTagDtos(StoryEntity story) {
@@ -1412,7 +1448,24 @@ public class StoryService {
                     if (left == null && right == null) return 0;
                     if (left == null) return 1;
                     if (right == null) return -1;
-                    return right.compareTo(left);
+                    // For approved/rejected items: newest first (descending)
+                    // For pending items: oldest first (ascending)
+                    boolean aIsProcessed = a.moderationProcessedAt() != null;
+                    boolean bIsProcessed = b.moderationProcessedAt() != null;
+                    
+                    if (aIsProcessed && bIsProcessed) {
+                        // Both processed - newest first
+                        return right.compareTo(left);
+                    } else if (!aIsProcessed && !bIsProcessed) {
+                        // Both pending - oldest first  
+                        return left.compareTo(right);
+                    } else if (aIsProcessed) {
+                        // Processed items come after pending
+                        return -1;
+                    } else {
+                        // Pending items come before processed
+                        return 1;
+                    }
                 })
                 .toList();
     }
@@ -1723,6 +1776,28 @@ public class StoryService {
 
         if (!allowed) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+    }
+
+    private void requireStoryReadAccess(UserEntity currentUser, StoryEntity story) {
+        if (story == null || story.getStatus() == StoryStatus.published) {
+            return;
+        }
+
+        Long currentUserId = currentUser != null ? currentUser.getId() : null;
+        Long authorId = story.getAuthor() != null ? story.getAuthor().getId() : null;
+
+        boolean isAuthor = currentUserId != null
+                && authorId != null
+                && currentUserId.equals(authorId);
+        boolean isPrivileged = currentUserId != null && (
+                userRoleRepository.existsByUser_IdAndRole_Code(currentUserId, "ADMIN")
+                        || userRoleRepository.existsByUser_IdAndRole_Code(currentUserId, "MOD")
+                        || userRoleRepository.existsByUser_IdAndRole_Code(currentUserId, "REVIEWER")
+        );
+
+        if (!isAuthor && !isPrivileged) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found");
         }
     }
 
