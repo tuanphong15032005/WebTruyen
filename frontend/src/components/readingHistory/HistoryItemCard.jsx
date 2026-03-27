@@ -38,7 +38,7 @@ const HistoryItemCard = ({ history, onContinueReading, onReread }) => {
           ) : null}
           {(!history.storyCoverUrl || history.storyCoverUrl.includes('no-cover-placeholder')) && (
             <div className="cover-placeholder">
-              <div className="no-cover-text">NO COVER</div>
+              <div className="no-cover-text">KHÔNG CÓ BÌA</div>
             </div>
           )}
         </div>
@@ -48,7 +48,7 @@ const HistoryItemCard = ({ history, onContinueReading, onReread }) => {
           <h3 className="story-title">{history.storyTitle}</h3>
           <div className="progress-info">
             <p className="chapter-progress">
-              Chapter {progressInfo.current} / {progressInfo.total}
+              Chương {progressInfo.current} / {progressInfo.total}
             </p>
             <div className="mini-progress-bar">
               <div 
@@ -65,16 +65,16 @@ const HistoryItemCard = ({ history, onContinueReading, onReread }) => {
             <button 
               className="action-btn continue-btn"
               onClick={onContinueReading}
-              title="Continue reading"
+              title="Tiếp tục đọc"
             >
-              Continue
+              Tiếp tục
             </button>
             <button 
               className="action-btn reread-btn"
               onClick={onReread}
-              title="View story details"
+              title="Xem chi tiết truyện"
             >
-              Details
+              Chi tiết
             </button>
           </div>
         </div>

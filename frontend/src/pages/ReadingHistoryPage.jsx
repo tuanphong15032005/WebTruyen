@@ -13,7 +13,6 @@ const ReadingHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -88,33 +87,31 @@ const ReadingHistoryPage = () => {
     setCurrentPage(prev => prev + 1);
   };
 
+  const removeVietnameseDiacritics = (str) => {
+    return str.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  };
+
   const filteredHistories = historyData?.histories?.filter(history => {
-    // Filter by search term
-    const matchesSearch = history.storyTitle?.toLowerCase().includes(searchTerm.toLowerCase());
+    // Filter by search term with diacritic removal (fuzzy search)
+    const searchTermNormalized = removeVietnameseDiacritics(searchTerm.toLowerCase());
+    const storyTitleNormalized = removeVietnameseDiacritics(history.storyTitle?.toLowerCase() || '');
     
-    // Filter by date
-    let matchesDate = true;
-    if (filter === 'today') {
-      const today = new Date();
-      const historyDate = new Date(history.lastReadAt);
-      
-      // Check if history is from today (same date)
-      matchesDate = today.toDateString() === historyDate.toDateString();
-    }
-    
-    return matchesSearch && matchesDate;
+    return storyTitleNormalized.includes(searchTermNormalized);
   }) || [];
 
   // Include featured story in search results if it matches
   const allSearchResults = searchTerm ? [
-    ...(historyData?.mostRecent && historyData.mostRecent.storyTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ? [historyData.mostRecent] : []),
+    ...(historyData?.mostRecent && removeVietnameseDiacritics(historyData.mostRecent.storyTitle?.toLowerCase() || '').includes(removeVietnameseDiacritics(searchTerm.toLowerCase())) ? [historyData.mostRecent] : []),
     ...filteredHistories
   ] : filteredHistories;
 
   if (loading && currentPage === 0) {
     return (
       <div className="reading-history-page">
-        <div className="loading-spinner">Loading reading history...</div>
+        <div className="loading-spinner">Đang tải lịch sử đọc...</div>
       </div>
     );
   }
@@ -134,8 +131,6 @@ const ReadingHistoryPage = () => {
         <HistoryToolbar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          filter={filter}
-          onFilterChange={setFilter}
           onClearAll={handleClearAllHistory}
           hasHistory={historyData?.histories?.length > 0}
         />
@@ -153,12 +148,12 @@ const ReadingHistoryPage = () => {
             ))
           ) : (
             <div className="empty-history">
-              <p>No reading history found</p>
+              <p>Không tìm thấy lịch sử đọc</p>
               <button 
                 className="browse-stories-btn"
                 onClick={() => navigate('/')}
               >
-                Browse Stories
+                Khám phá truyện
               </button>
             </div>
           )}

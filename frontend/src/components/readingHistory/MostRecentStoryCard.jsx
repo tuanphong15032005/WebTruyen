@@ -11,10 +11,10 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
     const now = new Date();
     const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    if (diffInHours < 1) return 'Vừa xong';
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
     const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    return `${diffInDays} ngày trước`;
   };
 
   const getProgressInfo = (story) => {
@@ -38,15 +38,15 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
         <div className="left-content">
                     <h2 className="story-title">{story.storyTitle}</h2>
           <p className="last-read-info">
-            Last read: <span className="chapter-highlight">
-              Chapter {progressInfo.current}
+            Đọc lần cuối: <span className="chapter-highlight">
+              Chương {progressInfo.current}
             </span> · {formatDate(story.lastReadAt)}
           </p>
           <div className="progress-section">
             <p className="progress-text">
-              Chapter {progressInfo.current} / {progressInfo.total}
+              Chương {progressInfo.current} / {progressInfo.total}
             </p>
-            <p className="progress-percentage">{progressInfo.progress}% Completed</p>
+            <p className="progress-percentage">{progressInfo.progress}% Đã đọc</p>
           </div>
           <div className="progress-bar">
             <div 
@@ -59,13 +59,13 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
               className="btn-primary continue-btn"
               onClick={onContinueReading}
             >
-              Continue Reading
+              Tiếp tục đọc
             </button>
             <button 
               className="btn-secondary details-btn"
               onClick={() => navigate(`/stories/${story.storyId}/metadata`)}
             >
-              Details
+              Chi tiết
             </button>
           </div>
         </div>
@@ -83,7 +83,7 @@ const MostRecentStoryCard = ({ story, onContinueReading }) => {
           ) : null}
           {(!story.storyCoverUrl || story.storyCoverUrl.includes('no-cover-placeholder')) && (
             <div className="cover-placeholder">
-              <div className="no-cover-text">NO COVER</div>
+              <div className="no-cover-text">KHÔNG CÓ BÌA</div>
             </div>
           )}
         </div>

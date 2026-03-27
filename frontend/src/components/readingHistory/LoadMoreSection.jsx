@@ -5,14 +5,14 @@ const LoadMoreSection = ({ onLoadMore, loading, currentCount, totalCount }) => {
   return (
     <div className="load-more-section">
       <p className="showing-text">
-        Showing {currentCount} of {totalCount} stories in history
+        Hiển thị {currentCount} của {totalCount} truyện trong lịch sử
       </p>
       <button 
         className="load-more-btn"
         onClick={onLoadMore}
         disabled={loading}
       >
-        {loading ? 'Loading...' : 'Load more history'}
+        {loading ? 'Đang tải...' : 'Tải thêm lịch sử'}
       </button>
     </div>
   );
