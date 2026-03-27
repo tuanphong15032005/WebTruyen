@@ -128,6 +128,14 @@ public class AchievementAdminController {
         return ResponseEntity.ok(stats);
     }
 
+    // Check achievement edit/delete restrictions
+    @GetMapping("/{achievementId}/restrictions")
+    public ResponseEntity<?> getAchievementRestrictions(@PathVariable Integer achievementId) {
+        log.info("Admin requesting restrictions for achievement: {}", achievementId);
+        var restrictions = achievementAdminService.getAchievementRestrictions(achievementId);
+        return ResponseEntity.ok(restrictions);
+    }
+
     // Check tier edit/delete restrictions
     @GetMapping("/tiers/{tierId}/restrictions")
     public ResponseEntity<?> getTierRestrictions(@PathVariable Integer tierId) {

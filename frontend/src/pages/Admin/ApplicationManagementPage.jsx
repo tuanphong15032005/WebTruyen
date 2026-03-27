@@ -19,7 +19,6 @@ function ApplicationManagementPage() {
   });
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [stats, setStats] = useState({});
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     title: '',
@@ -45,6 +44,12 @@ function ApplicationManagementPage() {
       let data;
       if (searchQuery.trim()) {
         data = await applicationAdminApi.searchApplications(searchQuery, activeTab);
+        // Apply status filter on top of search results
+        if (statusFilter !== 'all') {
+          data = (Array.isArray(data) ? data : []).filter(
+            (application) => application?.status === statusFilter
+          );
+        }
       } else if (activeTab === 'author') {
         data = await applicationAdminApi.getAuthorApplications(
           statusFilter === 'all' ? null : statusFilter
@@ -57,9 +62,6 @@ function ApplicationManagementPage() {
       
       setApplications(data || []);
       
-      // Fetch stats
-      const statsData = await applicationAdminApi.getApplicationStats();
-      setStats(statsData);
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách đơn');
     } finally {
@@ -219,35 +221,6 @@ function ApplicationManagementPage() {
     });
   };
 
-  const renderStatsCards = () => {
-    const pending = stats.PENDING || 0;
-    const approved = stats.APPROVED || 0;
-    const rejected = stats.REJECTED || 0;
-    
-    return (
-      <div className="application-management__stats">
-        <div className="stat-card">
-          <span className="stat-number">{pending + approved + rejected}</span>
-          <span className="stat-label">Tổng đơn</span>
-        </div>
-        <div className="stat-card pending">
-          <Clock size={20} />
-          <span className="stat-number">{pending}</span>
-          <span className="stat-label">Chờ duyệt</span>
-        </div>
-        <div className="stat-card approved">
-          <CheckCircle size={20} />
-          <span className="stat-number">{approved}</span>
-          <span className="stat-label">Đã duyệt</span>
-        </div>
-        <div className="stat-card rejected">
-          <XCircle size={20} />
-          <span className="stat-number">{rejected}</span>
-          <span className="stat-label">Từ chối</span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="application-management">
@@ -271,7 +244,6 @@ function ApplicationManagementPage() {
         </div>
       </div>
 
-      {renderStatsCards()}
 
       <div className="application-management__controls">
         <div className="search-section">

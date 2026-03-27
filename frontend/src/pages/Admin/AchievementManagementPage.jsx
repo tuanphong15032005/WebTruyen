@@ -32,6 +32,7 @@ const AchievementManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState(null); // 'active', 'inactive', or null
   const [tierRestrictions, setTierRestrictions] = useState({});
+  const [achievementRestrictions, setAchievementRestrictions] = useState({});
   const [loadingRestrictions, setLoadingRestrictions] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -76,6 +77,21 @@ const AchievementManagementPage = () => {
       // Đảm bảo achievements luôn là mảng
       setAchievements(Array.isArray(achievementsData) ? achievementsData : []);
       setStats(statsData);
+      
+      // Fetch restrictions for all achievements
+      const restrictionsPromises = achievementsData.map(async (achievement) => {
+        try {
+          const restriction = await adminAchievementApi.getAchievementRestrictions(achievement.id);
+          return { [achievement.id]: restriction };
+        } catch (error) {
+          console.error(`Error fetching restrictions for achievement ${achievement.id}:`, error);
+          return { [achievement.id]: { canEdit: true, canDelete: true } };
+        }
+      });
+      
+      const restrictionsResults = await Promise.all(restrictionsPromises);
+      const newAchievementRestrictions = restrictionsResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      setAchievementRestrictions(newAchievementRestrictions);
       
       // Update selectedAchievement with fresh data if it exists
       if (selectedAchievement) {
@@ -184,6 +200,13 @@ const AchievementManagementPage = () => {
   };
 
   const handleDeleteAchievement = async (id) => {
+    // Check if achievement can be deleted
+    const restrictions = achievementRestrictions[id];
+    if (restrictions && !restrictions.canDelete) {
+      notify(restrictions.reason || 'Không thể xóa thành tựu này', 'error');
+      return;
+    }
+    
     setConfirmModal({
       isOpen: true,
       title: 'Xác nhận xóa',
@@ -369,38 +392,7 @@ const AchievementManagementPage = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Tổng thành tựu</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.totalAchievements}</p>
-              </div>
-              <Trophy className="text-blue-600 sm:w-6 sm:h-6" size={20} />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Đang hoạt động</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.activeAchievements}</p>
-              </div>
-              <Target className="text-green-600 sm:w-6 sm:h-6" size={20} />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Không hoạt động</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-600">{stats.inactiveAchievements || 0}</p>
-              </div>
-              <BarChart3 className="text-gray-600 sm:w-6 sm:h-6" size={20} />
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Achievements List */}
@@ -478,10 +470,19 @@ const AchievementManagementPage = () => {
                       </button>
                       <button
                         onClick={() => handleDeleteAchievement(achievement.id)}
-                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded"
-                        title="Xóa"
+                        className={`p-1.5 sm:p-2 rounded transition-colors flex items-center gap-1 ${
+                          achievementRestrictions[achievement.id]?.canDelete
+                            ? 'text-red-600 hover:bg-red-50'
+                            : 'text-gray-400 cursor-not-allowed'
+                        }`}
+                        title={achievementRestrictions[achievement.id]?.canDelete ? 'Xóa' : achievementRestrictions[achievement.id]?.reason || 'Không thể xóa'}
+                        disabled={!achievementRestrictions[achievement.id]?.canDelete}
                       >
-                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                        {achievementRestrictions[achievement.id]?.canDelete ? (
+                          <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                        ) : (
+                          <Lock size={14} className="sm:w-4 sm:h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -636,9 +637,15 @@ const AchievementManagementPage = () => {
                   type="text"
                   value={achievementForm.code}
                   onChange={(e) => setAchievementForm({...achievementForm, code: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    editingAchievement ? 'bg-gray-100 border-gray-300' : 'border-gray-300'
+                  }`}
                   placeholder="VD: READ_CHAPTERS"
+                  disabled={editingAchievement}
                 />
+                {editingAchievement && (
+                  <p className="text-xs text-gray-500 mt-1">Code không thể thay đổi khi chỉnh sửa</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
@@ -665,13 +672,19 @@ const AchievementManagementPage = () => {
                 <select
                   value={achievementForm.category}
                   onChange={(e) => setAchievementForm({...achievementForm, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    editingAchievement ? 'bg-gray-100 border-gray-300' : 'border-gray-300'
+                  }`}
+                  disabled={editingAchievement}
                 >
                   <option value="READING">Đọc truyện</option>
                   <option value="COMMENTING">Bình luận</option>
                   <option value="WRITING">Viết truyện</option>
                   <option value="SOCIAL">Xã hội</option>
                 </select>
+                {editingAchievement && (
+                  <p className="text-xs text-gray-500 mt-1">Category không thể thay đổi khi chỉnh sửa</p>
+                )}
               </div>
               <div className="flex items-center">
                 <input

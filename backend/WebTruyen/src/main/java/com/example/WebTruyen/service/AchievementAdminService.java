@@ -106,6 +106,39 @@ public class AchievementAdminService {
         return achievementRepository.save(existing);
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAchievementRestrictions(Integer achievementId) {
+        Map<String, Object> restrictions = new HashMap<>();
+        
+        AchievementEntity achievement = achievementRepository.findById(achievementId)
+                .orElseThrow(() -> new RuntimeException("Achievement not found with id: " + achievementId));
+        
+        // Check if any user has progress for this achievement
+        boolean hasUserProgress = userAchievementProgressRepository.existsByAchievementId(achievementId);
+        
+        // Check if any user has claimed any tier of this achievement
+        List<AchievementTierEntity> tiers = achievementTierRepository.findByAchievementId(achievementId);
+        boolean hasClaims = false;
+        if (!tiers.isEmpty()) {
+            List<Integer> tierIds = tiers.stream().map(AchievementTierEntity::getId).collect(Collectors.toList());
+            hasClaims = userAchievementClaimRepository.existsByTierIdIn(tierIds);
+        }
+        
+        restrictions.put("hasUserProgress", hasUserProgress);
+        restrictions.put("hasClaims", hasClaims);
+        
+        // Determine if achievement can be edited/deleted
+        boolean canEdit = !hasUserProgress && !hasClaims;
+        boolean canDelete = !hasUserProgress && !hasClaims;
+        
+        restrictions.put("canEdit", canEdit);
+        restrictions.put("canDelete", canDelete);
+        restrictions.put("reason", !canDelete ? 
+            (hasClaims ? "Đã có người dùng nhận thành tựu này" : "Có người dùng đã có tiến độ với thành tựu này") : null);
+        
+        return restrictions;
+    }
+
     @Transactional
     public void deleteAchievement(Integer id) {
         AchievementEntity achievement = getAchievementById(id);

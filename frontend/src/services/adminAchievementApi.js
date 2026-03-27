@@ -59,6 +59,11 @@ class AdminAchievementApi {
   async getTierRestrictions(tierId) {
     return api.get(`${API_BASE}/tiers/${tierId}/restrictions`);
   }
+
+  // Achievement restrictions
+  async getAchievementRestrictions(achievementId) {
+    return api.get(`${API_BASE}/${achievementId}/restrictions`);
+  }
 }
 
 export default new AdminAchievementApi();
