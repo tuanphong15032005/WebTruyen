@@ -58,6 +58,7 @@ import ViolationReportManagement from './pages/Admin/ViolationReportManagement';
 import AdminTermsPage from './pages/Admin/AdminTermsPage';
 import DynamicPage from './pages/docs/DynamicPage';
 import AchievementManagementPage from './pages/Admin/AchievementManagementPage';
+import UserRoleManagement from './pages/Admin/UserRoleManagement';
 import FinanceManagementPage from './pages/Admin/FinanceManagementPage';
 import DailyMissionManagement from './pages/Admin/DailyMissionManagement';
 import ApplicationManagementPage from './pages/Admin/ApplicationManagementPage';
@@ -344,6 +345,7 @@ function MainLayoutWrapper() {
           <Route path='applications' element={<ApplicationManagementPage />} />
           <Route path='tags' element={<TagManagementPage />} />
           <Route path='terms' element={<AdminTermsPage />} />
+          <Route path='users' element={<UserRoleManagement />} />
         </Route>
         <Route
           path='/admin/content-moderation'

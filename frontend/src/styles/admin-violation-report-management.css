@@ -1,6 +1,6 @@
 .admin-reports {
   padding: 24px;
-  max-width: 1280px;
+  max-width: 100%;
   margin: 0 auto;
   background: #f1f5f9;
   min-height: 100%;
@@ -142,8 +142,8 @@
 
 .admin-reports__grid {
   margin-top: 16px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fff;
@@ -161,6 +161,15 @@
   padding: 12px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: top;
+  white-space: nowrap;
+}
+
+.admin-reports__grid th:nth-child(4),
+.admin-reports__grid td:nth-child(4),
+.admin-reports__grid th:nth-child(6),
+.admin-reports__grid td:nth-child(6) {
+  white-space: normal;
+  min-width: 220px;
   word-break: break-word;
 }
 

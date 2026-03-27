@@ -44,6 +44,8 @@ function ReviewerArea() {
     note: '',
   });
 
+  const [searchTerm, setSearchTerm] = useState('');
+
   const PAGE_SIZE = 10;
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -299,6 +301,16 @@ function ReviewerArea() {
           <>
         <div className="admin-moderation__card admin-moderation__controls-card">
           <div className="admin-moderation__toolbar">
+            <div className="admin-moderation__search" style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%', maxWidth: '400px' }}>
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo ID hoặc Người duyệt..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="admin-moderation__search-input"
+                style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', flex: 1 }}
+              />
+            </div>
           </div>
 
           <div className="admin-moderation__filters">
@@ -357,9 +369,11 @@ function ReviewerArea() {
               <thead>
                 <tr>
                   <th className="admin-moderation__col--type">Loại</th>
+                  <th>ID</th>
                   <th>Tên truyện</th>
                   <th className="admin-moderation__col--author">Tác giả</th>
                   <th>Thể loại</th>
+                  <th>Người duyệt</th>
                   <th className="admin-moderation__col--status">Trạng thái</th>
                   <th className="admin-moderation__col--actions">Thao tác</th>
                 </tr>
@@ -367,19 +381,35 @@ function ReviewerArea() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="admin-moderation__empty">
+                    <td colSpan={8} className="admin-moderation__empty">
                       Đang tải hàng chờ kiểm duyệt...
                     </td>
                   </tr>
-                ) : moderationItems.filter((item) => (activeStatus === 'all' || displayStatus(item) === activeStatus) && (activeContentType === 'all' || item.contentType === activeContentType)).length === 0 ? (
+                ) : moderationItems.filter((item) => {
+                  const statusMatch = activeStatus === 'all' || displayStatus(item) === activeStatus;
+                  const typeMatch = activeContentType === 'all' || item.contentType === activeContentType;
+                  const searchMatch = !searchTerm || 
+                    String(item.contentId).includes(searchTerm) || 
+                    String(item.storyId).includes(searchTerm) ||
+                    (item.reviewerName && item.reviewerName.toLowerCase().includes(searchTerm.toLowerCase()));
+                  return statusMatch && typeMatch && searchMatch;
+                }).length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="admin-moderation__empty">
+                    <td colSpan={8} className="admin-moderation__empty">
                       Không có bản ghi ở trạng thái này
                     </td>
                   </tr>
                 ) : (
                   moderationItems
-                    .filter((item) => (activeStatus === 'all' || displayStatus(item) === activeStatus) && (activeContentType === 'all' || item.contentType === activeContentType))
+                    .filter((item) => {
+                      const statusMatch = activeStatus === 'all' || displayStatus(item) === activeStatus;
+                      const typeMatch = activeContentType === 'all' || item.contentType === activeContentType;
+                      const searchMatch = !searchTerm || 
+                        String(item.contentId).includes(searchTerm) || 
+                        String(item.storyId).includes(searchTerm) ||
+                        (item.reviewerName && item.reviewerName.toLowerCase().includes(searchTerm.toLowerCase()));
+                      return statusMatch && typeMatch && searchMatch;
+                    })
                     .map((item) => {
                       const approveKey = buildActionKey(item.contentType, item.contentId, 'approve');
                       const rejectKey = buildActionKey(item.contentType, item.contentId, 'reject');
@@ -387,9 +417,11 @@ function ReviewerArea() {
                       return (
                         <tr key={`${item.contentType}-${item.contentId}`}>
                           <td className="admin-moderation__col--type">{contentTypeLabel(item.contentType)}</td>
+                          <td>{item.contentId}</td>
                           <td>{item.storyTitle}</td>
                           <td className="admin-moderation__col--author">{item.authorName}</td>
                           <td>{item.genre}</td>
+                          <td>{item.reviewerName || (displayStatus(item) === 'pending' ? '-' : 'Unknown')}</td>
                           <td className="admin-moderation__col--status">
                             <span className={`admin-moderation__status admin-moderation__status--${displayStatus(item) || 'processed'}`}>
                               {statusLabel(displayStatus(item))}

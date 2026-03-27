@@ -126,7 +126,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/performance/**").hasAnyRole("AUTHOR", "MOD", "REVIEWER")
 
                         // Reviewer functionality
-                        .requestMatchers("/api/reviewer/apply/**").authenticated()
+                        .requestMatchers(
+                                "/api/reviewer/check-eligibility/**",
+                                "/api/reviewer/apply/**",
+                                "/api/reviewer/application-status/**",
+                                "/api/reviewer/status"
+                        ).authenticated()
                         .requestMatchers("/api/reviewer/manage/**").hasAnyRole("REVIEWER", "MOD")
                         .requestMatchers("/api/reviewer/**").hasAnyRole("REVIEWER", "MOD")
 

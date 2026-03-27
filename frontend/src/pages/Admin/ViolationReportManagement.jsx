@@ -270,6 +270,7 @@ function ViolationReportManagement() {
         <table>
           <thead>
           <tr>
+              <th>ID</th>
               <th>Loại vi phạm</th>
               <th>Loại nội dung</th>
               <th>Đối tượng</th>
@@ -285,17 +286,18 @@ function ViolationReportManagement() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={showActions || showRestoreColumn ? 9 : 7} className='admin-reports__empty'>Đang tải báo cáo...</td>
+                <td colSpan={showActions || showRestoreColumn ? 10 : 8} className='admin-reports__empty'>Đang tải báo cáo...</td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={showActions || showRestoreColumn ? 9 : 7} className='admin-reports__empty'>Không có báo cáo trong danh sách này</td>
+                <td colSpan={showActions || showRestoreColumn ? 10 : 8} className='admin-reports__empty'>Không có báo cáo trong danh sách này</td>
               </tr>
             ) : (
               paginatedItems.map((item) => {
                 const disabled = busyId === item.reportId || !canTakeAction(item);
                 return (
                   <tr key={item.reportId}>
+                    <td>#{item.targetId || '—'}</td>
                     <td>{item.violationType}</td>
                     <td>{targetKindLabel[item.reportedContent] || item.reportedContent}</td>
                     <td>{targetLabel(item)}</td>

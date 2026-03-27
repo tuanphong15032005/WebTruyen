@@ -293,7 +293,7 @@ function ApplicationManagementPage() {
             <Search size={16} className="search-icon" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo username hoặc bút danh..."
+              placeholder="Tìm kiếm theo username, bút danh hoặc người duyệt..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
@@ -645,8 +645,8 @@ function ApplicationManagementPage() {
                   {selectedApplication.reviewedAt && (
                     <p><strong>Ngày duyệt:</strong> {formatDate(selectedApplication.reviewedAt)}</p>
                   )}
-                  {selectedApplication.reviewerName && (
-                    <p><strong>Người duyệt:</strong> {selectedApplication.reviewerName}</p>
+                  {(selectedApplication.processedByUsername || selectedApplication.reviewerName) && (
+                    <p><strong>Người duyệt:</strong> {selectedApplication.processedByUsername || selectedApplication.reviewerName}</p>
                   )}
                   {selectedApplication.rejectionReason && (
                     <div className="rejection-reason">

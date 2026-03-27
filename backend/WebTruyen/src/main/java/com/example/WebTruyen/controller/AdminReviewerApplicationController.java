@@ -1,11 +1,12 @@
 package com.example.WebTruyen.controller;
 
+import com.example.WebTruyen.security.UserPrincipal;
 import com.example.WebTruyen.service.ReviewerApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,8 +40,14 @@ public class AdminReviewerApplicationController {
      * Approve reviewer application
      */
     @PostMapping("/{userId}/approve")
-    public ResponseEntity<Map<String, String>> approveApplication(@PathVariable Long userId) {
-        reviewerApplicationService.approveApplication(userId);
+    public ResponseEntity<Map<String, String>> approveApplication(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        
+        Long adminId = currentUser.getUser().getId();
+        String adminUsername = currentUser.getUsername();
+        
+        reviewerApplicationService.approveApplication(userId, adminId, adminUsername);
         return ResponseEntity.ok(Map.of("message", "Đơn đăng ký reviewer đã được duyệt"));
     }
 
@@ -50,10 +57,14 @@ public class AdminReviewerApplicationController {
     @PostMapping("/{userId}/reject")
     public ResponseEntity<Map<String, String>> rejectApplication(
             @PathVariable Long userId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
         
         String rejectionReason = request.get("rejectionReason");
-        reviewerApplicationService.rejectApplication(userId, rejectionReason);
+        Long adminId = currentUser.getUser().getId();
+        String adminUsername = currentUser.getUsername();
+        
+        reviewerApplicationService.rejectApplication(userId, rejectionReason, adminId, adminUsername);
         return ResponseEntity.ok(Map.of("message", "Đơn đăng ký reviewer đã bị từ chối"));
     }
 

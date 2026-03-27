@@ -172,7 +172,7 @@ public class ReviewerApplicationService {
      * Approve reviewer application
      */
     @Transactional
-    public void approveApplication(Long userId) {
+    public void approveApplication(Long userId, Long adminUserId, String adminUsername) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -201,6 +201,8 @@ public class ReviewerApplicationService {
         Map<String, Object> settings = getUserSettings(user);
         settings.put("reviewerApplicationStatus", "APPROVED");
         settings.put("reviewerApplicationApprovedAt", LocalDateTime.now().toString());
+        settings.put("reviewerApplicationProcessedByUserId", adminUserId);
+        settings.put("reviewerApplicationProcessedByUsername", adminUsername);
         
         try {
             user.setSettingsJson(objectMapper.writeValueAsString(settings));
@@ -214,7 +216,7 @@ public class ReviewerApplicationService {
      * Reject reviewer application
      */
     @Transactional
-    public void rejectApplication(Long userId, String rejectionReason) {
+    public void rejectApplication(Long userId, String rejectionReason, Long adminUserId, String adminUsername) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -228,6 +230,8 @@ public class ReviewerApplicationService {
         settings.put("reviewerApplicationStatus", "REJECTED");
         settings.put("reviewerApplicationRejectedAt", LocalDateTime.now().toString());
         settings.put("reviewerApplicationRejectionReason", rejectionReason);
+        settings.put("reviewerApplicationProcessedByUserId", adminUserId);
+        settings.put("reviewerApplicationProcessedByUsername", adminUsername);
         
         try {
             user.setSettingsJson(objectMapper.writeValueAsString(settings));
@@ -339,6 +343,8 @@ public class ReviewerApplicationService {
         response.put("availability", settings.get("reviewerAvailability"));
         response.put("skills", settings.get("reviewerSkills"));
         response.put("rejectionReason", settings.get("reviewerApplicationRejectionReason"));
+        response.put("processedByUserId", settings.get("reviewerApplicationProcessedByUserId"));
+        response.put("processedByUsername", settings.get("reviewerApplicationProcessedByUsername"));
         
         return response;
     }
@@ -419,13 +425,17 @@ public class ReviewerApplicationService {
     public List<Map<String, Object>> searchApplications(String query) {
         return userRepository.findAll().stream()
                 .filter(this::hasReviewerApplication)
-                .filter(user -> {
-                    String username = user.getUsername().toLowerCase();
-                    String email = user.getEmail().toLowerCase();
-                    String searchQuery = query.toLowerCase();
-                    return username.contains(searchQuery) || email.contains(searchQuery);
-                })
                 .map(this::buildApplicationResponse)
+                .filter(app -> {
+                    String username = (String) app.get("username");
+                    String email = (String) app.get("email");
+                    String processedByUsername = (String) app.get("processedByUsername");
+                    String searchQuery = query.toLowerCase().trim();
+                    
+                    return (username != null && username.toLowerCase().contains(searchQuery)) ||
+                           (email != null && email.toLowerCase().contains(searchQuery)) ||
+                           (processedByUsername != null && processedByUsername.toLowerCase().contains(searchQuery));
+                })
                 .sorted((a, b) -> {
                     String dateA = (String) a.get("submittedAt");
                     String dateB = (String) b.get("submittedAt");

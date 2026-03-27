@@ -561,12 +561,6 @@ const DailyMissionManagement = () => {
                               >
                                 Sửa
                               </button>
-                              <button
-                                onClick={() => handleDeleteMission(mission.id)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                Xóa
-                              </button>
                             </div>
                           )}
                         </td>
@@ -687,8 +681,8 @@ const DailyMissionManagement = () => {
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={true}
+                    className="w-full px-3 py-2 border border-gray-300 bg-gray-100 cursor-not-allowed text-gray-500 rounded-md focus:outline-none"
                   />
                 </div>
               )}

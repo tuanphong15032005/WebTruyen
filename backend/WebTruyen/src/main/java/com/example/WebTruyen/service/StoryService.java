@@ -1564,7 +1564,8 @@ public class StoryService {
                 action == null ? null : action.getActionType(),
                 action == null ? null : action.getNotes(),
                 processedAt,
-                approvalStatus
+                approvalStatus,
+                resolveAdminName(action)
         );
     }
 
@@ -1589,7 +1590,8 @@ public class StoryService {
                 action == null ? null : action.getActionType(),
                 action == null ? null : action.getNotes(),
                 processedAt,
-                approvalStatus
+                approvalStatus,
+                resolveAdminName(action)
         );
     }
 
@@ -1759,6 +1761,17 @@ public class StoryService {
             return displayName;
         }
         return "Unknown";
+    }
+
+    private String resolveAdminName(ModerationActionEntity action) {
+        if (action == null || action.getAdmin() == null) {
+            return null;
+        }
+        String username = action.getAdmin().getUsername();
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return "Admin";
     }
 
     private String resolveGenre(StoryEntity story) {

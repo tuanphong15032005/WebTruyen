@@ -202,8 +202,11 @@ public class AdminAuthorApplicationService {
                     String username = (String) app.get("username");
                     String penName = (String) app.get("penName");
                     
+                    String reviewerName = (String) app.get("reviewerName");
+                    
                     return (username != null && username.toLowerCase().contains(searchTerm)) ||
-                           (penName != null && penName.toLowerCase().contains(searchTerm));
+                           (penName != null && penName.toLowerCase().contains(searchTerm)) ||
+                           (reviewerName != null && reviewerName.toLowerCase().contains(searchTerm));
                 })
                 .collect(Collectors.toList());
     }
