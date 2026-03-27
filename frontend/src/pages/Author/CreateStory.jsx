@@ -28,6 +28,16 @@ const COMPLETION_STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Tạm ngưng' },
 ];
 
+const SUPPORTED_COVER_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+]);
+
+const hasSupportedCoverExtension = (fileName) =>
+  /\.(jpe?g|png|gif|webp)$/i.test(String(fileName || '').trim());
+
 const CreateStory = () => {
   const navigate = useNavigate();
   const { storyId } = useParams();
@@ -191,6 +201,21 @@ const CreateStory = () => {
   const handleCoverChange = (event) => {
     const selected = event.target.files?.[0];
     if (!selected) return;
+    const hasSupportedType = SUPPORTED_COVER_TYPES.has(
+      String(selected.type || '').toLowerCase(),
+    );
+    const hasSupportedExtension = hasSupportedCoverExtension(
+      selected.name || '',
+    );
+
+    if (!hasSupportedType && !hasSupportedExtension) {
+      event.target.value = '';
+      notify(
+        'Ảnh bìa không hợp lệ. Vui lòng dùng JPG, PNG, GIF hoặc WebP.',
+        'error',
+      );
+      return;
+    }
     setCoverFile(selected);
   };
 
@@ -337,7 +362,7 @@ const CreateStory = () => {
       }
     } catch (error) {
       console.error('saveStory error', error);
-      notify('Không thể lưu truyện. Vui lòng thử lại.', 'error');
+      notify(error?.message || 'Không thể lưu truyện. Vui lòng thử lại.', 'error');
     } finally {
       setLoading(false);
     }
@@ -369,7 +394,7 @@ const CreateStory = () => {
                 ref={coverInputRef}
                 className='create-story-cover__input'
                 type='file'
-                accept='image/*'
+                accept='.jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp'
                 onChange={handleCoverChange}
               />
               <button
