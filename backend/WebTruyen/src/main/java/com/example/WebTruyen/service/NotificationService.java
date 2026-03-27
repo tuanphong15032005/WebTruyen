@@ -1,8 +1,8 @@
 package com.example.WebTruyen.service;
 
-import com.example.WebTruyen.dto.notification.NotificationListResponseDto;
-import com.example.WebTruyen.dto.notification.NotificationResponseDto;
-import com.example.WebTruyen.dto.notification.UnreadNotificationCountDto;
+import com.example.WebTruyen.dto.response.NotificationListResponseDto;
+import com.example.WebTruyen.dto.response.NotificationResponseDto;
+import com.example.WebTruyen.dto.response.UnreadNotificationCountDto;
 import com.example.WebTruyen.entity.enums.NotificationCategory;
 import com.example.WebTruyen.entity.enums.NotificationKind;
 import com.example.WebTruyen.entity.model.Content.ChapterEntity;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, Coins, MessageCircle, RefreshCw, Trophy } from 'lucide-react';
+import { BookOpen, MessageCircle, RefreshCw, Trophy } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 import { getStoredUser } from '../utils/helpers';
 import { getNotificationSeenAt } from '../utils/notificationUtils';
@@ -25,7 +25,6 @@ const NotificationPage = () => {
     { id: 'story', label: 'Truyện', icon: BookOpen },
     { id: 'interaction', label: 'Tương tác', icon: MessageCircle },
     { id: 'achievement', label: 'Thành tựu', icon: Trophy },
-    { id: 'transaction', label: 'Giao dịch', icon: Coins },
   ];
 
   useEffect(() => {

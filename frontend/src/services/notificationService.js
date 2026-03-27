@@ -43,14 +43,7 @@ export const notificationService = {
 
   markVisibleAsSeen: (userId, notifications = []) => markNotificationListAsSeen(userId, notifications),
 
-  resolveTarget: (notification) => resolveNotificationTarget(notification),
-
-  // Get transaction history for transaction tab
-  getTransactionHistory: async (page = 0, size = 20) => {
-    const params = `?page=${page}&size=${size}`;
-    const response = await api.get(`/wallet/ledger-entries${params}`);
-    return response;
-  }
+  resolveTarget: (notification) => resolveNotificationTarget(notification)
 };
 
 export default notificationService;

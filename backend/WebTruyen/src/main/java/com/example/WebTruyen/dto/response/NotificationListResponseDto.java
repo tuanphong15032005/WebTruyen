@@ -1,4 +1,4 @@
-package com.example.WebTruyen.dto.notification;
+package com.example.WebTruyen.dto.response;
 
 import java.util.List;
 
