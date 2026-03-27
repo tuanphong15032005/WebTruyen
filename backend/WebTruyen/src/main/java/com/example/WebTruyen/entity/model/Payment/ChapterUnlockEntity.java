@@ -44,6 +44,12 @@ public class ChapterUnlockEntity {
     @Column(name = "coin_cost", nullable = false)
     private Long coinCost;
 
+    @Column(name = "spent_coin_a")
+    private Long spentCoinA;
+
+    @Column(name = "spent_coin_b")
+    private Long spentCoinB;
+
     @Column(name = "hold_until")
     private LocalDateTime holdUntil;
 

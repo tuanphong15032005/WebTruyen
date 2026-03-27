@@ -66,13 +66,10 @@ public class AdminAuthorApplicationController {
         try {
             UserEntity admin = userRepository.findByUsername(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("Admin not found"));
-            
             adminAuthorApplicationService.approveApplication(id, admin.getId());
-            
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Application approved successfully");
             response.put("status", "approved");
-            
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
