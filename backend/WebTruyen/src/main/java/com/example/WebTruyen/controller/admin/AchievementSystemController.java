@@ -15,7 +15,7 @@ import java.util.Map;
 @RequestMapping("/api/admin/achievements/system")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
+@PreAuthorize("hasRole('MOD')")
 public class AchievementSystemController {
 
     private final TieredAchievementIntegrationService tieredAchievementIntegrationService;

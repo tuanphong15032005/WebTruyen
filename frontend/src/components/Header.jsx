@@ -8,6 +8,7 @@ import {
   Menu,
   Search,
   Star,
+  Wallet,
 } from 'lucide-react';
 import { WalletContext } from '../context/WalletContext.jsx';
 import { getStoredUser } from '../utils/helpers';
@@ -288,6 +289,16 @@ function Header({ onMenuToggle = () => {}, isSidebarOpen = false }) {
             >
               Tủ truyện
             </NavLink>
+            {isLoggedIn && (
+              <NavLink
+                to='/author/withdrawal-request'
+                className={({ isActive }) =>
+                  `site-nav__item ${isActive ? 'active' : ''}`
+                }
+              >
+                Rút tiền
+              </NavLink>
+            )}
           </nav>
         </div>
 

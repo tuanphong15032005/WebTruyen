@@ -21,7 +21,7 @@ import java.util.Map;
 @RequestMapping("/api/admin/daily-missions")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasAnyRole('ADMIN', 'MOD')")
+@PreAuthorize("hasRole('MOD')")
 public class DailyMissionAdminController {
 
     private final DailyMissionAdminService dailyMissionAdminService;

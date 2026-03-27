@@ -233,7 +233,7 @@ export default function WithdrawalRequestPage() {
       <div className='author-withdrawal__header'>
         <h1>Yêu cầu rút tiền</h1>
         <p>
-          Gửi yêu cầu rút doanh thu hợp lệ đã tích lũy từ chương trả phí, donate và các nguồn khác.
+          Gửi yêu cầu rút tiền hợp lệ đã tích lũy từ các nguồn được hệ thống ghi nhận.
           Số dư rút dựa trên <strong>(Kim cương)</strong>.
         </p>
       </div>
@@ -351,20 +351,23 @@ export default function WithdrawalRequestPage() {
               <div className='author-withdrawal__terms-box'>
                 <h3>Điều khoản và điều kiện rút tiền</h3>
                 <ul>
+                    <li>
+                        - Hệ thống sẽ lấy <strong>5%</strong> trong tổng số tiền muốn rút để làm phí giao dịch
+                    </li>
                   <li>
-                    Chỉ các doanh thu <strong>hợp lệ</strong> từ chương trả phí, donate và các
-                    nguồn được hệ thống ghi nhận mới được phép rút.
+                    - Chỉ các khoản tiền <strong>hợp lệ</strong> từ các nguồn được hệ thống ghi nhận
+                    mới được phép rút.
                   </li>
                   <li>
-                    Thời gian xử lý yêu cầu rút có thể từ <strong>1 - 5 ngày làm việc</strong>{' '}
+                    - Thời gian xử lý yêu cầu rút có thể từ <strong>1 - 5 ngày làm việc</strong>{' '}
                     tùy vào ngân hàng và khối lượng yêu cầu.
                   </li>
                   <li>
-                    Hệ thống có thể áp dụng thêm các quy định chống gian lận, kiểm tra thủ công
+                    - Hệ thống có thể áp dụng thêm các quy định chống gian lận, kiểm tra thủ công
                     bởi admin trước khi thanh toán.
                   </li>
                   <li>
-                    Mọi sai sót do nhập sai thông tin tài khoản ngân hàng sẽ do <strong>tác giả</strong>{' '}
+                    - Mọi sai sót do nhập sai thông tin tài khoản ngân hàng sẽ do <strong>người dùng</strong>{' '}
                     tự chịu trách nhiệm.
                   </li>
                 </ul>
