@@ -7,13 +7,6 @@ import rankingService from '../../services/rankingService';
 import '../../styles/ranking-pages.css';
 import '../../styles/home-dashboard.css';
 
-const PERIODS = [
-  { value: 'week', label: 'Theo tuần' },
-  { value: 'month', label: 'Theo tháng' },
-  { value: 'year', label: 'Theo năm' },
-  { value: 'all', label: 'Toàn thời gian' },
-];
-
 const METRICS = [
   { value: 'views', label: 'Lượt xem', icon: Eye },
   { value: 'follows', label: 'Lượt theo dõi', icon: Bookmark },
@@ -29,7 +22,6 @@ const getStoryStatusInfo = (story) => {
 };
 
 function StoryRankingPage() {
-  const [period, setPeriod] = useState('all');
   const [metric, setMetric] = useState('views');
   const [loading, setLoading] = useState(true);
   const [stories, setStories] = useState([]);
@@ -66,9 +58,8 @@ function StoryRankingPage() {
       });
 
     return () => { cancelled = true; };
-  }, [period, metric]);
+  }, [metric]);
 
-  const periodLabel = PERIODS.find((p) => p.value === period)?.label ?? period;
   const metricLabel = METRICS.find((m) => m.value === metric)?.label ?? metric;
   const MetricIcon = METRICS.find((m) => m.value === metric)?.icon ?? Eye;
 
@@ -80,24 +71,11 @@ function StoryRankingPage() {
           Xếp hạng truyện
         </h1>
         <p className="ranking-page__subtitle">
-          Chọn khoảng thời gian và tiêu chí (lượt xem hoặc lượt theo dõi) để xem bảng xếp hạng.
+          Xem bảng xếp hạng truyện theo lượt xem hoặc lượt theo dõi.
         </p>
       </header>
 
       <div className="ranking-page__tabs">
-        <div className="ranking-page__tab-group">
-          <span className="ranking-page__tab-label">Thời gian:</span>
-          {PERIODS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              className={`ranking-page__tab ${period === p.value ? 'ranking-page__tab--active' : ''}`}
-              onClick={() => setPeriod(p.value)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
         <div className="ranking-page__tab-group">
           <span className="ranking-page__tab-label">Theo:</span>
           {METRICS.map((m) => {
@@ -127,7 +105,7 @@ function StoryRankingPage() {
           <p className="ranking-page__empty">Chưa có dữ liệu xếp hạng.</p>
         ) : (
           <>
-            <p className="ranking-page__section-label">Bảng xếp hạng · {periodLabel} · {metricLabel}</p>
+            <p className="ranking-page__section-label">Bảng xếp hạng · {metricLabel}</p>
             <ol className="story-ranking-list">
             {stories.map((story, index) => {
               const statusInfo = getStoryStatusInfo(story);

@@ -1,6 +1,7 @@
 package com.example.WebTruyen.service;
 
 import com.example.WebTruyen.dto.request.CreateLibraryAlbumRequest;
+import com.example.WebTruyen.dto.request.UpdateLibraryAlbumVisibilityRequest;
 import com.example.WebTruyen.dto.response.LibraryAlbumCardResponse;
 import com.example.WebTruyen.dto.response.LibraryAlbumDetailResponse;
 import com.example.WebTruyen.dto.response.LibraryAlbumOptionResponse;
@@ -124,7 +125,21 @@ public class LibraryAlbumService {
                         .filter(story -> story != null)
                         .map(story -> storyService.toStoryResponse(story, false))
                         .toList()
-        );
+                );
+    }
+
+    @Transactional
+    public LibraryAlbumDetailResponse updateAlbumVisibility(
+            UserEntity currentUser,
+            Long albumId,
+            UpdateLibraryAlbumVisibilityRequest req
+    ) {
+        LibraryAlbumEntity album = libraryAlbumRepository.findByIdAndUser_Id(albumId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay bo suu tap"));
+
+        album.setVisibility(parseVisibility(req.visibility()));
+        LibraryAlbumEntity savedAlbum = libraryAlbumRepository.save(album);
+        return getAlbumDetail(currentUser, savedAlbum.getId());
     }
 
     private String normalizeName(String name) {

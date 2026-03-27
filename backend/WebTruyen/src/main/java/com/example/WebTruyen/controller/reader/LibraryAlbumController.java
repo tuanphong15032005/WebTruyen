@@ -1,6 +1,7 @@
 package com.example.WebTruyen.controller.reader;
 
 import com.example.WebTruyen.dto.request.CreateLibraryAlbumRequest;
+import com.example.WebTruyen.dto.request.UpdateLibraryAlbumVisibilityRequest;
 import com.example.WebTruyen.dto.response.LibraryAlbumCardResponse;
 import com.example.WebTruyen.dto.response.LibraryAlbumDetailResponse;
 import com.example.WebTruyen.dto.response.LibraryAlbumOptionResponse;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -75,5 +77,15 @@ public class LibraryAlbumController {
     ) {
         UserEntity currentUser = requireUser(userPrincipal);
         return libraryAlbumService.createAlbum(currentUser, request);
+    }
+
+    @PutMapping("/{albumId}/visibility")
+    public LibraryAlbumDetailResponse updateAlbumVisibility(
+            @PathVariable Long albumId,
+            @Valid @RequestBody UpdateLibraryAlbumVisibilityRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        UserEntity currentUser = requireUser(userPrincipal);
+        return libraryAlbumService.updateAlbumVisibility(currentUser, albumId, request);
     }
 }
