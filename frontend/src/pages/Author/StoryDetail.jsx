@@ -5,6 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
+import defaultVolumeCover from '../../assets/Default Volume.jpg';
 import Button from '../../components/Button';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import CreateVolume from './CreateVolume';
@@ -1028,6 +1029,9 @@ const StoryDetail = () => {
                   const id = String(volume.id || volume.volumeId);
                   const isOpen = expandedVolumes.has(id);
                   const coverUrl = String(volume?.coverUrl || '').trim();
+                  const volumeCoverSrc = coverUrl || defaultVolumeCover;
+                  const volumeLabel =
+                    volume.title || `Tập ${volume.sequenceIndex || ''}`;
                   const chapters = Array.isArray(volume.chapters)
                     ? [...volume.chapters].sort(
                         (a, b) =>
@@ -1038,20 +1042,11 @@ const StoryDetail = () => {
                     <div key={id} className='story-detail__volume'>
                       <div className='story-detail__volume-header'>
                         <div className='story-detail__volume-cover-wrap'>
-                          {coverUrl ? (
-                            <img
-                              className='story-detail__volume-cover'
-                              src={coverUrl}
-                              alt={
-                                volume.title ||
-                                `Tập ${volume.sequenceIndex || ''}`
-                              }
-                            />
-                          ) : (
-                            <div className='story-detail__volume-cover-placeholder'>
-                              No cover
-                            </div>
-                          )}
+                          <img
+                            className='story-detail__volume-cover'
+                            src={volumeCoverSrc}
+                            alt={volumeLabel}
+                          />
                         </div>
                         <div className='story-detail__volume-meta'>
                           {editingVolumeId === id ? (

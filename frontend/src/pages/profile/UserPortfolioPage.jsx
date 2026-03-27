@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { BookOpen, Lock } from 'lucide-react';
 import api from '../../services/api';
 import UserPortfolioHeader from './UserPortfolioHeader';
 import UserPortfolioSidebar from './UserPortfolioSidebar';
@@ -8,431 +9,436 @@ import UserPortfolioAlbums from './UserPortfolioAlbums';
 import AuthorStories from './AuthorStories';
 import FollowersModal from '../../components/FollowersModal';
 import { getFollowersList, toggleFollow, getFollowStatus } from '../../api/userApi';
-import { Share, Lock } from 'lucide-react';
 import { getStoredUser } from '../../utils/helpers';
+import { useTheme } from '../../context/ThemeContext';
 
 const UserPortfolioPage = () => {
-    const { userId, username } = useParams();
-    const navigate = useNavigate();
-    const [portfolioData, setPortfolioData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [isPrivate, setIsPrivate] = useState(false);
-    const [showFollowersModal, setShowFollowersModal] = useState(false);
-    const [followersList, setFollowersList] = useState([]);
-    const [followersLoading, setFollowersLoading] = useState(false);
-    const [currentFollowersCount, setCurrentFollowersCount] = useState(0);
-    const [isFollowing, setIsFollowing] = useState(false);
-    const [followLoading, setFollowLoading] = useState(false);
+  const { userId, username } = useParams();
+  const navigate = useNavigate();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
-    useEffect(() => {
-        const fetchPortfolioData = async () => {
-            try {
-                setLoading(true);
-                
-                let response;
-                if (username) {
-                    response = await api.get(`/users/username/${username}/portfolio`);
-                } else if (userId) {
-                    response = await api.get(`/users/${userId}/portfolio`);
-                } else {
-                    throw new Error('No userId or username provided');
-                }
-                
-                // Fix: Use response directly instead of response.data
-                const portfolioData = response.data || response;
-                setPortfolioData(portfolioData);
-                
-                // Set initial followers count
-                if (portfolioData.followersCount !== undefined) {
-                    setCurrentFollowersCount(portfolioData.followersCount);
-                }
-                
-                // Set initial privacy state
-                if (portfolioData.isPrivate !== undefined) {
-                    setIsPrivate(portfolioData.isPrivate);
-                } else {
-                    // Fallback for localhost - check localStorage
-                    if (window.location.hostname === 'localhost') {
-                        const savedPrivacy = localStorage.getItem(`privacy_${userId}`);
-                        if (savedPrivacy !== null) {
-                            setIsPrivate(savedPrivacy === 'true');
-                        }
-                    }
-                }
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [followersList, setFollowersList] = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [currentFollowersCount, setCurrentFollowersCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
-                // Check follow status if not viewing own portfolio
-                const user = getStoredUser();
-                if (user && user.userId && user.userId !== userId.toString()) {
-                    try {
-                        const followStatus = await getFollowStatus(userId, parseInt(user.userId));
-                        setIsFollowing(followStatus.isFollowing);
-                    } catch (error) {
-                        console.error('Error checking follow status:', error);
-                    }
-                }
-            } catch (err) {
-                setError(err.response?.data?.message || 'Không thể tải dữ liệu trang cá nhân');
-            } finally {
-                setLoading(false);
-            }
-        };
+  const currentUser = getStoredUser();
+  const currentUserId = currentUser?.userId ? Number(currentUser.userId) : null;
+  const routeUserId = userId ? Number(userId) : null;
+  const portfolioOwnerId = portfolioData?.userId
+    ? Number(portfolioData.userId)
+    : routeUserId;
+  const privacyStorageKey = portfolioOwnerId ? `privacy_${portfolioOwnerId}` : null;
 
-        if (userId || username) {
-            fetchPortfolioData();
-        }
-    }, [userId, username]);
-
-    // Listen for follow status changes
-    useEffect(() => {
-        const handleFollowStatusChanged = (event) => {
-            const { authorId, isFollowing, followersCount } = event.detail;
-            
-            // Update followers count if this is the same author
-            if (authorId === userId) {
-                setCurrentFollowersCount(followersCount);
-            }
-        };
-
-        // Add event listener
-        window.addEventListener('followStatusChanged', handleFollowStatusChanged);
-
-        // Cleanup on unmount
-        return () => {
-            window.removeEventListener('followStatusChanged', handleFollowStatusChanged);
-        };
-    }, [userId]);
-
-    // Update followers count when data changes
-    useEffect(() => {
-        if (portfolioData && portfolioData.followersCount !== undefined) {
-            setCurrentFollowersCount(portfolioData.followersCount);
-        }
-    }, [portfolioData]);
-
-    const handleDonateClick = () => {
-        // Check if user is authenticated
-        const user = getStoredUser();
-        if (!user || !user.userId) {
-            // Redirect to login page
-            navigate('/login');
-            return;
-        }
-        
-        // Check if viewing own portfolio
-        if (user.userId === userId.toString()) {
-            return; // Can't donate to yourself
-        }
-        
-        const targetUserId = portfolioData?.userId || userId;
-        navigate(`/donate/${targetUserId}`);
-    };
-
-    const handleToggleFollow = async () => {
-        // Check if user is authenticated
-        const user = getStoredUser();
-        if (!user || !user.userId) {
-            // Redirect to login page
-            navigate('/login');
-            return;
-        }
-        
-        const currentUserId = user.userId;
-        if (currentUserId === userId.toString()) {
-            return; // Can't follow yourself
-        }
-
-        setFollowLoading(true);
-        try {
-            const response = await toggleFollow(userId, parseInt(currentUserId));
-            setIsFollowing(response.isFollowing);
-            setCurrentFollowersCount(response.followersCount);
-
-            // Dispatch event to update other components
-            window.dispatchEvent(new CustomEvent('followStatusChanged', {
-                detail: {
-                    authorId: userId,
-                    isFollowing: response.isFollowing,
-                    followersCount: response.followersCount
-                }
-            }));
-        } catch (error) {
-            console.error('Error toggling follow:', error);
-            alert('Không thể thực hiện thao tác theo dõi');
-        } finally {
-            setFollowLoading(false);
-        }
-    };
-
-    const handleTogglePrivacy = async (e) => {
-        const newPrivacyState = e.target.checked;
-        setIsPrivate(newPrivacyState);
-        
-        try {
-            // Update privacy state in database
-            await api.put(`/users/${userId}/privacy`, { isPrivate: newPrivacyState });
-        } catch (error) {
-            console.error('Error updating privacy settings:', error);
-            
-            // Fallback for localhost development - save to localStorage
-            if (window.location.hostname === 'localhost') {
-                localStorage.setItem(`privacy_${userId}`, newPrivacyState.toString());
-                console.log('Privacy setting saved to localStorage for development');
-                return;
-            }
-            
-            // Revert on error for production
-            setIsPrivate(!newPrivacyState);
-            alert('Không thể cập nhật cài đặt riêng tư');
-        }
-    };
-
-    // Check if current user is viewing their own portfolio
-    const user = getStoredUser();
-    
-    // Convert all to numbers for comparison - add null checks
-    const userIdNum = parseInt(userId);
-    const userUserIdNum = user ? parseInt(user.userId) : null;
-    const portfolioUserIdNum = portfolioData ? parseInt(portfolioData?.userId) : null;
-    
-    const isOwnPortfolio1 = portfolioData && userId && userUserIdNum !== null && userUserIdNum === userIdNum;
-    const isOwnPortfolio2 = portfolioData && user && userUserIdNum !== null && portfolioUserIdNum !== null && userUserIdNum === portfolioUserIdNum;
-    const isOwnPortfolio = isOwnPortfolio1 || isOwnPortfolio2;
-    
-    // Check if portfolio is private and viewer is not owner
-    const getPrivacyState = () => {
-        // First check database state
-        if (portfolioData?.isPrivate !== undefined) {
-            return portfolioData.isPrivate;
-        }
-        // Fallback to localStorage for localhost
-        if (window.location.hostname === 'localhost') {
-            const savedPrivacy = localStorage.getItem(`privacy_${userId}`);
-            return savedPrivacy === 'true';
-        }
-        return false;
-    };
-    
-    const isPrivateAndNotOwner = getPrivacyState() && !isOwnPortfolio;
-
-    const handleShowFollowers = async () => {
-        setShowFollowersModal(true);
-        setFollowersLoading(true);
-        try {
-            const followers = await getFollowersList(userId);
-            setFollowersList(Array.isArray(followers) ? followers : []);
-        } catch (error) {
-            console.error('Error fetching followers:', error);
-            setFollowersList([]);
-        } finally {
-            setFollowersLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="max-w-6xl mx-auto p-4 md:p-8">
-                {/* Profile Header Skeleton */}
-                <section className="relative w-full">
-                    <div className="h-64 w-full rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 relative overflow-hidden shadow-sm">
-                        <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-white/40 via-transparent to-transparent"></div>
-                    </div>
-                    <div className="px-8 -mt-16 flex flex-col md:flex-row items-end justify-between gap-6 relative z-10">
-                        <div className="flex items-end gap-6">
-                            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
-                                <div className="w-full h-full bg-gray-200 animate-pulse"></div>
-                            </div>
-                            <div className="pb-2">
-                                <div className="h-8 w-48 bg-gray-200 rounded-lg animate-pulse mb-2"></div>
-                                <div className="h-5 w-64 bg-gray-200 rounded animate-pulse"></div>
-                            </div>
-                        </div>
-                        <div className="flex gap-3 pb-2">
-                            <div className="w-11 h-11 bg-gray-200 rounded-full animate-pulse"></div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Stats Skeleton */}
-                <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="p-6 bg-white rounded-2xl border border-gray-100 flex items-center gap-5 shadow-sm">
-                            <div className="w-14 h-14 bg-gray-200 rounded-xl animate-pulse"></div>
-                            <div>
-                                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-2"></div>
-                                <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
-                            </div>
-                        </div>
-                    ))}
-                </section>
-
-                {/* Content Skeleton */}
-                <section className="mt-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {Array.from({ length: 6 }, (_, i) => (
-                            <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                                <div className="h-48 bg-gray-200 animate-pulse"></div>
-                                <div className="p-5">
-                                    <div className="h-5 w-full bg-gray-200 rounded animate-pulse mb-2"></div>
-                                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-4"></div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                        <div className="flex gap-3">
-                                            <div className="h-3 w-8 bg-gray-200 rounded animate-pulse"></div>
-                                            <div className="h-3 w-8 bg-gray-200 rounded animate-pulse"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            </div>
-        );
+  const isOwnPortfolio = useMemo(() => {
+    if (currentUserId === null || portfolioOwnerId === null || Number.isNaN(portfolioOwnerId)) {
+      return false;
     }
 
-    if (error) {
-        return (
-            <div className="max-w-6xl mx-auto p-4 md:p-8">
-                <section className="relative w-full">
-                    <div className="h-64 w-full rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 relative overflow-hidden shadow-sm">
-                        <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-white/40 via-transparent to-transparent"></div>
-                    </div>
-                    <div className="px-8 -mt-16 flex flex-col md:flex-row items-end justify-between gap-6 relative z-10">
-                        <div className="flex items-end gap-6">
-                            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center">
-                                <BookOpen className="w-16 h-16 text-gray-400" />
-                            </div>
-                            <div className="pb-2">
-                                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Portfolio</h1>
-                                <p className="text-gray-500 font-medium">Error loading portfolio</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                
-                <section className="text-center py-12">
-                    <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Đã xảy ra lỗi</h3>
-                    <p className="text-gray-500">{error}</p>
-                </section>
-            </div>
-        );
+    return currentUserId === portfolioOwnerId;
+  }, [currentUserId, portfolioOwnerId]);
+
+  const surfaceCardStyle = {
+    background: isDark ? 'var(--theme-surface-raised)' : '#ffffff',
+    borderColor: isDark ? 'var(--theme-border)' : '#f1f5f9',
+  };
+  const primaryTextStyle = { color: 'var(--theme-text-primary)' };
+  const secondaryTextStyle = { color: 'var(--theme-text-secondary)' };
+  const softSurfaceStyle = {
+    background: isDark ? 'var(--theme-surface-hover)' : '#f3f4f6',
+  };
+
+  useEffect(() => {
+    const fetchPortfolioData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        let response;
+        if (username) {
+          response = await api.get(`/users/username/${username}/portfolio`);
+        } else if (userId) {
+          response = await api.get(`/users/${userId}/portfolio`);
+        } else {
+          throw new Error('Missing portfolio identifier');
+        }
+
+        const nextPortfolioData = response.data || response;
+        setPortfolioData(nextPortfolioData);
+
+        if (nextPortfolioData.followersCount !== undefined) {
+          setCurrentFollowersCount(nextPortfolioData.followersCount);
+        }
+
+        if (nextPortfolioData.isPrivate !== undefined) {
+          setIsPrivate(nextPortfolioData.isPrivate);
+        } else if (window.location.hostname === 'localhost') {
+          const fallbackStorageKey = `privacy_${nextPortfolioData.userId || userId}`;
+          const savedPrivacy = localStorage.getItem(fallbackStorageKey);
+          if (savedPrivacy !== null) {
+            setIsPrivate(savedPrivacy === 'true');
+          }
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Không thể tải dữ liệu trang tác giả');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (userId || username) {
+      fetchPortfolioData();
+    }
+  }, [userId, username]);
+
+  useEffect(() => {
+    if (portfolioData?.followersCount !== undefined) {
+      setCurrentFollowersCount(portfolioData.followersCount);
+    }
+  }, [portfolioData]);
+
+  useEffect(() => {
+    const handleFollowStatusChanged = (event) => {
+      const { authorId, followersCount } = event.detail;
+      if (String(authorId) === String(portfolioOwnerId || userId)) {
+        setCurrentFollowersCount(followersCount);
+      }
+    };
+
+    window.addEventListener('followStatusChanged', handleFollowStatusChanged);
+    return () => {
+      window.removeEventListener('followStatusChanged', handleFollowStatusChanged);
+    };
+  }, [portfolioOwnerId, userId]);
+
+  useEffect(() => {
+    const targetUserId = portfolioOwnerId;
+    if (!targetUserId || !currentUserId || currentUserId === targetUserId) {
+      setIsFollowing(false);
+      return;
     }
 
-    if (!portfolioData) {
-        return (
-            <div className="max-w-6xl mx-auto p-4 md:p-8">
-                <section className="relative w-full">
-                    <div className="h-64 w-full rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 relative overflow-hidden shadow-sm">
-                        <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-white/40 via-transparent to-transparent"></div>
-                    </div>
-                    <div className="px-8 -mt-16 flex flex-col md:flex-row items-end justify-between gap-6 relative z-10">
-                        <div className="flex items-end gap-6">
-                            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center">
-                                <BookOpen className="w-16 h-16 text-gray-400" />
-                            </div>
-                            <div className="pb-2">
-                                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Portfolio</h1>
-                                <p className="text-gray-500 font-medium">No data available</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                
-                <section className="text-center py-12">
-                    <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Dữ liệu không khả dụng</h3>
-                    <p className="text-gray-500">Dữ liệu trang cá nhân không khả dụng</p>
-                </section>
-            </div>
-        );
+    let cancelled = false;
+
+    const fetchFollowStatus = async () => {
+      try {
+        const followStatus = await getFollowStatus(targetUserId, currentUserId);
+        if (!cancelled) {
+          setIsFollowing(Boolean(followStatus?.isFollowing));
+        }
+      } catch (followError) {
+        console.error('Error checking follow status:', followError);
+      }
+    };
+
+    fetchFollowStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId, portfolioOwnerId]);
+
+  const getPrivacyState = () => {
+    if (portfolioData?.isPrivate !== undefined) {
+      return portfolioData.isPrivate;
     }
 
-    // Calculate stats from existing data - using DB data like UserPortfolioStats
-    const totalStories = portfolioData?.storiesCount || 0;
-    const totalFollowers = currentFollowersCount;
-
-    // If portfolio is private and viewer is not owner, show privacy message
-    if (isPrivateAndNotOwner) {
-        return (
-            <div className="max-w-6xl mx-auto p-4 md:p-8">
-                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-6">
-                        <Lock size={40} className="text-gray-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                        Người dùng này đã khóa trang cá nhân
-                    </h2>
-                    <p className="text-gray-600 max-w-md">
-                        Trang cá nhân này đã được đặt ở chế độ riêng tư. Chỉ chủ sở hữu mới có thể xem nội dung này.
-                    </p>
-                </div>
-            </div>
-        );
+    if (window.location.hostname === 'localhost' && privacyStorageKey) {
+      return localStorage.getItem(privacyStorageKey) === 'true';
     }
 
-    return (
-        <div className="max-w-6xl mx-auto p-4 md:p-8">
-            {/* UserPortfolioHeader - Cover Image, Avatar, User Info, Follow/Donate/Share Buttons */}
-            <UserPortfolioHeader 
-                data={portfolioData} 
-                onShare={() => {
-                    // Handle share functionality
-                    if (navigator.share) {
-                        navigator.share({
-                            title: `${portfolioData?.displayName || portfolioData?.username}'s Portfolio`,
-                            text: portfolioData?.bio || 'Check out my portfolio!',
-                            url: window.location.href
-                        });
-                    } else {
-                        // Fallback: copy to clipboard
-                        navigator.clipboard.writeText(window.location.href);
-                        alert('Đã sao chép đường dẫn portfolio!');
-                    }
-                }}
-                onFollow={handleToggleFollow}
-                onDonate={handleDonateClick}
-                isFollowing={isFollowing}
-                followLoading={followLoading}
-                isOwnPortfolio={isOwnPortfolio}
-            />
+    return false;
+  };
 
-            {/* UserPortfolioStats - 3 Stats Cards */}
-            <UserPortfolioStats 
-                data={portfolioData} 
-                onShowFollowers={handleShowFollowers}
-                followersCount={currentFollowersCount}
-            />
+  const isPrivateAndNotOwner = getPrivacyState() && !isOwnPortfolio;
 
-            {/* UserPortfolioSidebar - Privacy Toggle - Only show on own portfolio */}
-            {isOwnPortfolio && (
-                <UserPortfolioSidebar 
-                    data={portfolioData}
-                    isPrivate={isPrivate}
-                    onTogglePrivacy={handleTogglePrivacy}
-                />
-            )}
+  const handleDonateClick = () => {
+    if (!currentUser?.userId) {
+      navigate('/login');
+      return;
+    }
 
-            {/* UserPortfolioAlbums - Albums and Favorite Albums */}
-            <UserPortfolioAlbums userId={userId} />
-            
-            {/* Author Stories - Only show if user is author */}
-            {portfolioData?.author && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-8">
-                    <AuthorStories userId={userId} />
-                </div>
-            )}
+    if (!portfolioOwnerId || currentUserId === portfolioOwnerId) {
+      return;
+    }
 
-            {/* Followers Modal */}
-            <FollowersModal
-                isOpen={showFollowersModal}
-                onClose={() => setShowFollowersModal(false)}
-                followers={followersList}
-                loading={followersLoading}
-            />
+    navigate(`/donate/${portfolioOwnerId}`);
+  };
+
+  const handleToggleFollow = async () => {
+    if (!currentUser?.userId) {
+      navigate('/login');
+      return;
+    }
+
+    if (!portfolioOwnerId || currentUserId === portfolioOwnerId) {
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      const response = await toggleFollow(portfolioOwnerId, currentUserId);
+      setIsFollowing(Boolean(response.isFollowing));
+      setCurrentFollowersCount(response.followersCount);
+
+      window.dispatchEvent(
+        new CustomEvent('followStatusChanged', {
+          detail: {
+            authorId: String(portfolioOwnerId),
+            isFollowing: response.isFollowing,
+            followersCount: response.followersCount,
+          },
+        }),
+      );
+    } catch (followError) {
+      console.error('Error toggling follow:', followError);
+      alert('Không thể thực hiện thao tác theo dõi');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleTogglePrivacy = async (event) => {
+    const newPrivacyState = event.target.checked;
+    setIsPrivate(newPrivacyState);
+
+    try {
+      if (!portfolioOwnerId) return;
+      await api.put(`/users/${portfolioOwnerId}/privacy`, { isPrivate: newPrivacyState });
+    } catch (privacyError) {
+      console.error('Error updating privacy settings:', privacyError);
+
+      if (window.location.hostname === 'localhost' && privacyStorageKey) {
+        localStorage.setItem(privacyStorageKey, newPrivacyState.toString());
+        return;
+      }
+
+      setIsPrivate(!newPrivacyState);
+      alert('Không thể cập nhật cài đặt riêng tư');
+    }
+  };
+
+  const handleShowFollowers = async () => {
+    if (!portfolioOwnerId) return;
+
+    setShowFollowersModal(true);
+    setFollowersLoading(true);
+    try {
+      const followers = await getFollowersList(portfolioOwnerId);
+      setFollowersList(Array.isArray(followers) ? followers : []);
+    } catch (followersError) {
+      console.error('Error fetching followers:', followersError);
+      setFollowersList([]);
+    } finally {
+      setFollowersLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareTitle = `Portfolio của ${portfolioData?.displayName || portfolioData?.username}`;
+    const shareText = portfolioData?.bio || 'Xem portfolio của tác giả này trên WebTruyen!';
+
+    if (navigator.share) {
+      await navigator.share({
+        title: shareTitle,
+        text: shareText,
+        url: window.location.href,
+      });
+      return;
+    }
+
+    await navigator.clipboard.writeText(window.location.href);
+    alert('Đã sao chép liên kết portfolio!');
+  };
+
+  const renderHeroShell = (title, subtitle) => (
+    <section className="relative w-full">
+      <div className="relative h-64 w-full overflow-hidden rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-30" />
+      </div>
+      <div className="relative z-10 -mt-16 flex flex-col gap-5 px-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+          <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-xl">
+            <BookOpen className="h-16 w-16 text-gray-400" />
+          </div>
+          <div className="pb-2">
+            <h1 className="text-3xl font-extrabold tracking-tight" style={primaryTextStyle}>
+              {title}
+            </h1>
+            <p className="font-medium" style={secondaryTextStyle}>
+              {subtitle}
+            </p>
+          </div>
         </div>
+      </div>
+    </section>
+  );
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl p-4 md:p-8" style={primaryTextStyle}>
+        <section className="relative w-full">
+          <div className="relative h-64 w-full overflow-hidden rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-30" />
+          </div>
+          <div className="relative z-10 -mt-16 flex flex-col gap-5 px-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+              <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-white bg-white shadow-xl">
+                <div className="h-full w-full animate-pulse bg-gray-200" />
+              </div>
+              <div className="pb-2">
+                <div className="mb-2 h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
+                <div className="h-5 w-64 animate-pulse rounded bg-gray-200" />
+              </div>
+            </div>
+            <div className="flex gap-3 pb-2">
+              <div className="h-11 w-11 animate-pulse rounded-full bg-gray-200" />
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="flex items-center gap-5 rounded-2xl border p-6 shadow-sm"
+              style={surfaceCardStyle}
+            >
+              <div className="h-14 w-14 animate-pulse rounded-xl bg-gray-200" />
+              <div>
+                <div className="mb-2 h-4 w-20 animate-pulse rounded bg-gray-200" />
+                <div className="h-6 w-12 animate-pulse rounded bg-gray-200" />
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="mt-8">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-2xl border shadow-sm"
+                style={surfaceCardStyle}
+              >
+                <div className="h-48 animate-pulse bg-gray-200" />
+                <div className="p-5">
+                  <div className="mb-2 h-5 w-full animate-pulse rounded bg-gray-200" />
+                  <div className="mb-4 h-4 w-full animate-pulse rounded bg-gray-200" />
+                  <div className="flex items-center justify-between">
+                    <div className="h-3 w-20 animate-pulse rounded bg-gray-200" />
+                    <div className="flex gap-3">
+                      <div className="h-3 w-8 animate-pulse rounded bg-gray-200" />
+                      <div className="h-3 w-8 animate-pulse rounded bg-gray-200" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-6xl p-4 md:p-8" style={primaryTextStyle}>
+        {renderHeroShell('Trang tác giả', 'Không thể tải portfolio')}
+        <section className="py-12 text-center">
+          <BookOpen className="mx-auto mb-4 h-16 w-16 text-gray-400" />
+          <h3 className="mb-2 text-xl font-bold" style={primaryTextStyle}>
+            Đã xảy ra lỗi
+          </h3>
+          <p style={secondaryTextStyle}>{error}</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (!portfolioData) {
+    return (
+      <div className="mx-auto max-w-6xl p-4 md:p-8" style={primaryTextStyle}>
+        {renderHeroShell('Trang tác giả', 'Không có dữ liệu để hiển thị')}
+        <section className="py-12 text-center">
+          <BookOpen className="mx-auto mb-4 h-16 w-16 text-gray-400" />
+          <h3 className="mb-2 text-xl font-bold" style={primaryTextStyle}>
+            Dữ liệu không khả dụng
+          </h3>
+          <p style={secondaryTextStyle}>Hiện chưa có dữ liệu cho trang tác giả này.</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (isPrivateAndNotOwner) {
+    return (
+      <div className="mx-auto max-w-6xl p-4 md:p-8" style={primaryTextStyle}>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+          <div
+            className="mb-6 flex h-20 w-20 items-center justify-center rounded-full"
+            style={softSurfaceStyle}
+          >
+            <Lock size={40} className="text-gray-400" />
+          </div>
+          <h2 className="mb-4 text-2xl font-bold" style={primaryTextStyle}>
+            Người dùng này đã khoá portfolio
+          </h2>
+          <p className="max-w-md" style={secondaryTextStyle}>
+            Portfolio này đang ở chế độ riêng tư. Chỉ chủ sở hữu mới có thể xem nội dung bên trong.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl p-4 md:p-8" style={primaryTextStyle}>
+      <UserPortfolioHeader
+        data={portfolioData}
+        onShare={handleShare}
+        onFollow={handleToggleFollow}
+        onDonate={handleDonateClick}
+        isFollowing={isFollowing}
+        followLoading={followLoading}
+        isOwnPortfolio={isOwnPortfolio}
+        isDark={isDark}
+      />
+
+      <UserPortfolioStats
+        data={portfolioData}
+        onShowFollowers={handleShowFollowers}
+        followersCount={currentFollowersCount}
+        isDark={isDark}
+      />
+
+      {isOwnPortfolio && (
+        <UserPortfolioSidebar isPrivate={isPrivate} onTogglePrivacy={handleTogglePrivacy} />
+      )}
+
+      <UserPortfolioAlbums userId={portfolioOwnerId} isDark={isDark} />
+
+      {portfolioData?.author && (
+        <div className="mt-8 rounded-2xl border p-6 shadow-sm" style={surfaceCardStyle}>
+          <AuthorStories userId={portfolioOwnerId} isDark={isDark} />
+        </div>
+      )}
+
+      <FollowersModal
+        isOpen={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        followers={followersList}
+        loading={followersLoading}
+      />
+    </div>
+  );
 };
 
 export default UserPortfolioPage;

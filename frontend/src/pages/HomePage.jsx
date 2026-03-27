@@ -48,6 +48,8 @@ const EMPTY_CHAPTER_META = {
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('vi-VN');
 
+const getStoryChapterCount = (story) => Number(story?.chapterCount || 0);
+
 const formatRelativeTime = (value) => {
   if (!value) return 'Vừa xong';
   const date = new Date(value);
@@ -281,6 +283,11 @@ const buildDeferredSections = (publicStories) => {
       .slice(0, SAVED_RANKING_COUNT),
   };
 };
+
+const filterStoriesWithChapters = (stories) =>
+  (Array.isArray(stories) ? stories : []).filter(
+    (story) => getStoryChapterCount(story) > 0,
+  );
 
 const buildHeroBackground = (story) => {
   const coverUrl = String(story?.coverUrl || '').trim();
@@ -529,8 +536,9 @@ function HomePage() {
           sort: 'lastUpdatedAt,desc',
         });
         const publicStories = Array.isArray(response) ? response : [];
-        setAllPublicStories(publicStories);
-        const sortedByUpdated = [...publicStories].sort(
+        const eligibleStories = filterStoriesWithChapters(publicStories);
+        setAllPublicStories(eligibleStories);
+        const sortedByUpdated = [...eligibleStories].sort(
           (a, b) =>
             toEpoch(b?.lastUpdatedAt || b?.createdAt) -
             toEpoch(a?.lastUpdatedAt || a?.createdAt),
@@ -539,7 +547,7 @@ function HomePage() {
         const newestStories = sortedByUpdated.slice(0, LATEST_COUNT);
         setLatestStories(newestStories);
 
-        const randomHeroStories = pickRandomStories(publicStories, HERO_COUNT);
+        const randomHeroStories = pickRandomStories(eligibleStories, HERO_COUNT);
         setHeroStories(randomHeroStories);
         setActiveHeroIndex(0);
         activeHeroIndexRef.current = 0;
@@ -557,6 +565,7 @@ function HomePage() {
             if (dominantTag) {
               recommendList = getTopRatedStories(
                 publicStories.filter((story) => {
+                if (getStoryChapterCount(story) <= 0) return false;
                 const tags = Array.isArray(story?.tags) ? story.tags : [];
                 return tags.some(
                   (tag) =>
@@ -848,7 +857,7 @@ function HomePage() {
                   </span>
                   <span className='home-story-card__stat'>
                     <BookOpen size={14} />
-                    {formatNumber(meta?.chapterCount || 0)}
+                    {formatNumber(meta?.chapterCount ?? getStoryChapterCount(story))}
                   </span>
                 </div>
 

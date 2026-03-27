@@ -33,15 +33,36 @@ import {
   updateReadingProgress,
 } from '../services/ChapterService';
 import { WalletContext } from '../context/WalletContext';
+import { useTheme } from '../context/ThemeContext';
 import PurchaseConfirmationModal from '../components/PurchaseConfirmationModal';
 import PurchaseSuccessModal from '../components/PurchaseSuccessModal';
 import PurchaseErrorModal from '../components/PurchaseErrorModal';
 import ScrollTopButton from '../components/ScrollTopButton';
-import '../styles/chapter-page.css';
+import CommentThreadItem from '../components/comments/CommentThreadItem';
 import '../styles/story-metadata.css';
+import '../styles/chapter-page.css';
 
 const INITIAL_CHAPTER_ID = 1;
 const QUALIFIED_READ_MS = 3_000;
+const READER_SETTINGS_STORAGE_KEY = 'chapter-reader-settings';
+const DEFAULT_READER_FONT = "'Crimson Text', serif";
+
+const READER_PRESETS = {
+  light: {
+    bgColor: '#FFF8DC',
+    textColor: '#3e2723',
+    fontFamily: DEFAULT_READER_FONT,
+    fontSize: 18,
+    textAlign: 'justify',
+  },
+  dark: {
+    bgColor: '#0B0B0B',
+    textColor: '#F4F4F5',
+    fontFamily: DEFAULT_READER_FONT,
+    fontSize: 18,
+    textAlign: 'justify',
+  },
+};
 
 const htmlToText = (html) => {
   if (!html) return '';
@@ -99,6 +120,15 @@ const formatTime = (value) => {
   return date.toLocaleDateString('vi-VN');
 };
 
+const formatVolumeHeading = (volumeNumber, volumeTitle) => {
+  const sequence = Number(volumeNumber || 0);
+  const title = String(volumeTitle || '').trim();
+  if (sequence > 0 && title) return `Tập ${sequence}: ${title}`;
+  if (sequence > 0) return `Tập ${sequence}`;
+  if (title) return title;
+  return '';
+};
+
 const isDarkColor = (hex) => {
   if (!hex?.startsWith('#') || hex.length !== 7) return false;
   const r = parseInt(hex.slice(1, 3), 16);
@@ -106,6 +136,73 @@ const isDarkColor = (hex) => {
   const b = parseInt(hex.slice(5, 7), 16);
   if ([r, g, b].some(Number.isNaN)) return false;
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.45;
+};
+
+const getReaderPreset = (theme) =>
+  theme === 'dark' ? READER_PRESETS.dark : READER_PRESETS.light;
+
+const normalizeReaderSettings = (value, fallbackTheme) => {
+  if (!value || typeof value !== 'object') {
+    return getReaderPreset(fallbackTheme);
+  }
+
+  const fallback = getReaderPreset(fallbackTheme);
+  const fontSize = Number(value.fontSize);
+
+  return {
+    bgColor:
+      typeof value.bgColor === 'string' && value.bgColor.trim()
+        ? value.bgColor
+        : fallback.bgColor,
+    textColor:
+      typeof value.textColor === 'string' && value.textColor.trim()
+        ? value.textColor
+        : fallback.textColor,
+    fontFamily:
+      typeof value.fontFamily === 'string' && value.fontFamily.trim()
+        ? value.fontFamily
+        : fallback.fontFamily,
+    fontSize: Number.isFinite(fontSize)
+      ? Math.min(30, Math.max(14, fontSize))
+      : fallback.fontSize,
+    textAlign:
+      value.textAlign === 'left' ||
+      value.textAlign === 'center' ||
+      value.textAlign === 'right' ||
+      value.textAlign === 'justify'
+        ? value.textAlign
+        : fallback.textAlign,
+  };
+};
+
+const getInitialReaderPreference = (fallbackTheme) => {
+  if (typeof window === 'undefined') {
+    return {
+      settings: getReaderPreset(fallbackTheme),
+      hasCustomSettings: false,
+    };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(READER_SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return {
+        settings: getReaderPreset(fallbackTheme),
+        hasCustomSettings: false,
+      };
+    }
+
+    const parsed = JSON.parse(raw);
+    return {
+      settings: normalizeReaderSettings(parsed?.settings ?? parsed, fallbackTheme),
+      hasCustomSettings: Boolean(parsed?.hasCustomSettings ?? true),
+    };
+  } catch {
+    return {
+      settings: getReaderPreset(fallbackTheme),
+      hasCustomSettings: false,
+    };
+  }
 };
 
 const getInitial = (name) => {
@@ -444,7 +541,7 @@ const LockedChapter = ({ chapter, onPurchase }) => (
   </div>
 );
 
-const CommentsSection = ({ storyId, chapterId, dark }) => {
+const CommentsSection = ({ storyId, chapterId }) => {
   const navigate = useNavigate();
   const { notify } = useNotify();
   const {
@@ -457,7 +554,6 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     createComment,
     updateComment,
     deleteComment,
-    reportComment,
     loadMoreComments,
     error,
   } = useComments(storyId, chapterId);
@@ -664,12 +760,7 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     );
   };
 
-  const renderCommentItem = (comment, isReply = false, rootId = null) => {
-    const commentRootId = String(rootId || comment.id);
-    const isOwner = currentUserId === Number(comment.userId);
-    const mention = isReply && comment.parentUsername ? `@${comment.parentUsername} ` : '';
-    const isEditing = editingCommentId === comment.id;
-
+  const legacyRenderCommentItem = (comment, isReply = false, rootId = null) => {
     return (
       <article
         key={comment.id}
@@ -777,10 +868,34 @@ const CommentsSection = ({ storyId, chapterId, dark }) => {
     );
   };
 
+  const renderCommentItem = (comment, isReply = false, rootId = null) => (
+    <CommentThreadItem
+      key={comment.id}
+      comment={comment}
+      isReply={isReply}
+      rootId={rootId}
+      currentUserId={currentUserId}
+      formatTime={formatTime}
+      getInitial={getInitial}
+      onUserClick={(targetComment) =>
+        navigate(`/portfolio/${targetComment.userId}`)
+      }
+      onReply={openReplyForm}
+      onStartEdit={handleStartEdit}
+      onDelete={handleDeleteComment}
+      onReport={handleReportComment}
+      editingCommentId={editingCommentId}
+      editingContent={editingContent}
+      onEditingContentChange={setEditingContent}
+      savingComment={savingComment}
+      onSaveEdit={handleSaveEdit}
+      onCancelEdit={handleCancelEdit}
+      replyForm={renderReplyForm(comment.id)}
+    />
+  );
+
   return (
-    <section
-      className={`chapter-comments ${dark ? 'chapter-comments--dark' : ''}`}
-    >
+    <section className='chapter-comments'>
       <h3>Bình luận ({total})</h3>
       <form className='story-metadata__comment-form' onSubmit={submitRoot}>
         <textarea
@@ -878,6 +993,7 @@ const ChapterPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useNotify();
+  const { resolvedTheme } = useTheme();
 
   const initialId = Number(chapterIdParam) || INITIAL_CHAPTER_ID;
   const { chapterId, chapter, allChapters, loading, error, refreshChapter } =
@@ -886,13 +1002,11 @@ const ChapterPage = () => {
     useBookmarks(chapterId);
   const { wallet, refreshWallet } = useContext(WalletContext);
 
-  const [settings, setSettings] = useState({
-    bgColor: '#FFF8DC',
-    textColor: '#3e2723',
-    fontFamily: "'Crimson Text', serif",
-    fontSize: 18,
-    textAlign: 'justify',
-  });
+  const [readerPreference, setReaderPreference] = useState(() =>
+    getInitialReaderPreference(resolvedTheme),
+  );
+  const settings = readerPreference.settings;
+  const hasCustomReaderSettings = readerPreference.hasCustomSettings;
   const dark = useMemo(() => isDarkColor(settings.bgColor), [settings.bgColor]);
 
   const [showSettings, setShowSettings] = useState(false);
@@ -914,6 +1028,42 @@ const ChapterPage = () => {
   const activeReadingSegmentIdRef = useRef(null);
   const chapterQualifiedRef = useRef(false);
   const lastPersistedProgressRef = useRef('');
+
+  const handleSettingsChange = useCallback((nextSettings) => {
+    setReaderPreference({
+      settings: nextSettings,
+      hasCustomSettings: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (hasCustomReaderSettings) return;
+
+    setReaderPreference((prev) => {
+      const nextPreset = getReaderPreset(resolvedTheme);
+      return {
+        ...prev,
+        settings: nextPreset,
+      };
+    });
+  }, [hasCustomReaderSettings, resolvedTheme]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!hasCustomReaderSettings) {
+      window.localStorage.removeItem(READER_SETTINGS_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(
+      READER_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        hasCustomSettings: true,
+        settings,
+      }),
+    );
+  }, [hasCustomReaderSettings, settings]);
 
   const orderedChapters = useMemo(
     () => (Array.isArray(allChapters) ? allChapters : []),
@@ -1516,6 +1666,11 @@ const ChapterPage = () => {
 
   if (!chapter) return null;
 
+  const volumeHeading = formatVolumeHeading(
+    chapter.volumeNumber,
+    chapter.volumeTitle,
+  );
+
   return (
     <div
       className={`chapter-reader-container ${dark ? 'theme-dark' : 'theme-light'}`}
@@ -1552,7 +1707,10 @@ const ChapterPage = () => {
       <main className='chapter-main-content'>
         <header className='story-header'>
           <h1 className='story-title'>Chương {chapter.sequenceIndex}</h1>
-          <h2 className='chapter-title'>{chapter.title}</h2>
+          {volumeHeading && (
+            <p className='chapter-volume'>{volumeHeading}</p>
+          )}
+          <h2 className='chapter-header-title'>{chapter.title}</h2>
         </header>
 
         {isLocked ? (
@@ -1659,7 +1817,6 @@ const ChapterPage = () => {
             <CommentsSection
               storyId={storyId}
               chapterId={chapterId}
-              dark={dark}
             />
           </>
         )}
@@ -1678,7 +1835,7 @@ const ChapterPage = () => {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         settings={settings}
-        onSettingsChange={setSettings}
+        onSettingsChange={handleSettingsChange}
       />
 
       <PurchaseConfirmationModal

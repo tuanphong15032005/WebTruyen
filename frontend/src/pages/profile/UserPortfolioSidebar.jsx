@@ -11,16 +11,14 @@ const UserPortfolioSidebar = ({ isPrivate, onTogglePrivacy }) => {
             <Lock size={20} />
           </div>
           <div className='user-portfolio-privacy__text'>
-            <p className='user-portfolio-privacy__title'>
-              Khóa Portfolio (Privacy Mode)
-            </p>
+            <p className='user-portfolio-privacy__title'>Khoá hồ sơ tác giả</p>
             <p className='user-portfolio-privacy__description'>
-              Toggle to lock or unlock your public portfolio visibility.
+              Bật để ẩn portfolio công khai và chỉ cho phép chính bạn xem nội dung này.
             </p>
           </div>
         </div>
 
-        <label className='user-portfolio-privacy__switch' aria-label='Toggle portfolio privacy'>
+        <label className='user-portfolio-privacy__switch' aria-label='Bật tắt chế độ riêng tư'>
           <input checked={isPrivate} onChange={onTogglePrivacy} type='checkbox' />
           <span className='user-portfolio-privacy__track' aria-hidden='true'>
             <span className='user-portfolio-privacy__thumb' />

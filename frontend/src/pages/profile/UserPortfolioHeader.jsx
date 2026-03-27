@@ -2,92 +2,149 @@ import React from 'react';
 import { Share, Heart, DollarSign } from 'lucide-react';
 import { getStoredUser } from '../../utils/helpers';
 
-const UserPortfolioHeader = ({ data, onShare, onFollow, onDonate, isFollowing, followLoading, isOwnPortfolio }) => {
-    // Check if user is authenticated
-    const user = getStoredUser();
-    const isAuthenticated = user && user.userId;
-    return (
-        <section className="relative w-full">
-            <div className="h-64 w-full rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 relative overflow-hidden shadow-sm">
-                {data.coverUrl ? (
-                    <img
-                        src={data.coverUrl}
-                        alt={`${data.displayName || data.username}'s cover`}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-white/40 via-transparent to-transparent"></div>
-                )}
-            </div>
-            <div className="px-8 -mt-16 flex flex-col md:flex-row items-end justify-between gap-6 relative z-10">
-                <div className="flex items-end gap-6">
-                    <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
-                        <img 
-                            className="w-full h-full object-cover" 
-                            src={data.avatar || data.avatarUrl || data.coverUrl || "https://via.placeholder.com/150x150"} 
-                            alt="User avatar" 
-                        />
-                    </div>
-                    <div className="pb-2">
-                        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                            {data.displayName || data.username}
-                        </h1>
-                        <p className="text-gray-500 font-medium">
-                            {data.author ? (data.author_bio || data.bio) : (data.bio || data.description || '')}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex gap-3 pb-2">
-                    {/* Follow Button - Always show, but disabled when viewing own portfolio */}
-                    <button 
-                        onClick={onFollow}
-                        disabled={followLoading || isOwnPortfolio}
-                        className={`px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all ${
-                            isOwnPortfolio
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : !isAuthenticated
-                                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                                    : isFollowing 
-                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
-                                        : 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-500/20'
-                        } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        <Heart size={18} fill={isFollowing ? 'currentColor' : 'none'} />
-                        {followLoading ? 'Đang xử lý...' : 
-                         isOwnPortfolio ? 'Hồ sơ của bạn' :
-                         !isAuthenticated ? 'Đăng nhập để theo dõi' :
-                         isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
-                    </button>
-                    
-                    {/* Donate Button - Show for authors, but disabled when viewing own portfolio */}
-                    {data?.author && (
-                        <button 
-                            onClick={onDonate}
-                            disabled={isOwnPortfolio}
-                            className={`px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all ${
-                                isOwnPortfolio
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : !isAuthenticated
-                                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                                        : 'bg-green-500 text-white rounded-full shadow-lg shadow-green-500/20 hover:bg-green-600'
-                            }`}
-                        >
-                            <DollarSign size={18} />
-                            {isOwnPortfolio ? 'Hồ sơ của bạn' : !isAuthenticated ? 'Đăng nhập để ủng hộ' : 'Ủng hộ'}
-                        </button>
-                    )}
-                    
-                    {/* Share Button */}
-                    <button 
-                        onClick={onShare}
-                        className="p-2.5 bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/20 flex items-center justify-center hover:bg-blue-600 transition-all"
-                    >
-                        <Share size={20} />
-                    </button>
-                </div>
-            </div>
-        </section>
-    );
+const UserPortfolioHeader = ({
+  data,
+  onShare,
+  onFollow,
+  onDonate,
+  isFollowing,
+  followLoading,
+  isOwnPortfolio,
+  isDark = false,
+}) => {
+  const user = getStoredUser();
+  const isAuthenticated = Boolean(user && user.userId);
+
+  const primaryTextStyle = { color: 'var(--theme-text-primary)' };
+  const secondaryTextStyle = { color: 'var(--theme-text-secondary)' };
+  const nameplateStyle = {
+    background: isDark ? 'var(--theme-surface-raised)' : 'rgba(255, 255, 255, 0.92)',
+    borderColor: isDark ? 'var(--theme-border)' : 'rgba(255, 255, 255, 0.85)',
+    boxShadow: isDark ? 'var(--shadow-lg)' : '0 18px 36px rgba(15, 23, 42, 0.12)',
+  };
+
+  const getFollowButtonClassName = () => {
+    if (followLoading) {
+      return 'bg-gray-200 text-gray-500 cursor-not-allowed';
+    }
+
+    if (!isAuthenticated) {
+      return 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-500/20';
+    }
+
+    if (isFollowing) {
+      return isDark
+        ? 'text-white hover:brightness-110'
+        : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+    }
+
+    return 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-500/20';
+  };
+
+  const followButtonStyle =
+    isAuthenticated && isFollowing && isDark
+      ? {
+          background: 'var(--theme-surface-hover)',
+          borderColor: 'var(--theme-border)',
+        }
+      : undefined;
+
+  const donateButtonStyle = isDark
+    ? {
+        boxShadow: '0 10px 28px rgba(34, 197, 94, 0.26)',
+      }
+    : undefined;
+
+  return (
+    <section className="relative w-full">
+      <div className="relative h-64 w-full overflow-hidden rounded-3xl bg-gradient-to-r from-purple-100 via-cyan-100 to-blue-100 shadow-sm">
+        {data.coverUrl ? (
+          <img
+            src={data.coverUrl}
+            alt={`Ảnh bìa của ${data.displayName || data.username}`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-30" />
+        )}
+      </div>
+
+      <div className="relative z-10 -mt-16 flex flex-col gap-5 px-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+          <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-white shadow-xl sm:h-32 sm:w-32">
+            <img
+              className="h-full w-full object-cover"
+              src={
+                data.avatar ||
+                data.avatarUrl ||
+                data.coverUrl ||
+                'https://via.placeholder.com/150x150'
+              }
+              alt="Ảnh đại diện người dùng"
+            />
+          </div>
+
+          <div
+            className="min-w-0 rounded-[28px] border px-5 py-4 backdrop-blur-md sm:px-6"
+            style={nameplateStyle}
+          >
+            <h1
+              className="truncate text-2xl font-extrabold tracking-tight sm:text-3xl"
+              style={primaryTextStyle}
+            >
+              {data.displayName || data.username}
+            </h1>
+            <p className="mt-2 max-w-2xl text-base font-medium leading-7" style={secondaryTextStyle}>
+              {data.author ? data.author_bio || data.bio : data.bio || data.description || ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex w-full flex-wrap items-center justify-start gap-3 pb-1 lg:w-auto lg:justify-end">
+          {!isOwnPortfolio && (
+            <button
+              type="button"
+              onClick={onFollow}
+              disabled={followLoading}
+              className={`min-h-11 min-w-[172px] justify-center rounded-full px-4 py-2.5 shadow-lg flex items-center gap-2 transition-all ${getFollowButtonClassName()}`}
+              style={followButtonStyle}
+            >
+              <Heart size={18} fill={isFollowing ? 'currentColor' : 'none'} />
+              {followLoading
+                ? 'Đang xử lý...'
+                : !isAuthenticated
+                  ? 'Đăng nhập để theo dõi'
+                  : isFollowing
+                    ? 'Đang theo dõi'
+                    : 'Theo dõi'}
+            </button>
+          )}
+
+          {!isOwnPortfolio && data?.author && (
+            <button
+              type="button"
+              onClick={onDonate}
+              className="flex min-h-11 min-w-[172px] items-center justify-center gap-2 rounded-full bg-green-500 px-4 py-2.5 text-white shadow-lg transition-all hover:bg-green-600"
+              style={donateButtonStyle}
+            >
+              <DollarSign size={18} />
+              {!isAuthenticated ? 'Đăng nhập để ủng hộ' : 'Ủng hộ'}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onShare}
+            aria-label="Chia sẻ hồ sơ"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-all hover:bg-blue-600"
+            style={{ boxShadow: '0 10px 28px rgba(59, 130, 246, 0.28)' }}
+          >
+            <Share size={20} />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
 };
 
 export default UserPortfolioHeader;

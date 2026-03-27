@@ -772,6 +772,10 @@ public class StoryService {
     private StoryResponse toResponse(StoryEntity story, List<TagDto> tags, boolean publishedOnly) {
         long readerCount = story.getViewCount();
         long savedCount = storyRepository.countLibraryEntriesByStoryId(story.getId());
+        long chapterCount = chapterRepository.countByVolume_Story_IdAndStatus(
+                story.getId(),
+                ChapterStatus.published
+        );
         long wordCount = countStoryWords(story.getId(), publishedOnly);
         LocalDateTime lastUpdatedAt = chapterRepository.findLatestUpdateAtByStoryId(story.getId());
         BigDecimal ratingAvg = computeRatingAverage(story.getRatingSum(), story.getRatingCount());
@@ -818,6 +822,7 @@ public class StoryService {
                 ratingAvg,
                 readerCount,
                 savedCount,
+                chapterCount,
                 wordCount,
                 lastUpdatedAt,
                 tags,

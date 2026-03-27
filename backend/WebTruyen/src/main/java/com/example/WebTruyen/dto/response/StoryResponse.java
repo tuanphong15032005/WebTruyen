@@ -30,6 +30,7 @@ public record StoryResponse(
         BigDecimal ratingAvg,
         Long readerCount,
         Long savedCount,
+        Long chapterCount,
         Long wordCount,
         LocalDateTime lastUpdatedAt,
         List<TagDto> tags,
