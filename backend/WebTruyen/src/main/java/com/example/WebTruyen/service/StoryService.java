@@ -1210,8 +1210,8 @@ public class StoryService {
     private boolean matchesSearchQuery(String title, String query) {
         String normalizedTitle = normalizeSearchText(title);
         String normalizedQuery = normalizeSearchText(query);
-        if (normalizedQuery == null) {
-            return true;
+        if (normalizedQuery == null || normalizedQuery.isBlank()) {
+            return false;
         }
         if (normalizedTitle == null) {
             return false;
