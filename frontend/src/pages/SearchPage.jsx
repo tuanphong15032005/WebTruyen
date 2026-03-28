@@ -93,6 +93,14 @@ const parseTagIdsCsv = (value) =>
     .map((item) => Number(item.trim()))
     .filter((item) => Number.isFinite(item) && item > 0);
 
+const normalizeTagSlug = (value) => String(value || '').trim().toLowerCase();
+
+const parseTagSlugsCsv = (value) =>
+  String(value || '')
+    .split(',')
+    .map((item) => normalizeTagSlug(item))
+    .filter(Boolean);
+
 const buildTagStateMap = (includedTagIds, excludedTagIds) => {
   const next = {};
   includedTagIds.forEach((id) => {
@@ -143,6 +151,8 @@ const hasActiveSearchCriteria = ({
   kind,
   tagIds,
   excludeTagIds,
+  tagSlugs,
+  excludeTagSlugs,
   chapterCount,
 }) =>
   Boolean(
@@ -152,8 +162,67 @@ const hasActiveSearchCriteria = ({
     (kind && kind !== 'all') ||
     (Array.isArray(tagIds) && tagIds.length > 0) ||
     (Array.isArray(excludeTagIds) && excludeTagIds.length > 0) ||
+    (Array.isArray(tagSlugs) && tagSlugs.length > 0) ||
+    (Array.isArray(excludeTagSlugs) && excludeTagSlugs.length > 0) ||
     normalizeChapterTarget(chapterCount) > 0,
   );
+
+const resolveTagFilterValues = (
+  searchParams,
+  tags,
+  tagsLoaded,
+  slugParamName,
+  legacyIdParamName,
+) => {
+  const slugs = parseTagSlugsCsv(searchParams.get(slugParamName) || '');
+  if (slugs.length === 0) {
+    return {
+      ids: parseTagIdsCsv(searchParams.get(legacyIdParamName) || ''),
+      pending: false,
+      invalid: false,
+      slugs: [],
+    };
+  }
+
+  if (!tagsLoaded) {
+    return {
+      ids: [],
+      pending: true,
+      invalid: false,
+      slugs,
+    };
+  }
+
+  const slugToId = new Map(
+    (Array.isArray(tags) ? tags : [])
+      .map((tag) => [normalizeTagSlug(tag?.slug), Number(tag?.id || 0)])
+      .filter(([slug, id]) => slug && id > 0),
+  );
+
+  const ids = slugs
+    .map((slug) => slugToId.get(slug))
+    .filter((id) => Number.isFinite(id) && id > 0);
+
+  return {
+    ids,
+    pending: false,
+    invalid: ids.length !== slugs.length,
+    slugs,
+  };
+};
+
+const getTagSlugsByIds = (tagIds, tags) => {
+  const idSet = new Set(
+    (Array.isArray(tagIds) ? tagIds : [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0),
+  );
+
+  return (Array.isArray(tags) ? tags : [])
+    .filter((tag) => idSet.has(Number(tag?.id || 0)))
+    .map((tag) => normalizeTagSlug(tag?.slug))
+    .filter(Boolean);
+};
 
 const getSortValue = (story, sortBy) => {
   if (sortBy === 'title') {
@@ -406,6 +475,7 @@ function SearchPage() {
   );
   const [tagStates, setTagStates] = useState({});
   const [tags, setTags] = useState([]);
+  const [tagsLoaded, setTagsLoaded] = useState(false);
   const [stories, setStories] = useState([]);
   const [chapterMetaByStoryId, setChapterMetaByStoryId] = useState({});
   const [loading, setLoading] = useState(false);
@@ -428,10 +498,36 @@ function SearchPage() {
         setTags(Array.isArray(response) ? response : []);
       } catch {
         setTags([]);
+      } finally {
+        setTagsLoaded(true);
       }
     };
     fetchTags();
   }, []);
+
+  const includedTagFilter = useMemo(
+    () =>
+      resolveTagFilterValues(
+        searchParams,
+        tags,
+        tagsLoaded,
+        'tagSlugs',
+        'tagIds',
+      ),
+    [searchParams, tags, tagsLoaded],
+  );
+
+  const excludedTagFilter = useMemo(
+    () =>
+      resolveTagFilterValues(
+        searchParams,
+        tags,
+        tagsLoaded,
+        'excludeTagSlugs',
+        'excludeTagIds',
+      ),
+    [searchParams, tags, tagsLoaded],
+  );
 
   useEffect(() => {
     const element = containerRef.current;
@@ -467,16 +563,14 @@ function SearchPage() {
   }, []);
 
   useEffect(() => {
+    if (includedTagFilter.pending || excludedTagFilter.pending) return;
+
     const q = searchParams.get('q') || '';
     const author = searchParams.get('author') || '';
     const completionStatus = searchParams.get('completionStatus') || 'all';
     const kind = searchParams.get('kind') || 'all';
     const chapterTarget = normalizeChapterTarget(
       searchParams.get('chapterCount') || 0,
-    );
-    const rawTagIds = parseTagIdsCsv(searchParams.get('tagIds') || '');
-    const rawExcludedTagIds = parseTagIdsCsv(
-      searchParams.get('excludeTagIds') || '',
     );
     const normalizedStatus = STATUS_OPTIONS.some(
       (item) => item.value === completionStatus,
@@ -491,8 +585,49 @@ function SearchPage() {
       STORY_KIND_OPTIONS.some((item) => item.value === kind) ? kind : 'all',
     );
     setChapterTargetInput(chapterTarget);
-    setTagStates(buildTagStateMap(rawTagIds, rawExcludedTagIds));
-  }, [searchParams]);
+    setTagStates(buildTagStateMap(includedTagFilter.ids, excludedTagFilter.ids));
+  }, [excludedTagFilter, includedTagFilter, searchParams]);
+
+  useEffect(() => {
+    if (!tagsLoaded) return;
+
+    const rawTagIds = parseTagIdsCsv(searchParams.get('tagIds') || '');
+    const rawExcludeTagIds = parseTagIdsCsv(
+      searchParams.get('excludeTagIds') || '',
+    );
+    const hasTagSlugs = parseTagSlugsCsv(searchParams.get('tagSlugs') || '')
+      .length > 0;
+    const hasExcludeTagSlugs = parseTagSlugsCsv(
+      searchParams.get('excludeTagSlugs') || '',
+    ).length > 0;
+
+    const shouldCanonicalizeIncluded = !hasTagSlugs && rawTagIds.length > 0;
+    const shouldCanonicalizeExcluded =
+      !hasExcludeTagSlugs && rawExcludeTagIds.length > 0;
+
+    if (!shouldCanonicalizeIncluded && !shouldCanonicalizeExcluded) return;
+
+    const next = new URLSearchParams(searchParams);
+
+    if (shouldCanonicalizeIncluded) {
+      const tagSlugs = getTagSlugsByIds(rawTagIds, tags);
+      if (tagSlugs.length === rawTagIds.length) {
+        next.set('tagSlugs', tagSlugs.join(','));
+        next.delete('tagIds');
+      }
+    }
+
+    if (shouldCanonicalizeExcluded) {
+      const excludeTagSlugs = getTagSlugsByIds(rawExcludeTagIds, tags);
+      if (excludeTagSlugs.length === rawExcludeTagIds.length) {
+        next.set('excludeTagSlugs', excludeTagSlugs.join(','));
+        next.delete('excludeTagIds');
+      }
+    }
+
+    if (next.toString() === searchParams.toString()) return;
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, tags, tagsLoaded]);
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -502,13 +637,24 @@ function SearchPage() {
         searchParams.get('completionStatus') || 'all'
       ).trim();
       const kind = (searchParams.get('kind') || 'all').trim();
-      const tagIds = parseTagIdsCsv(searchParams.get('tagIds') || '');
-      const excludeTagIds = parseTagIdsCsv(
-        searchParams.get('excludeTagIds') || '',
-      );
+      const tagIds = includedTagFilter.ids;
+      const excludeTagIds = excludedTagFilter.ids;
       const chapterCount = normalizeChapterTarget(
         searchParams.get('chapterCount') || 0,
       );
+      const tagSlugs = includedTagFilter.slugs;
+      const excludeTagSlugs = excludedTagFilter.slugs;
+
+      if (includedTagFilter.pending || excludedTagFilter.pending) {
+        return;
+      }
+
+      if (includedTagFilter.invalid || excludedTagFilter.invalid) {
+        setStories([]);
+        setChapterMetaByStoryId({});
+        setLoading(false);
+        return;
+      }
 
       if (
         !hasActiveSearchCriteria({
@@ -518,6 +664,8 @@ function SearchPage() {
           kind,
           tagIds,
           excludeTagIds,
+          tagSlugs,
+          excludeTagSlugs,
           chapterCount,
         })
       ) {
@@ -574,7 +722,7 @@ function SearchPage() {
     };
 
     fetchStories();
-  }, [notify, searchParams]);
+  }, [excludedTagFilter, includedTagFilter, notify, searchParams]);
 
   const includedTagIds = useMemo(
     () => collectTagIdsByState(tagStates, TAG_FILTER_INCLUDE),
@@ -616,11 +764,13 @@ function SearchPage() {
         author: searchParams.get('author') || '',
         completionStatus: searchParams.get('completionStatus') || 'all',
         kind: searchParams.get('kind') || 'all',
-        tagIds: parseTagIdsCsv(searchParams.get('tagIds') || ''),
-        excludeTagIds: parseTagIdsCsv(searchParams.get('excludeTagIds') || ''),
+        tagIds: includedTagFilter.ids,
+        excludeTagIds: excludedTagFilter.ids,
+        tagSlugs: includedTagFilter.slugs,
+        excludeTagSlugs: excludedTagFilter.slugs,
         chapterCount: searchParams.get('chapterCount') || 0,
       }),
-    [searchParams],
+    [excludedTagFilter, includedTagFilter, searchParams],
   );
 
   const chapterSliderMax = useMemo(() => {
@@ -748,16 +898,18 @@ function SearchPage() {
     const keyword = keywordInput.trim();
     const author = authorInput.trim();
     const chapterTarget = normalizeChapterTarget(chapterTargetInput);
+    const includedTagSlugs = getTagSlugsByIds(includedTagIds, tags);
+    const excludedTagSlugs = getTagSlugsByIds(excludedTagIds, tags);
     if (keyword) next.q = keyword;
     if (author) next.author = author;
     if (statusInput !== 'all') next.completionStatus = statusInput;
     if (kindInput !== 'all') next.kind = kindInput;
     if (chapterTarget > 0) next.chapterCount = String(chapterTarget);
-    if (includedTagIds.length > 0) {
-      next.tagIds = includedTagIds.join(',');
+    if (includedTagSlugs.length > 0) {
+      next.tagSlugs = includedTagSlugs.join(',');
     }
-    if (excludedTagIds.length > 0) {
-      next.excludeTagIds = excludedTagIds.join(',');
+    if (excludedTagSlugs.length > 0) {
+      next.excludeTagSlugs = excludedTagSlugs.join(',');
     }
     setSearchParams(next);
   };

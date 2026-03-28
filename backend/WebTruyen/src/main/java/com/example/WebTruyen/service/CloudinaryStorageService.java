@@ -19,7 +19,7 @@ import static com.cloudinary.utils.ObjectUtils.asMap;
 @RequiredArgsConstructor
 public class CloudinaryStorageService implements StorageService {
 
-    private static final int COVER_WIDTH = 600;
+    private static final int COVER_WIDTH = 600; 
     private static final int COVER_HEIGHT = 800;
     private static final int IMAGE_MAX_SIZE = 1200;
 
@@ -29,6 +29,7 @@ public class CloudinaryStorageService implements StorageService {
     public String saveCover(MultipartFile file) {
         if (file == null || file.isEmpty()) return null;
         try {
+            //resize thế nào? 
             byte[] resized = resizeImage(file.getBytes(), COVER_WIDTH, COVER_HEIGHT, true);
             String publicId = "webtruyen/covers/" + UUID.randomUUID();
             Map<?, ?> result = cloudinary.uploader().upload(
@@ -117,11 +118,6 @@ public class CloudinaryStorageService implements StorageService {
         if (input == null || input.length == 0) {
             throw new IllegalArgumentException("Input image data is null or empty");
         }
-        
-        System.out.println("=== RESIZE IMAGE ===");
-        System.out.println("Input size: " + input.length + " bytes");
-        System.out.println("Target size: " + width + "x" + height);
-        
         try {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             Thumbnails.of(new ByteArrayInputStream(input))
@@ -129,9 +125,8 @@ public class CloudinaryStorageService implements StorageService {
                     .keepAspectRatio(keepAspect)
                     .outputQuality(0.9)
                     .toOutputStream(output);
-            
+
             byte[] result = output.toByteArray();
-            System.out.println("Resize successful: " + result.length + " bytes");
             return result;
         } catch (net.coobird.thumbnailator.tasks.UnsupportedFormatException e) {
             System.err.println("Unsupported image format: " + e.getMessage());
